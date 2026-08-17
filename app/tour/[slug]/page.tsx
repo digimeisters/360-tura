@@ -1,5 +1,4 @@
 'use client';
-export const dynamic = 'force-dynamic';
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
@@ -24,32 +23,36 @@ export default function TourPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
 
-  // 1. Učitavanje podataka iz baze
+  // 1. Sigurno učitavanje podataka uz try/catch/finally
   useEffect(() => {
     if (!slug) return;
 
     async function loadTour() {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('tours')
-        .select('*')
-        .eq('slug', slug)
-        .maybesingle();
+      try {
+        const { data, error: dbError } = await supabase
+          .from('tours')
+          .select('*')
+          .eq('slug', slug)
+          .maybeSingle();
 
-      if (error || !data) {
-        setError('Tura nije pronađena.');
-        setLoading(false);
-        return;
+        if (dbError || !data) {
+          setError('Tura nije pronađena.');
+        } else {
+          setTour(data);
+        }
+      } catch (e: any) {
+        console.error('Greška pri učitavanju:', e);
+        setError('Došlo je do greške u komunikaciji sa bazom.');
+      } finally {
+        setLoading(false); // Gasi loading ekran bez obzira na ishod
       }
-
-      setTour(data);
-      setLoading(false);
     }
 
     loadTour();
   }, [slug]);
 
-  // 2. Inicijalizacija Pannellum-a kada su i podaci i skripta spremni
+  // 2. Inicijalizacija Pannellum-a
   useEffect(() => {
     if (!tour || !containerRef.current || !scriptLoaded) return;
 
@@ -69,22 +72,28 @@ export default function TourPage() {
   }, [tour, scriptLoaded]);
 
   if (loading) {
-    return <div style={{ color: 'white', padding: '20px', background: '#111', height: '100vh' }}>Učitavanje podataka...</div>;
+    return (
+      <div style={{ color: 'white', padding: '20px', background: '#111', height: '100vh' }}>
+        Učitavanje podataka...
+      </div>
+    );
   }
 
   if (error || !tour) {
-    return <div style={{ color: 'white', padding: '20px', background: '#111', height: '100vh' }}>{error || 'Tura nije pronađena.'}</div>;
+    return (
+      <div style={{ color: 'white', padding: '20px', background: '#111', height: '100vh' }}>
+        {error || 'Tura nije pronađena.'}
+      </div>
+    );
   }
 
   return (
     <>
-      {/* Učitavanje Pannellum CSS-a */}
       <link
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css"
       />
 
-      {/* Učitavanje Pannellum JS-a */}
       <Script
         src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"
         onLoad={() => setScriptLoaded(true)}
@@ -103,7 +112,7 @@ export default function TourPage() {
             borderRadius: '6px',
             margin: 0,
             fontSize: '18px',
-            fontFamily: 'sans-serif'
+            fontFamily: 'sans-serif',
           }}
         >
           {tour.title}
