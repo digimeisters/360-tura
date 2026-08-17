@@ -21,13 +21,13 @@ export default function TourPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
 
+  // 1. Dobijanje podataka iz Supabase-a
   useEffect(() => {
-    // Ako slug još uvek nije dostupan, sačekaj
     if (!slug) return;
 
     async function loadTour() {
       setLoading(true);
-      
+
       const { data, error } = await supabase
         .from('tours')
         .select('*')
@@ -47,6 +47,29 @@ export default function TourPage() {
     loadTour();
   }, [slug]);
 
+  // 2. Inicijalizacija Pannellum-a kada se podaci učitaju
+  useEffect(() => {
+    if (!tour || !containerRef.current) return;
+
+    // Čišćenje starog viewer-a ako postoji
+    if (viewerRef.current) {
+      try {
+        viewerRef.current.destroy();
+      } catch (e) {
+        // zanemari grešku pri uništavanju
+      }
+    }
+
+    // Inicijalizacija Pannellum viewer-a
+    if (window.pannellum) {
+      viewerRef.current = window.pannellum.viewer(containerRef.current, {
+        type: 'equirectangular',
+        panorama: tour.panorama_url,
+        autoLoad: true,
+      });
+    }
+  }, [tour]);
+
   if (loading) {
     return <div style={{ color: 'white', padding: '20px' }}>Učitavanje...</div>;
   }
@@ -57,7 +80,7 @@ export default function TourPage() {
 
   return (
     <main style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      <h1 style={{ position: 'absolute', top: 20, left: 20, zIndex: 10, color: 'white' }}>
+      <h1 style={{ position: 'absolute', top: 20, left: 20, zIndex: 10, color: 'white', background: 'rgba(0,0,0,0.5)', padding: '5px 10px', borderRadius: '4px' }}>
         {tour.title}
       </h1>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
