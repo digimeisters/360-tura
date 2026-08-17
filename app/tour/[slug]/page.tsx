@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = 'force-dynamic';
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
@@ -33,7 +34,7 @@ export default function TourPage() {
         .from('tours')
         .select('*')
         .eq('slug', slug)
-        .single();
+        .maybesingle();
 
       if (error || !data) {
         setError('Tura nije pronađena.');
