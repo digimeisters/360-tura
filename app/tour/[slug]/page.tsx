@@ -64,10 +64,6 @@ const categoryQuestions = {
   ]
 };
 
-function easeInOutQuad(t: number): number {
-  return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-}
-
 function normalizeYaw(yaw: number): number {
   let res = (yaw + 180) % 360;
   if (res < 0) res += 360;
@@ -88,6 +84,7 @@ function getShortestTargetYaw(currentYaw: number, targetYaw: number): number {
 export default function TourPage() {
   const [mounted, setMounted] = useState(false);
   const [tourStarted, setTourStarted] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const params = useParams();
   const slug = params?.slug as string;
@@ -100,6 +97,9 @@ export default function TourPage() {
 
   const [pannellumReady, setPannellumReady] = useState(false);
   const [adminMode, setAdminMode] = useState(false);
+  
+  const [isMuted, setIsMuted] = useState(false);
+  const isMutedRef = useRef(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   const [infoBoxData, setInfoBoxData] = useState<{ title?: string; text: string; index?: number } | null>(null);
@@ -113,15 +113,37 @@ export default function TourPage() {
   const [fromYawVal, setFromYawVal] = useState<number | null>(null);
 
   const [activeModal, setActiveModal] = useState<'none' | 'faq' | 'plan' | 'location' | 'about'>('none');
+  const [selectedFaqIdx, setSelectedFaqIdx] = useState<number | null>(null);
 
   const viewerRef = useRef<any>(null);
   const animFrameRef = useRef<number | null>(null);
   const sequenceActiveRef = useRef<boolean>(false);
   const isInterruptedRef = useRef<boolean>(false);
+  const mainContainerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     setMounted(true);
+
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
   }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      mainContainerRef.current?.requestFullscreen().catch(err => {
+        console.error("Greška pri pokretanju full screen-a:", err);
+      });
+    } else {
+      document.exitFullscreen().catch(err => {
+        console.error("Greška pri izlasku iz full screen-a:", err);
+      });
+    }
+  };
 
   const stopCurrentAnimation = () => {
     if (animFrameRef.current !== null) {
@@ -130,15 +152,39 @@ export default function TourPage() {
     }
   };
 
-  const speakTextWithCompletion = (text: string): Promise<void> => {
+  const toggleMute = () => {
+    const nextMuteState = !isMutedRef.current;
+    isMutedRef.current = nextMuteState;
+    setIsMuted(nextMuteState);
+
+    if (nextMuteState) {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      setIsSpeaking(false);
+    }
+  };
+
+  const speakTextWithCompletion = (text: string, title?: string, index?: number): Promise<void> => {
     return new Promise((resolve) => {
-      if (typeof window === 'undefined' || !('speechSynthesis' in window) || !text) {
+      if (!text) {
+        resolve();
+        return;
+      }
+
+      setInfoBoxData({ title: title || rooms[roomIdx]?.title, text, index });
+
+      if (isMutedRef.current || typeof window === 'undefined' || !('speechSynthesis' in window)) {
         setIsSpeaking(false);
-        setTimeout(resolve, 2000);
+        const readTime = Math.max(3000, text.length * 50);
+        const timer = setTimeout(() => {
+          resolve();
+        }, readTime);
         return;
       }
 
       window.speechSynthesis.cancel();
+      setIsSpeaking(true);
 
       const utterance = new SpeechSynthesisUtterance(text);
       const voices = window.speechSynthesis.getVoices();
@@ -148,10 +194,9 @@ export default function TourPage() {
       utterance.lang = srVoice ? srVoice.lang : 'sr-RS';
       utterance.rate = 0.92;
 
-      utterance.onstart = () => setIsSpeaking(true);
-
       const finish = () => {
         setIsSpeaking(false);
+        setInfoBoxData(null);
         resolve();
       };
 
@@ -166,6 +211,7 @@ export default function TourPage() {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
+      setInfoBoxData(null);
     }
   };
 
@@ -289,8 +335,11 @@ export default function TourPage() {
           } else if (!isNav) {
             isInterruptedRef.current = true;
             stopCurrentAnimation();
-            setInfoBoxData({ title: wp.title, text: wp.text, index });
-            speakTextWithCompletion(wp.text);
+            // Klik na info tačku postavlja hfov na 80
+            if (viewerRef.current) {
+              viewerRef.current.setHfov(80);
+            }
+            speakTextWithCompletion(wp.text, wp.title, index);
           }
         }
       };
@@ -304,7 +353,7 @@ export default function TourPage() {
       panorama: currentRoom.panorama_url,
       autoLoad: true,
       showControls: false,
-      hfov: 75,
+      hfov: 105, // Uvodni kadar postavljen na 105
       yaw: targetEstablishYaw,
       pitch: targetEstablishPitch,
       autoRotate: 0,
@@ -322,16 +371,16 @@ export default function TourPage() {
       const introText = currentRoom.establish?.text || `Dobrodošli u ${currentRoom.title}`;
 
       const rotatePromise = new Promise<void>((resolve) => {
-        const durationPhase1 = 15000; // Tačno 15 sekundi
-        const totalDegrees = 230; // 2.5 puta veći prostor (~300 stepeni)
-        const speed = totalDegrees / (durationPhase1 / 1000); // Brzina u stepenima po sekundi
+        const durationPhase1 = 15000;
+        const totalDegrees = 240;
+        const speed = totalDegrees / (durationPhase1 / 1000);
 
         if (!sequenceActiveRef.current || isInterruptedRef.current) return resolve();
 
         if (viewerRef.current) {
+          viewerRef.current.setHfov(105); // Drži kadar na 105 tokom uvodne rotacije
           viewerRef.current.setYaw(targetEstablishYaw);
           viewerRef.current.setPitch(targetEstablishPitch);
-          // Nativna funkcija koja automatski i glatko okreće kameru udesno bez ikakvih trzanja i granica
           viewerRef.current.startAutoRotate(speed, targetEstablishPitch);
         }
 
@@ -359,7 +408,7 @@ export default function TourPage() {
 
       await Promise.all([
         rotatePromise,
-        speakTextWithCompletion(introText)
+        speakTextWithCompletion(introText, currentRoom.title)
       ]);
 
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
@@ -377,14 +426,13 @@ export default function TourPage() {
         const targetYaw = getShortestTargetYaw(currentYaw, item.wp.yaw);
         const targetPitch = item.wp.pitch ?? 0;
 
-        viewerRef.current.lookAt(targetPitch, targetYaw, 75, 2200);
+        // Prelazak na info tačku postavlja hfov na 80
+        viewerRef.current.lookAt(targetPitch, targetYaw, 80, 2200);
 
         await new Promise(r => setTimeout(r, 2300));
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
-        setInfoBoxData({ title: item.wp.title, text: item.wp.text, index: item.i });
-
-        await speakTextWithCompletion(item.wp.text);
+        await speakTextWithCompletion(item.wp.text, item.wp.title, item.i);
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
         await new Promise(r => setTimeout(r, 1000));
@@ -396,8 +444,14 @@ export default function TourPage() {
 
         stopCurrentAnimation();
         setInfoBoxData(null);
+        
+        // Vraća na 105 kada krene opšti lagani let kroz sobu
+        if (viewerRef.current) {
+          viewerRef.current.setHfov(105);
+        }
+
         let lastTime = performance.now();
-        const degreesPerMs = 230 / 18000;
+        const degreesPerMs = 210 / 18000;
 
         const animateGlide = (now: number) => {
           if (!sequenceActiveRef.current || isInterruptedRef.current) return;
@@ -470,7 +524,7 @@ export default function TourPage() {
     if (viewerRef.current) {
       const currentYaw = viewerRef.current.getYaw();
       const targetYaw = getShortestTargetYaw(currentYaw, wp.yaw);
-      viewerRef.current.lookAt(wp.pitch ?? 0, targetYaw, 75, 1000);
+      viewerRef.current.lookAt(wp.pitch ?? 0, targetYaw, 80, 1000);
     }
 
     setPendingCoords({ pitch: wp.pitch, yaw: wp.yaw });
@@ -493,7 +547,7 @@ export default function TourPage() {
     if (viewerRef.current) {
       const currentYaw = viewerRef.current.getYaw();
       const targetYaw = getShortestTargetYaw(currentYaw, establish?.fromYaw ?? 0);
-      viewerRef.current.lookAt(establish?.pitch ?? 0, targetYaw, 75, 1000);
+      viewerRef.current.lookAt(establish?.pitch ?? 0, targetYaw, 105, 1000);
     }
 
     setPendingCoords({
@@ -623,6 +677,7 @@ export default function TourPage() {
 
   return (
     <main 
+      ref={mainContainerRef}
       suppressHydrationWarning 
       style={{ width: '100vw', height: '100vh', background: '#0a0a0a', color: '#fff', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}
     >
@@ -644,11 +699,35 @@ export default function TourPage() {
             </button>
           )}
 
+          {/* DUGME ZA ZVUK (MUTE/UNMUTE) */}
           <button 
-            onClick={() => isSpeaking ? stopSpeaking() : speakTextWithCompletion(rooms[roomIdx]?.establish?.text || `Dobrodošli u ${rooms[roomIdx]?.title}`)}
-            style={{ padding: '8px 14px', borderRadius: '20px', border: 'none', background: isSpeaking ? '#eab308' : '#22c55e', color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}
+            onClick={toggleMute}
+            style={{ 
+              padding: '8px', 
+              borderRadius: '50%', 
+              border: 'none', 
+              background: !isMuted ? '#22c55e' : '#ef4444', 
+              color: '#fff', 
+              cursor: 'pointer',
+              width: '36px',
+              height: '36px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '15px'
+            }}
+            title={!isMuted ? "Isključi zvuk (Mute)" : "Uključi zvuk (Unmute)"}
           >
-            {isSpeaking ? '🔊 Utišaj naratora' : '🔊 Pusti naraciju'}
+            {!isMuted ? '🔊' : '🔇'}
+          </button>
+
+          {/* DUGME ZA FULLSCREEN */}
+          <button 
+            onClick={toggleFullscreen}
+            style={{ padding: '8px 14px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.2)', background: '#27272a', color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}
+            title="Preko celog ekrana"
+          >
+            {isFullscreen ? '⤫ Izlaz iz Fullscreen-a' : '⛶ Fullscreen'}
           </button>
 
           <button onClick={() => setAdminMode(!adminMode)} style={{ padding: '8px 16px', borderRadius: '20px', border: 'none', background: adminMode ? '#ef4444' : '#3b82f6', color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>
@@ -675,8 +754,6 @@ export default function TourPage() {
 
       {/* Panorama Wrapper Container */}
       <div style={{ flex: 1, width: '100%', position: 'relative', overflow: 'hidden' }}>
-        
-        {/* Pannellum DOM kontejner */}
         <div id="panorama" style={{ width: '100%', height: '100%' }} />
 
         {/* KRSTIĆ ZA CILJANJE */}
@@ -706,7 +783,6 @@ export default function TourPage() {
             </span>
           </div>
         )}
-
       </div>
 
       {/* Info Card */}
@@ -773,7 +849,7 @@ export default function TourPage() {
 
       {/* Bottom Modals Bar */}
       <div style={{ padding: '12px 20px', background: '#121212', borderTop: '1px solid #282828', display: 'flex', justifyContent: 'center', gap: '8px', zIndex: 10 }}>
-        <button onClick={() => setActiveModal('faq')} style={btnStyle}>❓ Postavi pitanje</button>
+        <button onClick={() => { setActiveModal('faq'); setSelectedFaqIdx(null); }} style={btnStyle}>❓ Postavi pitanje</button>
         <button onClick={() => setActiveModal('plan')} style={btnStyle}>📐 Plan stana</button>
         <button onClick={() => setActiveModal('location')} style={btnStyle}>📍 Lokacija</button>
         <button onClick={() => setActiveModal('about')} style={btnStyle}>🏠 Više o stanu</button>
@@ -876,22 +952,59 @@ export default function TourPage() {
       {activeModal !== 'none' && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
           <div style={{ background: '#1c1c1c', padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '500px', border: '1px solid #333' }}>
+            
             {activeModal === 'faq' && (
               <div>
-                <h3 style={{ margin: '0 0 16px 0', color: '#fff' }}>Često postavljana pitanja</h3>
-                {faqList.map((item, idx) => (
-                  <div key={idx} style={{ padding: '10px', background: '#2a2a2a', marginBottom: '8px', borderRadius: '8px' }}>
-                    <strong>❓ {item.q}</strong>
-                    <p style={{ margin: '4px 0 0 0', color: '#aaa', fontSize: '13px' }}>{item.a}</p>
+                {selectedFaqIdx === null ? (
+                  <div>
+                    <h3 style={{ margin: '0 0 12px 0', color: '#fff' }}>Često postavljana pitanja</h3>
+                    <p style={{ color: '#aaa', fontSize: '13px', marginBottom: '16px' }}>Izaberite pitanje da vidite odgovor u prozoru:</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {faqList.map((item, idx) => (
+                        <button 
+                          key={idx} 
+                          onClick={() => setSelectedFaqIdx(idx)}
+                          style={{ padding: '12px 16px', background: '#2a2a2a', border: '1px solid #3f3f46', borderRadius: '8px', color: '#fff', fontSize: '14px', textAlign: 'left', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                        >
+                          <span>❓ {item.q}</span>
+                          <span style={{ color: '#38bdf8', fontSize: '16px' }}>›</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                ))}
+                ) : (
+                  <div>
+                    <h3 style={{ margin: '0 0 12px 0', color: '#38bdf8', fontSize: '15px' }}>
+                      ❓ {faqList[selectedFaqIdx].q}
+                    </h3>
+                    <div style={{ background: '#2a2a2a', padding: '16px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #3f3f46' }}>
+                      <p style={{ margin: 0, color: '#e5e5e5', fontSize: '14px', lineHeight: '1.6' }}>
+                        {faqList[selectedFaqIdx].a}
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => setSelectedFaqIdx(null)}
+                      style={{ padding: '8px 14px', background: '#3f3f46', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', width: '100%', marginBottom: '6px' }}
+                    >
+                      ← Nazad na sva pitanja
+                    </button>
+                  </div>
+                )}
               </div>
             )}
-            {activeModal === 'plan' && <div><h3 style={{ color: '#fff' }}>Plan stana</h3>{tour?.floorplan_url ? <img src={tour.floorplan_url} style={{ width: '100%' }} /> : <p>Nema slika.</p>}</div>}
-            {activeModal === 'location' && <div><h3 style={{ color: '#fff' }}>Lokacija</h3><p>{tour?.location_text || 'Nije uneto.'}</p></div>}
-            {activeModal === 'about' && <div><h3 style={{ color: '#fff' }}>Više o stanu</h3><p>{tour?.about_text || 'Nije uneto.'}</p></div>}
 
-            <button onClick={() => setActiveModal('none')} style={{ marginTop: '16px', width: '100%', padding: '10px', background: '#374151', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Zatvori</button>
+            {activeModal === 'plan' && <div><h3 style={{ color: '#fff', margin: '0 0 12px 0' }}>Plan stana</h3>{tour?.floorplan_url ? <img src={tour.floorplan_url} style={{ width: '100%', borderRadius: '8px' }} /> : <p style={{ color: '#aaa' }}>Nema slike plana.</p>}</div>}
+            
+            {activeModal === 'location' && <div><h3 style={{ color: '#fff', margin: '0 0 12px 0' }}>Lokacija</h3><p style={{ color: '#ccc', lineHeight: '1.5' }}>{tour?.location_text || 'Nije uneto.'}</p></div>}
+            
+            {activeModal === 'about' && <div><h3 style={{ color: '#fff', margin: '0 0 12px 0' }}>Više o stanu</h3><p style={{ color: '#ccc', lineHeight: '1.5' }}>{tour?.about_text || 'Nije uneto.'}</p></div>}
+
+            <button 
+              onClick={() => { setActiveModal('none'); setSelectedFaqIdx(null); }} 
+              style={{ marginTop: '16px', width: '100%', padding: '10px', background: '#374151', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              Zatvori
+            </button>
           </div>
         </div>
       )}
@@ -913,4 +1026,3 @@ const btnStyle: React.CSSProperties = {
   fontSize: '12px',
   cursor: 'pointer'
 };
-
