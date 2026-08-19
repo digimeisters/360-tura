@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -255,13 +256,22 @@ export default function TourPage() {
       .pnm-tooltip span { display: none !important; }
       .pnm-tooltip { display: none !important; }
 
-      /* Sakrivanje skrol bara za lepši izgled horizontalnog menija soba */
-      .room-scroll-container::-webkit-scrollbar {
-        display: none;
+      @keyframes ticker {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
       }
-      .room-scroll-container {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
+      .ticker-wrapper:hover .ticker-content {
+        animation-play-state: paused;
+      }
+      .ticker-content {
+        display: inline-flex;
+        gap: 8px;
+        animation: ticker 25s linear infinite;
+      }
+      .ticker-wrapper {
+        overflow: hidden;
+        white-space: nowrap;
+        position: relative;
       }
     `;
 
@@ -692,6 +702,8 @@ export default function TourPage() {
     { q: qList[3], a: tour?.faq_4 || 'Podatak nije unet u bazu.' }
   ];
 
+  const tickerRooms = [...rooms, ...rooms];
+
   return (
     <main 
       ref={mainContainerRef}
@@ -750,48 +762,36 @@ export default function TourPage() {
         </div>
       </div>
 
-      {/* Kontrolisani horizontalni meni (ticker) za sobe - pomeren gore, može da se skroluje napred-nazad prstom */}
-      <div 
-        className="room-scroll-container" 
-        style={{ 
-          padding: '8px 10px', 
-          background: '#18181b', 
-          overflowX: 'auto', 
-          overflowY: 'hidden',
-          borderBottom: '1px solid #27272a', 
-          zIndex: 10,
-          whiteSpace: 'nowrap',
-          display: 'flex',
-          gap: '8px',
-          WebkitOverflowScrolling: 'touch'
-        }}
-      >
-        {rooms.map((r) => {
-          const isSelected = r.id === rooms[roomIdx]?.id;
-          return (
-            <button 
-              key={r.id} 
-              onClick={() => changeRoomById(r.id)} 
-              style={{ 
-                padding: '6px 14px', 
-                borderRadius: '14px', 
-                border: isSelected ? '2px solid #38bdf8' : '1px solid #3f3f46', 
-                background: isSelected ? 'linear-gradient(135deg, #0284c7, #0369a1)' : '#27272a', 
-                color: '#fff', 
-                fontSize: '12px', 
-                fontWeight: isSelected ? 'bold' : 'normal',
-                cursor: 'pointer', 
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                boxShadow: isSelected ? '0 0 10px rgba(56, 189, 248, 0.6)' : 'none',
-                transform: isSelected ? 'scale(1.04)' : 'scale(1)',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              🚪 {r.title} {isSelected && ' ✨'}
-            </button>
-          );
-        })}
+      {/* Automatski ticker koji se okreće, ali se pauzira na dodir/hover */}
+      <div className="ticker-wrapper" style={{ padding: '6px 0', background: '#18181b', borderBottom: '1px solid #27272a', zIndex: 10 }}>
+        <div className="ticker-content" style={{ paddingLeft: '8px' }}>
+          {tickerRooms.map((r, i) => {
+            const isSelected = r.id === rooms[roomIdx]?.id;
+            return (
+              <button 
+                key={`${r.id}-${i}`} 
+                onClick={() => changeRoomById(r.id)} 
+                style={{ 
+                  padding: '4px 12px', 
+                  borderRadius: '14px', 
+                  border: isSelected ? '2px solid #38bdf8' : '1px solid #3f3f46', 
+                  background: isSelected ? 'linear-gradient(135deg, #0284c7, #0369a1)' : '#27272a', 
+                  color: '#fff', 
+                  fontSize: '11px', 
+                  fontWeight: isSelected ? 'bold' : 'normal',
+                  cursor: 'pointer', 
+                  whiteSpace: 'nowrap',
+                  boxShadow: isSelected ? '0 0 10px rgba(56, 189, 248, 0.6)' : 'none',
+                  transform: isSelected ? 'scale(1.04)' : 'scale(1)',
+                  transition: 'all 0.2s ease',
+                  flexShrink: 0
+                }}
+              >
+                🚪 {r.title} {isSelected && ' ✨'}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Lista postavljenih tačaka u Admin režimu */}
