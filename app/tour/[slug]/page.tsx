@@ -204,8 +204,6 @@ export default function TourPage() {
 
       const finish = () => {
         setIsSpeaking(false);
-        // Ne brišemo automatski infoBox ovde da bi ostao vidljiv kad se završi, 
-        // osim ako krene nova radnja
         resolve();
       };
 
@@ -256,6 +254,14 @@ export default function TourPage() {
       }
       .pnm-tooltip span { display: none !important; }
       .pnm-tooltip { display: none !important; }
+
+      @keyframes ticker {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+      }
+      .ticker-wrapper:hover .ticker-content {
+        animation-play-state: paused;
+      }
     `;
 
     if ((window as any).pannellum) { setPannellumReady(true); return; }
@@ -451,7 +457,6 @@ export default function TourPage() {
 
         stopCurrentAnimation();
         
-        // OVDje se postavlja obaveštavajući oblačić na kraju uvodne sekvence
         setInfoBoxData({
           title: 'Vodič završen',
           text: 'Slobodno razgledajte prostoriju ili pređite u drugu prostoriju preko strelica.'
@@ -686,6 +691,8 @@ export default function TourPage() {
     { q: qList[3], a: tour?.faq_4 || 'Podatak nije unet u bazu.' }
   ];
 
+  const tickerRooms = [...rooms, ...rooms];
+
   return (
     <main 
       ref={mainContainerRef}
@@ -693,67 +700,118 @@ export default function TourPage() {
       style={{ width: '100vw', height: '100vh', background: '#0a0a0a', color: '#fff', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}
     >
 
-      {/* Header */}
-      <div suppressHydrationWarning style={{ padding: '12px 20px', background: '#121212', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '18px' }}>{tour?.title || '360 Tura'}</h1>
-          <span style={{ fontSize: '12px', color: '#38bdf8' }}>Prostorija: {rooms[roomIdx]?.title}</span>
-        </div>
+      {/* Zaglavlje (Header) bez naziva prostorije */}
+      <div suppressHydrationWarning style={{ padding: '6px 14px', background: '#121212', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10, minHeight: '44px' }}>
+        <h1 style={{ margin: 0, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }}>{tour?.title || '360 Tura'}</h1>
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
           {adminMode && (
             <button 
               onClick={handleStartEditEstablish}
-              style={{ padding: '8px 14px', borderRadius: '20px', border: '1px solid #eab308', background: '#854d0e', color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}
+              style={{ padding: '4px 8px', borderRadius: '14px', border: '1px solid #eab308', background: '#854d0e', color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '10px' }}
             >
-              🎬 Izmeni uvodnu naraciju
+              🎬 Uvod
             </button>
           )}
 
-          {/* DUGME ZA ZVUK (MUTE/UNMUTE) */}
           <button 
             onClick={toggleMute}
             style={{ 
-              padding: '8px', 
+              padding: '4px', 
               borderRadius: '50%', 
               border: 'none', 
               background: !isMuted ? '#22c55e' : '#ef4444', 
               color: '#fff', 
               cursor: 'pointer',
-              width: '36px',
-              height: '36px',
+              width: '28px',
+              height: '28px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '15px'
+              fontSize: '12px'
             }}
             title={!isMuted ? "Isključi zvuk (Mute)" : "Uključi zvuk (Unmute)"}
           >
             {!isMuted ? '🔊' : '🔇'}
           </button>
 
-          {/* DUGME ZA FULLSCREEN */}
           <button 
             onClick={toggleFullscreen}
-            style={{ padding: '8px 14px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.2)', background: '#27272a', color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}
+            style={{ padding: '4px 8px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.2)', background: '#27272a', color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '10px' }}
             title="Preko celog ekrana"
           >
-            {isFullscreen ? '⤫ Izlaz iz Fullscreen-a' : '⛶ Fullscreen'}
+            {isFullscreen ? '⤫ Izlaz' : '⛶ Fullscreen'}
           </button>
+
+          {adminMode && (
+            <span style={{ fontSize: '10px', background: '#0284c7', color: '#fff', padding: '3px 6px', borderRadius: '10px', fontWeight: 'bold' }}>
+              Admin
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Ticker efekat za sobe prebačen GORE */}
+      <div 
+        className="ticker-wrapper" 
+        style={{ 
+          padding: '6px 0', 
+          background: '#18181b', 
+          overflow: 'hidden', 
+          borderBottom: '1px solid #27272a', 
+          zIndex: 10,
+          whiteSpace: 'nowrap',
+          position: 'relative'
+        }}
+      >
+        <div 
+          className="ticker-content"
+          style={{ 
+            display: 'inline-flex', 
+            gap: '8px', 
+            animation: rooms.length > 2 ? 'ticker 25s linear infinite' : 'none',
+            paddingLeft: '8px'
+          }}
+        >
+          {tickerRooms.map((r, i) => {
+            const isSelected = r.id === rooms[roomIdx]?.id;
+            return (
+              <button 
+                key={`${r.id}-${i}`} 
+                onClick={() => changeRoomById(r.id)} 
+                style={{ 
+                  padding: '4px 12px', 
+                  borderRadius: '14px', 
+                  border: isSelected ? '2px solid #38bdf8' : '1px solid #3f3f46', 
+                  background: isSelected ? 'linear-gradient(135deg, #0284c7, #0369a1)' : '#27272a', 
+                  color: '#fff', 
+                  fontSize: '11px', 
+                  fontWeight: isSelected ? 'bold' : 'normal',
+                  cursor: 'pointer', 
+                  whiteSpace: 'nowrap',
+                  boxShadow: isSelected ? '0 0 10px rgba(56, 189, 248, 0.6)' : 'none',
+                  transform: isSelected ? 'scale(1.04)' : 'scale(1)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                🚪 {r.title} {isSelected && ' ✨'}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Lista postavljenih tačaka u Admin režimu */}
       {adminMode && (
-        <div style={{ padding: '8px 20px', background: '#1e1e24', borderBottom: '1px solid #333', display: 'flex', gap: '10px', overflowX: 'auto', zIndex: 10 }}>
-          <span style={{ fontSize: '12px', color: '#aaa', alignSelf: 'center', fontWeight: 'bold' }}>Tačke u sobi:</span>
+        <div style={{ padding: '6px 14px', background: '#1e1e24', borderBottom: '1px solid #333', display: 'flex', gap: '8px', overflowX: 'auto', zIndex: 10 }}>
+          <span style={{ fontSize: '11px', color: '#aaa', alignSelf: 'center', fontWeight: 'bold' }}>Tačke:</span>
           {(rooms[roomIdx]?.waypoints || []).map((wp, idx) => (
             <button 
               key={idx} 
               onClick={() => handleStartEditWaypoint(idx)}
-              style={{ padding: '4px 10px', background: '#27272a', border: '1px solid #3f3f46', borderRadius: '6px', color: '#fff', fontSize: '11px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              style={{ padding: '3px 8px', background: '#27272a', border: '1px solid #3f3f46', borderRadius: '4px', color: '#fff', fontSize: '10px', cursor: 'pointer', whiteSpace: 'nowrap' }}
             >
-              ✏️ {wp.type === 'navigation' ? '🚪 Prelaz' : 'ℹ️ Info'} #{idx + 1} ({wp.title || 'Bez naslova'})
+              ✏️ #{idx + 1} ({wp.title || (wp.type === 'navigation' ? 'Prelaz' : 'Info')})
             </button>
           ))}
         </div>
@@ -763,7 +821,6 @@ export default function TourPage() {
       <div style={{ flex: 1, width: '100%', position: 'relative', overflow: 'hidden' }}>
         <div id="panorama" style={{ width: '100%', height: '100%' }} />
 
-        {/* KRSTIĆ ZA CILJANJE */}
         {adminMode && (
           <div 
             style={{ 
@@ -792,32 +849,42 @@ export default function TourPage() {
         )}
       </div>
 
-      {/* Info Card / Obaveštavajući oblačić */}
+      {/* Bottom Modals Bar (Smešteno ispod panorame) */}
+      <div style={{ padding: '8px 14px', background: '#121212', borderTop: '1px solid #282828', display: 'flex', justifyContent: 'center', gap: '6px', zIndex: 10 }}>
+        <button onClick={() => { setActiveModal('faq'); setSelectedFaqIdx(null); }} style={btnStyle}>❓ Pitanja</button>
+        <button onClick={() => setActiveModal('plan')} style={btnStyle}>📐 Plan</button>
+        <button onClick={() => setActiveModal('location')} style={btnStyle}>📍 Lokacija</button>
+        <button onClick={() => setActiveModal('about')} style={btnStyle}>🏠 O stanu</button>
+      </div>
+
+      {/* Info Card / Obaveštavajući oblačić - pomeren SKROZ DO DNA ekrana preko donjeg menija */}
       {infoBoxData && (
         <div 
           style={{ 
             position: 'absolute', 
-            bottom: '85px', 
-            right: '25px', 
-            width: '320px', 
-            backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+            bottom: 0, 
+            left: 0,
+            right: 0,
+            width: '100%', 
+            backgroundColor: 'rgba(255, 255, 255, 0.98)', 
             color: '#111111', 
-            padding: '22px 24px', 
-            borderRadius: '2px', 
-            boxShadow: '0 12px 35px rgba(0, 0, 0, 0.4)', 
+            padding: '18px 20px 24px 20px', 
+            borderRadius: '16px 16px 0 0', 
+            boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.5)', 
             zIndex: 50, 
-            border: '1px solid #ffffff'
+            borderTop: '2px solid #0284c7',
+            boxSizing: 'border-box'
           }}
         >
           <button 
             onClick={() => setInfoBoxData(null)} 
-            style={{ position: 'absolute', top: '8px', right: '10px', background: 'none', border: 'none', fontSize: '16px', color: '#888', cursor: 'pointer' }}
+            style={{ position: 'absolute', top: '12px', right: '16px', background: 'none', border: 'none', fontSize: '18px', color: '#666', cursor: 'pointer' }}
           >
             ✕
           </button>
           
           {infoBoxData.title && (
-            <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#000', fontFamily: 'sans-serif' }}>
+            <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#000', fontFamily: 'sans-serif' }}>
               {infoBoxData.title}
             </h4>
           )}
@@ -827,7 +894,7 @@ export default function TourPage() {
           </p>
 
           {adminMode && infoBoxData.index !== undefined && (
-            <div style={{ marginTop: '14px', paddingTop: '10px', borderTop: '1px solid #ddd', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #ddd', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
               <button 
                 onClick={() => handleStartEditWaypoint(infoBoxData.index!)}
                 style={{ padding: '4px 10px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
@@ -844,23 +911,6 @@ export default function TourPage() {
           )}
         </div>
       )}
-
-      {/* Room Selector Strip */}
-      <div style={{ padding: '8px 16px', background: '#18181b', display: 'flex', gap: '10px', overflowX: 'auto', borderTop: '1px solid #27272a', zIndex: 10 }}>
-        {rooms.map((r, i) => (
-          <button key={r.id} onClick={() => changeRoomById(r.id)} style={{ padding: '6px 12px', borderRadius: '12px', border: i === roomIdx ? '1px solid #38bdf8' : '1px solid #3f3f46', background: i === roomIdx ? '#0284c7' : '#27272a', color: '#fff', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-            🚪 {r.title}
-          </button>
-        ))}
-      </div>
-
-      {/* Bottom Modals Bar */}
-      <div style={{ padding: '12px 20px', background: '#121212', borderTop: '1px solid #282828', display: 'flex', justifyContent: 'center', gap: '8px', zIndex: 10 }}>
-        <button onClick={() => { setActiveModal('faq'); setSelectedFaqIdx(null); }} style={btnStyle}>❓ Postavi pitanje</button>
-        <button onClick={() => setActiveModal('plan')} style={btnStyle}>📐 Plan stana</button>
-        <button onClick={() => setActiveModal('location')} style={btnStyle}>📍 Lokacija</button>
-        <button onClick={() => setActiveModal('about')} style={btnStyle}>🏠 Više o stanu</button>
-      </div>
 
       {/* Admin Modal Panel */}
       {pendingCoords && adminMode && (
@@ -888,7 +938,7 @@ export default function TourPage() {
             {editingIndex !== null ? '✏️ Izmeni / Pomeri tačku' : 'Dodaj novu tačku'}
           </h3>
           <p style={{ margin: 0, fontSize: '11px', color: '#eab308' }}>
-            💡 Pomerite sliku mišem da naciljate NOVU poziciju krstićem, pa kliknite Sačuvaj.
+            💡 Pomerite sliku mišem da naciljate NOVu poziciju krstićem, pa kliknite Sačuvaj.
           </p>
 
           <label style={{ fontSize: '11px', color: '#aaa' }}>Tip akcije:</label>
@@ -1028,8 +1078,8 @@ const btnStyle: React.CSSProperties = {
   backgroundColor: 'rgba(255, 255, 255, 0.1)',
   color: '#ffffff',
   border: '1px solid rgba(255, 255, 255, 0.2)',
-  borderRadius: '20px',
-  padding: '6px 14px',
-  fontSize: '12px',
+  borderRadius: '16px',
+  padding: '4px 10px',
+  fontSize: '11px',
   cursor: 'pointer'
 };
