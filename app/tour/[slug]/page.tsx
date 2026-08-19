@@ -124,6 +124,14 @@ export default function TourPage() {
   useEffect(() => {
     setMounted(true);
 
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('admin') === 'mojtajnikljuc') {
+      localStorage.setItem('tour_admin', 'true');
+      setAdminMode(true);
+    } else if (localStorage.getItem('tour_admin') === 'true') {
+      setAdminMode(true);
+    }
+
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
     };
@@ -196,7 +204,8 @@ export default function TourPage() {
 
       const finish = () => {
         setIsSpeaking(false);
-        setInfoBoxData(null);
+        // Ne brišemo automatski infoBox ovde da bi ostao vidljiv kad se završi, 
+        // osim ako krene nova radnja
         resolve();
       };
 
@@ -335,7 +344,6 @@ export default function TourPage() {
           } else if (!isNav) {
             isInterruptedRef.current = true;
             stopCurrentAnimation();
-            // Klik na info tačku postavlja hfov na 50
             if (viewerRef.current) {
               viewerRef.current.setHfov(50);
             }
@@ -353,7 +361,7 @@ export default function TourPage() {
       panorama: currentRoom.panorama_url,
       autoLoad: true,
       showControls: false,
-      hfov: 70, // Uvodni kadar postavljen na 70
+      hfov: 70,
       yaw: targetEstablishYaw,
       pitch: targetEstablishPitch,
       autoRotate: 0,
@@ -378,7 +386,7 @@ export default function TourPage() {
         if (!sequenceActiveRef.current || isInterruptedRef.current) return resolve();
 
         if (viewerRef.current) {
-          viewerRef.current.setHfov(70); // Drži kadar na 70 tokom uvodne rotacije
+          viewerRef.current.setHfov(70);
           viewerRef.current.setYaw(targetEstablishYaw);
           viewerRef.current.setPitch(targetEstablishPitch);
           viewerRef.current.startAutoRotate(speed, targetEstablishPitch);
@@ -426,7 +434,6 @@ export default function TourPage() {
         const targetYaw = getShortestTargetYaw(currentYaw, item.wp.yaw);
         const targetPitch = item.wp.pitch ?? 0;
 
-        // Prelazak na info tačku postavlja hfov na 50
         viewerRef.current.lookAt(targetPitch, targetYaw, 50, 2200);
 
         await new Promise(r => setTimeout(r, 2300));
@@ -443,9 +450,13 @@ export default function TourPage() {
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
         stopCurrentAnimation();
-        setInfoBoxData(null);
         
-        // Vraća na 70 kada krene opšti lagani let kroz sobu
+        // OVDje se postavlja obaveštavajući oblačić na kraju uvodne sekvence
+        setInfoBoxData({
+          title: 'Vodič završen',
+          text: 'Slobodno razgledajte prostoriju ili pređite u drugu prostoriju preko strelica.'
+        });
+        
         if (viewerRef.current) {
           viewerRef.current.setHfov(70);
         }
@@ -729,10 +740,6 @@ export default function TourPage() {
           >
             {isFullscreen ? '⤫ Izlaz iz Fullscreen-a' : '⛶ Fullscreen'}
           </button>
-
-          <button onClick={() => setAdminMode(!adminMode)} style={{ padding: '8px 16px', borderRadius: '20px', border: 'none', background: adminMode ? '#ef4444' : '#3b82f6', color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>
-            {adminMode ? '✖ Zatvori Admin' : '⚙️ Admin Režim'}
-          </button>
         </div>
       </div>
 
@@ -785,7 +792,7 @@ export default function TourPage() {
         )}
       </div>
 
-      {/* Info Card */}
+      {/* Info Card / Obaveštavajući oblačić */}
       {infoBoxData && (
         <div 
           style={{ 
@@ -856,7 +863,7 @@ export default function TourPage() {
       </div>
 
       {/* Admin Modal Panel */}
-      {pendingCoords && (
+      {pendingCoords && adminMode && (
         <div 
           style={{ 
             position: 'fixed', 
