@@ -255,12 +255,13 @@ export default function TourPage() {
       .pnm-tooltip span { display: none !important; }
       .pnm-tooltip { display: none !important; }
 
-      @keyframes ticker {
-        0% { transform: translateX(0); }
-        100% { transform: translateX(-50%); }
+      /* Sakrivanje skrol bara za lepši izgled horizontalnog menija soba */
+      .room-scroll-container::-webkit-scrollbar {
+        display: none;
       }
-      .ticker-wrapper:hover .ticker-content {
-        animation-play-state: paused;
+      .room-scroll-container {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
       }
     `;
 
@@ -691,8 +692,6 @@ export default function TourPage() {
     { q: qList[3], a: tour?.faq_4 || 'Podatak nije unet u bazu.' }
   ];
 
-  const tickerRooms = [...rooms, ...rooms];
-
   return (
     <main 
       ref={mainContainerRef}
@@ -700,7 +699,7 @@ export default function TourPage() {
       style={{ width: '100vw', height: '100vh', background: '#0a0a0a', color: '#fff', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}
     >
 
-      {/* Zaglavlje (Header) bez naziva prostorije */}
+      {/* Zaglavlje (Header) */}
       <div suppressHydrationWarning style={{ padding: '6px 14px', background: '#121212', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10, minHeight: '44px' }}>
         <h1 style={{ margin: 0, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }}>{tour?.title || '360 Tura'}</h1>
 
@@ -751,54 +750,48 @@ export default function TourPage() {
         </div>
       </div>
 
-      {/* Ticker efekat za sobe prebačen GORE */}
+      {/* Kontrolisani horizontalni meni (ticker) za sobe - pomeren gore, može da se skroluje napred-nazad prstom */}
       <div 
-        className="ticker-wrapper" 
+        className="room-scroll-container" 
         style={{ 
-          padding: '6px 0', 
+          padding: '8px 10px', 
           background: '#18181b', 
-          overflow: 'hidden', 
+          overflowX: 'auto', 
+          overflowY: 'hidden',
           borderBottom: '1px solid #27272a', 
           zIndex: 10,
           whiteSpace: 'nowrap',
-          position: 'relative'
+          display: 'flex',
+          gap: '8px',
+          WebkitOverflowScrolling: 'touch'
         }}
       >
-        <div 
-          className="ticker-content"
-          style={{ 
-            display: 'inline-flex', 
-            gap: '8px', 
-            animation: rooms.length > 2 ? 'ticker 25s linear infinite' : 'none',
-            paddingLeft: '8px'
-          }}
-        >
-          {tickerRooms.map((r, i) => {
-            const isSelected = r.id === rooms[roomIdx]?.id;
-            return (
-              <button 
-                key={`${r.id}-${i}`} 
-                onClick={() => changeRoomById(r.id)} 
-                style={{ 
-                  padding: '4px 12px', 
-                  borderRadius: '14px', 
-                  border: isSelected ? '2px solid #38bdf8' : '1px solid #3f3f46', 
-                  background: isSelected ? 'linear-gradient(135deg, #0284c7, #0369a1)' : '#27272a', 
-                  color: '#fff', 
-                  fontSize: '11px', 
-                  fontWeight: isSelected ? 'bold' : 'normal',
-                  cursor: 'pointer', 
-                  whiteSpace: 'nowrap',
-                  boxShadow: isSelected ? '0 0 10px rgba(56, 189, 248, 0.6)' : 'none',
-                  transform: isSelected ? 'scale(1.04)' : 'scale(1)',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                🚪 {r.title} {isSelected && ' ✨'}
-              </button>
-            );
-          })}
-        </div>
+        {rooms.map((r) => {
+          const isSelected = r.id === rooms[roomIdx]?.id;
+          return (
+            <button 
+              key={r.id} 
+              onClick={() => changeRoomById(r.id)} 
+              style={{ 
+                padding: '6px 14px', 
+                borderRadius: '14px', 
+                border: isSelected ? '2px solid #38bdf8' : '1px solid #3f3f46', 
+                background: isSelected ? 'linear-gradient(135deg, #0284c7, #0369a1)' : '#27272a', 
+                color: '#fff', 
+                fontSize: '12px', 
+                fontWeight: isSelected ? 'bold' : 'normal',
+                cursor: 'pointer', 
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                boxShadow: isSelected ? '0 0 10px rgba(56, 189, 248, 0.6)' : 'none',
+                transform: isSelected ? 'scale(1.04)' : 'scale(1)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              🚪 {r.title} {isSelected && ' ✨'}
+            </button>
+          );
+        })}
       </div>
 
       {/* Lista postavljenih tačaka u Admin režimu */}
@@ -849,7 +842,7 @@ export default function TourPage() {
         )}
       </div>
 
-      {/* Bottom Modals Bar (Smešteno ispod panorame) */}
+      {/* Bottom Modals Bar (Dugmići na samom dnu ekrana) */}
       <div style={{ padding: '8px 14px', background: '#121212', borderTop: '1px solid #282828', display: 'flex', justifyContent: 'center', gap: '6px', zIndex: 10 }}>
         <button onClick={() => { setActiveModal('faq'); setSelectedFaqIdx(null); }} style={btnStyle}>❓ Pitanja</button>
         <button onClick={() => setActiveModal('plan')} style={btnStyle}>📐 Plan</button>
@@ -857,44 +850,43 @@ export default function TourPage() {
         <button onClick={() => setActiveModal('about')} style={btnStyle}>🏠 O stanu</button>
       </div>
 
-      {/* Info Card / Obaveštavajući oblačić - pomeren SKROZ DO DNA ekrana preko donjeg menija */}
+      {/* Info Card / Obaveštavajući oblačić - Izvučen iznad donjih dugmića da se tekst nikad ne zaklanja */}
       {infoBoxData && (
         <div 
           style={{ 
             position: 'absolute', 
-            bottom: 0, 
-            left: 0,
-            right: 0,
-            width: '100%', 
+            bottom: '50px', 
+            left: '10px',
+            right: '10px',
             backgroundColor: 'rgba(255, 255, 255, 0.98)', 
             color: '#111111', 
-            padding: '18px 20px 24px 20px', 
-            borderRadius: '16px 16px 0 0', 
-            boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.5)', 
+            padding: '14px 16px', 
+            borderRadius: '12px', 
+            boxShadow: '0 5px 25px rgba(0, 0, 0, 0.6)', 
             zIndex: 50, 
-            borderTop: '2px solid #0284c7',
+            border: '2px solid #0284c7',
             boxSizing: 'border-box'
           }}
         >
           <button 
             onClick={() => setInfoBoxData(null)} 
-            style={{ position: 'absolute', top: '12px', right: '16px', background: 'none', border: 'none', fontSize: '18px', color: '#666', cursor: 'pointer' }}
+            style={{ position: 'absolute', top: '10px', right: '12px', background: 'none', border: 'none', fontSize: '16px', color: '#666', cursor: 'pointer' }}
           >
             ✕
           </button>
           
           {infoBoxData.title && (
-            <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#000', fontFamily: 'sans-serif' }}>
+            <h4 style={{ margin: '0 0 4px 0', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#000', fontFamily: 'sans-serif' }}>
               {infoBoxData.title}
             </h4>
           )}
           
-          <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.5', color: '#222', fontFamily: 'Georgia, serif' }}>
+          <p style={{ margin: 0, fontSize: '13px', lineHeight: '1.4', color: '#222', fontFamily: 'sans-serif', paddingRight: '20px' }}>
             {infoBoxData.text}
           </p>
 
           {adminMode && infoBoxData.index !== undefined && (
-            <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #ddd', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid #ddd', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
               <button 
                 onClick={() => handleStartEditWaypoint(infoBoxData.index!)}
                 style={{ padding: '4px 10px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
