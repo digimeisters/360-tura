@@ -335,9 +335,9 @@ export default function TourPage() {
           } else if (!isNav) {
             isInterruptedRef.current = true;
             stopCurrentAnimation();
-            // Klik na info tačku postavlja hfov na 60
+            // Klik na info tačku postavlja hfov na 50
             if (viewerRef.current) {
-              viewerRef.current.setHfov(60);
+              viewerRef.current.setHfov(50);
             }
             speakTextWithCompletion(wp.text, wp.title, index);
           }
@@ -353,7 +353,7 @@ export default function TourPage() {
       panorama: currentRoom.panorama_url,
       autoLoad: true,
       showControls: false,
-      hfov: 80, // Uvodni kadar postavljen na 80
+      hfov: 70, // Uvodni kadar postavljen na 70
       yaw: targetEstablishYaw,
       pitch: targetEstablishPitch,
       autoRotate: 0,
@@ -378,7 +378,7 @@ export default function TourPage() {
         if (!sequenceActiveRef.current || isInterruptedRef.current) return resolve();
 
         if (viewerRef.current) {
-          viewerRef.current.setHfov(80); // Drži kadar na 80 tokom uvodne rotacije
+          viewerRef.current.setHfov(70); // Drži kadar na 70 tokom uvodne rotacije
           viewerRef.current.setYaw(targetEstablishYaw);
           viewerRef.current.setPitch(targetEstablishPitch);
           viewerRef.current.startAutoRotate(speed, targetEstablishPitch);
@@ -426,8 +426,8 @@ export default function TourPage() {
         const targetYaw = getShortestTargetYaw(currentYaw, item.wp.yaw);
         const targetPitch = item.wp.pitch ?? 0;
 
-        // Prelazak na info tačku postavlja hfov na 60
-        viewerRef.current.lookAt(targetPitch, targetYaw, 60, 2200);
+        // Prelazak na info tačku postavlja hfov na 50
+        viewerRef.current.lookAt(targetPitch, targetYaw, 50, 2200);
 
         await new Promise(r => setTimeout(r, 2300));
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
@@ -445,9 +445,9 @@ export default function TourPage() {
         stopCurrentAnimation();
         setInfoBoxData(null);
         
-        // Vraća na 80 kada krene opšti lagani let kroz sobu
+        // Vraća na 70 kada krene opšti lagani let kroz sobu
         if (viewerRef.current) {
-          viewerRef.current.setHfov(80);
+          viewerRef.current.setHfov(70);
         }
 
         let lastTime = performance.now();
@@ -524,7 +524,7 @@ export default function TourPage() {
     if (viewerRef.current) {
       const currentYaw = viewerRef.current.getYaw();
       const targetYaw = getShortestTargetYaw(currentYaw, wp.yaw);
-      viewerRef.current.lookAt(wp.pitch ?? 0, targetYaw, 60, 1000);
+      viewerRef.current.lookAt(wp.pitch ?? 0, targetYaw, 50, 1000);
     }
 
     setPendingCoords({ pitch: wp.pitch, yaw: wp.yaw });
@@ -547,7 +547,7 @@ export default function TourPage() {
     if (viewerRef.current) {
       const currentYaw = viewerRef.current.getYaw();
       const targetYaw = getShortestTargetYaw(currentYaw, establish?.fromYaw ?? 0);
-      viewerRef.current.lookAt(establish?.pitch ?? 0, targetYaw, 80, 1000);
+      viewerRef.current.lookAt(establish?.pitch ?? 0, targetYaw, 70, 1000);
     }
 
     setPendingCoords({
