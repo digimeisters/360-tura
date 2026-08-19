@@ -8,6 +8,7 @@ type Waypoint = {
   yaw: number;
   pitch: number;
   text: string;
+  title?: string;
   type?: 'navigation' | 'info';
   targetRoomId?: string;
 };
@@ -15,13 +16,11 @@ type Waypoint = {
 type EstablishData = {
   text?: string;
   fromYaw?: number;
-  toYaw?: number;
   pitch?: number;
-  duration?: number;
 };
 
 type Room = {
-  id: string;
+  id: string | number;
   tour_slug: string;
   title: string;
   panorama_url: string;
@@ -31,7 +30,7 @@ type Room = {
 };
 
 type Tour = {
-  id: string;
+  id: string | number;
   slug: string;
   title: string;
   category?: 'rent' | 'sale' | 'booking';
@@ -65,7 +64,31 @@ const categoryQuestions = {
   ]
 };
 
+function easeInOutQuad(t: number): number {
+  return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+}
+
+function normalizeYaw(yaw: number): number {
+  let res = (yaw + 180) % 360;
+  if (res < 0) res += 360;
+  return res - 180;
+}
+
+function getShortestTargetYaw(currentYaw: number, targetYaw: number): number {
+  const normCurrent = normalizeYaw(currentYaw);
+  const normTarget = normalizeYaw(targetYaw);
+  let diff = normTarget - normCurrent;
+
+  if (diff > 180) diff -= 360;
+  if (diff < -180) diff += 360;
+
+  return currentYaw + diff;
+}
+
 export default function TourPage() {
+  const [mounted, setMounted] = useState(false);
+  const [tourStarted, setTourStarted] = useState(false);
+
   const params = useParams();
   const slug = params?.slug as string;
 
@@ -79,46 +102,64 @@ export default function TourPage() {
   const [adminMode, setAdminMode] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
-  // Admin states
+  const [infoBoxData, setInfoBoxData] = useState<{ title?: string; text: string; index?: number } | null>(null);
+
   const [pendingCoords, setPendingCoords] = useState<{ yaw: number; pitch: number } | null>(null);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [hotspotType, setHotspotType] = useState<'navigation' | 'info' | 'establish'>('navigation');
-  const [targetRoomId, setTargetRoomId] = useState<string>('');
+  const [targetRoomId, setTargetRoomId] = useState<string | number>('');
   const [hotspotText, setHotspotText] = useState<string>('');
-
-  // Establish specific states
+  const [hotspotTitle, setHotspotTitle] = useState<string>('');
   const [fromYawVal, setFromYawVal] = useState<number | null>(null);
-  const [toYawVal, setToYawVal] = useState<number | null>(null);
-  const [durationVal, setDurationVal] = useState<number>(10000); // podrazumevano 10 sekundi
 
-  const [caption, setCaption] = useState('');
   const [activeModal, setActiveModal] = useState<'none' | 'faq' | 'plan' | 'location' | 'about'>('none');
 
   const viewerRef = useRef<any>(null);
+  const animFrameRef = useRef<number | null>(null);
+  const sequenceActiveRef = useRef<boolean>(false);
+  const isInterruptedRef = useRef<boolean>(false);
 
-  const speakText = (text: string) => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-    window.speechSynthesis.cancel();
-
-    if (!text) {
-      setIsSpeaking(false);
-      return;
+  const stopCurrentAnimation = () => {
+    if (animFrameRef.current !== null) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
     }
+  };
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    const voices = window.speechSynthesis.getVoices();
-    const srVoice = voices.find(v => v.lang.includes('sr') || v.lang.includes('hr') || v.lang.includes('bs'));
-    
-    if (srVoice) utterance.voice = srVoice;
-    utterance.lang = srVoice ? srVoice.lang : 'sr-RS';
-    utterance.rate = 0.95;
+  const speakTextWithCompletion = (text: string): Promise<void> => {
+    return new Promise((resolve) => {
+      if (typeof window === 'undefined' || !('speechSynthesis' in window) || !text) {
+        setIsSpeaking(false);
+        setTimeout(resolve, 2000);
+        return;
+      }
 
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+      window.speechSynthesis.cancel();
 
-    window.speechSynthesis.speak(utterance);
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voices = window.speechSynthesis.getVoices();
+      const srVoice = voices.find(v => v.lang.includes('sr') || v.lang.includes('hr') || v.lang.includes('bs'));
+
+      if (srVoice) utterance.voice = srVoice;
+      utterance.lang = srVoice ? srVoice.lang : 'sr-RS';
+      utterance.rate = 0.92;
+
+      utterance.onstart = () => setIsSpeaking(true);
+
+      const finish = () => {
+        setIsSpeaking(false);
+        resolve();
+      };
+
+      utterance.onend = finish;
+      utterance.onerror = finish;
+
+      window.speechSynthesis.speak(utterance);
+    });
   };
 
   const stopSpeaking = () => {
@@ -129,6 +170,8 @@ export default function TourPage() {
   };
 
   useEffect(() => {
+    if (!mounted) return;
+
     const styleId = 'pannellum-custom-styles';
     let style = document.getElementById(styleId) as HTMLStyleElement;
     if (!style) {
@@ -139,28 +182,25 @@ export default function TourPage() {
 
     style.innerHTML = `
       .pnm-hotspot {
-        width: 52px !important;
-        height: 52px !important;
-        margin-left: -26px !important;
-        margin-top: -26px !important;
+        width: 44px !important;
+        height: 44px !important;
+        margin-left: -22px !important;
+        margin-top: -22px !important;
+        cursor: pointer !important;
+        transition: transform 0.1s ease;
+      }
+      .pnm-hotspot:hover {
+        transform: scale(1.15);
       }
       .pnm-hotspot.pnm-scene, 
       .pnm-hotspot.pnm-info {
-        background-color: #0284c7 !important;
-        border: 3px solid #ffffff !important;
+        background-color: rgba(2, 132, 199, 0.9) !important;
+        border: 2px solid #ffffff !important;
         border-radius: 50% !important;
-        background-size: 30px 30px !important;
-        background-position: center !important;
-        background-repeat: no-repeat !important;
-        box-shadow: 0 0 15px rgba(2, 132, 199, 0.9) !important;
+        box-shadow: 0 0 12px rgba(0, 0, 0, 0.6) !important;
       }
-      .pnm-hotspot:hover {
-        background-color: #38bdf8 !important;
-        width: 58px !important;
-        height: 58px !important;
-        margin-left: -29px !important;
-        margin-top: -29px !important;
-      }
+      .pnm-tooltip span { display: none !important; }
+      .pnm-tooltip { display: none !important; }
     `;
 
     if ((window as any).pannellum) { setPannellumReady(true); return; }
@@ -176,23 +216,16 @@ export default function TourPage() {
 
     return () => {
       stopSpeaking();
+      stopCurrentAnimation();
     };
-  }, []);
+  }, [mounted]);
 
   useEffect(() => {
-    if (!slug) return;
+    if (!slug || !mounted) return;
     async function load() {
       setLoading(true);
-      const { data: tourData, error: tourErr } = await supabase
-        .from('tours')
-        .select('*')
-        .eq('slug', slug)
-        .single();
-      const { data: roomRows, error: roomErr } = await supabase
-        .from('rooms')
-        .select('*')
-        .eq('tour_slug', slug)
-        .order('order_index', { ascending: true });
+      const { data: tourData, error: tourErr } = await supabase.from('tours').select('*').eq('slug', slug).single();
+      const { data: roomRows, error: roomErr } = await supabase.from('rooms').select('*').eq('tour_slug', slug).order('order_index', { ascending: true });
 
       if (tourErr || !tourData) setError('Tura nije pronađena.');
       else setTour(tourData as Tour);
@@ -203,119 +236,308 @@ export default function TourPage() {
       setLoading(false);
     }
     load();
-  }, [slug]);
+  }, [slug, mounted]);
 
-  const changeRoomById = (id: string) => {
-    const foundIndex = rooms.findIndex(r => r.id === id);
+  const changeRoomById = (id: string | number) => {
+    sequenceActiveRef.current = false;
+    isInterruptedRef.current = true;
+    stopCurrentAnimation();
+    stopSpeaking();
+
+    const foundIndex = rooms.findIndex(r => r.id == id);
     if (foundIndex !== -1) {
       setRoomIdx(foundIndex);
-      setCaption('');
+      setInfoBoxData(null);
     }
   };
 
   useEffect(() => {
-    if (rooms.length === 0 || !pannellumReady) return;
+    if (!tourStarted || rooms.length === 0 || !pannellumReady || !mounted) return;
+    
     const currentRoom = rooms[roomIdx];
     if (!currentRoom?.panorama_url) return;
 
+    sequenceActiveRef.current = false;
+    stopCurrentAnimation();
+    stopSpeaking();
+
+    sequenceActiveRef.current = true;
+    isInterruptedRef.current = false;
+    setInfoBoxData(null);
+
     if (viewerRef.current) {
       try { viewerRef.current.destroy(); } catch (e) {}
+      viewerRef.current = null;
+    }
+    const panoramaContainer = document.getElementById('panorama');
+    if (panoramaContainer) {
+      panoramaContainer.innerHTML = '';
     }
 
-    const formattedHotspots = (currentRoom.waypoints || []).map((wp) => {
+    const formattedHotspots = (currentRoom.waypoints || []).map((wp, index) => {
       const isNav = wp.type === 'navigation' || Boolean(wp.targetRoomId);
-
-      if (isNav) {
-        return {
-          pitch: wp.pitch || 0,
-          yaw: wp.yaw || 0,
-          type: 'scene',
-          text: wp.text || 'Pređi u drugu sobu',
-          clickHandlerArgs: wp.targetRoomId,
-          clickHandlerFunc: (evt: any, targetId: string) => {
-            if (targetId) changeRoomById(targetId);
-          }
-        };
-      }
 
       return {
         pitch: wp.pitch || 0,
         yaw: wp.yaw || 0,
-        type: 'info',
-        text: wp.text || 'Informacija',
-        clickHandlerArgs: wp.text,
-        clickHandlerFunc: (evt: any, infoText: string) => {
-          if (infoText) setCaption(infoText);
+        type: isNav ? 'scene' : 'info',
+        clickHandlerFunc: () => {
+          if (adminMode) {
+            handleStartEditWaypoint(index);
+          } else if (isNav && wp.targetRoomId) {
+            changeRoomById(wp.targetRoomId);
+          } else if (!isNav) {
+            isInterruptedRef.current = true;
+            stopCurrentAnimation();
+            setInfoBoxData({ title: wp.title, text: wp.text, index });
+            speakTextWithCompletion(wp.text);
+          }
         }
       };
     });
 
-    const initialYaw = currentRoom.establish?.fromYaw ?? 0;
-    const initialPitch = currentRoom.establish?.pitch ?? 0;
+    const targetEstablishYaw = normalizeYaw(currentRoom.establish?.fromYaw ?? 0);
+    const targetEstablishPitch = currentRoom.establish?.pitch ?? 0;
 
     const v = (window as any).pannellum.viewer('panorama', {
       type: 'equirectangular',
       panorama: currentRoom.panorama_url,
       autoLoad: true,
-      showControls: true,
-      hfov: 100,
-      yaw: initialYaw,
-      pitch: initialPitch,
+      showControls: false,
+      hfov: 75,
+      yaw: targetEstablishYaw,
+      pitch: targetEstablishPitch,
+      autoRotate: 0,
       hotSpots: formattedHotspots
     });
     viewerRef.current = v;
 
-    if (currentRoom.establish?.toYaw !== undefined && currentRoom.establish?.duration) {
-      const targetYaw = currentRoom.establish.toYaw;
-      const animDuration = currentRoom.establish.duration;
-      
-      v.on('load', () => {
-        // Glatko pokreće kameru od initialYaw do targetYaw u trajanju animDuration (ms)
-        v.lookAt(initialPitch, targetYaw, 100, animDuration);
+    const infoPoints = (currentRoom.waypoints || [])
+      .map((wp, i) => ({ wp, i }))
+      .filter(item => item.wp.type === 'info' || (!item.wp.type && !item.wp.targetRoomId));
+
+    v.on('load', async () => {
+      if (!sequenceActiveRef.current || isInterruptedRef.current) return;
+
+      const introText = currentRoom.establish?.text || `Dobrodošli u ${currentRoom.title}`;
+
+      const rotatePromise = new Promise<void>((resolve) => {
+        const durationPhase1 = 15000; // Tačno 15 sekundi
+        const totalDegrees = 230; // 2.5 puta veći prostor (~300 stepeni)
+        const speed = totalDegrees / (durationPhase1 / 1000); // Brzina u stepenima po sekundi
+
+        if (!sequenceActiveRef.current || isInterruptedRef.current) return resolve();
+
+        if (viewerRef.current) {
+          viewerRef.current.setYaw(targetEstablishYaw);
+          viewerRef.current.setPitch(targetEstablishPitch);
+          // Nativna funkcija koja automatski i glatko okreće kameru udesno bez ikakvih trzanja i granica
+          viewerRef.current.startAutoRotate(speed, targetEstablishPitch);
+        }
+
+        const startTime = performance.now();
+
+        const checkCompletion = (now: number) => {
+          if (!sequenceActiveRef.current || isInterruptedRef.current) {
+            if (viewerRef.current) viewerRef.current.stopAutoRotate();
+            return resolve();
+          }
+
+          const elapsed = now - startTime;
+          if (elapsed < durationPhase1) {
+            animFrameRef.current = requestAnimationFrame(checkCompletion);
+          } else {
+            if (viewerRef.current) {
+              viewerRef.current.stopAutoRotate();
+            }
+            resolve();
+          }
+        };
+
+        animFrameRef.current = requestAnimationFrame(checkCompletion);
       });
-    }
 
-    const textToSpeak = currentRoom.establish?.text || `Dobrodošli u prostoriju: ${currentRoom.title}`;
-    speakText(textToSpeak);
+      await Promise.all([
+        rotatePromise,
+        speakTextWithCompletion(introText)
+      ]);
 
-    const panoramaEl = document.getElementById('panorama');
-    const handlePanoramaClick = (e: MouseEvent) => {
-      if (!adminMode || !viewerRef.current) return;
-      const coords = viewerRef.current.mouseEventToCoords(e);
-      if (coords && coords.length >= 2) {
-        const clickedYaw = Math.round(coords[1] * 10) / 10;
-        const clickedPitch = Math.round(coords[0] * 10) / 10;
-        
-        setPendingCoords({ pitch: clickedPitch, yaw: clickedYaw });
-        setFromYawVal(clickedYaw); // Inicijalno postavlja kliknutu tačku kao POČETAK
+      if (!sequenceActiveRef.current || isInterruptedRef.current) return;
+
+      const runInfoSequencePhase2 = async (index: number) => {
+        if (!sequenceActiveRef.current || isInterruptedRef.current || !viewerRef.current) return;
+
+        if (index >= infoPoints.length) {
+          startInfiniteGlide();
+          return;
+        }
+
+        const item = infoPoints[index];
+        const currentYaw = normalizeYaw(viewerRef.current.getYaw());
+        const targetYaw = getShortestTargetYaw(currentYaw, item.wp.yaw);
+        const targetPitch = item.wp.pitch ?? 0;
+
+        viewerRef.current.lookAt(targetPitch, targetYaw, 75, 2200);
+
+        await new Promise(r => setTimeout(r, 2300));
+        if (!sequenceActiveRef.current || isInterruptedRef.current) return;
+
+        setInfoBoxData({ title: item.wp.title, text: item.wp.text, index: item.i });
+
+        await speakTextWithCompletion(item.wp.text);
+        if (!sequenceActiveRef.current || isInterruptedRef.current) return;
+
+        await new Promise(r => setTimeout(r, 1000));
+        runInfoSequencePhase2(index + 1);
+      };
+
+      const startInfiniteGlide = () => {
+        if (!sequenceActiveRef.current || isInterruptedRef.current) return;
+
+        stopCurrentAnimation();
+        setInfoBoxData(null);
+        let lastTime = performance.now();
+        const degreesPerMs = 230 / 18000;
+
+        const animateGlide = (now: number) => {
+          if (!sequenceActiveRef.current || isInterruptedRef.current) return;
+          const delta = now - lastTime;
+          lastTime = now;
+
+          if (viewerRef.current) {
+            const currentYaw = viewerRef.current.getYaw();
+            viewerRef.current.setYaw(currentYaw + degreesPerMs * delta);
+            viewerRef.current.setPitch(targetEstablishPitch);
+          }
+          animFrameRef.current = requestAnimationFrame(animateGlide);
+        };
+
+        animFrameRef.current = requestAnimationFrame(animateGlide);
+      };
+
+      if (infoPoints.length > 0) {
+        runInfoSequencePhase2(0);
+      } else {
+        startInfiniteGlide();
+      }
+    });
+
+    const handleDblClick = () => {
+      if (adminMode && viewerRef.current) {
+        const currentPitch = Math.round(viewerRef.current.getPitch() * 10) / 10;
+        const currentYaw = Math.round(normalizeYaw(viewerRef.current.getYaw()) * 10) / 10;
+
+        setPendingCoords({ pitch: currentPitch, yaw: currentYaw });
+        setEditingIndex(null);
+        setFromYawVal(currentYaw);
+        setHotspotText('');
+        setHotspotTitle('');
+        setTargetRoomId('');
+        setHotspotType('navigation');
       }
     };
 
-    panoramaEl?.addEventListener('click', handlePanoramaClick);
-    return () => panoramaEl?.removeEventListener('click', handlePanoramaClick);
-  }, [rooms, roomIdx, pannellumReady, adminMode]);
+    panoramaContainer?.addEventListener('dblclick', handleDblClick);
 
-  // Pomagalo za hvatanje trenutnog ugla iz pregledača
-  const setCurrentViewAsPoint = (pointType: 'from' | 'to') => {
+    return () => {
+      sequenceActiveRef.current = false;
+      panoramaContainer?.removeEventListener('dblclick', handleDblClick);
+      stopCurrentAnimation();
+
+      if (viewerRef.current) {
+        try {
+          viewerRef.current.destroy();
+        } catch (e) {}
+        viewerRef.current = null;
+      }
+
+      if (panoramaContainer) {
+        panoramaContainer.innerHTML = '';
+      }
+    };
+  }, [rooms, roomIdx, pannellumReady, adminMode, mounted, tourStarted]);
+
+  const handleStartEditWaypoint = (index: number) => {
+    const currentRoom = rooms[roomIdx];
+    const wp = currentRoom.waypoints?.[index];
+    if (!wp) return;
+
+    sequenceActiveRef.current = false;
+    isInterruptedRef.current = true;
+    stopCurrentAnimation();
+    stopSpeaking();
+
     if (viewerRef.current) {
-      const currentYaw = Math.round(viewerRef.current.getYaw() * 10) / 10;
-      if (pointType === 'from') setFromYawVal(currentYaw);
-      if (pointType === 'to') setToYawVal(currentYaw);
+      const currentYaw = viewerRef.current.getYaw();
+      const targetYaw = getShortestTargetYaw(currentYaw, wp.yaw);
+      viewerRef.current.lookAt(wp.pitch ?? 0, targetYaw, 75, 1000);
+    }
+
+    setPendingCoords({ pitch: wp.pitch, yaw: wp.yaw });
+    setEditingIndex(index);
+    setHotspotType(wp.type || 'info');
+    setHotspotTitle(wp.title || '');
+    setHotspotText(wp.text || '');
+    setTargetRoomId(wp.targetRoomId || '');
+  };
+
+  const handleStartEditEstablish = () => {
+    const currentRoom = rooms[roomIdx];
+    const establish = currentRoom.establish;
+
+    sequenceActiveRef.current = false;
+    isInterruptedRef.current = true;
+    stopCurrentAnimation();
+    stopSpeaking();
+
+    if (viewerRef.current) {
+      const currentYaw = viewerRef.current.getYaw();
+      const targetYaw = getShortestTargetYaw(currentYaw, establish?.fromYaw ?? 0);
+      viewerRef.current.lookAt(establish?.pitch ?? 0, targetYaw, 75, 1000);
+    }
+
+    setPendingCoords({
+      pitch: establish?.pitch ?? 0,
+      yaw: establish?.fromYaw ?? 0
+    });
+    setEditingIndex(null);
+    setHotspotType('establish');
+    setHotspotText(establish?.text || '');
+    setFromYawVal(establish?.fromYaw ?? 0);
+  };
+
+  const handleDeleteWaypoint = async (index: number) => {
+    if (!confirm('Da li ste sigurni da želite da obrišete ovu tačku?')) return;
+
+    const currentRoom = rooms[roomIdx];
+    const updatedWaypoints = [...(currentRoom.waypoints || [])];
+    updatedWaypoints.splice(index, 1);
+
+    const { error: updateErr } = await supabase
+      .from('rooms')
+      .update({ waypoints: updatedWaypoints })
+      .eq('id', currentRoom.id);
+
+    if (!updateErr) {
+      const updatedRooms = [...rooms];
+      updatedRooms[roomIdx].waypoints = updatedWaypoints;
+      setRooms(updatedRooms);
+      setInfoBoxData(null);
     }
   };
 
   async function handleSave() {
-    if (!pendingCoords) return;
-
+    if (!pendingCoords || !viewerRef.current) return;
     const currentRoom = rooms[roomIdx];
+
+    const finalPitch = Math.round(viewerRef.current.getPitch() * 10) / 10;
+    const finalYaw = Math.round(normalizeYaw(viewerRef.current.getYaw()) * 10) / 10;
 
     if (hotspotType === 'establish') {
       const newEstablishData: EstablishData = {
         text: hotspotText,
-        fromYaw: fromYawVal ?? pendingCoords.yaw,
-        toYaw: toYawVal ?? (pendingCoords.yaw + 40),
-        pitch: pendingCoords.pitch,
-        duration: durationVal
+        fromYaw: finalYaw,
+        pitch: finalPitch
       };
 
       const { error: updateErr } = await supabase
@@ -323,51 +545,71 @@ export default function TourPage() {
         .update({ establish: newEstablishData })
         .eq('id', currentRoom.id);
 
-      if (updateErr) {
-        alert('Greška pri snimanju naracije: ' + updateErr.message);
-      } else {
+      if (!updateErr) {
         const updatedRooms = [...rooms];
         updatedRooms[roomIdx].establish = newEstablishData;
         setRooms(updatedRooms);
-        alert('Početak, kraj i uvodna naracija uspešno sačuvani!');
-        speakText(hotspotText);
+        alert('Uvodna naracija uspešno izmenjena!');
       }
     } else {
       const newWaypoint: Waypoint = {
-        pitch: pendingCoords.pitch,
-        yaw: pendingCoords.yaw,
-        text: hotspotText || (hotspotType === 'navigation' ? 'Pređi ovde' : 'Opis tačke'),
+        pitch: finalPitch,
+        yaw: finalYaw,
+        title: hotspotTitle,
+        text: hotspotText,
         type: hotspotType,
         targetRoomId: hotspotType === 'navigation' ? targetRoomId : undefined
       };
 
-      const updatedWaypoints = [...(currentRoom.waypoints || []), newWaypoint];
+      let updatedWaypoints = [...(currentRoom.waypoints || [])];
+
+      if (editingIndex !== null) {
+        updatedWaypoints[editingIndex] = newWaypoint;
+      } else {
+        updatedWaypoints.push(newWaypoint);
+      }
 
       const { error: updateErr } = await supabase
         .from('rooms')
         .update({ waypoints: updatedWaypoints })
         .eq('id', currentRoom.id);
 
-      if (updateErr) {
-        alert('Greška pri snimanju hotspota: ' + updateErr.message);
-      } else {
+      if (!updateErr) {
         const updatedRooms = [...rooms];
         updatedRooms[roomIdx].waypoints = updatedWaypoints;
         setRooms(updatedRooms);
-        alert('Hotspot uspešno sačuvan!');
+        alert(editingIndex !== null ? 'Pozicija i podaci tačke sačuvani!' : 'Tačka uspešno sačuvana!');
       }
     }
 
     setPendingCoords(null);
+    setEditingIndex(null);
     setHotspotText('');
+    setHotspotTitle('');
     setTargetRoomId('');
     setFromYawVal(null);
-    setToYawVal(null);
     setHotspotType('navigation');
   }
 
-  if (loading || !pannellumReady) return <Centered>Učitavanje ture...</Centered>;
+  if (!mounted || loading || !pannellumReady) return <Centered>Učitavanje ture...</Centered>;
   if (error) return <Centered>{error}</Centered>;
+
+  if (!tourStarted) {
+    return (
+      <div style={{ width: '100vw', height: '100vh', background: '#0a0a0a', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px', fontFamily: 'sans-serif', textAlign: 'center', padding: '20px' }}>
+        <h1 style={{ fontSize: '28px', margin: 0 }}>{tour?.title || '360 Virtuelna Tura'}</h1>
+        <p style={{ color: '#aaa', maxWidth: '400px', fontSize: '14px', lineHeight: '1.5' }}>
+          Dobrodošli! Kliknite na dugme ispod da pokrenete interaktivnu turu sa glasovnim vodičem.
+        </p>
+        <button 
+          onClick={() => setTourStarted(true)}
+          style={{ padding: '14px 28px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '30px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 20px rgba(2, 132, 199, 0.4)', transition: 'transform 0.2s' }}
+        >
+          ▶ Pokreni turu
+        </button>
+      </div>
+    );
+  }
 
   const cat = tour?.category && categoryQuestions[tour.category] ? tour.category : 'rent';
   const qList = categoryQuestions[cat];
@@ -380,146 +622,252 @@ export default function TourPage() {
   ];
 
   return (
-    <main style={{ width: '100vw', height: '100vh', background: '#0a0a0a', color: '#fff', display: 'flex', flexDirection: 'column' }}>
+    <main 
+      suppressHydrationWarning 
+      style={{ width: '100vw', height: '100vh', background: '#0a0a0a', color: '#fff', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}
+    >
 
-      {/* Top Header Bar */}
-      <div style={{ padding: '12px 20px', background: '#121212', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
+      {/* Header */}
+      <div suppressHydrationWarning style={{ padding: '12px 20px', background: '#121212', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '18px' }}>{tour?.title || '360 Tura'}</h1>
-          <span style={{ fontSize: '12px', color: '#38bdf8' }}>Trenutno: {rooms[roomIdx]?.title}</span>
+          <span style={{ fontSize: '12px', color: '#38bdf8' }}>Prostorija: {rooms[roomIdx]?.title}</span>
         </div>
 
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {adminMode && (
+            <button 
+              onClick={handleStartEditEstablish}
+              style={{ padding: '8px 14px', borderRadius: '20px', border: '1px solid #eab308', background: '#854d0e', color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}
+            >
+              🎬 Izmeni uvodnu naraciju
+            </button>
+          )}
+
           <button 
-            onClick={() => isSpeaking ? stopSpeaking() : speakText(rooms[roomIdx]?.establish?.text || `Dobrodošli u ${rooms[roomIdx]?.title}`)}
+            onClick={() => isSpeaking ? stopSpeaking() : speakTextWithCompletion(rooms[roomIdx]?.establish?.text || `Dobrodošli u ${rooms[roomIdx]?.title}`)}
             style={{ padding: '8px 14px', borderRadius: '20px', border: 'none', background: isSpeaking ? '#eab308' : '#22c55e', color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}
           >
             {isSpeaking ? '🔊 Utišaj naratora' : '🔊 Pusti naraciju'}
           </button>
 
           <button onClick={() => setAdminMode(!adminMode)} style={{ padding: '8px 16px', borderRadius: '20px', border: 'none', background: adminMode ? '#ef4444' : '#3b82f6', color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>
-            {adminMode ? '✖ Zatvori Admin' : '➕ Dodaj Tačku / Naraciju'}
+            {adminMode ? '✖ Zatvori Admin' : '⚙️ Admin Režim'}
           </button>
         </div>
       </div>
 
-      {/* 360 Panorama Container */}
-      <div id="panorama" style={{ flex: 1, width: '100%' }}></div>
+      {/* Lista postavljenih tačaka u Admin režimu */}
+      {adminMode && (
+        <div style={{ padding: '8px 20px', background: '#1e1e24', borderBottom: '1px solid #333', display: 'flex', gap: '10px', overflowX: 'auto', zIndex: 10 }}>
+          <span style={{ fontSize: '12px', color: '#aaa', alignSelf: 'center', fontWeight: 'bold' }}>Tačke u sobi:</span>
+          {(rooms[roomIdx]?.waypoints || []).map((wp, idx) => (
+            <button 
+              key={idx} 
+              onClick={() => handleStartEditWaypoint(idx)}
+              style={{ padding: '4px 10px', background: '#27272a', border: '1px solid #3f3f46', borderRadius: '6px', color: '#fff', fontSize: '11px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+            >
+              ✏️ {wp.type === 'navigation' ? '🚪 Prelaz' : 'ℹ️ Info'} #{idx + 1} ({wp.title || 'Bez naslova'})
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Panorama Wrapper Container */}
+      <div style={{ flex: 1, width: '100%', position: 'relative', overflow: 'hidden' }}>
+        
+        {/* Pannellum DOM kontejner */}
+        <div id="panorama" style={{ width: '100%', height: '100%' }} />
+
+        {/* KRSTIĆ ZA CILJANJE */}
+        {adminMode && (
+          <div 
+            style={{ 
+              position: 'absolute', 
+              top: '50%', 
+              left: '50%', 
+              transform: 'translate(-50%, -50%)', 
+              pointerEvents: 'none', 
+              zIndex: 9999,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <svg width="48" height="48" viewBox="0 0 48 48" style={{ filter: 'drop-shadow(0px 0px 4px rgba(0,0,0,0.8))' }}>
+              <circle cx="24" cy="24" r="18" stroke="#ef4444" strokeWidth="2" fill="none" opacity="0.8" />
+              <line x1="24" y1="2" x2="24" y2="46" stroke="#ef4444" strokeWidth="2" />
+              <line x1="2" y1="24" x2="46" y2="24" stroke="#ef4444" strokeWidth="2" />
+              <circle cx="24" cy="24" r="3" fill="#ef4444" />
+            </svg>
+            <span style={{ background: 'rgba(0,0,0,0.75)', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', marginTop: '6px', fontWeight: 'bold' }}>
+              Naciljaj krstićem i napravi DUPLI KLIK
+            </span>
+          </div>
+        )}
+
+      </div>
+
+      {/* Info Card */}
+      {infoBoxData && (
+        <div 
+          style={{ 
+            position: 'absolute', 
+            bottom: '85px', 
+            right: '25px', 
+            width: '320px', 
+            backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+            color: '#111111', 
+            padding: '22px 24px', 
+            borderRadius: '2px', 
+            boxShadow: '0 12px 35px rgba(0, 0, 0, 0.4)', 
+            zIndex: 50, 
+            border: '1px solid #ffffff'
+          }}
+        >
+          <button 
+            onClick={() => setInfoBoxData(null)} 
+            style={{ position: 'absolute', top: '8px', right: '10px', background: 'none', border: 'none', fontSize: '16px', color: '#888', cursor: 'pointer' }}
+          >
+            ✕
+          </button>
+          
+          {infoBoxData.title && (
+            <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#000', fontFamily: 'sans-serif' }}>
+              {infoBoxData.title}
+            </h4>
+          )}
+          
+          <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.5', color: '#222', fontFamily: 'Georgia, serif' }}>
+            {infoBoxData.text}
+          </p>
+
+          {adminMode && infoBoxData.index !== undefined && (
+            <div style={{ marginTop: '14px', paddingTop: '10px', borderTop: '1px solid #ddd', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => handleStartEditWaypoint(infoBoxData.index!)}
+                style={{ padding: '4px 10px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
+              >
+                ✏️ Izmeni / Pomeri
+              </button>
+              <button 
+                onClick={() => handleDeleteWaypoint(infoBoxData.index!)}
+                style={{ padding: '4px 10px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
+              >
+                🗑️ Obriši
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Room Selector Strip */}
       <div style={{ padding: '8px 16px', background: '#18181b', display: 'flex', gap: '10px', overflowX: 'auto', borderTop: '1px solid #27272a', zIndex: 10 }}>
         {rooms.map((r, i) => (
-          <button key={r.id} onClick={() => setRoomIdx(i)} style={{ padding: '6px 12px', borderRadius: '12px', border: i === roomIdx ? '1px solid #38bdf8' : '1px solid #3f3f46', background: i === roomIdx ? '#0284c7' : '#27272a', color: '#fff', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <button key={r.id} onClick={() => changeRoomById(r.id)} style={{ padding: '6px 12px', borderRadius: '12px', border: i === roomIdx ? '1px solid #38bdf8' : '1px solid #3f3f46', background: i === roomIdx ? '#0284c7' : '#27272a', color: '#fff', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
             🚪 {r.title}
           </button>
         ))}
       </div>
 
       {/* Bottom Modals Bar */}
-      <div style={{ padding: '12px 20px', background: '#121212', borderTop: '1px solid #282828', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 10 }}>
-        {caption && (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
-            <p style={{ margin: 0, fontSize: '13px', color: '#38bdf8', textAlign: 'center' }}>💬 {caption}</p>
-            <button onClick={() => setCaption('')} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '12px' }}>✖</button>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <button onClick={() => setActiveModal('faq')} style={btnStyle}>❓ Postavi pitanje</button>
-          <button onClick={() => setActiveModal('plan')} style={btnStyle}>📐 Plan stana</button>
-          <button onClick={() => setActiveModal('location')} style={btnStyle}>📍 Lokacija</button>
-          <button onClick={() => setActiveModal('about')} style={btnStyle}>🏠 Više o stanu</button>
-        </div>
+      <div style={{ padding: '12px 20px', background: '#121212', borderTop: '1px solid #282828', display: 'flex', justifyContent: 'center', gap: '8px', zIndex: 10 }}>
+        <button onClick={() => setActiveModal('faq')} style={btnStyle}>❓ Postavi pitanje</button>
+        <button onClick={() => setActiveModal('plan')} style={btnStyle}>📐 Plan stana</button>
+        <button onClick={() => setActiveModal('location')} style={btnStyle}>📍 Lokacija</button>
+        <button onClick={() => setActiveModal('about')} style={btnStyle}>🏠 Više o stanu</button>
       </div>
 
-      {/* ADMIN: Hotspot & Establish Creator Modal */}
+      {/* Admin Modal Panel */}
       {pendingCoords && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
-          <div style={{ background: '#18181b', padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '440px', border: '1px solid #3b82f6', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <h3 style={{ margin: 0, color: '#fff' }}>Dodaj tačku ili naraciju</h3>
+        <div 
+          style={{ 
+            position: 'fixed', 
+            bottom: '80px', 
+            right: '20px', 
+            left: 'auto',
+            transform: 'none', 
+            background: 'rgba(24, 24, 27, 0.95)', 
+            padding: '20px', 
+            borderRadius: '16px', 
+            width: '360px', 
+            maxWidth: '90vw', 
+            border: '1px solid #3b82f6', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '12px', 
+            zIndex: 10000, 
+            boxShadow: '0 10px 30px rgba(0,0,0,0.8)' 
+          }}
+        >
+          <h3 style={{ margin: 0, color: '#fff', fontSize: '16px' }}>
+            {editingIndex !== null ? '✏️ Izmeni / Pomeri tačku' : 'Dodaj novu tačku'}
+          </h3>
+          <p style={{ margin: 0, fontSize: '11px', color: '#eab308' }}>
+            💡 Pomerite sliku mišem da naciljate NOVU poziciju krstićem, pa kliknite Sačuvaj.
+          </p>
 
-            <label style={{ fontSize: '12px', color: '#aaa' }}>Tip akcije:</label>
-            <select value={hotspotType} onChange={(e) => setHotspotType(e.target.value as 'navigation' | 'info' | 'establish')} style={{ padding: '10px', background: '#09090b', border: '1px solid #3f3f46', borderRadius: '8px', color: '#fff' }}>
-              <option value="navigation">🚪 Strelica za prelaz u sobu</option>
-              <option value="info">ℹ️ Info tačka (opis detalja)</option>
-              <option value="establish">🎬 Postavi uvodnu naraciju (Početak & Kraj)</option>
-            </select>
+          <label style={{ fontSize: '11px', color: '#aaa' }}>Tip akcije:</label>
+          <select value={hotspotType} onChange={(e) => setHotspotType(e.target.value as any)} style={{ padding: '8px', background: '#09090b', border: '1px solid #3f3f46', borderRadius: '6px', color: '#fff', fontSize: '12px' }}>
+            <option value="navigation">🚪 Strelica za prelaz u sobu</option>
+            <option value="info">ℹ️ Info tačka (prikazuje beli box)</option>
+            <option value="establish">🎬 Uvodna naracija (Početna rotacija)</option>
+          </select>
 
-            {hotspotType === 'navigation' && (
-              <>
-                <label style={{ fontSize: '12px', color: '#aaa' }}>Poveži sa prostorijom:</label>
-                <select value={targetRoomId} onChange={(e) => setTargetRoomId(e.target.value)} style={{ padding: '10px', background: '#09090b', border: '1px solid #3f3f46', borderRadius: '8px', color: '#fff' }}>
-                  <option value="">-- Izaberi sobu --</option>
-                  {rooms.map(r => r.id !== rooms[roomIdx].id && <option key={r.id} value={r.id}>{r.title}</option>)}
-                </select>
-              </>
-            )}
-
-            {/* UPRAVLJANJE POČETNOM I KRAJNJOM TAČKOM AKO JE ZABRANA ESTABLISH */}
-            {hotspotType === 'establish' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', background: '#09090b', padding: '12px', borderRadius: '8px', border: '1px solid #27272a' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '12px', color: '#38bdf8' }}>Početni ugao: {fromYawVal ?? pendingCoords.yaw}°</span>
-                  <button onClick={() => setCurrentViewAsPoint('from')} style={{ padding: '4px 8px', fontSize: '11px', background: '#0284c7', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer' }}>
-                    📍 Postavi trenutni pogled
-                  </button>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '12px', color: '#eab308' }}>Krajnji ugao: {toYawVal !== null ? `${toYawVal}°` : 'Nije izabran'}</span>
-                  <button onClick={() => setCurrentViewAsPoint('to')} style={{ padding: '4px 8px', fontSize: '11px', background: '#ca8a04', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer' }}>
-                    🎯 Postavi trenutni pogled
-                  </button>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                  <label style={{ fontSize: '11px', color: '#aaa' }}>Trajanje (sekundi):</label>
-                  <input 
-                    type="number" 
-                    value={durationVal / 1000} 
-                    onChange={(e) => setDurationVal(Number(e.target.value) * 1000)} 
-                    style={{ width: '60px', padding: '4px', background: '#18181b', border: '1px solid #3f3f46', borderRadius: '4px', color: '#fff', fontSize: '12px' }}
-                  />
-                </div>
-              </div>
-            )}
-
-            <label style={{ fontSize: '12px', color: '#aaa' }}>
-              {hotspotType === 'navigation' && "Tekst na strelici (npr. 'Idi u kuhinju'):"}
-              {hotspotType === 'info' && "Opis/tekst informacije za tačku:"}
-              {hotspotType === 'establish' && "Tekst uvodne naracije za sobu:"}
-            </label>
-
-            <textarea 
-              rows={hotspotType === 'establish' ? 3 : 2}
-              value={hotspotText} 
-              onChange={(e) => setHotspotText(e.target.value)} 
-              placeholder={
-                hotspotType === 'navigation' ? 'Idi u kuhinju' : 
-                hotspotType === 'info' ? 'Ovo je kamin iz 1920. godine' : 
-                'Ulazimo u prostrani dnevni boravak sa kaminom i prirodnim svetlom...'
-              } 
-              style={{ padding: '10px', background: '#09090b', border: '1px solid #3f3f46', borderRadius: '8px', color: '#fff', resize: 'vertical' }} 
+          {hotspotType === 'info' && (
+            <input 
+              type="text" 
+              value={hotspotTitle} 
+              onChange={(e) => setHotspotTitle(e.target.value)} 
+              placeholder="Naslov (npr. REZERVACIJA SADA):" 
+              style={{ padding: '8px', background: '#09090b', border: '1px solid #3f3f46', borderRadius: '6px', color: '#fff', fontSize: '12px' }}
             />
+          )}
 
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
-              <button onClick={() => setPendingCoords(null)} style={{ padding: '8px 16px', background: '#3f3f46', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Otkaži</button>
+          {hotspotType === 'navigation' && (
+            <select value={targetRoomId} onChange={(e) => setTargetRoomId(e.target.value)} style={{ padding: '8px', background: '#09090b', border: '1px solid #3f3f46', borderRadius: '6px', color: '#fff', fontSize: '12px' }}>
+              <option value="">-- Izaberi sobu --</option>
+              {rooms.map(r => r.id != rooms[roomIdx].id && <option key={r.id} value={r.id}>{r.title}</option>)}
+            </select>
+          )}
+
+          <textarea 
+            rows={2} 
+            value={hotspotText} 
+            onChange={(e) => setHotspotText(e.target.value)} 
+            placeholder="Opis / Tekst naracije..." 
+            style={{ padding: '8px', background: '#09090b', border: '1px solid #3f3f46', borderRadius: '6px', color: '#fff', fontSize: '12px' }} 
+          />
+
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px', alignItems: 'center' }}>
+            {editingIndex !== null && (
               <button 
-                onClick={handleSave} 
-                disabled={hotspotType === 'navigation' && !targetRoomId} 
-                style={{ 
-                  padding: '8px 16px', 
-                  background: (hotspotType !== 'navigation' || targetRoomId) ? '#3b82f6' : '#1e3a8a', 
-                  color: '#fff', 
-                  border: 'none', 
-                  borderRadius: '8px', 
-                  fontWeight: 'bold', 
-                  cursor: (hotspotType !== 'navigation' || targetRoomId) ? 'pointer' : 'not-allowed' 
-                }}
+                type="button"
+                onClick={() => {
+                  const idxToDelete = editingIndex;
+                  setPendingCoords(null);
+                  setEditingIndex(null);
+                  handleDeleteWaypoint(idxToDelete);
+                }} 
+                style={{ padding: '6px 12px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', marginRight: 'auto', fontWeight: 'bold' }}
               >
-                Sačuvaj u bazu
+                🗑️ Obriši tačku
               </button>
-            </div>
+            )}
+
+            <button 
+              onClick={() => {
+                setPendingCoords(null);
+                setEditingIndex(null);
+              }} 
+              style={{ padding: '6px 12px', background: '#3f3f46', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
+            >
+              Otkaži
+            </button>
+            <button onClick={handleSave} style={{ padding: '6px 12px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>
+              Sačuvaj Poziciju & Podatke
+            </button>
           </div>
         </div>
       )}
@@ -527,45 +875,23 @@ export default function TourPage() {
       {/* Info Modals */}
       {activeModal !== 'none' && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
-          <div style={{ background: '#1c1c1c', padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '500px', border: '1px solid #333', maxHeight: '80vh', overflowY: 'auto' }}>
-
+          <div style={{ background: '#1c1c1c', padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '500px', border: '1px solid #333' }}>
             {activeModal === 'faq' && (
               <div>
                 <h3 style={{ margin: '0 0 16px 0', color: '#fff' }}>Često postavljana pitanja</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {faqList.map((item, idx) => (
-                    <button key={idx} onClick={() => { setCaption(item.a); setActiveModal('none'); }} style={{ textAlign: 'left', padding: '12px', background: '#2a2a2a', border: '1px solid #3d3d3d', borderRadius: '8px', color: '#fff', cursor: 'pointer' }}>
-                      <strong>❓ {item.q}</strong>
-                    </button>
-                  ))}
-                </div>
+                {faqList.map((item, idx) => (
+                  <div key={idx} style={{ padding: '10px', background: '#2a2a2a', marginBottom: '8px', borderRadius: '8px' }}>
+                    <strong>❓ {item.q}</strong>
+                    <p style={{ margin: '4px 0 0 0', color: '#aaa', fontSize: '13px' }}>{item.a}</p>
+                  </div>
+                ))}
               </div>
             )}
+            {activeModal === 'plan' && <div><h3 style={{ color: '#fff' }}>Plan stana</h3>{tour?.floorplan_url ? <img src={tour.floorplan_url} style={{ width: '100%' }} /> : <p>Nema slika.</p>}</div>}
+            {activeModal === 'location' && <div><h3 style={{ color: '#fff' }}>Lokacija</h3><p>{tour?.location_text || 'Nije uneto.'}</p></div>}
+            {activeModal === 'about' && <div><h3 style={{ color: '#fff' }}>Više o stanu</h3><p>{tour?.about_text || 'Nije uneto.'}</p></div>}
 
-            {activeModal === 'plan' && (
-              <div>
-                <h3 style={{ margin: '0 0 16px 0', color: '#fff' }}>Plan stana</h3>
-                {tour?.floorplan_url ? <img src={tour.floorplan_url} alt="Plan stana" style={{ width: '100%', borderRadius: '8px' }} /> : <p style={{ color: '#aaa' }}>Tlocrt stana još uvek nije dodijeljen.</p>}
-              </div>
-            )}
-
-            {activeModal === 'location' && (
-              <div>
-                <h3 style={{ margin: '0 0 16px 0', color: '#fff' }}>Lokacija</h3>
-                <p style={{ color: '#ddd', lineHeight: '1.5' }}>{tour?.location_text || 'Podaci o lokaciji nisu uneti.'}</p>
-              </div>
-            )}
-
-            {activeModal === 'about' && (
-              <div>
-                <h3 style={{ margin: '0 0 16px 0', color: '#fff' }}>Više o stanu</h3>
-                <p style={{ color: '#ddd', lineHeight: '1.5' }}>{tour?.about_text || 'Opis nije unet.'}</p>
-              </div>
-            )}
-
-            <button onClick={() => setActiveModal('none')} style={{ marginTop: '20px', width: '100%', padding: '10px', background: '#374151', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-              Zatvori
-            </button>
+            <button onClick={() => setActiveModal('none')} style={{ marginTop: '16px', width: '100%', padding: '10px', background: '#374151', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Zatvori</button>
           </div>
         </div>
       )}
@@ -587,3 +913,4 @@ const btnStyle: React.CSSProperties = {
   fontSize: '12px',
   cursor: 'pointer'
 };
+
