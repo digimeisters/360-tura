@@ -241,6 +241,12 @@ export default function TourPage() {
   const isMutedRef = useRef(false);
 
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const lastAudioUrlRef = useRef<string | undefined>(undefined);
+  const lastAudioTextRef = useRef<string | undefined>(undefined);
+  const lastAudioTitleRef = useRef<string | undefined>(undefined);
+  const lastAudioIndexRef = useRef<number | undefined>(undefined);
+  const audioCurrentTimeRef = useRef<number>(0);
+
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [infoBoxData, setInfoBoxData] = useState<{ title?: string; text: string; index?: number; audio_url?: string } | null>(null);
@@ -304,8 +310,8 @@ export default function TourPage() {
 
   const stopAudio = () => {
     if (activeAudioRef.current) {
+      audioCurrentTimeRef.current = activeAudioRef.current.currentTime;
       activeAudioRef.current.pause();
-      activeAudioRef.current.currentTime = 0;
       activeAudioRef.current = null;
     }
     if (hideTimerRef.current) {
@@ -320,13 +326,39 @@ export default function TourPage() {
     setIsMuted(nextMuteState);
 
     if (nextMuteState) {
-      stopAudio();
+      if (activeAudioRef.current) {
+        audioCurrentTimeRef.current = activeAudioRef.current.currentTime;
+        activeAudioRef.current.pause();
+        activeAudioRef.current = null;
+      }
+    } else {
+      if (lastAudioUrlRef.current) {
+        playAudioFileWithCompletion(
+          lastAudioUrlRef.current,
+          lastAudioTextRef.current,
+          lastAudioTitleRef.current,
+          lastAudioIndexRef.current,
+          audioCurrentTimeRef.current
+        );
+      }
     }
   };
 
-  const playAudioFileWithCompletion = (audioUrl?: string, textFallback?: string, title?: string, index?: number): Promise<void> => {
+  const playAudioFileWithCompletion = (
+    audioUrl?: string,
+    textFallback?: string,
+    title?: string,
+    index?: number,
+    startAt: number = 0
+  ): Promise<void> => {
     return new Promise((resolve) => {
       stopAudio();
+
+      lastAudioUrlRef.current = audioUrl;
+      lastAudioTextRef.current = textFallback;
+      lastAudioTitleRef.current = title;
+      lastAudioIndexRef.current = index;
+
       setInfoBoxData({ title: title || rooms[roomIdx]?.title, text: textFallback || '', index, audio_url: audioUrl });
 
       if (isMutedRef.current) {
@@ -344,8 +376,15 @@ export default function TourPage() {
       const audio = new Audio(audioUrl);
       activeAudioRef.current = audio;
 
+      audio.onloadedmetadata = () => {
+        if (startAt > 0 && startAt < audio.duration) {
+          audio.currentTime = startAt;
+        }
+      };
+
       audio.onended = () => {
         activeAudioRef.current = null;
+        audioCurrentTimeRef.current = 0;
         resolve();
       };
 
@@ -355,7 +394,11 @@ export default function TourPage() {
         resolve();
       };
 
-      audio.play().catch(err => {
+      audio.play().then(() => {
+        if (startAt > 0) {
+          try { audio.currentTime = startAt; } catch (e) {}
+        }
+      }).catch(err => {
         console.warn("Preglednik je blokirao automatski zvuk:", err);
         activeAudioRef.current = null;
         resolve();
@@ -376,23 +419,42 @@ export default function TourPage() {
 
     style.innerHTML = `
       .pnm-hotspot {
-        width: 44px !important;
-        height: 44px !important;
-        margin-left: -22px !important;
-        margin-top: -22px !important;
+        width: 132px !important;
+        height: 132px !important;
+        margin-left: -66px !important;
+        margin-top: -66px !important;
         cursor: pointer !important;
-        transition: transform 0.1s ease;
+        transition: transform 0.2s ease;
       }
       .pnm-hotspot:hover {
-        transform: scale(1.15);
+        transform: scale(1.1);
       }
+      
+      /* Pulsirajući efekat za hotspotove */
       .pnm-hotspot.pnm-scene,
       .pnm-hotspot.pnm-info {
-        background-color: rgba(2, 132, 199, 0.9) !important;
+        background-color: rgba(2, 132, 199, 0.8) !important;
         border: 2px solid #ffffff !important;
         border-radius: 50% !important;
-        box-shadow: 0 0 12px rgba(0, 0, 0, 0.6) !important;
+        box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.7);
+        animation: pulse-hotspot 2s infinite;
       }
+
+      @keyframes pulse-hotspot {
+        0% {
+          transform: scale(0.95);
+          box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.7);
+        }
+        70% {
+          transform: scale(1);
+          box-shadow: 0 0 0 12px rgba(2, 132, 199, 0);
+        }
+        100% {
+          transform: scale(0.95);
+          box-shadow: 0 0 0 0 rgba(2, 132, 199, 0);
+        }
+      }
+
       .pnm-tooltip span { display: none !important; }
       .pnm-tooltip { display: none !important; }
 
@@ -453,6 +515,7 @@ export default function TourPage() {
   const changeRoomById = (id: string | number) => {
     sequenceActiveRef.current = false;
     isInterruptedRef.current = true;
+    audioCurrentTimeRef.current = 0;
     stopCurrentAnimation();
     stopAudio();
 
@@ -470,6 +533,7 @@ export default function TourPage() {
     if (!currentRoom?.panorama_url) return;
 
     sequenceActiveRef.current = false;
+    audioCurrentTimeRef.current = 0;
     stopCurrentAnimation();
     stopAudio();
 
@@ -501,10 +565,11 @@ export default function TourPage() {
           } else if (!isNav) {
             isInterruptedRef.current = true;
             stopCurrentAnimation();
+            audioCurrentTimeRef.current = 0;
             if (viewerRef.current) {
               viewerRef.current.setHfov(50);
             }
-            playAudioFileWithCompletion(wp.audio_url, wp.text, wp.title, index);
+            playAudioFileWithCompletion(wp.audio_url, wp.text, wp.title, index, 0);
           }
         }
       };
@@ -529,6 +594,44 @@ export default function TourPage() {
     const infoPoints = (currentRoom.waypoints || [])
       .map((wp, i) => ({ wp, i }))
       .filter(item => item.wp.type === 'info' || (!item.wp.type && !item.wp.targetRoomId));
+
+    const startInfiniteGlide = () => {
+      if (!sequenceActiveRef.current || isInterruptedRef.current) return;
+
+      stopCurrentAnimation();
+
+      setInfoBoxData({
+        title: t.guideCompleted,
+        text: t.freeExplore
+      });
+
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = setTimeout(() => {
+        setInfoBoxData(null);
+      }, 8000);
+
+      if (viewerRef.current) {
+        viewerRef.current.setHfov(70);
+      }
+
+      let lastTime = performance.now();
+      const degreesPerMs = 360 / 25000;
+
+      const animateGlide = (now: number) => {
+        if (!sequenceActiveRef.current || isInterruptedRef.current) return;
+        const delta = now - lastTime;
+        lastTime = now;
+
+        if (viewerRef.current) {
+          const currentYaw = viewerRef.current.getYaw();
+          viewerRef.current.setYaw(currentYaw + degreesPerMs * delta);
+          viewerRef.current.setPitch(targetEstablishPitch);
+        }
+        animFrameRef.current = requestAnimationFrame(animateGlide);
+      };
+
+      animFrameRef.current = requestAnimationFrame(animateGlide);
+    };
 
     v.on('load', async () => {
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
@@ -574,7 +677,7 @@ export default function TourPage() {
 
       await Promise.all([
         rotatePromise,
-        playAudioFileWithCompletion(introAudioUrl, introText, currentRoom.title)
+        playAudioFileWithCompletion(introAudioUrl, introText, currentRoom.title, undefined, 0)
       ]);
 
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
@@ -597,51 +700,11 @@ export default function TourPage() {
         await new Promise(r => setTimeout(r, 2300));
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
-        await playAudioFileWithCompletion(item.wp.audio_url, item.wp.text, item.wp.title, item.i);
+        await playAudioFileWithCompletion(item.wp.audio_url, item.wp.text, item.wp.title, item.i, 0);
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
         await new Promise(r => setTimeout(r, 1000));
         runInfoSequencePhase2(index + 1);
-      };
-
-      const startInfiniteGlide = () => {
-        if (!sequenceActiveRef.current || isInterruptedRef.current) return;
-
-        stopCurrentAnimation();
-
-        // Prikazujemo poruku da je vodič završen
-        setInfoBoxData({
-          title: t.guideCompleted,
-          text: t.freeExplore
-        });
-
-        // Automatsko zatvaranje ove kutije nakon tačno 8 sekundi
-        if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-        hideTimerRef.current = setTimeout(() => {
-          setInfoBoxData(null);
-        }, 8000);
-
-        if (viewerRef.current) {
-          viewerRef.current.setHfov(70);
-        }
-
-        let lastTime = performance.now();
-        const degreesPerMs = 230 / 18000;
-
-        const animateGlide = (now: number) => {
-          if (!sequenceActiveRef.current || isInterruptedRef.current) return;
-          const delta = now - lastTime;
-          lastTime = now;
-
-          if (viewerRef.current) {
-            const currentYaw = viewerRef.current.getYaw();
-            viewerRef.current.setYaw(currentYaw + degreesPerMs * delta);
-            viewerRef.current.setPitch(targetEstablishPitch);
-          }
-          animFrameRef.current = requestAnimationFrame(animateGlide);
-        };
-
-        animFrameRef.current = requestAnimationFrame(animateGlide);
       };
 
       if (infoPoints.length > 0) {
@@ -694,6 +757,7 @@ export default function TourPage() {
 
     sequenceActiveRef.current = false;
     isInterruptedRef.current = true;
+    audioCurrentTimeRef.current = 0;
     stopCurrentAnimation();
     stopAudio();
 
@@ -718,6 +782,7 @@ export default function TourPage() {
 
     sequenceActiveRef.current = false;
     isInterruptedRef.current = true;
+    audioCurrentTimeRef.current = 0;
     stopCurrentAnimation();
     stopAudio();
 
@@ -1034,7 +1099,6 @@ export default function TourPage() {
         <button onClick={() => setActiveModal('about')} style={btnStyle}>{t.aboutBtn}</button>
       </div>
 
-      {/* Info kutija (uklonjena dugmad za zvuk, ostao samo tekst i opcija za brisanje/izmenu u admin modu) */}
       {infoBoxData && (
         <div
           style={{
