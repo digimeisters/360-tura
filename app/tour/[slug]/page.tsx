@@ -11,14 +11,14 @@ type Waypoint = {
   title?: string;
   type?: 'navigation' | 'info';
   targetRoomId?: string;
-  audio_url?: string; // NOVO: Link do snimljenog MP3 fajla
+  audio_url?: string;
 };
 
 type EstablishData = {
   text?: string;
   fromYaw?: number;
   pitch?: number;
-  audio_url?: string; // NOVO: Link do uvodnog MP3 fajla
+  audio_url?: string;
 };
 
 type Room = {
@@ -239,10 +239,9 @@ export default function TourPage() {
 
   const [isMuted, setIsMuted] = useState(false);
   const isMutedRef = useRef(false);
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
-  // Referenca za HTML5 Audio element da možemo da ga prekinemo kad god zatreba
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [infoBoxData, setInfoBoxData] = useState<{ title?: string; text: string; index?: number; audio_url?: string } | null>(null);
 
@@ -303,14 +302,16 @@ export default function TourPage() {
     }
   };
 
-  // Prekidanje aktivnog audio fajla
   const stopAudio = () => {
     if (activeAudioRef.current) {
       activeAudioRef.current.pause();
       activeAudioRef.current.currentTime = 0;
       activeAudioRef.current = null;
     }
-    setIsPlayingAudio(false);
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
   };
 
   const toggleMute = () => {
@@ -323,9 +324,9 @@ export default function TourPage() {
     }
   };
 
-  // Funkcija za puštanje snimljenog MP3 fajla sa praćenjem završetka
   const playAudioFileWithCompletion = (audioUrl?: string, textFallback?: string, title?: string, index?: number): Promise<void> => {
     return new Promise((resolve) => {
+      stopAudio();
       setInfoBoxData({ title: title || rooms[roomIdx]?.title, text: textFallback || '', index, audio_url: audioUrl });
 
       if (isMutedRef.current) {
@@ -334,10 +335,7 @@ export default function TourPage() {
         return;
       }
 
-      stopAudio();
-
       if (!audioUrl) {
-        // Ako nema audio fajla, samo sačekaj malo prema dužini teksta
         const readTime = Math.max(3000, (textFallback || '').length * 50);
         setTimeout(resolve, readTime);
         return;
@@ -345,45 +343,24 @@ export default function TourPage() {
 
       const audio = new Audio(audioUrl);
       activeAudioRef.current = audio;
-      setIsPlayingAudio(true);
 
       audio.onended = () => {
-        setIsPlayingAudio(false);
         activeAudioRef.current = null;
         resolve();
       };
 
       audio.onerror = () => {
         console.error("Greška pri učitavanju audio fajla:", audioUrl);
-        setIsPlayingAudio(false);
         activeAudioRef.current = null;
         resolve();
       };
 
       audio.play().catch(err => {
         console.warn("Preglednik je blokirao automatski zvuk:", err);
-        setIsPlayingAudio(false);
         activeAudioRef.current = null;
         resolve();
       });
     });
-  };
-
-  const handleManualPlayAudio = (audioUrl?: string, textFallback?: string, roomTitle?: string) => {
-    if (!audioUrl) return;
-    stopAudio();
-
-    setInfoBoxData({ title: roomTitle || rooms[roomIdx]?.title, text: textFallback || '', audio_url: audioUrl });
-
-    const audio = new Audio(audioUrl);
-    activeAudioRef.current = audio;
-    setIsPlayingAudio(true);
-
-    audio.onended = () => {
-      setIsPlayingAudio(false);
-      activeAudioRef.current = null;
-    };
-    audio.play().catch(err => console.error("Greška pri reprodukciji:", err));
   };
 
   useEffect(() => {
@@ -632,10 +609,17 @@ export default function TourPage() {
 
         stopCurrentAnimation();
 
+        // Prikazujemo poruku da je vodič završen
         setInfoBoxData({
           title: t.guideCompleted,
           text: t.freeExplore
         });
+
+        // Automatsko zatvaranje ove kutije nakon tačno 8 sekundi
+        if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = setTimeout(() => {
+          setInfoBoxData(null);
+        }, 8000);
 
         if (viewerRef.current) {
           viewerRef.current.setHfov(70);
@@ -1050,7 +1034,7 @@ export default function TourPage() {
         <button onClick={() => setActiveModal('about')} style={btnStyle}>{t.aboutBtn}</button>
       </div>
 
-      {/* Info kutija za prikaz teksta i puštanje snimljenog MP3 glasa */}
+      {/* Info kutija (uklonjena dugmad za zvuk, ostao samo tekst i opcija za brisanje/izmenu u admin modu) */}
       {infoBoxData && (
         <div
           style={{
@@ -1085,48 +1069,22 @@ export default function TourPage() {
             {infoBoxData.text}
           </p>
 
-          <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            {infoBoxData.audio_url ? (
+          {adminMode && infoBoxData.index !== undefined && (
+            <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
               <button
-                onClick={() => handleManualPlayAudio(infoBoxData.audio_url, infoBoxData.text, infoBoxData.title)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 12px',
-                  background: isPlayingAudio ? '#16a34a' : '#0284c7',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '20px',
-                  fontSize: '11px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
-                }}
+                onClick={() => { stopAudio(); handleStartEditWaypoint(infoBoxData.index!); }}
+                style={{ padding: '4px 10px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
               >
-                <span>{isPlayingAudio ? '🔊 Reprodukuje se...' : '▶ Poslušaj snimak'}</span>
+                ✏️ Izmeni
               </button>
-            ) : (
-              <span style={{ fontSize: '11px', color: '#888', fontStyle: 'italic' }}>Nema unetog audio snimka</span>
-            )}
-
-            {adminMode && infoBoxData.index !== undefined && (
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <button
-                  onClick={() => { stopAudio(); handleStartEditWaypoint(infoBoxData.index!); }}
-                  style={{ padding: '4px 10px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
-                >
-                  ✏️ Izmeni
-                </button>
-                <button
-                  onClick={() => { stopAudio(); handleDeleteWaypoint(infoBoxData.index!); }}
-                  style={{ padding: '4px 10px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
-                >
-                  🗑️ Obriši
-                </button>
-              </div>
-            )}
-          </div>
+              <button
+                onClick={() => { stopAudio(); handleDeleteWaypoint(infoBoxData.index!); }}
+                style={{ padding: '4px 10px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
+              >
+                🗑️ Obriši
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -1188,7 +1146,6 @@ export default function TourPage() {
             style={{ padding: '8px', background: '#09090b', border: '1px solid #3f3f46', borderRadius: '6px', color: '#fff', fontSize: '12px' }}
           />
 
-          {/* NOVO POLJE ZA UNOS MP3 URL-A */}
           <input
             type="text"
             value={hotspotAudioUrl}
