@@ -10,7 +10,7 @@ type Waypoint = {
   text: string;
   title?: string;
   type?: 'navigation' | 'info';
-  targetRoomId?: string;
+  targetRoomId?: string | number;
   audio_url?: string;
 };
 
@@ -267,7 +267,6 @@ export default function TourPage() {
   const [activeModal, setActiveModal] = useState<'none' | 'faq' | 'plan' | 'location' | 'about'>('none');
   const [selectedFaqIdx, setSelectedFaqIdx] = useState<number | null>(null);
 
-  // Stanja za automatski i ručni skrol (ticker)
   const tickerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -304,17 +303,15 @@ export default function TourPage() {
     };
   }, []);
 
-  // Automatska petlja za konstantno rotiranje ticker-a
   useEffect(() => {
     if (!tourStarted) return;
 
-    const scrollSpeed = 0.8; // Brzina automatskog pomeranja
+    const scrollSpeed = 0.8;
 
     const step = () => {
       if (tickerRef.current && !isAutoScrollPausedRef.current && !isDragging) {
         tickerRef.current.scrollLeft += scrollSpeed;
 
-        // Kada stigne do kraja desno, vrati na početak radi beskonačne petlje
         if (
           tickerRef.current.scrollLeft >=
           tickerRef.current.scrollWidth - tickerRef.current.clientWidth - 1
@@ -338,7 +335,7 @@ export default function TourPage() {
 
     pauseTimeoutRef.current = setTimeout(() => {
       isAutoScrollPausedRef.current = false;
-    }, 2000); // Nastavlja auto-skrol 2 sekunde nakon što korisnik pusti traku
+    }, 2000);
   };
 
   const toggleFullscreen = () => {
@@ -981,7 +978,6 @@ export default function TourPage() {
     setHotspotType('navigation');
   }
 
-  // Ručno pomeranje mišem/prstom (drag-to-scroll) sa pauziranjem automatskog skrola
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!tickerRef.current) return;
     setIsDragging(true);
@@ -1181,7 +1177,6 @@ export default function TourPage() {
         </div>
       </div>
 
-      {/* 🟢 Automatski rotirajući ticker sa podrškom za ručno prevlačenje i pauziranje */}
       <div
         ref={tickerRef}
         className="ticker-wrapper"
@@ -1274,65 +1269,69 @@ export default function TourPage() {
             </span>
           </div>
         )}
-      </div>
 
-      <div style={{ padding: '8px 14px', background: '#121212', borderTop: '1px solid #282828', display: 'flex', justifyContent: 'center', gap: '6px', zIndex: 10 }}>
-        <button onClick={() => { setActiveModal('faq'); setSelectedFaqIdx(null); }} style={btnStyle}>{t.faqBtn}</button>
-        <button onClick={() => setActiveModal('plan')} style={btnStyle}>{t.planBtn}</button>
-        <button onClick={() => setActiveModal('location')} style={btnStyle}>{t.locationBtn}</button>
-        <button onClick={() => setActiveModal('about')} style={btnStyle}>{t.aboutBtn}</button>
-      </div>
-
-      {infoBoxData && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '50px',
-            left: '10px',
-            right: '10px',
-            backgroundColor: 'rgba(255, 255, 255, 0.98)',
-            color: '#111111',
-            padding: '14px 16px',
-            borderRadius: '12px',
-            boxShadow: '0 5px 25px rgba(0, 0, 0, 0.6)',
-            zIndex: 50,
-            border: '2px solid #0284c7',
-            boxSizing: 'border-box'
-          }}
-        >
-          <button
-            onClick={() => { stopAudio(); setInfoBoxData(null); }}
-            style={{ position: 'absolute', top: '10px', right: '12px', background: 'none', border: 'none', fontSize: '16px', color: '#666', cursor: 'pointer' }}
+        {/* Info box je sada pozicioniran apsolutno unutar ekrana na samom dnu */}
+        {infoBoxData && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '10px',
+              left: '10px',
+              right: '10px',
+              backgroundColor: 'rgba(255, 255, 255, 0.98)',
+              color: '#111111',
+              padding: '14px 16px',
+              borderRadius: '12px',
+              boxShadow: '0 5px 25px rgba(0, 0, 0, 0.6)',
+              zIndex: 50,
+              border: '2px solid #0284c7',
+              boxSizing: 'border-box'
+            }}
           >
-            ✕
-          </button>
+            <button
+              onClick={() => { stopAudio(); setInfoBoxData(null); }}
+              style={{ position: 'absolute', top: '10px', right: '12px', background: 'none', border: 'none', fontSize: '16px', color: '#666', cursor: 'pointer' }}
+            >
+              ✕
+            </button>
 
-          {infoBoxData.title && (
-            <h4 style={{ margin: '0 0 4px 0', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#000', fontFamily: 'sans-serif' }}>
-              {infoBoxData.title}
-            </h4>
-          )}
+            {infoBoxData.title && (
+              <h4 style={{ margin: '0 0 4px 0', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#000', fontFamily: 'sans-serif' }}>
+                {infoBoxData.title}
+              </h4>
+            )}
 
-          <p style={{ margin: 0, fontSize: '13px', lineHeight: '1.4', color: '#222', fontFamily: 'sans-serif', paddingRight: '20px' }}>
-            {infoBoxData.text}
-          </p>
+            <p style={{ margin: 0, fontSize: '13px', lineHeight: '1.4', color: '#222', fontFamily: 'sans-serif', paddingRight: '20px' }}>
+              {infoBoxData.text}
+            </p>
 
-          {adminMode && infoBoxData.index !== undefined && (
-            <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
-              <button
-                onClick={() => { stopAudio(); handleStartEditWaypoint(infoBoxData.index!); }}
-                style={{ padding: '4px 10px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
-              >
-                ✏️ Izmeni
-              </button>
-              <button
-                onClick={() => { stopAudio(); handleDeleteWaypoint(infoBoxData.index!); }}
-                style={{ padding: '4px 10px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
-              >
-                🗑️ Obriši
-              </button>
-            </div>
-          )}
+            {adminMode && infoBoxData.index !== undefined && (
+              <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
+                <button
+                  onClick={() => { stopAudio(); handleStartEditWaypoint(infoBoxData.index!); }}
+                  style={{ padding: '4px 10px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
+                >
+                  ✏️ Izmeni
+                </button>
+                <button
+                  onClick={() => { stopAudio(); handleDeleteWaypoint(infoBoxData.index!); }}
+                  style={{ padding: '4px 10px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
+                >
+                  🗑️ Obriši
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Donja četiri boxa se pojavljuju SAMO kada infoBoxData nije aktivan */}
+      {!infoBoxData && (
+        <div style={{ padding: '8px 14px', background: '#121212', borderTop: '1px solid #282828', display: 'flex', justifyContent: 'center', gap: '6px', zIndex: 10 }}>
+          <button onClick={() => { setActiveModal('faq'); setSelectedFaqIdx(null); }} style={btnStyle}>{t.faqBtn}</button>
+          <button onClick={() => setActiveModal('plan')} style={btnStyle}>{t.planBtn}</button>
+          <button onClick={() => setActiveModal('location')} style={btnStyle}>{t.locationBtn}</button>
+          <button onClick={() => setActiveModal('about')} style={btnStyle}>{t.aboutBtn}</button>
         </div>
       )}
 
