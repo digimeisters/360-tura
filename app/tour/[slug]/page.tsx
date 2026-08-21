@@ -52,6 +52,7 @@ const translations = {
     startTour: '▶ Pokreni turu',
     welcome: 'Dobrodošli! Kliknite na dugme ispod da pokrenete interaktivnu turu sa glasovnim vodičem.',
     loading: 'Učitavanje ture...',
+    roomLoadingPrefix: 'Pripremite se... ulazimo u: ',
     tourNotFound: 'Tura nije pronađena.',
     noRooms: 'Ova tura nema soba.',
     audioOn: 'Uključi zvuk (Unmute)',
@@ -95,6 +96,7 @@ const translations = {
     startTour: '▶ Start Tour',
     welcome: 'Welcome! Click the button below to start the interactive tour with a voice guide.',
     loading: 'Loading tour...',
+    roomLoadingPrefix: 'Get ready... entering: ',
     tourNotFound: 'Tour not found.',
     noRooms: 'This tour has no rooms.',
     audioOn: 'Unmute',
@@ -138,6 +140,7 @@ const translations = {
     startTour: '🇷🇸 Tour Starten',
     welcome: 'Willkommen! Klicken Sie unten, um die interaktive Tour mit Sprachführer zu starten.',
     loading: 'Tour wird geladen...',
+    roomLoadingPrefix: 'Machen Sie sich bereit... wir betreten: ',
     tourNotFound: 'Tour nicht gefunden.',
     noRooms: 'Diese Tour hat keine Räume.',
     audioOn: 'Ton an',
@@ -232,6 +235,7 @@ export default function TourPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomIdx, setRoomIdx] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [roomLoading, setRoomLoading] = useState(false);
   const [error, setError] = useState('');
 
   const [pannellumReady, setPannellumReady] = useState(false);
@@ -263,6 +267,17 @@ export default function TourPage() {
   const [activeModal, setActiveModal] = useState<'none' | 'faq' | 'plan' | 'location' | 'about'>('none');
   const [selectedFaqIdx, setSelectedFaqIdx] = useState<number | null>(null);
 
+  // Stanja za automatski i ručni skrol (ticker)
+  const tickerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const hasDraggedRef = useRef(false);
+
+  const autoScrollRafRef = useRef<number | null>(null);
+  const isAutoScrollPausedRef = useRef(false);
+  const pauseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const viewerRef = useRef<any>(null);
   const animFrameRef = useRef<number | null>(null);
   const sequenceActiveRef = useRef<boolean>(false);
@@ -288,6 +303,43 @@ export default function TourPage() {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
   }, []);
+
+  // Automatska petlja za konstantno rotiranje ticker-a
+  useEffect(() => {
+    if (!tourStarted) return;
+
+    const scrollSpeed = 0.8; // Brzina automatskog pomeranja
+
+    const step = () => {
+      if (tickerRef.current && !isAutoScrollPausedRef.current && !isDragging) {
+        tickerRef.current.scrollLeft += scrollSpeed;
+
+        // Kada stigne do kraja desno, vrati na početak radi beskonačne petlje
+        if (
+          tickerRef.current.scrollLeft >=
+          tickerRef.current.scrollWidth - tickerRef.current.clientWidth - 1
+        ) {
+          tickerRef.current.scrollLeft = 0;
+        }
+      }
+      autoScrollRafRef.current = requestAnimationFrame(step);
+    };
+
+    autoScrollRafRef.current = requestAnimationFrame(step);
+
+    return () => {
+      if (autoScrollRafRef.current) cancelAnimationFrame(autoScrollRafRef.current);
+    };
+  }, [tourStarted, isDragging]);
+
+  const pauseAutoScrollTemporarily = () => {
+    isAutoScrollPausedRef.current = true;
+    if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
+
+    pauseTimeoutRef.current = setTimeout(() => {
+      isAutoScrollPausedRef.current = false;
+    }, 2000); // Nastavlja auto-skrol 2 sekunde nakon što korisnik pusti traku
+  };
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -419,18 +471,17 @@ export default function TourPage() {
 
     style.innerHTML = `
       .pnm-hotspot {
-        width: 132px !important;
-        height: 132px !important;
-        margin-left: -66px !important;
-        margin-top: -66px !important;
+        width: 44px !important;
+        height: 44px !important;
+        margin-left: -22px !important;
+        margin-top: -22px !important;
         cursor: pointer !important;
         transition: transform 0.2s ease;
       }
       .pnm-hotspot:hover {
-        transform: scale(1.1);
+        transform: scale(1.2);
       }
       
-      /* Pulsirajući efekat za hotspotove */
       .pnm-hotspot.pnm-scene,
       .pnm-hotspot.pnm-info {
         background-color: rgba(2, 132, 199, 0.8) !important;
@@ -458,22 +509,57 @@ export default function TourPage() {
       .pnm-tooltip span { display: none !important; }
       .pnm-tooltip { display: none !important; }
 
-      @keyframes ticker {
-        0% { transform: translateX(0); }
-        100% { transform: translateX(-50%); }
+      .ticker-wrapper {
+        overflow-x: auto;
+        white-space: nowrap;
+        position: relative;
+        cursor: grab;
+        user-select: none;
+        -webkit-user-select: none;
+        scrollbar-width: none;
       }
-      .ticker-wrapper:hover .ticker-content {
-        animation-play-state: paused;
+      .ticker-wrapper::-webkit-scrollbar {
+        display: none;
       }
+      .ticker-wrapper:active {
+        cursor: grabbing;
+      }
+
       .ticker-content {
         display: inline-flex;
         gap: 8px;
-        animation: ticker 25s linear infinite;
       }
-      .ticker-wrapper {
-        overflow: hidden;
-        white-space: nowrap;
-        position: relative;
+
+      .dots-loader {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .dots-loader span {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.2);
+        border: 2px solid #38bdf8;
+        display: inline-block;
+        animation: dot-pulse 1.4s infinite ease-in-out both;
+      }
+
+      .dots-loader span:nth-child(1) { animation-delay: -0.32s; }
+      .dots-loader span:nth-child(2) { animation-delay: -0.16s; }
+
+      @keyframes dot-pulse {
+        0%, 80%, 100% {
+          transform: scale(0.6);
+          background-color: rgba(56, 189, 248, 0.2);
+        }
+        40% {
+          transform: scale(1.2);
+          background-color: #38bdf8;
+          box-shadow: 0 0 12px #38bdf8;
+        }
       }
     `;
 
@@ -521,6 +607,7 @@ export default function TourPage() {
 
     const foundIndex = rooms.findIndex(r => r.id == id);
     if (foundIndex !== -1) {
+      setRoomLoading(true);
       setRoomIdx(foundIndex);
       setInfoBoxData(null);
     }
@@ -532,6 +619,7 @@ export default function TourPage() {
     const currentRoom = rooms[roomIdx];
     if (!currentRoom?.panorama_url) return;
 
+    setRoomLoading(true);
     sequenceActiveRef.current = false;
     audioCurrentTimeRef.current = 0;
     stopCurrentAnimation();
@@ -634,6 +722,8 @@ export default function TourPage() {
     };
 
     v.on('load', async () => {
+      setRoomLoading(false);
+
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
       const introText = currentRoom.establish?.text || `${t.welcomePrefix}${currentRoom.title}`;
@@ -891,6 +981,60 @@ export default function TourPage() {
     setHotspotType('navigation');
   }
 
+  // Ručno pomeranje mišem/prstom (drag-to-scroll) sa pauziranjem automatskog skrola
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!tickerRef.current) return;
+    setIsDragging(true);
+    hasDraggedRef.current = false;
+    isAutoScrollPausedRef.current = true;
+    setStartX(e.pageX - tickerRef.current.offsetLeft);
+    setScrollLeft(tickerRef.current.scrollLeft);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !tickerRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - tickerRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    if (Math.abs(walk) > 5) {
+      hasDraggedRef.current = true;
+    }
+    tickerRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const handleMouseUp = () => {
+    if (isDragging) {
+      setIsDragging(false);
+      pauseAutoScrollTemporarily();
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!tickerRef.current) return;
+    setIsDragging(true);
+    hasDraggedRef.current = false;
+    isAutoScrollPausedRef.current = true;
+    setStartX(e.touches[0].pageX - tickerRef.current.offsetLeft);
+    setScrollLeft(tickerRef.current.scrollLeft);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || !tickerRef.current) return;
+    const x = e.touches[0].pageX - tickerRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    if (Math.abs(walk) > 5) {
+      hasDraggedRef.current = true;
+    }
+    tickerRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const handleTouchEnd = () => {
+    if (isDragging) {
+      setIsDragging(false);
+      pauseAutoScrollTemporarily();
+    }
+  };
+
   if (!mounted || loading || !pannellumReady) return <Centered>{t.loading}</Centered>;
   if (error) return <Centered>{error}</Centered>;
 
@@ -942,14 +1086,36 @@ export default function TourPage() {
     { q: qList[3], a: tour?.faq_4 || t.notEntered }
   ];
 
-  const tickerRooms = [...rooms, ...rooms];
-
   return (
     <main
       ref={mainContainerRef}
       suppressHydrationWarning
       style={{ width: '100vw', height: '100vh', background: '#0a0a0a', color: '#fff', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}
     >
+      {roomLoading && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(10, 10, 10, 0.92)',
+          zIndex: 999,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '24px',
+          backdropFilter: 'blur(6px)'
+        }}>
+          <div className="dots-loader">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <div style={{ color: '#e2e8f0', fontSize: '16px', fontWeight: '500', letterSpacing: '0.5px', textAlign: 'center', padding: '0 20px', fontFamily: 'sans-serif' }}>
+            {t.roomLoadingPrefix} <strong style={{ color: '#38bdf8' }}>{rooms[roomIdx]?.title}</strong> ✨
+          </div>
+        </div>
+      )}
+
       <div suppressHydrationWarning style={{ padding: '6px 14px', background: '#121212', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10, minHeight: '44px' }}>
         <h1 style={{ margin: 0, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>{tour?.title || '360 Tura'}</h1>
 
@@ -1015,16 +1181,34 @@ export default function TourPage() {
         </div>
       </div>
 
-      <div className="ticker-wrapper" style={{ padding: '6px 0', background: '#18181b', borderBottom: '1px solid #27272a', zIndex: 10 }}>
-        <div className="ticker-content" style={{ paddingLeft: '8px' }}>
-          {tickerRooms.map((r, i) => {
+      {/* 🟢 Automatski rotirajući ticker sa podrškom za ručno prevlačenje i pauziranje */}
+      <div
+        ref={tickerRef}
+        className="ticker-wrapper"
+        onMouseEnter={() => (isAutoScrollPausedRef.current = true)}
+        onMouseLeave={() => {
+          if (!isDragging) isAutoScrollPausedRef.current = false;
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{ padding: '8px 0', background: '#18181b', borderBottom: '1px solid #27272a', zIndex: 10 }}
+      >
+        <div className="ticker-content" style={{ paddingLeft: '8px', paddingRight: '8px' }}>
+          {rooms.map((r, i) => {
             const isSelected = r.id === rooms[roomIdx]?.id;
             return (
               <button
                 key={`${r.id}-${i}`}
-                onClick={() => changeRoomById(r.id)}
+                onClick={(e) => {
+                  if (hasDraggedRef.current) return;
+                  changeRoomById(r.id);
+                }}
                 style={{
-                  padding: '4px 12px',
+                  padding: '6px 14px',
                   borderRadius: '14px',
                   border: isSelected ? '2px solid #38bdf8' : '1px solid #3f3f46',
                   background: isSelected ? 'linear-gradient(135deg, #0284c7, #0369a1)' : '#27272a',
@@ -1313,7 +1497,26 @@ export default function TourPage() {
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
-  return <div style={{ color: 'white', background: 'black', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{children}</div>;
+  return (
+    <div style={{ 
+      color: 'white', 
+      background: '#0a0a0a', 
+      height: '100vh', 
+      display: 'flex', 
+      flexDirection: 'column',
+      alignItems: 'center', 
+      justifyContent: 'center',
+      fontFamily: 'sans-serif',
+      gap: '20px'
+    }}>
+      <div className="dots-loader">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <div style={{ color: '#aaa', fontSize: '14px', letterSpacing: '1px' }}>{children}</div>
+    </div>
+  );
 }
 
 const btnStyle: React.CSSProperties = {
