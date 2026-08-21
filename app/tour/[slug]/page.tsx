@@ -4,10 +4,46 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 
+// --- DODAVANJE OPEN GRAPH META TAGOVA ZA FACEBOOK I DRUŠTVENE MREŽE ---
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const resolvedParams = await params;
+  const slug = resolvedParams?.slug;
+  
+  const ogImageUrl = 'https://360-tura.vercel.app/images/facebook-og-image.jpg'; 
+  const pageUrl = `https://360-tura.vercel.app/tour/${slug}`;
+
+  return {
+    title: 'Stan Gasse-1 - Interaktivna 360 Tura | StarStream Agency',
+    description: 'Pogledajte virtuelnu šetnju u 360 stepeni! Istražite svaki kutak nekretnine iz udobnosti svoje fotelje.',
+    openGraph: {
+      title: 'Stan Gasse-1 - Interaktivna 360 Tura',
+      description: 'Zavirite unutra jednim klikom i pogledajte interaktivnu 360° turu ove nekretnine.',
+      url: pageUrl,
+      siteName: 'StarStream Agency',
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: 'Stan Gasse-1 360 Tura',
+        },
+      ],
+      locale: 'sr_RS',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: 'Stan Gasse-1 - Interaktivna 360 Tura',
+      description: 'Zavirite unutra jednim klikom i pogledajte interaktivnu 360° turu.',
+      images: [ogImageUrl],
+    },
+  };
+}
+
 type Waypoint = {
   yaw: number;
   pitch: number;
-  text: string;
+  text?: any;
   title?: string;
   type?: 'navigation' | 'info';
   targetRoomId?: string | number;
@@ -15,7 +51,7 @@ type Waypoint = {
 };
 
 type EstablishData = {
-  text?: string;
+  text?: any;
   fromYaw?: number;
   pitch?: number;
   audio_url?: string;
@@ -28,7 +64,9 @@ type Room = {
   panorama_url: string;
   order_index?: number;
   waypoints?: Waypoint[];
+  waypoints_i18n?: Waypoint[];
   establish?: EstablishData;
+  establish_i18n?: EstablishData;
 };
 
 type Tour = {
@@ -76,6 +114,7 @@ const translations = {
     locationTitle: 'Lokacija',
     aboutTitle: 'Više o stanu',
     notEntered: 'Podatak nije unet u bazu.',
+    missingLangData: '⚠️ Podaci na ovom jeziku još uvek nisu uneti.',
     targetRoom: '-- Izaberi sobu --',
     save: 'Sačuvaj Poziciju & Podatke',
     cancel: 'Otkaži',
@@ -120,6 +159,7 @@ const translations = {
     locationTitle: 'Location',
     aboutTitle: 'About the Property',
     notEntered: 'Data not entered in database.',
+    missingLangData: '⚠️ Data in this language has not been entered yet.',
     targetRoom: '-- Select room --',
     save: 'Save Position & Data',
     cancel: 'Cancel',
@@ -164,6 +204,7 @@ const translations = {
     locationTitle: 'Standort',
     aboutTitle: 'Über die Immobilie',
     notEntered: 'Daten nicht in der Datenbank.',
+    missingLangData: '⚠️ Daten in dieser Sprache wurden noch nicht eingegeben.',
     targetRoom: '-- Raum wählen --',
     save: 'Position & Daten speichern',
     cancel: 'Abbrechen',
@@ -220,6 +261,26 @@ function getShortestTargetYaw(currentYaw: number, targetYaw: number): number {
   return currentYaw + diff;
 }
 
+// Pomoćna funkcija za izvlačenje lokalizovanog teksta iz JSONB objekta
+function getLocalizedText(i18nObj: any, lang: Language, missingWarning: string): { text: string; isMissing: boolean } {
+  if (!i18nObj) {
+    return { text: missingWarning, isMissing: true };
+  }
+
+  // Ako je string (stara struktura)
+  if (typeof i18nObj === 'string') {
+    return { text: i18nObj, isMissing: false };
+  }
+
+  // Ako je JSONB objekat tipa {"sr": "...", "en": "..."}
+  if (i18nObj[lang] && String(i18nObj[lang]).trim() !== '') {
+    return { text: i18nObj[lang], isMissing: false };
+  }
+
+  // Ako traženi jezik ne postoji, vrati upozorenje
+  return { text: missingWarning, isMissing: true };
+}
+
 export default function TourPage() {
   const [mounted, setMounted] = useState(false);
   const [tourStarted, setTourStarted] = useState(false);
@@ -251,6 +312,7 @@ export default function TourPage() {
   const lastAudioIndexRef = useRef<number | undefined>(undefined);
   const audioCurrentTimeRef = useRef<number>(0);
 
+  const [audioProgress, setAudioProgress] = useState(0);
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [infoBoxData, setInfoBoxData] = useState<{ title?: string; text: string; index?: number; audio_url?: string } | null>(null);
@@ -367,6 +429,7 @@ export default function TourPage() {
       clearTimeout(hideTimerRef.current);
       hideTimerRef.current = null;
     }
+    setAudioProgress(0);
   };
 
   const toggleMute = () => {
@@ -431,15 +494,23 @@ export default function TourPage() {
         }
       };
 
+      audio.ontimeupdate = () => {
+        if (audio.duration > 0) {
+          setAudioProgress((audio.currentTime / audio.duration) * 100);
+        }
+      };
+
       audio.onended = () => {
         activeAudioRef.current = null;
         audioCurrentTimeRef.current = 0;
+        setAudioProgress(0);
         resolve();
       };
 
       audio.onerror = () => {
         console.error("Greška pri učitavanju audio fajla:", audioUrl);
         activeAudioRef.current = null;
+        setAudioProgress(0);
         resolve();
       };
 
@@ -450,6 +521,7 @@ export default function TourPage() {
       }).catch(err => {
         console.warn("Preglednik je blokirao automatski zvuk:", err);
         activeAudioRef.current = null;
+        setAudioProgress(0);
         resolve();
       });
     });
@@ -478,7 +550,7 @@ export default function TourPage() {
       .pnm-hotspot:hover {
         transform: scale(1.2);
       }
-      
+
       .pnm-hotspot.pnm-scene,
       .pnm-hotspot.pnm-info {
         background-color: rgba(2, 132, 199, 0.8) !important;
@@ -587,8 +659,20 @@ export default function TourPage() {
       if (tourErr || !tourData) setError(t.tourNotFound);
       else setTour(tourData as Tour);
 
-      if (roomErr || !roomRows || roomRows.length === 0) setError(t.noRooms);
-      else setRooms(roomRows as Room[]);
+      if (roomErr || !roomRows || roomRows.length === 0) {
+        setError(t.noRooms);
+      } else {
+        setRooms(roomRows as Room[]);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomParam = urlParams.get('room');
+        if (roomParam) {
+          const foundIdx = roomRows.findIndex(r => String(r.id) === roomParam || String(r.order_index) === roomParam);
+          if (foundIdx !== -1) {
+            setRoomIdx(foundIdx);
+          }
+        }
+      }
 
       setLoading(false);
     }
@@ -607,6 +691,9 @@ export default function TourPage() {
       setRoomLoading(true);
       setRoomIdx(foundIndex);
       setInfoBoxData(null);
+
+      const newUrl = `${window.location.pathname}?room=${rooms[foundIndex].id}`;
+      window.history.replaceState({ path: newUrl }, '', newUrl);
     }
   };
 
@@ -635,7 +722,10 @@ export default function TourPage() {
       panoramaContainer.innerHTML = '';
     }
 
-    const formattedHotspots = (currentRoom.waypoints || []).map((wp, index) => {
+    // Korišćenje waypoints_i18n sa fallbackom na stare waypoints
+    const rawWaypoints = currentRoom.waypoints_i18n || currentRoom.waypoints || [];
+    const formattedHotspots = rawWaypoints.map((wp: any, index: number) => {
+      const localized = getLocalizedText(wp.text, lang, t.missingLangData);
       const isNav = wp.type === 'navigation' || Boolean(wp.targetRoomId);
 
       return {
@@ -654,7 +744,7 @@ export default function TourPage() {
             if (viewerRef.current) {
               viewerRef.current.setHfov(50);
             }
-            playAudioFileWithCompletion(wp.audio_url, wp.text, wp.title, index, 0);
+            playAudioFileWithCompletion(wp.audio_url, localized.text, wp.title, index, 0);
           }
         }
       };
@@ -676,9 +766,9 @@ export default function TourPage() {
     });
     viewerRef.current = v;
 
-    const infoPoints = (currentRoom.waypoints || [])
-      .map((wp, i) => ({ wp, i }))
-      .filter(item => item.wp.type === 'info' || (!item.wp.type && !item.wp.targetRoomId));
+    const infoPoints = rawWaypoints
+      .map((wp: any, i: number) => ({ wp, i }))
+      .filter((item: any) => item.wp.type === 'info' || (!item.wp.type && !item.wp.targetRoomId));
 
     const startInfiniteGlide = () => {
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
@@ -723,8 +813,13 @@ export default function TourPage() {
 
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
-      const introText = currentRoom.establish?.text || `${t.welcomePrefix}${currentRoom.title}`;
-      const introAudioUrl = currentRoom.establish?.audio_url;
+      const establishObj = currentRoom.establish_i18n || currentRoom.establish || {};
+      const introLocalized = getLocalizedText(establishObj.text, lang, t.missingLangData);
+      const introText = introLocalized.isMissing && introLocalized.text === t.missingLangData 
+        ? t.missingLangData 
+        : (introLocalized.text || `${t.welcomePrefix}${currentRoom.title}`);
+      
+      const introAudioUrl = establishObj.audio_url || currentRoom.establish?.audio_url;
 
       const rotatePromise = new Promise<void>((resolve) => {
         const durationPhase1 = 15000;
@@ -778,6 +873,8 @@ export default function TourPage() {
         }
 
         const item = infoPoints[index];
+        const wpLocalized = getLocalizedText(item.wp.text, lang, t.missingLangData);
+
         const currentYaw = normalizeYaw(viewerRef.current.getYaw());
         const targetYaw = getShortestTargetYaw(currentYaw, item.wp.yaw);
         const targetPitch = item.wp.pitch ?? 0;
@@ -787,7 +884,7 @@ export default function TourPage() {
         await new Promise(r => setTimeout(r, 2300));
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
-        await playAudioFileWithCompletion(item.wp.audio_url, item.wp.text, item.wp.title, item.i, 0);
+        await playAudioFileWithCompletion(item.wp.audio_url, wpLocalized.text, item.wp.title, item.i, 0);
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
         await new Promise(r => setTimeout(r, 1000));
@@ -835,11 +932,12 @@ export default function TourPage() {
         panoramaContainer.innerHTML = '';
       }
     };
-  }, [rooms, roomIdx, pannellumReady, adminMode, mounted, tourStarted]);
+  }, [rooms, roomIdx, pannellumReady, adminMode, mounted, tourStarted, lang]);
 
   const handleStartEditWaypoint = (index: number) => {
     const currentRoom = rooms[roomIdx];
-    const wp = currentRoom.waypoints?.[index];
+    const rawWaypoints = currentRoom.waypoints_i18n || currentRoom.waypoints || [];
+    const wp = rawWaypoints[index];
     if (!wp) return;
 
     sequenceActiveRef.current = false;
@@ -854,18 +952,20 @@ export default function TourPage() {
       viewerRef.current.lookAt(wp.pitch ?? 0, targetYaw, 50, 1000);
     }
 
+    const localizedText = typeof wp.text === 'object' && wp.text !== null ? (wp.text[lang] || wp.text['sr'] || '') : (wp.text || '');
+
     setPendingCoords({ pitch: wp.pitch, yaw: wp.yaw });
     setEditingIndex(index);
     setHotspotType(wp.type || 'info');
     setHotspotTitle(wp.title || '');
-    setHotspotText(wp.text || '');
+    setHotspotText(localizedText);
     setHotspotAudioUrl(wp.audio_url || '');
     setTargetRoomId(wp.targetRoomId || '');
   };
 
   const handleStartEditEstablish = () => {
     const currentRoom = rooms[roomIdx];
-    const establish = currentRoom.establish;
+    const establishObj = currentRoom.establish_i18n || currentRoom.establish || {};
 
     sequenceActiveRef.current = false;
     isInterruptedRef.current = true;
@@ -875,36 +975,39 @@ export default function TourPage() {
 
     if (viewerRef.current) {
       const currentYaw = viewerRef.current.getYaw();
-      const targetYaw = getShortestTargetYaw(currentYaw, establish?.fromYaw ?? 0);
-      viewerRef.current.lookAt(establish?.pitch ?? 0, targetYaw, 70, 1000);
+      const targetYaw = getShortestTargetYaw(currentYaw, establishObj.fromYaw ?? 0);
+      viewerRef.current.lookAt(establishObj.pitch ?? 0, targetYaw, 70, 1000);
     }
 
+    const rawText = establishObj.text;
+    const localizedText = typeof rawText === 'object' && rawText !== null ? (rawText[lang] || rawText['sr'] || '') : (rawText || '');
+
     setPendingCoords({
-      pitch: establish?.pitch ?? 0,
-      yaw: establish?.fromYaw ?? 0
+      pitch: establishObj.pitch ?? 0,
+      yaw: establishObj.fromYaw ?? 0
     });
     setEditingIndex(null);
     setHotspotType('establish');
-    setHotspotText(establish?.text || '');
-    setHotspotAudioUrl(establish?.audio_url || '');
-    setFromYawVal(establish?.fromYaw ?? 0);
+    setHotspotText(localizedText);
+    setHotspotAudioUrl(establishObj.audio_url || '');
+    setFromYawVal(establishObj.fromYaw ?? 0);
   };
 
   const handleDeleteWaypoint = async (index: number) => {
     if (!confirm('Da li ste sigurni da želite da obrišete ovu tačku?')) return;
 
     const currentRoom = rooms[roomIdx];
-    const updatedWaypoints = [...(currentRoom.waypoints || [])];
+    const updatedWaypoints = [...(currentRoom.waypoints_i18n || currentRoom.waypoints || [])];
     updatedWaypoints.splice(index, 1);
 
     const { error: updateErr } = await supabase
       .from('rooms')
-      .update({ waypoints: updatedWaypoints })
+      .update({ waypoints_i18n: updatedWaypoints })
       .eq('id', currentRoom.id);
 
     if (!updateErr) {
       const updatedRooms = [...rooms];
-      updatedRooms[roomIdx].waypoints = updatedWaypoints;
+      updatedRooms[roomIdx].waypoints_i18n = updatedWaypoints;
       setRooms(updatedRooms);
       setInfoBoxData(null);
     }
@@ -918,8 +1021,13 @@ export default function TourPage() {
     const finalYaw = Math.round(normalizeYaw(viewerRef.current.getYaw()) * 10) / 10;
 
     if (hotspotType === 'establish') {
+      const existingEstablish = currentRoom.establish_i18n || {};
+      const existingTextObj = typeof existingEstablish.text === 'object' && existingEstablish.text !== null ? existingEstablish.text : { sr: existingEstablish.text || '' };
+      
+      existingTextObj[lang] = hotspotText;
+
       const newEstablishData: EstablishData = {
-        text: hotspotText,
+        text: existingTextObj,
         audio_url: hotspotAudioUrl,
         fromYaw: finalYaw,
         pitch: finalPitch
@@ -927,27 +1035,37 @@ export default function TourPage() {
 
       const { error: updateErr } = await supabase
         .from('rooms')
-        .update({ establish: newEstablishData })
+        .update({ establish_i18n: newEstablishData })
         .eq('id', currentRoom.id);
 
       if (!updateErr) {
         const updatedRooms = [...rooms];
-        updatedRooms[roomIdx].establish = newEstablishData;
+        updatedRooms[roomIdx].establish_i18n = newEstablishData;
         setRooms(updatedRooms);
         alert('Uspešno sačuvano!');
       }
     } else {
+      let updatedWaypoints = [...(currentRoom.waypoints_i18n || currentRoom.waypoints || [])];
+
+      let targetTextObj = { [lang]: hotspotText };
+      if (editingIndex !== null && updatedWaypoints[editingIndex]) {
+        const existingWp = updatedWaypoints[editingIndex];
+        if (typeof existingWp.text === 'object' && existingWp.text !== null) {
+          targetTextObj = { ...existingWp.text, [lang]: hotspotText };
+        } else if (typeof existingWp.text === 'string') {
+          targetTextObj = { sr: existingWp.text, [lang]: hotspotText };
+        }
+      }
+
       const newWaypoint: Waypoint = {
         pitch: finalPitch,
         yaw: finalYaw,
         title: hotspotTitle,
-        text: hotspotText,
+        text: targetTextObj,
         audio_url: hotspotAudioUrl,
         type: hotspotType,
         targetRoomId: hotspotType === 'navigation' ? targetRoomId : undefined
       };
-
-      let updatedWaypoints = [...(currentRoom.waypoints || [])];
 
       if (editingIndex !== null) {
         updatedWaypoints[editingIndex] = newWaypoint;
@@ -957,12 +1075,12 @@ export default function TourPage() {
 
       const { error: updateErr } = await supabase
         .from('rooms')
-        .update({ waypoints: updatedWaypoints })
+        .update({ waypoints_i18n: updatedWaypoints })
         .eq('id', currentRoom.id);
 
       if (!updateErr) {
         const updatedRooms = [...rooms];
-        updatedRooms[roomIdx].waypoints = updatedWaypoints;
+        updatedRooms[roomIdx].waypoints_i18n = updatedWaypoints;
         setRooms(updatedRooms);
         alert('Tačka uspešno sačuvana!');
       }
@@ -1228,7 +1346,7 @@ export default function TourPage() {
       {adminMode && (
         <div style={{ padding: '6px 14px', background: '#1e1e24', borderBottom: '1px solid #333', display: 'flex', gap: '8px', overflowX: 'auto', zIndex: 10 }}>
           <span style={{ fontSize: '11px', color: '#aaa', alignSelf: 'center', fontWeight: 'bold' }}>{t.points}</span>
-          {(rooms[roomIdx]?.waypoints || []).map((wp, idx) => (
+          {(rooms[roomIdx]?.waypoints_i18n || rooms[roomIdx]?.waypoints || []).map((wp, idx) => (
             <button
               key={idx}
               onClick={() => handleStartEditWaypoint(idx)}
@@ -1270,7 +1388,6 @@ export default function TourPage() {
           </div>
         )}
 
-        {/* Info box je sada pozicioniran apsolutno unutar ekrana na samom dnu */}
         {infoBoxData && (
           <div
             style={{
@@ -1325,7 +1442,10 @@ export default function TourPage() {
         )}
       </div>
 
-      {/* Donja četiri boxa se pojavljuju SAMO kada infoBoxData nije aktivan */}
+      <div style={{ width: '100%', height: '3px', background: '#27272a', position: 'relative', zIndex: 12 }}>
+        <div style={{ width: `${audioProgress}%`, height: '100%', background: '#38bdf8', transition: 'width 0.1s linear' }} />
+      </div>
+
       {!infoBoxData && (
         <div style={{ padding: '8px 14px', background: '#121212', borderTop: '1px solid #282828', display: 'flex', justifyContent: 'center', gap: '6px', zIndex: 10 }}>
           <button onClick={() => { setActiveModal('faq'); setSelectedFaqIdx(null); }} style={btnStyle}>{t.faqBtn}</button>
@@ -1462,7 +1582,7 @@ export default function TourPage() {
                     </h3>
                     <div style={{ background: '#2a2a2a', padding: '16px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #3f3f46' }}>
                       <p style={{ margin: 0, color: '#e5e5e5', fontSize: '14px', lineHeight: '1.6' }}>
-                        {faqList[selectedFaqIdx].a}
+                        {faqList[selectedFaqIdx].a !== t.notEntered ? faqList[selectedFaqIdx].a : t.missingLangData}
                       </p>
                     </div>
                     <button
@@ -1476,11 +1596,42 @@ export default function TourPage() {
               </div>
             )}
 
-            {activeModal === 'plan' && <div><h3 style={{ color: '#fff', margin: '0 0 12px 0' }}>{t.floorplanTitle}</h3>{tour?.floorplan_url ? <img src={tour.floorplan_url} style={{ width: '100%', borderRadius: '8px' }} /> : <p style={{ color: '#aaa' }}>{t.noFloorplan}</p>}</div>}
+            {activeModal === 'plan' && (
+              <div>
+                <h3 style={{ color: '#fff', margin: '0 0 12px 0' }}>{t.floorplanTitle}</h3>
+                {tour?.floorplan_url ? (
+                  <img src={tour.floorplan_url} style={{ width: '100%', borderRadius: '8px' }} />
+                ) : (
+                  <p style={{ color: '#f59e0b', fontSize: '14px' }}>{t.missingLangData}</p>
+                )}
+              </div>
+            )}
 
-            {activeModal === 'location' && <div><h3 style={{ color: '#fff', margin: '0 0 12px 0' }}>{t.locationTitle}</h3><p style={{ color: '#ccc', lineHeight: '1.5' }}>{tour?.location_text || t.notEntered}</p></div>}
+            {activeModal === 'location' && (
+              <div>
+                <h3 style={{ color: '#fff', margin: '0 0 12px 0' }}>{t.locationTitle}</h3>
+                <p style={{ color: '#ccc', lineHeight: '1.5' }}>
+                  {(() => {
+                    const langKey = lang === 'sr' ? 'location_text' : `location_text_${lang}`;
+                    const text = (tour as any)[langKey] || tour?.location_text;
+                    return text ? text : <span style={{ color: '#f59e0b' }}>{t.missingLangData}</span>;
+                  })()}
+                </p>
+              </div>
+            )}
 
-            {activeModal === 'about' && <div><h3 style={{ color: '#fff', margin: '0 0 12px 0' }}>{t.aboutTitle}</h3><p style={{ color: '#ccc', lineHeight: '1.5' }}>{tour?.about_text || t.notEntered}</p></div>}
+            {activeModal === 'about' && (
+              <div>
+                <h3 style={{ color: '#fff', margin: '0 0 12px 0' }}>{t.aboutTitle}</h3>
+                <p style={{ color: '#ccc', lineHeight: '1.5' }}>
+                  {(() => {
+                    const langKey = lang === 'sr' ? 'about_text' : `about_text_${lang}`;
+                    const text = (tour as any)[langKey] || tour?.about_text;
+                    return text ? text : <span style={{ color: '#f59e0b' }}>{t.missingLangData}</span>;
+                  })()}
+                </p>
+              </div>
+            )}
 
             <button
               onClick={() => { setActiveModal('none'); setSelectedFaqIdx(null); }}
@@ -1497,13 +1648,13 @@ export default function TourPage() {
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ 
-      color: 'white', 
-      background: '#0a0a0a', 
-      height: '100vh', 
-      display: 'flex', 
+    <div style={{
+      color: 'white',
+      background: '#0a0a0a',
+      height: '100vh',
+      display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center', 
+      alignItems: 'center',
       justifyContent: 'center',
       fontFamily: 'sans-serif',
       gap: '20px'
@@ -1527,3 +1678,4 @@ const btnStyle: React.CSSProperties = {
   fontSize: '11px',
   cursor: 'pointer'
 };
+
