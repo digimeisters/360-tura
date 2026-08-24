@@ -4,54 +4,18 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 
-// --- DODAVANJE OPEN GRAPH META TAGOVA ZA FACEBOOK I DRUŠTVENE MREŽE ---
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-  const resolvedParams = await params;
-  const slug = resolvedParams?.slug;
-  
-  const ogImageUrl = 'https://360-tura.vercel.app/images/facebook-og-image.jpg'; 
-  const pageUrl = `https://360-tura.vercel.app/tour/${slug}`;
-
-  return {
-    title: 'Stan Gasse-1 - Interaktivna 360 Tura | StarStream Agency',
-    description: 'Pogledajte virtuelnu šetnju u 360 stepeni! Istražite svaki kutak nekretnine iz udobnosti svoje fotelje.',
-    openGraph: {
-      title: 'Stan Gasse-1 - Interaktivna 360 Tura',
-      description: 'Zavirite unutra jednim klikom i pogledajte interaktivnu 360° turu ove nekretnine.',
-      url: pageUrl,
-      siteName: 'StarStream Agency',
-      images: [
-        {
-          url: ogImageUrl,
-          width: 1200,
-          height: 630,
-          alt: 'Stan Gasse-1 360 Tura',
-        },
-      ],
-      locale: 'sr_RS',
-      type: 'website',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: 'Stan Gasse-1 - Interaktivna 360 Tura',
-      description: 'Zavirite unutra jednim klikom i pogledajte interaktivnu 360° turu.',
-      images: [ogImageUrl],
-    },
-  };
-}
-
 type Waypoint = {
   yaw: number;
   pitch: number;
-  text?: any;
-  title?: string;
+  text: string | Record<string, string>;
+  title?: string | Record<string, string>;
   type?: 'navigation' | 'info';
   targetRoomId?: string | number;
   audio_url?: string;
 };
 
 type EstablishData = {
-  text?: any;
+  text?: string | Record<string, string>;
   fromYaw?: number;
   pitch?: number;
   audio_url?: string;
@@ -60,30 +24,46 @@ type EstablishData = {
 type Room = {
   id: string | number;
   tour_slug: string;
-  title: string;
+  title: string | Record<string, string>;
   panorama_url: string;
   order_index?: number;
   waypoints?: Waypoint[];
-  waypoints_i18n?: Waypoint[];
   establish?: EstablishData;
-  establish_i18n?: EstablishData;
 };
 
 type Tour = {
   id: string | number;
   slug: string;
-  title: string;
+  title: string | Record<string, string>;
   category?: 'rent' | 'sale' | 'booking';
-  location_text?: string;
-  about_text?: string;
+  location_text?: string | Record<string, string>;
+  location_map_url?: string;
+  about_text?: string | Record<string, string>;
   floorplan_url?: string;
-  faq_1?: string;
-  faq_2?: string;
-  faq_3?: string;
-  faq_4?: string;
+  faq_1?: string | Record<string, string>;
+  faq_2?: string | Record<string, string>;
+  faq_3?: string | Record<string, string>;
+  faq_4?: string | Record<string, string>;
 };
 
 type Language = 'sr' | 'en' | 'de';
+
+const getLocalizedText = (textData: any, lang: string = 'sr'): string => {
+  if (!textData) return '';
+  if (typeof textData === 'object') {
+    return textData[lang] || textData['sr'] || Object.values(textData)[0] || '';
+  }
+  if (typeof textData === 'string') {
+    try {
+      const parsed = JSON.parse(textData);
+      if (parsed && typeof parsed === 'object') {
+        return parsed[lang] || parsed['sr'] || Object.values(parsed)[0] || '';
+      }
+    } catch (e) {}
+    return textData;
+  }
+  return String(textData);
+};
 
 const translations = {
   sr: {
@@ -111,10 +91,10 @@ const translations = {
     faqSub: 'Izaberite pitanje da vidite odgovor u prozoru:',
     floorplanTitle: 'Plan stana',
     noFloorplan: 'Nema slike plana.',
-    locationTitle: 'Lokacija',
+    locationTitle: 'Lokacija na mapi',
+    noMap: 'Google mapa nije uneta za ovu turu.',
     aboutTitle: 'Više o stanu',
     notEntered: 'Podatak nije unet u bazu.',
-    missingLangData: '⚠️ Podaci na ovom jeziku još uvek nisu uneti.',
     targetRoom: '-- Izaberi sobu --',
     save: 'Sačuvaj Poziciju & Podatke',
     cancel: 'Otkaži',
@@ -156,10 +136,10 @@ const translations = {
     faqSub: 'Select a question to view the answer:',
     floorplanTitle: 'Floor Plan',
     noFloorplan: 'No floor plan image available.',
-    locationTitle: 'Location',
+    locationTitle: 'Location Map',
+    noMap: 'Google map link not provided for this tour.',
     aboutTitle: 'About the Property',
     notEntered: 'Data not entered in database.',
-    missingLangData: '⚠️ Data in this language has not been entered yet.',
     targetRoom: '-- Select room --',
     save: 'Save Position & Data',
     cancel: 'Cancel',
@@ -201,10 +181,10 @@ const translations = {
     faqSub: 'Wählen Sie eine Frage aus:',
     floorplanTitle: 'Grundriss',
     noFloorplan: 'Kein Grundriss verfügbar.',
-    locationTitle: 'Standort',
+    locationTitle: 'Standortkarte',
+    noMap: 'Keine Google-Karte für diese Tour verfügbar.',
     aboutTitle: 'Über die Immobilie',
     notEntered: 'Daten nicht in der Datenbank.',
-    missingLangData: '⚠️ Daten in dieser Sprache wurden noch nicht eingegeben.',
     targetRoom: '-- Raum wählen --',
     save: 'Position & Daten speichern',
     cancel: 'Abbrechen',
@@ -224,24 +204,75 @@ const translations = {
 };
 
 const categoryQuestions = {
-  rent: [
-    'Kolika je cena i depozit?',
-    'Da li su dozvoljeni kućni ljubimci?',
-    'Koliki su mesečni troškovi (režije)?',
-    'Trajanje i uslovi ugovora zakupa?'
-  ],
-  sale: [
-    'Kolika je cena i da li je moguća kupovina na kredit?',
-    'Da li je nekretnina uknjižena i čista dokumentacija?',
-    'Koliki su troškovi prenosa vlasništva i porez?',
-    'Da li stan ima pripadajući podrum ili garažno mesto?'
-  ],
-  booking: [
-    'Kolika je cena po noćenju i minimalan boravak?',
-    'Koje je vreme ulaska i izlaska (Check-in / Check-out)?',
-    'Da li je obezbeđen parking i Wi-Fi internet?',
-    'Kakva su pravila otkazivanja rezervacije?'
-  ]
+  rent: {
+    sr: [
+      'Kolika je mesečna zakupnina i kakvi su uslovi za depozit?',
+      'Koji je minimalni period zakupa i od kog datuma je stan useljiv?',
+      'Koliki su prosečni mesečni troškovi (režije i informatika) i kakvo je grejanje?',
+      'Da li su dozvoljeni kućni ljubimci (pet friendly)?',
+      'Kakvi su dodatni uslovi ugovora i obaveze zakupca?'
+    ],
+    en: [
+      'What is the monthly rent and what are the deposit conditions?',
+      'What is the minimum lease period and from what date is the apartment available?',
+      'What are the average monthly utilities and heating costs?',
+      'Are pets allowed (pet friendly)?',
+      'What are the additional contract terms and tenant obligations?'
+    ],
+    de: [
+      'Wie hoch ist die monatliche Miete und wie sind die Kaubedingungen?',
+      'Wie lange ist die Mindestmietdauer und ab welchem Datum ist die Wohnung verfügbar?',
+      'Wie hoch sind die durchschnittlichen Nebenkosten und die Heizungsart?',
+      'Sind Haustiere erlaubt (haustierfreundlich)?',
+      'Wie lauten die zusätzlichen Vertragsbedingungen und Pflichten des Mieters?'
+    ]
+  },
+  sale: {
+    sr: [
+      'Kolika je prodajna cena i da li postoji mogućnost kupovine na kredit?',
+      'Kolika je kvadratura i kakvo je stanje objekta (novogradnja, starogradnja, renoviran)?',
+      'Da li je nekretnina uknjižena i kakvo je vlasništvo (1/1, suvlasništvo)?',
+      'Da li su porezi i agencijska provizija uključeni u cenu ili su dodatni?',
+      'Da li nekretnina ima pripadajući podrum, terasu ili garažno mesto?'
+    ],
+    en: [
+      'What is the selling price and is mortgage purchase possible?',
+      'What is the square footage and property condition (new build, old build, renovated)?',
+      'Is the property registered and what is the ownership type (1/1, co-ownership)?',
+      'Are taxes and agency commission included in the price or additional?',
+      'Does the property include a basement, terrace, or garage space?'
+    ],
+    de: [
+      'Wie hoch ist der Verkaufspreis und ist ein Kreditkauf möglich?',
+      'Wie groß ist die Fläche und wie ist der Zustand des Objekts (Neubau, Altbau, renoviert)?',
+      'Ist die Immobilie im Grundbuch eingetragen und wie ist die Eigentumsverhältnisse (1/1)?',
+      'Sind Steuern und Maklerprovision im Preis inbegriffen oder zusätzlich?',
+      'Verfügt die Immobilie über einen Keller, eine Terrasse oder einen Garagenplatz?'
+    ]
+  },
+  booking: {
+    sr: [
+      'Kolika je cena po noćenju i koliki je minimalni boravak?',
+      'Koliki je maksimalan broj gostiju (kapacitet) i kakva su pravila kuće?',
+      'Koje je tačno vreme za check-in i check-out?',
+      'Koliki je iznos takse za čišćenje po boravku?',
+      'Da li je obezbeđen parking, Wi-Fi i kakva su pravila otkazivanja?'
+    ],
+    en: [
+      'What is the price per night and what is the minimum stay?',
+      'What is the maximum number of guests (capacity) and what are the house rules?',
+      'What are the exact check-in and check-out times?',
+      'What is the cleaning fee amount per stay?',
+      'Is parking and Wi-Fi provided, and what are the cancellation policies?'
+    ],
+    de: [
+      'Wie hoch ist der Preis pro Nacht und wie lang ist der Mindestaufenthalt?',
+      'Was ist die maximale Gästeanzahl (Kapazität) und wie lauten die Hausregeln?',
+      'Um wie viel Uhr ist Check-in und Check-out?',
+      'Wie hoch ist die Reinigungsgebühr pro Aufenthalt?',
+      'Sind Parkplätze und WLAN vorhanden und wie lauten die Stornierungsbedingungen?'
+    ]
+  }
 };
 
 function normalizeYaw(yaw: number): number {
@@ -254,31 +285,9 @@ function getShortestTargetYaw(currentYaw: number, targetYaw: number): number {
   const normCurrent = normalizeYaw(currentYaw);
   const normTarget = normalizeYaw(targetYaw);
   let diff = normTarget - normCurrent;
-
   if (diff > 180) diff -= 360;
   if (diff < -180) diff += 360;
-
   return currentYaw + diff;
-}
-
-// Pomoćna funkcija za izvlačenje lokalizovanog teksta iz JSONB objekta
-function getLocalizedText(i18nObj: any, lang: Language, missingWarning: string): { text: string; isMissing: boolean } {
-  if (!i18nObj) {
-    return { text: missingWarning, isMissing: true };
-  }
-
-  // Ako je string (stara struktura)
-  if (typeof i18nObj === 'string') {
-    return { text: i18nObj, isMissing: false };
-  }
-
-  // Ako je JSONB objekat tipa {"sr": "...", "en": "..."}
-  if (i18nObj[lang] && String(i18nObj[lang]).trim() !== '') {
-    return { text: i18nObj[lang], isMissing: false };
-  }
-
-  // Ako traženi jezik ne postoji, vrati upozorenje
-  return { text: missingWarning, isMissing: true };
 }
 
 export default function TourPage() {
@@ -312,7 +321,6 @@ export default function TourPage() {
   const lastAudioIndexRef = useRef<number | undefined>(undefined);
   const audioCurrentTimeRef = useRef<number>(0);
 
-  const [audioProgress, setAudioProgress] = useState(0);
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [infoBoxData, setInfoBoxData] = useState<{ title?: string; text: string; index?: number; audio_url?: string } | null>(null);
@@ -347,7 +355,6 @@ export default function TourPage() {
 
   useEffect(() => {
     setMounted(true);
-
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('admin') === 'mojtajnikljuc') {
       localStorage.setItem('tour_admin', 'true');
@@ -367,25 +374,17 @@ export default function TourPage() {
 
   useEffect(() => {
     if (!tourStarted) return;
-
     const scrollSpeed = 0.8;
-
     const step = () => {
       if (tickerRef.current && !isAutoScrollPausedRef.current && !isDragging) {
         tickerRef.current.scrollLeft += scrollSpeed;
-
-        if (
-          tickerRef.current.scrollLeft >=
-          tickerRef.current.scrollWidth - tickerRef.current.clientWidth - 1
-        ) {
+        if (tickerRef.current.scrollLeft >= tickerRef.current.scrollWidth - tickerRef.current.clientWidth - 1) {
           tickerRef.current.scrollLeft = 0;
         }
       }
       autoScrollRafRef.current = requestAnimationFrame(step);
     };
-
     autoScrollRafRef.current = requestAnimationFrame(step);
-
     return () => {
       if (autoScrollRafRef.current) cancelAnimationFrame(autoScrollRafRef.current);
     };
@@ -394,7 +393,6 @@ export default function TourPage() {
   const pauseAutoScrollTemporarily = () => {
     isAutoScrollPausedRef.current = true;
     if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
-
     pauseTimeoutRef.current = setTimeout(() => {
       isAutoScrollPausedRef.current = false;
     }, 2000);
@@ -429,7 +427,6 @@ export default function TourPage() {
       clearTimeout(hideTimerRef.current);
       hideTimerRef.current = null;
     }
-    setAudioProgress(0);
   };
 
   const toggleMute = () => {
@@ -458,29 +455,31 @@ export default function TourPage() {
 
   const playAudioFileWithCompletion = (
     audioUrl?: string,
-    textFallback?: string,
-    title?: string,
+    textFallback?: string | Record<string, string>,
+    title?: string | Record<string, string>,
     index?: number,
     startAt: number = 0
   ): Promise<void> => {
     return new Promise((resolve) => {
       stopAudio();
+      const resolvedText = getLocalizedText(textFallback, lang);
+      const resolvedTitle = getLocalizedText(title || rooms[roomIdx]?.title, lang);
 
       lastAudioUrlRef.current = audioUrl;
       lastAudioTextRef.current = textFallback;
       lastAudioTitleRef.current = title;
       lastAudioIndexRef.current = index;
 
-      setInfoBoxData({ title: title || rooms[roomIdx]?.title, text: textFallback || '', index, audio_url: audioUrl });
+      setInfoBoxData({ title: resolvedTitle, text: resolvedText, index, audio_url: audioUrl });
 
       if (isMutedRef.current) {
-        const readTime = Math.max(3000, (textFallback || '').length * 50);
+        const readTime = Math.max(3000, resolvedText.length * 50);
         setTimeout(resolve, readTime);
         return;
       }
 
       if (!audioUrl) {
-        const readTime = Math.max(3000, (textFallback || '').length * 50);
+        const readTime = Math.max(3000, resolvedText.length * 50);
         setTimeout(resolve, readTime);
         return;
       }
@@ -494,23 +493,14 @@ export default function TourPage() {
         }
       };
 
-      audio.ontimeupdate = () => {
-        if (audio.duration > 0) {
-          setAudioProgress((audio.currentTime / audio.duration) * 100);
-        }
-      };
-
       audio.onended = () => {
         activeAudioRef.current = null;
         audioCurrentTimeRef.current = 0;
-        setAudioProgress(0);
         resolve();
       };
 
       audio.onerror = () => {
-        console.error("Greška pri učitavanju audio fajla:", audioUrl);
         activeAudioRef.current = null;
-        setAudioProgress(0);
         resolve();
       };
 
@@ -519,9 +509,7 @@ export default function TourPage() {
           try { audio.currentTime = startAt; } catch (e) {}
         }
       }).catch(err => {
-        console.warn("Preglednik je blokirao automatski zvuk:", err);
         activeAudioRef.current = null;
-        setAudioProgress(0);
         resolve();
       });
     });
@@ -529,7 +517,6 @@ export default function TourPage() {
 
   useEffect(() => {
     if (!mounted) return;
-
     const styleId = 'pannellum-custom-styles';
     let style = document.getElementById(styleId) as HTMLStyleElement;
     if (!style) {
@@ -547,88 +534,36 @@ export default function TourPage() {
         cursor: pointer !important;
         transition: transform 0.2s ease;
       }
-      .pnm-hotspot:hover {
-        transform: scale(1.2);
-      }
-
-      .pnm-hotspot.pnm-scene,
-      .pnm-hotspot.pnm-info {
+      .pnm-hotspot:hover { transform: scale(1.2); }
+      .pnm-hotspot.pnm-scene, .pnm-hotspot.pnm-info {
         background-color: rgba(2, 132, 199, 0.8) !important;
         border: 2px solid #ffffff !important;
         border-radius: 50% !important;
         box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.7);
         animation: pulse-hotspot 2s infinite;
       }
-
       @keyframes pulse-hotspot {
-        0% {
-          transform: scale(0.95);
-          box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.7);
-        }
-        70% {
-          transform: scale(1);
-          box-shadow: 0 0 0 12px rgba(2, 132, 199, 0);
-        }
-        100% {
-          transform: scale(0.95);
-          box-shadow: 0 0 0 0 rgba(2, 132, 199, 0);
-        }
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 12px rgba(2, 132, 199, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(2, 132, 199, 0); }
       }
-
       .pnm-tooltip span { display: none !important; }
       .pnm-tooltip { display: none !important; }
-
       .ticker-wrapper {
-        overflow-x: auto;
-        white-space: nowrap;
-        position: relative;
-        cursor: grab;
-        user-select: none;
-        -webkit-user-select: none;
-        scrollbar-width: none;
+        overflow-x: auto; white-space: nowrap; position: relative; cursor: grab; user-select: none; -webkit-user-select: none; scrollbar-width: none;
       }
-      .ticker-wrapper::-webkit-scrollbar {
-        display: none;
-      }
-      .ticker-wrapper:active {
-        cursor: grabbing;
-      }
-
-      .ticker-content {
-        display: inline-flex;
-        gap: 8px;
-      }
-
-      .dots-loader {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        justify-content: center;
-      }
-
+      .ticker-wrapper::-webkit-scrollbar { display: none; }
+      .ticker-wrapper:active { cursor: grabbing; }
+      .ticker-content { display: inline-flex; gap: 8px; }
+      .dots-loader { display: flex; gap: 12px; align-items: center; justify-content: center; }
       .dots-loader span {
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background-color: rgba(255, 255, 255, 0.2);
-        border: 2px solid #38bdf8;
-        display: inline-block;
-        animation: dot-pulse 1.4s infinite ease-in-out both;
+        width: 16px; height: 16px; border-radius: 50%; background-color: rgba(255, 255, 255, 0.2); border: 2px solid #38bdf8; display: inline-block; animation: dot-pulse 1.4s infinite ease-in-out both;
       }
-
       .dots-loader span:nth-child(1) { animation-delay: -0.32s; }
       .dots-loader span:nth-child(2) { animation-delay: -0.16s; }
-
       @keyframes dot-pulse {
-        0%, 80%, 100% {
-          transform: scale(0.6);
-          background-color: rgba(56, 189, 248, 0.2);
-        }
-        40% {
-          transform: scale(1.2);
-          background-color: #38bdf8;
-          box-shadow: 0 0 12px #38bdf8;
-        }
+        0%, 80%, 100% { transform: scale(0.6); background-color: rgba(56, 189, 248, 0.2); }
+        40% { transform: scale(1.2); background-color: #38bdf8; box-shadow: 0 0 12px #38bdf8; }
       }
     `;
 
@@ -659,20 +594,8 @@ export default function TourPage() {
       if (tourErr || !tourData) setError(t.tourNotFound);
       else setTour(tourData as Tour);
 
-      if (roomErr || !roomRows || roomRows.length === 0) {
-        setError(t.noRooms);
-      } else {
-        setRooms(roomRows as Room[]);
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const roomParam = urlParams.get('room');
-        if (roomParam) {
-          const foundIdx = roomRows.findIndex(r => String(r.id) === roomParam || String(r.order_index) === roomParam);
-          if (foundIdx !== -1) {
-            setRoomIdx(foundIdx);
-          }
-        }
-      }
+      if (roomErr || !roomRows || roomRows.length === 0) setError(t.noRooms);
+      else setRooms(roomRows as Room[]);
 
       setLoading(false);
     }
@@ -691,15 +614,11 @@ export default function TourPage() {
       setRoomLoading(true);
       setRoomIdx(foundIndex);
       setInfoBoxData(null);
-
-      const newUrl = `${window.location.pathname}?room=${rooms[foundIndex].id}`;
-      window.history.replaceState({ path: newUrl }, '', newUrl);
     }
   };
 
   useEffect(() => {
     if (!tourStarted || rooms.length === 0 || !pannellumReady || !mounted) return;
-
     const currentRoom = rooms[roomIdx];
     if (!currentRoom?.panorama_url) return;
 
@@ -718,16 +637,10 @@ export default function TourPage() {
       viewerRef.current = null;
     }
     const panoramaContainer = document.getElementById('panorama');
-    if (panoramaContainer) {
-      panoramaContainer.innerHTML = '';
-    }
+    if (panoramaContainer) panoramaContainer.innerHTML = '';
 
-    // Korišćenje waypoints_i18n sa fallbackom na stare waypoints
-    const rawWaypoints = currentRoom.waypoints_i18n || currentRoom.waypoints || [];
-    const formattedHotspots = rawWaypoints.map((wp: any, index: number) => {
-      const localized = getLocalizedText(wp.text, lang, t.missingLangData);
+    const formattedHotspots = (currentRoom.waypoints || []).map((wp, index) => {
       const isNav = wp.type === 'navigation' || Boolean(wp.targetRoomId);
-
       return {
         pitch: wp.pitch || 0,
         yaw: wp.yaw || 0,
@@ -741,10 +654,8 @@ export default function TourPage() {
             isInterruptedRef.current = true;
             stopCurrentAnimation();
             audioCurrentTimeRef.current = 0;
-            if (viewerRef.current) {
-              viewerRef.current.setHfov(50);
-            }
-            playAudioFileWithCompletion(wp.audio_url, localized.text, wp.title, index, 0);
+            if (viewerRef.current) viewerRef.current.setHfov(50);
+            playAudioFileWithCompletion(wp.audio_url, wp.text, wp.title, index, 0);
           }
         }
       };
@@ -766,28 +677,19 @@ export default function TourPage() {
     });
     viewerRef.current = v;
 
-    const infoPoints = rawWaypoints
-      .map((wp: any, i: number) => ({ wp, i }))
-      .filter((item: any) => item.wp.type === 'info' || (!item.wp.type && !item.wp.targetRoomId));
+    const infoPoints = (currentRoom.waypoints || [])
+      .map((wp, i) => ({ wp, i }))
+      .filter(item => item.wp.type === 'info' || (!item.wp.type && !item.wp.targetRoomId));
 
     const startInfiniteGlide = () => {
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
-
       stopCurrentAnimation();
-
-      setInfoBoxData({
-        title: t.guideCompleted,
-        text: t.freeExplore
-      });
+      setInfoBoxData({ title: t.guideCompleted, text: t.freeExplore });
 
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = setTimeout(() => {
-        setInfoBoxData(null);
-      }, 8000);
+      hideTimerRef.current = setTimeout(() => { setInfoBoxData(null); }, 8000);
 
-      if (viewerRef.current) {
-        viewerRef.current.setHfov(70);
-      }
+      if (viewerRef.current) viewerRef.current.setHfov(70);
 
       let lastTime = performance.now();
       const degreesPerMs = 360 / 25000;
@@ -796,7 +698,6 @@ export default function TourPage() {
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
         const delta = now - lastTime;
         lastTime = now;
-
         if (viewerRef.current) {
           const currentYaw = viewerRef.current.getYaw();
           viewerRef.current.setYaw(currentYaw + degreesPerMs * delta);
@@ -804,22 +705,15 @@ export default function TourPage() {
         }
         animFrameRef.current = requestAnimationFrame(animateGlide);
       };
-
       animFrameRef.current = requestAnimationFrame(animateGlide);
     };
 
     v.on('load', async () => {
       setRoomLoading(false);
-
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
-      const establishObj = currentRoom.establish_i18n || currentRoom.establish || {};
-      const introLocalized = getLocalizedText(establishObj.text, lang, t.missingLangData);
-      const introText = introLocalized.isMissing && introLocalized.text === t.missingLangData 
-        ? t.missingLangData 
-        : (introLocalized.text || `${t.welcomePrefix}${currentRoom.title}`);
-      
-      const introAudioUrl = establishObj.audio_url || currentRoom.establish?.audio_url;
+      const introTextRaw = currentRoom.establish?.text || `${t.welcomePrefix}${getLocalizedText(currentRoom.title, lang)}`;
+      const introAudioUrl = currentRoom.establish?.audio_url;
 
       const rotatePromise = new Promise<void>((resolve) => {
         const durationPhase1 = 15000;
@@ -836,45 +730,37 @@ export default function TourPage() {
         }
 
         const startTime = performance.now();
-
         const checkCompletion = (now: number) => {
           if (!sequenceActiveRef.current || isInterruptedRef.current) {
             if (viewerRef.current) viewerRef.current.stopAutoRotate();
             return resolve();
           }
-
           const elapsed = now - startTime;
           if (elapsed < durationPhase1) {
             animFrameRef.current = requestAnimationFrame(checkCompletion);
           } else {
-            if (viewerRef.current) {
-              viewerRef.current.stopAutoRotate();
-            }
+            if (viewerRef.current) viewerRef.current.stopAutoRotate();
             resolve();
           }
         };
-
         animFrameRef.current = requestAnimationFrame(checkCompletion);
       });
 
       await Promise.all([
         rotatePromise,
-        playAudioFileWithCompletion(introAudioUrl, introText, currentRoom.title, undefined, 0)
+        playAudioFileWithCompletion(introAudioUrl, introTextRaw, currentRoom.title, undefined, 0)
       ]);
 
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
       const runInfoSequencePhase2 = async (index: number) => {
         if (!sequenceActiveRef.current || isInterruptedRef.current || !viewerRef.current) return;
-
         if (index >= infoPoints.length) {
           startInfiniteGlide();
           return;
         }
 
         const item = infoPoints[index];
-        const wpLocalized = getLocalizedText(item.wp.text, lang, t.missingLangData);
-
         const currentYaw = normalizeYaw(viewerRef.current.getYaw());
         const targetYaw = getShortestTargetYaw(currentYaw, item.wp.yaw);
         const targetPitch = item.wp.pitch ?? 0;
@@ -884,7 +770,7 @@ export default function TourPage() {
         await new Promise(r => setTimeout(r, 2300));
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
-        await playAudioFileWithCompletion(item.wp.audio_url, wpLocalized.text, item.wp.title, item.i, 0);
+        await playAudioFileWithCompletion(item.wp.audio_url, item.wp.text, item.wp.title, item.i, 0);
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
         await new Promise(r => setTimeout(r, 1000));
@@ -902,7 +788,6 @@ export default function TourPage() {
       if (adminMode && viewerRef.current) {
         const currentPitch = Math.round(viewerRef.current.getPitch() * 10) / 10;
         const currentYaw = Math.round(normalizeYaw(viewerRef.current.getYaw()) * 10) / 10;
-
         setPendingCoords({ pitch: currentPitch, yaw: currentYaw });
         setEditingIndex(null);
         setFromYawVal(currentYaw);
@@ -920,24 +805,17 @@ export default function TourPage() {
       sequenceActiveRef.current = false;
       panoramaContainer?.removeEventListener('dblclick', handleDblClick);
       stopCurrentAnimation();
-
       if (viewerRef.current) {
-        try {
-          viewerRef.current.destroy();
-        } catch (e) {}
+        try { viewerRef.current.destroy(); } catch (e) {}
         viewerRef.current = null;
       }
-
-      if (panoramaContainer) {
-        panoramaContainer.innerHTML = '';
-      }
+      if (panoramaContainer) panoramaContainer.innerHTML = '';
     };
   }, [rooms, roomIdx, pannellumReady, adminMode, mounted, tourStarted, lang]);
 
   const handleStartEditWaypoint = (index: number) => {
     const currentRoom = rooms[roomIdx];
-    const rawWaypoints = currentRoom.waypoints_i18n || currentRoom.waypoints || [];
-    const wp = rawWaypoints[index];
+    const wp = currentRoom.waypoints?.[index];
     if (!wp) return;
 
     sequenceActiveRef.current = false;
@@ -952,20 +830,18 @@ export default function TourPage() {
       viewerRef.current.lookAt(wp.pitch ?? 0, targetYaw, 50, 1000);
     }
 
-    const localizedText = typeof wp.text === 'object' && wp.text !== null ? (wp.text[lang] || wp.text['sr'] || '') : (wp.text || '');
-
     setPendingCoords({ pitch: wp.pitch, yaw: wp.yaw });
     setEditingIndex(index);
     setHotspotType(wp.type || 'info');
-    setHotspotTitle(wp.title || '');
-    setHotspotText(localizedText);
+    setHotspotTitle(typeof wp.title === 'string' ? wp.title : JSON.stringify(wp.title || ''));
+    setHotspotText(typeof wp.text === 'string' ? wp.text : JSON.stringify(wp.text || ''));
     setHotspotAudioUrl(wp.audio_url || '');
     setTargetRoomId(wp.targetRoomId || '');
   };
 
   const handleStartEditEstablish = () => {
     const currentRoom = rooms[roomIdx];
-    const establishObj = currentRoom.establish_i18n || currentRoom.establish || {};
+    const establish = currentRoom.establish;
 
     sequenceActiveRef.current = false;
     isInterruptedRef.current = true;
@@ -975,39 +851,28 @@ export default function TourPage() {
 
     if (viewerRef.current) {
       const currentYaw = viewerRef.current.getYaw();
-      const targetYaw = getShortestTargetYaw(currentYaw, establishObj.fromYaw ?? 0);
-      viewerRef.current.lookAt(establishObj.pitch ?? 0, targetYaw, 70, 1000);
+      const targetYaw = getShortestTargetYaw(currentYaw, establish?.fromYaw ?? 0);
+      viewerRef.current.lookAt(establish?.pitch ?? 0, targetYaw, 70, 1000);
     }
 
-    const rawText = establishObj.text;
-    const localizedText = typeof rawText === 'object' && rawText !== null ? (rawText[lang] || rawText['sr'] || '') : (rawText || '');
-
-    setPendingCoords({
-      pitch: establishObj.pitch ?? 0,
-      yaw: establishObj.fromYaw ?? 0
-    });
+    setPendingCoords({ pitch: establish?.pitch ?? 0, yaw: establish?.fromYaw ?? 0 });
     setEditingIndex(null);
     setHotspotType('establish');
-    setHotspotText(localizedText);
-    setHotspotAudioUrl(establishObj.audio_url || '');
-    setFromYawVal(establishObj.fromYaw ?? 0);
+    setHotspotText(typeof establish?.text === 'string' ? establish.text : JSON.stringify(establish?.text || ''));
+    setHotspotAudioUrl(establish?.audio_url || '');
+    setFromYawVal(establish?.fromYaw ?? 0);
   };
 
   const handleDeleteWaypoint = async (index: number) => {
     if (!confirm('Da li ste sigurni da želite da obrišete ovu tačku?')) return;
-
     const currentRoom = rooms[roomIdx];
-    const updatedWaypoints = [...(currentRoom.waypoints_i18n || currentRoom.waypoints || [])];
+    const updatedWaypoints = [...(currentRoom.waypoints || [])];
     updatedWaypoints.splice(index, 1);
 
-    const { error: updateErr } = await supabase
-      .from('rooms')
-      .update({ waypoints_i18n: updatedWaypoints })
-      .eq('id', currentRoom.id);
-
+    const { error: updateErr } = await supabase.from('rooms').update({ waypoints: updatedWaypoints }).eq('id', currentRoom.id);
     if (!updateErr) {
       const updatedRooms = [...rooms];
-      updatedRooms[roomIdx].waypoints_i18n = updatedWaypoints;
+      updatedRooms[roomIdx].waypoints = updatedWaypoints;
       setRooms(updatedRooms);
       setInfoBoxData(null);
     }
@@ -1021,66 +886,42 @@ export default function TourPage() {
     const finalYaw = Math.round(normalizeYaw(viewerRef.current.getYaw()) * 10) / 10;
 
     if (hotspotType === 'establish') {
-      const existingEstablish = currentRoom.establish_i18n || {};
-      const existingTextObj = typeof existingEstablish.text === 'object' && existingEstablish.text !== null ? existingEstablish.text : { sr: existingEstablish.text || '' };
-      
-      existingTextObj[lang] = hotspotText;
-
       const newEstablishData: EstablishData = {
-        text: existingTextObj,
+        text: hotspotText,
         audio_url: hotspotAudioUrl,
         fromYaw: finalYaw,
         pitch: finalPitch
       };
 
-      const { error: updateErr } = await supabase
-        .from('rooms')
-        .update({ establish_i18n: newEstablishData })
-        .eq('id', currentRoom.id);
-
+      const { error: updateErr } = await supabase.from('rooms').update({ establish: newEstablishData }).eq('id', currentRoom.id);
       if (!updateErr) {
         const updatedRooms = [...rooms];
-        updatedRooms[roomIdx].establish_i18n = newEstablishData;
+        updatedRooms[roomIdx].establish = newEstablishData;
         setRooms(updatedRooms);
         alert('Uspešno sačuvano!');
       }
     } else {
-      let updatedWaypoints = [...(currentRoom.waypoints_i18n || currentRoom.waypoints || [])];
-
-      let targetTextObj = { [lang]: hotspotText };
-      if (editingIndex !== null && updatedWaypoints[editingIndex]) {
-        const existingWp = updatedWaypoints[editingIndex];
-        if (typeof existingWp.text === 'object' && existingWp.text !== null) {
-          targetTextObj = { ...existingWp.text, [lang]: hotspotText };
-        } else if (typeof existingWp.text === 'string') {
-          targetTextObj = { sr: existingWp.text, [lang]: hotspotText };
-        }
-      }
-
       const newWaypoint: Waypoint = {
         pitch: finalPitch,
         yaw: finalYaw,
         title: hotspotTitle,
-        text: targetTextObj,
+        text: hotspotText,
         audio_url: hotspotAudioUrl,
         type: hotspotType,
         targetRoomId: hotspotType === 'navigation' ? targetRoomId : undefined
       };
 
+      let updatedWaypoints = [...(currentRoom.waypoints || [])];
       if (editingIndex !== null) {
         updatedWaypoints[editingIndex] = newWaypoint;
       } else {
         updatedWaypoints.push(newWaypoint);
       }
 
-      const { error: updateErr } = await supabase
-        .from('rooms')
-        .update({ waypoints_i18n: updatedWaypoints })
-        .eq('id', currentRoom.id);
-
+      const { error: updateErr } = await supabase.from('rooms').update({ waypoints: updatedWaypoints }).eq('id', currentRoom.id);
       if (!updateErr) {
         const updatedRooms = [...rooms];
-        updatedRooms[roomIdx].waypoints_i18n = updatedWaypoints;
+        updatedRooms[roomIdx].waypoints = updatedWaypoints;
         setRooms(updatedRooms);
         alert('Tačka uspešno sačuvana!');
       }
@@ -1110,9 +951,7 @@ export default function TourPage() {
     e.preventDefault();
     const x = e.pageX - tickerRef.current.offsetLeft;
     const walk = (x - startX) * 1.5;
-    if (Math.abs(walk) > 5) {
-      hasDraggedRef.current = true;
-    }
+    if (Math.abs(walk) > 5) hasDraggedRef.current = true;
     tickerRef.current.scrollLeft = scrollLeft - walk;
   };
 
@@ -1136,9 +975,7 @@ export default function TourPage() {
     if (!isDragging || !tickerRef.current) return;
     const x = e.touches[0].pageX - tickerRef.current.offsetLeft;
     const walk = (x - startX) * 1.5;
-    if (Math.abs(walk) > 5) {
-      hasDraggedRef.current = true;
-    }
+    if (Math.abs(walk) > 5) hasDraggedRef.current = true;
     tickerRef.current.scrollLeft = scrollLeft - walk;
   };
 
@@ -1175,11 +1012,8 @@ export default function TourPage() {
             </button>
           ))}
         </div>
-
-        <h1 style={{ fontSize: '28px', margin: 0 }}>{tour?.title || '360 Virtuelna Tura'}</h1>
-        <p style={{ color: '#aaa', maxWidth: '400px', fontSize: '14px', lineHeight: '1.5' }}>
-          {t.welcome}
-        </p>
+        <h1 style={{ fontSize: '28px', margin: 0 }}>{getLocalizedText(tour?.title, lang) || '360 Virtuelna Tura'}</h1>
+        <p style={{ color: '#aaa', maxWidth: '400px', fontSize: '14px', lineHeight: '1.5' }}>{t.welcome}</p>
         <button
           onClick={() => setTourStarted(true)}
           style={{ padding: '14px 28px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '30px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 20px rgba(2, 132, 199, 0.4)', transition: 'transform 0.2s' }}
@@ -1191,13 +1025,14 @@ export default function TourPage() {
   }
 
   const cat = tour?.category && categoryQuestions[tour.category] ? tour.category : 'rent';
-  const qList = categoryQuestions[cat];
-
+  const qList = categoryQuestions[cat][lang] || categoryQuestions[cat]['sr'];
+  
   const faqList = [
-    { q: qList[0], a: tour?.faq_1 || t.notEntered },
-    { q: qList[1], a: tour?.faq_2 || t.notEntered },
-    { q: qList[2], a: tour?.faq_3 || t.notEntered },
-    { q: qList[3], a: tour?.faq_4 || t.notEntered }
+    { q: qList[0], a: getLocalizedText(tour?.faq_1, lang) || t.notEntered },
+    { q: qList[1], a: getLocalizedText(tour?.faq_2, lang) || t.notEntered },
+    { q: qList[2], a: getLocalizedText(tour?.faq_3, lang) || t.notEntered },
+    { q: qList[3], a: getLocalizedText(tour?.faq_4, lang) || t.notEntered },
+    { q: qList[4], a: getLocalizedText(tour?.about_text, lang) || t.notEntered }
   ];
 
   return (
@@ -1207,32 +1042,16 @@ export default function TourPage() {
       style={{ width: '100vw', height: '100vh', background: '#0a0a0a', color: '#fff', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}
     >
       {roomLoading && (
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'rgba(10, 10, 10, 0.92)',
-          zIndex: 999,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '24px',
-          backdropFilter: 'blur(6px)'
-        }}>
-          <div className="dots-loader">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(10, 10, 10, 0.92)', zIndex: 999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '24px', backdropFilter: 'blur(6px)' }}>
+          <div className="dots-loader"><span></span><span></span><span></span></div>
           <div style={{ color: '#e2e8f0', fontSize: '16px', fontWeight: '500', letterSpacing: '0.5px', textAlign: 'center', padding: '0 20px', fontFamily: 'sans-serif' }}>
-            {t.roomLoadingPrefix} <strong style={{ color: '#38bdf8' }}>{rooms[roomIdx]?.title}</strong> ✨
+            {t.roomLoadingPrefix} <strong style={{ color: '#38bdf8' }}>{getLocalizedText(rooms[roomIdx]?.title, lang)}</strong> ✨
           </div>
         </div>
       )}
 
       <div suppressHydrationWarning style={{ padding: '6px 14px', background: '#121212', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10, minHeight: '44px' }}>
-        <h1 style={{ margin: 0, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>{tour?.title || '360 Tura'}</h1>
-
+        <h1 style={{ margin: 0, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>{getLocalizedText(tour?.title, lang) || '360 Tura'}</h1>
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
           <div style={{ display: 'flex', gap: '3px' }}>
             {(['sr', 'en', 'de'] as Language[]).map((l) => (
@@ -1266,20 +1085,7 @@ export default function TourPage() {
 
           <button
             onClick={toggleMute}
-            style={{
-              padding: '4px',
-              borderRadius: '50%',
-              border: 'none',
-              background: !isMuted ? '#22c55e' : '#ef4444',
-              color: '#fff',
-              cursor: 'pointer',
-              width: '28px',
-              height: '28px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '12px'
-            }}
+            style={{ padding: '4px', borderRadius: '50%', border: 'none', background: !isMuted ? '#22c55e' : '#ef4444', color: '#fff', cursor: 'pointer', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}
             title={!isMuted ? t.audioOff : t.audioOn}
           >
             {!isMuted ? '🔊' : '🔇'}
@@ -1299,9 +1105,7 @@ export default function TourPage() {
         ref={tickerRef}
         className="ticker-wrapper"
         onMouseEnter={() => (isAutoScrollPausedRef.current = true)}
-        onMouseLeave={() => {
-          if (!isDragging) isAutoScrollPausedRef.current = false;
-        }}
+        onMouseLeave={() => { if (!isDragging) isAutoScrollPausedRef.current = false; }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -1336,7 +1140,7 @@ export default function TourPage() {
                   flexShrink: 0
                 }}
               >
-                🚪 {r.title} {isSelected && ' ✨'}
+                🚪 {getLocalizedText(r.title, lang)} {isSelected && ' ✨'}
               </button>
             );
           })}
@@ -1346,13 +1150,13 @@ export default function TourPage() {
       {adminMode && (
         <div style={{ padding: '6px 14px', background: '#1e1e24', borderBottom: '1px solid #333', display: 'flex', gap: '8px', overflowX: 'auto', zIndex: 10 }}>
           <span style={{ fontSize: '11px', color: '#aaa', alignSelf: 'center', fontWeight: 'bold' }}>{t.points}</span>
-          {(rooms[roomIdx]?.waypoints_i18n || rooms[roomIdx]?.waypoints || []).map((wp, idx) => (
+          {(rooms[roomIdx]?.waypoints || []).map((wp, idx) => (
             <button
               key={idx}
               onClick={() => handleStartEditWaypoint(idx)}
               style={{ padding: '3px 8px', background: '#27272a', border: '1px solid #3f3f46', borderRadius: '4px', color: '#fff', fontSize: '10px', cursor: 'pointer', whiteSpace: 'nowrap' }}
             >
-              ✏️ #{idx + 1} ({wp.title || (wp.type === 'navigation' ? 'Prelaz' : 'Info')})
+              ✏️ #{idx + 1} ({getLocalizedText(wp.title, lang) || (wp.type === 'navigation' ? 'Prelaz' : 'Info')})
             </button>
           ))}
         </div>
@@ -1362,20 +1166,7 @@ export default function TourPage() {
         <div id="panorama" style={{ width: '100%', height: '100%' }} />
 
         {adminMode && (
-          <div
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              pointerEvents: 'none',
-              zIndex: 9999,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="48" height="48" viewBox="0 0 48 48" style={{ filter: 'drop-shadow(0px 0px 4px rgba(0,0,0,0.8))' }}>
               <circle cx="24" cy="24" r="18" stroke="#ef4444" strokeWidth="2" fill="none" opacity="0.8" />
               <line x1="24" y1="2" x2="24" y2="46" stroke="#ef4444" strokeWidth="2" />
@@ -1389,61 +1180,24 @@ export default function TourPage() {
         )}
 
         {infoBoxData && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '10px',
-              left: '10px',
-              right: '10px',
-              backgroundColor: 'rgba(255, 255, 255, 0.98)',
-              color: '#111111',
-              padding: '14px 16px',
-              borderRadius: '12px',
-              boxShadow: '0 5px 25px rgba(0, 0, 0, 0.6)',
-              zIndex: 50,
-              border: '2px solid #0284c7',
-              boxSizing: 'border-box'
-            }}
-          >
-            <button
-              onClick={() => { stopAudio(); setInfoBoxData(null); }}
-              style={{ position: 'absolute', top: '10px', right: '12px', background: 'none', border: 'none', fontSize: '16px', color: '#666', cursor: 'pointer' }}
-            >
-              ✕
-            </button>
-
+          <div style={{ position: 'absolute', bottom: '10px', left: '10px', right: '10px', backgroundColor: 'rgba(255, 255, 255, 0.98)', color: '#111111', padding: '14px 16px', borderRadius: '12px', boxShadow: '0 5px 25px rgba(0, 0, 0, 0.6)', zIndex: 50, border: '2px solid #0284c7', boxSizing: 'border-box' }}>
+            <button onClick={() => { stopAudio(); setInfoBoxData(null); }} style={{ position: 'absolute', top: '10px', right: '12px', background: 'none', border: 'none', fontSize: '16px', color: '#666', cursor: 'pointer' }}>✕</button>
             {infoBoxData.title && (
               <h4 style={{ margin: '0 0 4px 0', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#000', fontFamily: 'sans-serif' }}>
                 {infoBoxData.title}
               </h4>
             )}
-
             <p style={{ margin: 0, fontSize: '13px', lineHeight: '1.4', color: '#222', fontFamily: 'sans-serif', paddingRight: '20px' }}>
               {infoBoxData.text}
             </p>
-
             {adminMode && infoBoxData.index !== undefined && (
               <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
-                <button
-                  onClick={() => { stopAudio(); handleStartEditWaypoint(infoBoxData.index!); }}
-                  style={{ padding: '4px 10px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
-                >
-                  ✏️ Izmeni
-                </button>
-                <button
-                  onClick={() => { stopAudio(); handleDeleteWaypoint(infoBoxData.index!); }}
-                  style={{ padding: '4px 10px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
-                >
-                  🗑️ Obriši
-                </button>
+                <button onClick={() => { stopAudio(); handleStartEditWaypoint(infoBoxData.index!); }} style={{ padding: '4px 10px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>✏️ Izmeni</button>
+                <button onClick={() => { stopAudio(); handleDeleteWaypoint(infoBoxData.index!); }} style={{ padding: '4px 10px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>🗑️ Obriši</button>
               </div>
             )}
           </div>
         )}
-      </div>
-
-      <div style={{ width: '100%', height: '3px', background: '#27272a', position: 'relative', zIndex: 12 }}>
-        <div style={{ width: `${audioProgress}%`, height: '100%', background: '#38bdf8', transition: 'width 0.1s linear' }} />
       </div>
 
       {!infoBoxData && (
@@ -1456,99 +1210,32 @@ export default function TourPage() {
       )}
 
       {pendingCoords && adminMode && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: '80px',
-            right: '20px',
-            background: 'rgba(24, 24, 27, 0.95)',
-            padding: '20px',
-            borderRadius: '16px',
-            width: '360px',
-            maxWidth: '90vw',
-            border: '1px solid #3b82f6',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-            zIndex: 10000,
-            boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
-          }}
-        >
-          <h3 style={{ margin: 0, color: '#fff', fontSize: '16px' }}>
-            {editingIndex !== null ? t.editPoint : t.addPoint}
-          </h3>
-          <p style={{ margin: 0, fontSize: '11px', color: '#eab308' }}>
-            {t.aimInstruction}
-          </p>
-
+        <div style={{ position: 'fixed', bottom: '80px', right: '20px', background: 'rgba(24, 24, 27, 0.95)', padding: '20px', borderRadius: '16px', width: '360px', maxWidth: '90vw', border: '1px solid #3b82f6', display: 'flex', flexDirection: 'column', gap: '12px', zIndex: 10000, boxShadow: '0 10px 30px rgba(0,0,0,0.8)' }}>
+          <h3 style={{ margin: 0, color: '#fff', fontSize: '16px' }}>{editingIndex !== null ? t.editPoint : t.addPoint}</h3>
+          <p style={{ margin: 0, fontSize: '11px', color: '#eab308' }}>{t.aimInstruction}</p>
           <label style={{ fontSize: '11px', color: '#aaa' }}>{t.actionType}</label>
           <select value={hotspotType} onChange={(e) => setHotspotType(e.target.value as any)} style={{ padding: '8px', background: '#09090b', border: '1px solid #3f3f46', borderRadius: '6px', color: '#fff', fontSize: '12px' }}>
             <option value="navigation">{t.navArrow}</option>
             <option value="info">{t.infoPoint}</option>
             <option value="establish">{t.introNarration}</option>
           </select>
-
           {hotspotType === 'info' && (
-            <input
-              type="text"
-              value={hotspotTitle}
-              onChange={(e) => setHotspotTitle(e.target.value)}
-              placeholder={t.titlePlaceholder}
-              style={{ padding: '8px', background: '#09090b', border: '1px solid #3f3f46', borderRadius: '6px', color: '#fff', fontSize: '12px' }}
-            />
+            <input type="text" value={hotspotTitle} onChange={(e) => setHotspotTitle(e.target.value)} placeholder={t.titlePlaceholder} style={{ padding: '8px', background: '#09090b', border: '1px solid #3f3f46', borderRadius: '6px', color: '#fff', fontSize: '12px' }} />
           )}
-
           {hotspotType === 'navigation' && (
             <select value={targetRoomId} onChange={(e) => setTargetRoomId(e.target.value)} style={{ padding: '8px', background: '#09090b', border: '1px solid #3f3f46', borderRadius: '6px', color: '#fff', fontSize: '12px' }}>
               <option value="">{t.targetRoom}</option>
-              {rooms.map(r => r.id != rooms[roomIdx].id && <option key={r.id} value={r.id}>{r.title}</option>)}
+              {rooms.map(r => r.id != rooms[roomIdx].id && <option key={r.id} value={r.id}>{getLocalizedText(r.title, lang)}</option>)}
             </select>
           )}
-
-          <textarea
-            rows={2}
-            value={hotspotText}
-            onChange={(e) => setHotspotText(e.target.value)}
-            placeholder={t.descPlaceholder}
-            style={{ padding: '8px', background: '#09090b', border: '1px solid #3f3f46', borderRadius: '6px', color: '#fff', fontSize: '12px' }}
-          />
-
-          <input
-            type="text"
-            value={hotspotAudioUrl}
-            onChange={(e) => setHotspotAudioUrl(e.target.value)}
-            placeholder={t.audioUrlPlaceholder}
-            style={{ padding: '8px', background: '#09090b', border: '1px solid #3f3f46', borderRadius: '6px', color: '#38bdf8', fontSize: '12px' }}
-          />
-
+          <textarea rows={2} value={hotspotText} onChange={(e) => setHotspotText(e.target.value)} placeholder={t.descPlaceholder} style={{ padding: '8px', background: '#09090b', border: '1px solid #3f3f46', borderRadius: '6px', color: '#fff', fontSize: '12px' }} />
+          <input type="text" value={hotspotAudioUrl} onChange={(e) => setHotspotAudioUrl(e.target.value)} placeholder={t.audioUrlPlaceholder} style={{ padding: '8px', background: '#09090b', border: '1px solid #3f3f46', borderRadius: '6px', color: '#38bdf8', fontSize: '12px' }} />
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px', alignItems: 'center' }}>
             {editingIndex !== null && (
-              <button
-                type="button"
-                onClick={() => {
-                  const idxToDelete = editingIndex;
-                  setPendingCoords(null);
-                  setEditingIndex(null);
-                  handleDeleteWaypoint(idxToDelete);
-                }}
-                style={{ padding: '6px 12px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', marginRight: 'auto', fontWeight: 'bold' }}
-              >
-                {t.delete}
-              </button>
+              <button type="button" onClick={() => { const idxToDelete = editingIndex; setPendingCoords(null); setEditingIndex(null); handleDeleteWaypoint(idxToDelete); }} style={{ padding: '6px 12px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', marginRight: 'auto', fontWeight: 'bold' }}>{t.delete}</button>
             )}
-
-            <button
-              onClick={() => {
-                setPendingCoords(null);
-                setEditingIndex(null);
-              }}
-              style={{ padding: '6px 12px', background: '#3f3f46', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
-            >
-              {t.cancel}
-            </button>
-            <button onClick={handleSave} style={{ padding: '6px 12px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>
-              {t.save}
-            </button>
+            <button onClick={() => { setPendingCoords(null); setEditingIndex(null); }} style={{ padding: '6px 12px', background: '#3f3f46', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>{t.cancel}</button>
+            <button onClick={handleSave} style={{ padding: '6px 12px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>{t.save}</button>
           </div>
         </div>
       )}
@@ -1577,20 +1264,11 @@ export default function TourPage() {
                   </div>
                 ) : (
                   <div>
-                    <h3 style={{ margin: '0 0 12px 0', color: '#38bdf8', fontSize: '15px' }}>
-                      ❓ {faqList[selectedFaqIdx].q}
-                    </h3>
+                    <h3 style={{ margin: '0 0 12px 0', color: '#38bdf8', fontSize: '15px' }}>❓ {faqList[selectedFaqIdx].q}</h3>
                     <div style={{ background: '#2a2a2a', padding: '16px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #3f3f46' }}>
-                      <p style={{ margin: 0, color: '#e5e5e5', fontSize: '14px', lineHeight: '1.6' }}>
-                        {faqList[selectedFaqIdx].a !== t.notEntered ? faqList[selectedFaqIdx].a : t.missingLangData}
-                      </p>
+                      <p style={{ margin: 0, color: '#e5e5e5', fontSize: '14px', lineHeight: '1.6' }}>{faqList[selectedFaqIdx].a}</p>
                     </div>
-                    <button
-                      onClick={() => setSelectedFaqIdx(null)}
-                      style={{ padding: '8px 14px', background: '#3f3f46', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', width: '100%', marginBottom: '6px' }}
-                    >
-                      {t.backToFaq}
-                    </button>
+                    <button onClick={() => setSelectedFaqIdx(null)} style={{ padding: '8px 14px', background: '#3f3f46', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', width: '100%', marginBottom: '6px' }}>{t.backToFaq}</button>
                   </div>
                 )}
               </div>
@@ -1599,37 +1277,35 @@ export default function TourPage() {
             {activeModal === 'plan' && (
               <div>
                 <h3 style={{ color: '#fff', margin: '0 0 12px 0' }}>{t.floorplanTitle}</h3>
-                {tour?.floorplan_url ? (
-                  <img src={tour.floorplan_url} style={{ width: '100%', borderRadius: '8px' }} />
-                ) : (
-                  <p style={{ color: '#f59e0b', fontSize: '14px' }}>{t.missingLangData}</p>
-                )}
+                {tour?.floorplan_url ? <img src={tour.floorplan_url} style={{ width: '100%', borderRadius: '8px' }} /> : <p style={{ color: '#aaa' }}>{t.noFloorplan}</p>}
               </div>
             )}
 
             {activeModal === 'location' && (
               <div>
                 <h3 style={{ color: '#fff', margin: '0 0 12px 0' }}>{t.locationTitle}</h3>
-                <p style={{ color: '#ccc', lineHeight: '1.5' }}>
-                  {(() => {
-                    const langKey = lang === 'sr' ? 'location_text' : `location_text_${lang}`;
-                    const text = (tour as any)[langKey] || tour?.location_text;
-                    return text ? text : <span style={{ color: '#f59e0b' }}>{t.missingLangData}</span>;
-                  })()}
-                </p>
+                {tour?.location_map_url ? (
+                  <div style={{ width: '100%', height: '300px', borderRadius: '8px', overflow: 'hidden' }}>
+                    <iframe
+                      src={tour.location_map_url}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen={false}
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  </div>
+                ) : (
+                  <p style={{ color: '#aaa' }}>{t.noMap}</p>
+                )}
               </div>
             )}
 
             {activeModal === 'about' && (
               <div>
                 <h3 style={{ color: '#fff', margin: '0 0 12px 0' }}>{t.aboutTitle}</h3>
-                <p style={{ color: '#ccc', lineHeight: '1.5' }}>
-                  {(() => {
-                    const langKey = lang === 'sr' ? 'about_text' : `about_text_${lang}`;
-                    const text = (tour as any)[langKey] || tour?.about_text;
-                    return text ? text : <span style={{ color: '#f59e0b' }}>{t.missingLangData}</span>;
-                  })()}
-                </p>
+                <p style={{ color: '#ccc', lineHeight: '1.5' }}>{getLocalizedText(tour?.about_text, lang) || t.notEntered}</p>
               </div>
             )}
 
@@ -1648,22 +1324,8 @@ export default function TourPage() {
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{
-      color: 'white',
-      background: '#0a0a0a',
-      height: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontFamily: 'sans-serif',
-      gap: '20px'
-    }}>
-      <div className="dots-loader">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
+    <div style={{ color: 'white', background: '#0a0a0a', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', gap: '20px' }}>
+      <div className="dots-loader"><span></span><span></span><span></span></div>
       <div style={{ color: '#aaa', fontSize: '14px', letterSpacing: '1px' }}>{children}</div>
     </div>
   );
@@ -1678,4 +1340,3 @@ const btnStyle: React.CSSProperties = {
   fontSize: '11px',
   cursor: 'pointer'
 };
-
