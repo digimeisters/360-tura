@@ -466,8 +466,8 @@ export default function TourPage() {
       const resolvedTitle = getLocalizedText(title || rooms[roomIdx]?.title, lang);
 
       lastAudioUrlRef.current = audioUrl;
-      lastAudioTextRef.current = textFallback;
-      lastAudioTitleRef.current = title;
+      lastAudioTextRef.current = resolvedText;
+      lastAudioTitleRef.current = resolvedTitle;
       lastAudioIndexRef.current = index;
 
       setInfoBoxData({ title: resolvedTitle, text: resolvedText, index, audio_url: audioUrl });
