@@ -48,6 +48,11 @@ type Tour = {
   contact_name?: string;
   contact_phone?: string;
   contact_email?: string;
+  // Nove kolone iz baze
+  agent_name?: string;
+  agent_phone?: string;
+  agent_email?: string;
+  agency_name?: string;
 };
 
 type ActiveModal = 'plan' | 'location' | 'about' | 'faq' | 'contact' | null;
@@ -241,7 +246,8 @@ const translations = {
     noAbout: 'Informacije trenutno nisu dostupne.',
     noFaq: 'Trenutno nema FAQ odgovora za ovu nekretninu.',
     contactTitle: 'Kontakt informacije',
-    agentLabel: 'Agent / Vlasnik:',
+    agentLabel: 'Agent:',
+    agencyLabel: 'Agencija:',
     phoneLabel: 'Telefon:',
     emailLabel: 'Email:',
     callBtn: 'Pozovi',
@@ -282,7 +288,8 @@ const translations = {
     noAbout: 'Information is currently unavailable.',
     noFaq: 'No FAQ available for this property at the moment.',
     contactTitle: 'Contact Information',
-    agentLabel: 'Agent / Owner:',
+    agentLabel: 'Agent:',
+    agencyLabel: 'Agency:',
     phoneLabel: 'Phone:',
     emailLabel: 'Email:',
     callBtn: 'Call',
@@ -323,7 +330,8 @@ const translations = {
     noAbout: 'Informationen derzeit nicht verfügbar.',
     noFaq: 'Derzeit sind keine FAQ verfügbar.',
     contactTitle: 'Kontaktinformationen',
-    agentLabel: 'Makler / Eigentümer:',
+    agentLabel: 'Makler:',
+    agencyLabel: 'Agentur:',
     phoneLabel: 'Telefon:',
     emailLabel: 'E-Mail:',
     callBtn: 'Anrufen',
@@ -989,7 +997,6 @@ export default function TourPage() {
           gap: '8px',
           pointerEvents: 'none'
         }}>
-          {/* Red 1: Naslov ture levo, kontrole desno */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
             <div style={{
               backgroundColor: 'rgba(15, 23, 42, 0.75)',
@@ -1030,7 +1037,6 @@ export default function TourPage() {
             </div>
           </div>
 
-          {/* Red 2: Ticker traka sa sobama */}
           <div
             ref={tickerRef}
             onMouseEnter={() => { autoScrollPausedRef.current = true; }}
@@ -1250,30 +1256,41 @@ export default function TourPage() {
 
               {activeModal === 'contact' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '6px' }}>
-                  <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.7)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <p style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#94a3b8' }}>{t.agentLabel}</p>
-                    <p style={{ margin: 0, fontSize: '15px', fontWeight: 'bold', color: '#fff' }}>{tour?.contact_name || 'Agent'}</p>
-                  </div>
-                  {tour?.contact_phone && (
+                  {tour?.agent_name && (
+                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.7)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#94a3b8' }}>{t.agentLabel}</p>
+                      <p style={{ margin: 0, fontSize: '15px', fontWeight: 'bold', color: '#fff' }}>{tour.agent_name}</p>
+                    </div>
+                  )}
+
+                  {tour?.agent_phone && (
                     <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.7)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <p style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#94a3b8' }}>{t.phoneLabel}</p>
-                        <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#fff' }}>{tour.contact_phone}</p>
+                        <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#fff' }}>{tour.agent_phone}</p>
                       </div>
-                      <a href={`tel:${tour.contact_phone}`} style={{ ...btnStyle, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', textDecoration: 'none', padding: '8px 14px' }}>
+                      <a href={`tel:${tour.agent_phone}`} style={{ ...btnStyle, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', textDecoration: 'none', padding: '8px 14px' }}>
                         {t.callBtn}
                       </a>
                     </div>
                   )}
-                  {tour?.contact_email && (
+
+                  {tour?.agent_email && (
                     <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.7)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ overflow: 'hidden', paddingRight: '8px' }}>
                         <p style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#94a3b8' }}>{t.emailLabel}</p>
-                        <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#fff', textOverflow: 'ellipsis', overflow: 'hidden' }}>{tour.contact_email}</p>
+                        <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#fff', textOverflow: 'ellipsis', overflow: 'hidden' }}>{tour.agent_email}</p>
                       </div>
-                      <a href={`mailto:${tour.contact_email}`} style={{ ...btnStyle, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', textDecoration: 'none', padding: '8px 14px', flexShrink: 0 }}>
+                      <a href={`mailto:${tour.agent_email}`} style={{ ...btnStyle, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', textDecoration: 'none', padding: '8px 14px', flexShrink: 0 }}>
                         {t.emailBtn}
                       </a>
+                    </div>
+                  )}
+
+                  {tour?.agency_name && (
+                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.7)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#94a3b8' }}>{t.agencyLabel}</p>
+                      <p style={{ margin: 0, fontSize: '15px', fontWeight: 'bold', color: '#fff' }}>{tour.agency_name}</p>
                     </div>
                   )}
                 </div>
@@ -1432,3 +1449,4 @@ export default function TourPage() {
     </main>
   );
 }
+
