@@ -1460,7 +1460,7 @@ export default function TourPage() {
                 type="text"
                 placeholder={t.audioUrlPlaceholder}
                 value={hotspotAudioUrl}
-                onChange={(e) => setHootsotAudioUrl(e.target.value)}
+                onChange={(e) => setHotsotAudioUrl(e.target.value)}
                 style={{ width: '100%', padding: '7px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', fontSize: '12px' }}
               />
             </>
