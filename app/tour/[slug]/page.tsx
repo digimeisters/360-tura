@@ -360,7 +360,6 @@ export default function TourPage() {
   const [selectedFaq, setSelectedFaq] = useState<number | null>(null);
   const [isGuideCompletedState, setIsGuideCompletedState] = useState(false);
   
-  // Novi state: označava da je kompletna uvodna tura za trenutnu sobu završena (uključujući 7s obaveštenja)
   const [isRoomTourFullyCompleted, setIsRoomTourFullyCompleted] = useState(false);
 
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -559,7 +558,7 @@ export default function TourPage() {
     isInterruptedRef.current = true;
     audioCurrentTimeRef.current = 0;
     setIsGuideCompletedState(false);
-    setIsRoomTourFullyCompleted(false); // Sakrij module pri promeni sobe dok nova tura ne završi
+    setIsRoomTourFullyCompleted(false);
     stopCurrentAnimation();
     stopAudio();
 
@@ -580,7 +579,7 @@ export default function TourPage() {
     sequenceActiveRef.current = false;
     audioCurrentTimeRef.current = 0;
     setIsGuideCompletedState(false);
-    setIsRoomTourFullyCompleted(false); // Resetuj na početak nove sobe
+    setIsRoomTourFullyCompleted(false);
     stopCurrentAnimation();
     stopAudio();
 
@@ -663,7 +662,6 @@ export default function TourPage() {
       guideCompleteTimerRef.current = setTimeout(() => {
         setInfoBoxData(null);
         setIsGuideCompletedState(false);
-        // Ovde se završava 7 sekundi obaveštenja -> otključavamo module!
         setIsRoomTourFullyCompleted(true);
       }, 7000);
 
@@ -1049,8 +1047,9 @@ export default function TourPage() {
                 onClick={() => changeRoomById(room.id)}
                 style={{
                   ...btnStyle,
-                  backgroundColor: idx === roomIdx ? '#0284c7' : 'rgba(15, 23, 42, 0.85)',
-                  borderColor: idx === roomIdx ? '#38bdf8' : 'rgba(255, 255, 255, 0.2)',
+                  backgroundColor: idx === roomIdx ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.15)',
+                  color: '#000000',
+                  borderColor: idx === roomIdx ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.25)',
                   fontWeight: idx === roomIdx ? 'bold' : 'normal',
                   whiteSpace: 'nowrap'
                 }}
@@ -1068,20 +1067,19 @@ export default function TourPage() {
             justifyContent: 'flex-end'
           }}>
             <button onClick={toggleMute} style={btnStyle}>{isMuted ? t.audioOn : t.audioOff}</button>
-            <button onClick={() => setLang('sr')} style={{ ...btnStyle, backgroundColor: lang === 'sr' ? '#0284c7' : btnStyle.backgroundColor }}>SR</button>
-            <button onClick={() => setLang('en')} style={{ ...btnStyle, backgroundColor: lang === 'en' ? '#0284c7' : btnStyle.backgroundColor }}>EN</button>
-            <button onClick={() => setLang('de')} style={{ ...btnStyle, backgroundColor: lang === 'de' ? '#0284c7' : btnStyle.backgroundColor }}>DE</button>
+            <button onClick={() => setLang('sr')} style={{ ...btnStyle, backgroundColor: lang === 'sr' ? '#0284c7' : btnStyle.backgroundColor, color: lang === 'sr' ? '#fff' : '#fff' }}>SR</button>
+            <button onClick={() => setLang('en')} style={{ ...btnStyle, backgroundColor: lang === 'en' ? '#0284c7' : btnStyle.backgroundColor, color: lang === 'en' ? '#fff' : '#fff' }}>EN</button>
+            <button onClick={() => setLang('de')} style={{ ...btnStyle, backgroundColor: lang === 'de' ? '#0284c7' : btnStyle.backgroundColor, color: lang === 'de' ? '#fff' : '#fff' }}>DE</button>
           </div>
         </div>
       )}
 
       <div id="panorama" style={{ width: '100%', height: '100%' }} />
 
-      {/* Donji meni se prikazuje ISKLJUČIVO kada se završi uvodna tura za sobu, info tačke i istekne 7s obaveštenja */}
       {tourStarted && !pendingCoords && isRoomTourFullyCompleted && (
         <div style={{
           position: 'absolute',
-          bottom: '20px',
+          bottom: '10px',
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 35,
@@ -1134,22 +1132,22 @@ export default function TourPage() {
       {infoBoxData && !pendingCoords && !activeModal && (
         <div style={{
           position: 'absolute',
-          bottom: isGuideCompletedState ? '20px' : '80px',
+          bottom: '8px',
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 30,
-          width: isGuideCompletedState ? '94%' : '92%',
+          width: '94%',
           maxWidth: '450px',
           backgroundColor: 'rgba(15, 23, 42, 0.9)',
           backdropFilter: 'blur(8px)',
           border: '1px solid rgba(255,255,255,0.15)',
           borderRadius: '16px',
-          padding: '14px',
+          padding: '12px 14px',
           color: '#fff',
           boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
         }}>
-          {displayedInfoTitle && <h3 style={{ margin: '0 0 6px 0', fontSize: '15px', color: '#38bdf8' }}>{displayedInfoTitle}</h3>}
-          <p style={{ margin: 0, fontSize: '12px', lineHeight: '1.4', color: '#e2e8f0' }}>{displayedInfoText}</p>
+          {displayedInfoTitle && <h3 style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#38bdf8' }}>{displayedInfoTitle}</h3>}
+          <p style={{ margin: 0, fontSize: '12px', lineHeight: '1.35', color: '#e2e8f0' }}>{displayedInfoText}</p>
         </div>
       )}
 
