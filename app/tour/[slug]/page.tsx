@@ -212,6 +212,8 @@ const translations = {
     roomLoadingPrefix: 'Pripremite se... ulazimo u: ',
     tourNotFound: 'Tura nije pronađena.',
     noRooms: 'Ova tura nema soba.',
+    audioOn: 'Zvuk',
+    audioOff: 'Bez zvuka',
     guideCompleted: 'Vodič završen',
     freeExplore: 'Slobodno razgledajte prostoriju ili pređite u drugu preko trake iznad ili strelica.',
     targetRoom: '-- Izaberi sobu --',
@@ -246,6 +248,8 @@ const translations = {
     roomLoadingPrefix: 'Entering: ',
     tourNotFound: 'Tour not found.',
     noRooms: 'This tour has no rooms.',
+    audioOn: 'Sound',
+    audioOff: 'Mute',
     guideCompleted: 'Guide Completed',
     freeExplore: 'Feel free to look around or switch rooms using the top menu or arrows.',
     targetRoom: '-- Select room --',
@@ -280,6 +284,8 @@ const translations = {
     roomLoadingPrefix: 'Betrete: ',
     tourNotFound: 'Tour nicht gefunden.',
     noRooms: 'Diese Tour hat keine Räume.',
+    audioOn: 'Ton',
+    audioOff: 'Stumm',
     guideCompleted: 'Führung beendet',
     freeExplore: 'Schauen Sie sich frei um oder wechseln Sie den Raum oben.',
     targetRoom: '-- Raum wählen --',
@@ -368,7 +374,7 @@ export default function TourPage() {
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const guideCompleteTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [infoBoxData, setInfoBoxData] = useState<{ titleRaw?: any; textRaw: any; index?: number; audio_url?: string; titleOnly?: boolean } | null>(null);
+  const [infoBoxData, setInfoBoxData] = useState<{ titleRaw?: any; textRaw: any; index?: number; audio_url?: string } | null>(null);
 
   const [pendingCoords, setPendingCoords] = useState<{ yaw: number; pitch: number } | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -464,8 +470,7 @@ export default function TourPage() {
     textFallback?: any,
     title?: any,
     index?: number,
-    startAt: number = 0,
-    titleOnly: boolean = false
+    startAt: number = 0
   ): Promise<void> => {
     return new Promise((resolve) => {
       stopAudio();
@@ -475,12 +480,12 @@ export default function TourPage() {
       lastAudioTitleRef.current = title;
       lastAudioIndexRef.current = index;
 
-      setInfoBoxData({ titleRaw: title, textRaw: textFallback, index, audio_url: audioUrl, titleOnly });
+      setInfoBoxData({ titleRaw: title, textRaw: textFallback, index, audio_url: audioUrl });
 
       const resolvedText = getLocalizedText(textFallback, langRef.current);
 
       if (isMutedRef.current || !audioUrl) {
-        const readTime = titleOnly ? 3000 : Math.max(3000, resolvedText.length * 50);
+        const readTime = Math.max(3000, resolvedText.length * 50);
         setTimeout(resolve, readTime);
         return;
       }
@@ -623,7 +628,7 @@ export default function TourPage() {
             stopCurrentAnimation();
             audioCurrentTimeRef.current = 0;
             if (viewerRef.current) viewerRef.current.setHfov(50);
-            playAudioFileWithCompletion(wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0, true);
+            playAudioFileWithCompletion(wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
           }
         }
       };
@@ -721,7 +726,7 @@ export default function TourPage() {
 
       await Promise.all([
         rotatePromise,
-        playAudioFileWithCompletion(introAudioUrl, introTextRaw, currentRoom.title_i18n, undefined, 0, false)
+        playAudioFileWithCompletion(introAudioUrl, introTextRaw, currentRoom.title_i18n, undefined, 0)
       ]);
 
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
@@ -743,7 +748,7 @@ export default function TourPage() {
         await new Promise(r => setTimeout(r, 2300));
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
-        await playAudioFileWithCompletion(item.wp.audio_url, item.wp.text_i18n, item.wp.title_i18n, item.i, 0, false);
+        await playAudioFileWithCompletion(item.wp.audio_url, item.wp.text_i18n, item.wp.title_i18n, item.i, 0);
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
         await new Promise(r => setTimeout(r, 1000));
@@ -950,9 +955,7 @@ export default function TourPage() {
     if (!displayedInfoTitle && infoBoxData.index === undefined) {
       displayedInfoTitle = getLocalizedText(currentRoom?.title_i18n, lang);
     }
-    if (!infoBoxData.titleOnly) {
-      displayedInfoText = getLocalizedText(infoBoxData.textRaw, lang);
-    }
+    displayedInfoText = getLocalizedText(infoBoxData.textRaw, lang);
   }
 
   const currentCategory = tour?.category || 'rent';
@@ -1065,7 +1068,7 @@ export default function TourPage() {
             flexWrap: 'wrap',
             justifyContent: 'flex-end'
           }}>
-            <button onClick={toggleMute} style={{ ...btnStyle, fontSize: '14px', padding: '5px 10px' }}>{isMuted ? '🔇' : '🔊'}</button>
+            <button onClick={toggleMute} style={btnStyle}>{isMuted ? t.audioOn : t.audioOff}</button>
             <button onClick={() => setLang('sr')} style={{ ...btnStyle, backgroundColor: lang === 'sr' ? '#0284c7' : btnStyle.backgroundColor, color: lang === 'sr' ? '#fff' : '#000' }}>SR</button>
             <button onClick={() => setLang('en')} style={{ ...btnStyle, backgroundColor: lang === 'en' ? '#0284c7' : btnStyle.backgroundColor, color: lang === 'en' ? '#fff' : '#000' }}>EN</button>
             <button onClick={() => setLang('de')} style={{ ...btnStyle, backgroundColor: lang === 'de' ? '#0284c7' : btnStyle.backgroundColor, color: lang === 'de' ? '#fff' : '#000' }}>DE</button>
@@ -1145,8 +1148,8 @@ export default function TourPage() {
           color: '#fff',
           boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
         }}>
-          {displayedInfoTitle && <h3 style={{ margin: infoBoxData.titleOnly ? '0' : '0 0 4px 0', fontSize: '14px', color: '#38bdf8' }}>{displayedInfoTitle}</h3>}
-          {!infoBoxData.titleOnly && displayedInfoText && <p style={{ margin: 0, fontSize: '12px', lineHeight: '1.35', color: '#e2e8f0' }}>{displayedInfoText}</p>}
+          {displayedInfoTitle && <h3 style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#38bdf8' }}>{displayedInfoTitle}</h3>}
+          <p style={{ margin: 0, fontSize: '12px', lineHeight: '1.35', color: '#e2e8f0' }}>{displayedInfoText}</p>
         </div>
       )}
 
@@ -1376,3 +1379,4 @@ export default function TourPage() {
     </main>
   );
 }
+
