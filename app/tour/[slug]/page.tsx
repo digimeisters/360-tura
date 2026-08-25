@@ -647,10 +647,8 @@ export default function TourPage() {
             isInterruptedRef.current = true;
             stopCurrentAnimation();
             audioCurrentTimeRef.current = 0;
-            if (viewerRef.current) viewerRef.current.lookAt(wp.pitch || 0, wp.yaw || 0, 50, 1000);
-            playAudioFileWithCompletion(wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0).then(() => {
-              if (viewerRef.current) viewerRef.current.setHfov(70);
-            });
+            if (viewerRef.current) viewerRef.current.setHfov(50);
+            playAudioFileWithCompletion(wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
           }
         }
       };
@@ -665,9 +663,6 @@ export default function TourPage() {
       autoLoad: true,
       showControls: false,
       hfov: 70,
-      minHfov: 30,
-      maxHfov: 120,
-      mouseZoom: true,
       yaw: targetEstablishYaw,
       pitch: targetEstablishPitch,
       autoRotate: 0,
@@ -773,10 +768,6 @@ export default function TourPage() {
 
         await playAudioFileWithCompletion(item.wp.audio_url, item.wp.text_i18n, item.wp.title_i18n, item.i, 0);
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
-
-        if (viewerRef.current) {
-          viewerRef.current.setHfov(70);
-        }
 
         await new Promise(r => setTimeout(r, 1000));
         runInfoSequencePhase2(index + 1);
@@ -1005,7 +996,10 @@ export default function TourPage() {
           gap: '4px',
           pointerEvents: 'none'
         }}>
+          {/* RED 1: Naziv ture levo, Audio i Jezici desno ujednačeno */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            
+            {/* Naziv ture */}
             <div style={{
               backgroundColor: 'rgba(15, 23, 42, 0.8)',
               backdropFilter: 'blur(10px)',
@@ -1025,6 +1019,7 @@ export default function TourPage() {
               {getLocalizedText(tour?.title_i18n, lang)}
             </div>
 
+            {/* Kontrole (Zvuk + Jezici u jednoj kutiji) */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -1076,6 +1071,7 @@ export default function TourPage() {
             </div>
           </div>
 
+          {/* RED 2: Ticker za sobe (u svom posebnom redu sa minimalnim razmakom) */}
           <div
             ref={tickerRef}
             onMouseEnter={() => { autoScrollPausedRef.current = true; }}
@@ -1460,7 +1456,7 @@ export default function TourPage() {
                 type="text"
                 placeholder={t.audioUrlPlaceholder}
                 value={hotspotAudioUrl}
-                onChange={(e) => setHotsotAudioUrl(e.target.value)}
+                onChange={(e) => setHotspotAudioUrl(e.target.value)}
                 style={{ width: '100%', padding: '7px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', fontSize: '12px' }}
               />
             </>
