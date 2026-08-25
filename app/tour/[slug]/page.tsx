@@ -447,50 +447,6 @@ export default function TourPage() {
     return () => cancelAnimationFrame(tickerAnimationId);
   }, [tourStarted]);
 
-  // Optimizovan touch-to-zoom (štipanje prstima)
-  useEffect(() => {
-    if (!tourStarted || !pannellumReady) return;
-    const container = document.getElementById('panorama');
-    if (!container) return;
-
-    let initialDistance = 0;
-
-    const handleTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        initialDistance = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-      }
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (e.touches.length === 2 && viewerRef.current) {
-        e.preventDefault();
-        const currentDistance = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        
-        const currentHfov = viewerRef.current.getHfov();
-        const diff = initialDistance - currentDistance;
-        
-        const newHfov = Math.max(30, Math.min(110, currentHfov + diff * 0.1));
-        viewerRef.current.setHfov(newHfov);
-        
-        initialDistance = currentDistance;
-      }
-    };
-
-    container.addEventListener('touchstart', handleTouchStart, { passive: true });
-    container.addEventListener('touchmove', handleTouchMove, { passive: false });
-
-    return () => {
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchmove', handleTouchMove);
-    };
-  }, [tourStarted, pannellumReady]);
-
   const stopCurrentAnimation = () => {
     if (animFrameRef.current !== null) {
       cancelAnimationFrame(animFrameRef.current);
@@ -620,7 +576,7 @@ export default function TourPage() {
       setLoading(false);
     }
     load();
-  }, [slug, mounted, t.tourNotFound, t.noRooms]);
+  }, [slug, mounted]);
 
   const changeRoomById = useCallback((id: string | number) => {
     sequenceActiveRef.current = false;
@@ -693,8 +649,7 @@ export default function TourPage() {
             audioCurrentTimeRef.current = 0;
             if (viewerRef.current) viewerRef.current.lookAt(wp.pitch || 0, wp.yaw || 0, 50, 1000);
             playAudioFileWithCompletion(wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0).then(() => {
-              const isMob = window.innerWidth <= 768;
-              if (viewerRef.current) viewerRef.current.setHfov(isMob ? 77 : 55);
+              if (viewerRef.current) viewerRef.current.setHfov(70);
             });
           }
         }
@@ -703,17 +658,15 @@ export default function TourPage() {
 
     const targetEstablishYaw = normalizeYaw(establishData.fromYaw ?? 0);
     const targetEstablishPitch = establishData.pitch ?? 0;
-    const isMobileDevice = window.innerWidth <= 768;
-    const initialHfovSetting = isMobileDevice ? 85 : 65;
 
     const v = (window as any).pannellum.viewer('panorama', {
       type: 'equirectangular',
       panorama: currentRoom.panorama_url,
       autoLoad: true,
       showControls: false,
-      hfov: initialHfovSetting,
+      hfov: 70,
       minHfov: 30,
-      maxHfov: 110,
+      maxHfov: 120,
       mouseZoom: true,
       yaw: targetEstablishYaw,
       pitch: targetEstablishPitch,
@@ -737,8 +690,7 @@ export default function TourPage() {
         setIsRoomTourFullyCompleted(true);
       }, 7000);
 
-      const isMob = window.innerWidth <= 768;
-      if (viewerRef.current) viewerRef.current.setHfov(isMob ? 77: 55);
+      if (viewerRef.current) viewerRef.current.setHfov(70);
 
       let lastTime = performance.now();
       const degreesPerMs = 360 / 25000;
@@ -772,8 +724,7 @@ export default function TourPage() {
         if (!sequenceActiveRef.current || isInterruptedRef.current) return resolve();
 
         if (viewerRef.current) {
-          const isMob = window.innerWidth <= 768;
-          viewerRef.current.setHfov(isMob ? 77: 55);
+          viewerRef.current.setHfov(70);
           viewerRef.current.setYaw(targetEstablishYaw);
           viewerRef.current.setPitch(targetEstablishPitch);
           viewerRef.current.startAutoRotate(speed, targetEstablishPitch);
@@ -824,8 +775,7 @@ export default function TourPage() {
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
         if (viewerRef.current) {
-          const isMob = window.innerWidth <= 768;
-          viewerRef.current.setHfov(isMob ? 77: 55);
+          viewerRef.current.setHfov(70);
         }
 
         await new Promise(r => setTimeout(r, 1000));
@@ -875,8 +825,7 @@ export default function TourPage() {
     setPendingCoords({ pitch: targetWp.pitch || 0, yaw: targetWp.yaw || 0 });
 
     if (viewerRef.current) {
-      const isMob = window.innerWidth <= 768;
-      viewerRef.current.lookAt(targetWp.pitch || 0, targetWp.yaw || 0, isMob ? 77: 55, 1000);
+      viewerRef.current.lookAt(targetWp.pitch || 0, targetWp.yaw || 0, 70, 1000);
     }
 
     const isNav = targetWp.type === 'navigation' || Boolean(targetWp.targetRoomId);
@@ -1047,18 +996,18 @@ export default function TourPage() {
       {tourStarted && (
         <div style={{
           position: 'absolute',
-          top: '8px',
-          left: '8px',
-          right: '8px',
+          top: '4px',
+          left: '4px',
+          right: '4px',
           zIndex: 35,
           display: 'flex',
           flexDirection: 'column',
-          gap: '6px',
+          gap: '4px',
           pointerEvents: 'none'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
             <div style={{
-              backgroundColor: 'rgba(15, 23, 42, 0.85)',
+              backgroundColor: 'rgba(15, 23, 42, 0.8)',
               backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
               borderRadius: '12px',
@@ -1080,7 +1029,7 @@ export default function TourPage() {
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
-              backgroundColor: 'rgba(15, 23, 42, 0.85)',
+              backgroundColor: 'rgba(15, 23, 42, 0.8)',
               backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
               borderRadius: '12px',
@@ -1090,13 +1039,13 @@ export default function TourPage() {
             }}>
               <button
                 onClick={toggleMute}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#fff',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  padding: '3px 4px'
+                style={{ 
+                  background: 'transparent', 
+                  border: 'none', 
+                  color: '#fff', 
+                  cursor: 'pointer', 
+                  fontSize: '14px', 
+                  padding: '3px 4px' 
                 }}
                 title={isMuted ? 'Uključi zvuk' : 'Isključi zvuk'}
               >
@@ -1202,31 +1151,49 @@ export default function TourPage() {
       {tourStarted && !pendingCoords && isRoomTourFullyCompleted && (
         <div style={{
           position: 'absolute',
-          bottom: '16px',
+          bottom: '10px',
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 35,
           display: 'flex',
-          gap: '6px',
+          gap: '5px',
           width: '96%',
           maxWidth: '520px',
           justifyContent: 'center'
         }}>
-          <button onClick={() => setActiveModal('plan')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'plan' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 4px', fontSize: '11px' }}>
+          <button onClick={() => setActiveModal('plan')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'plan' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
             {t.btnPlan}
           </button>
-          <button onClick={() => setActiveModal('location')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'location' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 4px', fontSize: '11px' }}>
+          <button onClick={() => setActiveModal('location')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'location' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
             {t.btnLocation}
           </button>
-          <button onClick={() => setActiveModal('about')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'about' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 4px', fontSize: '11px' }}>
+          <button onClick={() => setActiveModal('about')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'about' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
             {t.btnAbout}
           </button>
-          <button onClick={() => setActiveModal('faq')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'faq' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 4px', fontSize: '11px' }}>
+          <button onClick={() => setActiveModal('faq')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'faq' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
             {t.btnFaq}
           </button>
-          <button onClick={() => setActiveModal('contact')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'contact' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 4px', fontSize: '11px' }}>
+          <button onClick={() => setActiveModal('contact')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'contact' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
             {t.btnContact}
           </button>
+        </div>
+      )}
+
+      {pendingCoords && !adminMode && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: 'none',
+          zIndex: 40,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{ position: 'absolute', width: '28px', height: '2px', backgroundColor: '#38bdf8', boxShadow: '0 0 4px rgba(0,0,0,0.8)' }} />
+          <div style={{ position: 'absolute', width: '2px', height: '28px', backgroundColor: '#38bdf8', boxShadow: '0 0 4px rgba(0,0,0,0.8)' }} />
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ffffff', border: '2px solid #38bdf8' }} />
         </div>
       )}
 
@@ -1240,13 +1207,13 @@ export default function TourPage() {
       {infoBoxData && !pendingCoords && !activeModal && (
         <div style={{
           position: 'absolute',
-          bottom: '16px',
+          bottom: '8px',
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 30,
           width: '94%',
           maxWidth: '450px',
-          backgroundColor: 'rgba(15, 23, 42, 0.92)',
+          backgroundColor: 'rgba(15, 23, 42, 0.9)',
           backdropFilter: 'blur(8px)',
           border: '1px solid rgba(255,255,255,0.15)',
           borderRadius: '16px',
@@ -1493,7 +1460,7 @@ export default function TourPage() {
                 type="text"
                 placeholder={t.audioUrlPlaceholder}
                 value={hotspotAudioUrl}
-                onChange={(e) => setHotspotAudioUrl(e.target.value)}
+                onChange={(e) => setHotsotAudioUrl(e.target.value)}
                 style={{ width: '100%', padding: '7px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', fontSize: '12px' }}
               />
             </>
