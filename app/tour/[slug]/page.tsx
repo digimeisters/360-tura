@@ -447,6 +447,50 @@ export default function TourPage() {
     return () => cancelAnimationFrame(tickerAnimationId);
   }, [tourStarted]);
 
+  // Omogućavanje glatkog touch-to-zoom (štipanja prstima) na mobilnim uređajima
+  useEffect(() => {
+    if (!tourStarted || !pannellumReady) return;
+    const container = document.getElementById('panorama');
+    if (!container) return;
+
+    let initialDistance = 0;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        initialDistance = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && viewerRef.current) {
+        e.preventDefault();
+        const currentDistance = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        
+        const currentHfov = viewerRef.current.getHfov();
+        const diff = initialDistance - currentDistance;
+        
+        const newHfov = Math.max(30, Math.min(110, currentHfov + diff * 0.1));
+        viewerRef.current.setHfov(newHfov);
+        
+        initialDistance = currentDistance;
+      }
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+    };
+  }, [tourStarted, pannellumReady, roomIdx]);
+
   const stopCurrentAnimation = () => {
     if (animFrameRef.current !== null) {
       cancelAnimationFrame(animFrameRef.current);
@@ -649,7 +693,8 @@ export default function TourPage() {
             audioCurrentTimeRef.current = 0;
             if (viewerRef.current) viewerRef.current.lookAt(wp.pitch || 0, wp.yaw || 0, 50, 1000);
             playAudioFileWithCompletion(wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0).then(() => {
-              if (viewerRef.current) viewerRef.current.setHfov(65);
+              const isMob = window.innerWidth <= 768;
+              if (viewerRef.current) viewerRef.current.setHfov(isMob ? 85 : 65);
             });
           }
         }
@@ -659,12 +704,16 @@ export default function TourPage() {
     const targetEstablishYaw = normalizeYaw(establishData.fromYaw ?? 0);
     const targetEstablishPitch = establishData.pitch ?? 0;
 
+    // Prilagođavanje početnog hfov-a za mobilne uređaje da ne deluje udaljeno
+    const isMobileDevice = window.innerWidth <= 768;
+    const initialHfovSetting = isMobileDevice ? 85 : 65;
+
     const v = (window as any).pannellum.viewer('panorama', {
       type: 'equirectangular',
       panorama: currentRoom.panorama_url,
       autoLoad: true,
       showControls: false,
-      hfov: 65,
+      hfov: initialHfovSetting,
       minHfov: 30,
       maxHfov: 110,
       mouseZoom: true,
@@ -690,7 +739,8 @@ export default function TourPage() {
         setIsRoomTourFullyCompleted(true);
       }, 7000);
 
-      if (viewerRef.current) viewerRef.current.setHfov(65);
+      const isMob = window.innerWidth <= 768;
+      if (viewerRef.current) viewerRef.current.setHfov(isMob ? 85 : 65);
 
       let lastTime = performance.now();
       const degreesPerMs = 360 / 25000;
@@ -724,7 +774,8 @@ export default function TourPage() {
         if (!sequenceActiveRef.current || isInterruptedRef.current) return resolve();
 
         if (viewerRef.current) {
-          viewerRef.current.setHfov(65);
+          const isMob = window.innerWidth <= 768;
+          viewerRef.current.setHfov(isMob ? 85 : 65);
           viewerRef.current.setYaw(targetEstablishYaw);
           viewerRef.current.setPitch(targetEstablishPitch);
           viewerRef.current.startAutoRotate(speed, targetEstablishPitch);
@@ -775,7 +826,8 @@ export default function TourPage() {
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
         if (viewerRef.current) {
-          viewerRef.current.setHfov(65);
+          const isMob = window.innerWidth <= 768;
+          viewerRef.current.setHfov(isMob ? 85 : 65);
         }
 
         await new Promise(r => setTimeout(r, 1000));
@@ -825,7 +877,8 @@ export default function TourPage() {
     setPendingCoords({ pitch: targetWp.pitch || 0, yaw: targetWp.yaw || 0 });
 
     if (viewerRef.current) {
-      viewerRef.current.lookAt(targetWp.pitch || 0, targetWp.yaw || 0, 65, 1000);
+      const isMob = window.innerWidth <= 768;
+      viewerRef.current.lookAt(targetWp.pitch || 0, targetWp.yaw || 0, isMob ? 85 : 65, 1000);
     }
 
     const isNav = targetWp.type === 'navigation' || Boolean(targetWp.targetRoomId);
@@ -1039,13 +1092,13 @@ export default function TourPage() {
             }}>
               <button
                 onClick={toggleMute}
-                style={{ 
-                  background: 'transparent', 
-                  border: 'none', 
-                  color: '#fff', 
-                  cursor: 'pointer', 
-                  fontSize: '14px', 
-                  padding: '3px 4px' 
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  padding: '3px 4px'
                 }}
                 title={isMuted ? 'Uključi zvuk' : 'Isključi zvuk'}
               >
@@ -1460,7 +1513,7 @@ export default function TourPage() {
                 type="text"
                 placeholder={t.audioUrlPlaceholder}
                 value={hotspotAudioUrl}
-                onChange={(e) => setHotsotAudioUrl(e.target.value)}
+                onChange={(e) => setHotspotAudioUrl(e.target.value)}
                 style={{ width: '100%', padding: '7px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', fontSize: '12px' }}
               />
             </>
