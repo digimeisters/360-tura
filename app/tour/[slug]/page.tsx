@@ -1035,7 +1035,7 @@ export default function TourPage() {
 
   if (!tourStarted) {
     return (
-      <div style={{ width: '100vw', height: '100dvh', background: '#0a0a0a', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px', fontFamily: 'sans-serif', textAlign: 'center', padding: '20px' }}>
+      <div style={{ width: '100vw', height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#0a0a0a', color: '#fff' }}>
         <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
           {(['sr', 'en', 'de'] as Language[]).map((l) => (
             <button
