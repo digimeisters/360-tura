@@ -48,7 +48,6 @@ type Tour = {
   contact_name?: string;
   contact_phone?: string;
   contact_email?: string;
-  // Nove kolone iz baze
   agent_name?: string;
   agent_phone?: string;
   agent_email?: string;
@@ -648,8 +647,10 @@ export default function TourPage() {
             isInterruptedRef.current = true;
             stopCurrentAnimation();
             audioCurrentTimeRef.current = 0;
-            if (viewerRef.current) viewerRef.current.setHfov(50);
-            playAudioFileWithCompletion(wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
+            if (viewerRef.current) viewerRef.current.lookAt(wp.pitch || 0, wp.yaw || 0, 50, 1000);
+            playAudioFileWithCompletion(wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0).then(() => {
+              if (viewerRef.current) viewerRef.current.setHfov(70);
+            });
           }
         }
       };
@@ -664,6 +665,9 @@ export default function TourPage() {
       autoLoad: true,
       showControls: false,
       hfov: 70,
+      minHfov: 30,
+      maxHfov: 120,
+      mouseZoom: true,
       yaw: targetEstablishYaw,
       pitch: targetEstablishPitch,
       autoRotate: 0,
@@ -769,6 +773,10 @@ export default function TourPage() {
 
         await playAudioFileWithCompletion(item.wp.audio_url, item.wp.text_i18n, item.wp.title_i18n, item.i, 0);
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
+
+        if (viewerRef.current) {
+          viewerRef.current.setHfov(70);
+        }
 
         await new Promise(r => setTimeout(r, 1000));
         runInfoSequencePhase2(index + 1);
@@ -988,25 +996,22 @@ export default function TourPage() {
       {tourStarted && (
         <div style={{
           position: 'absolute',
-          top: '12px',
-          left: '12px',
-          right: '12px',
+          top: '4px',
+          left: '4px',
+          right: '4px',
           zIndex: 35,
           display: 'flex',
           flexDirection: 'column',
-          gap: '10px',
+          gap: '4px',
           pointerEvents: 'none'
         }}>
-          {/* RED 1: Naziv ture levo, Audio i Jezici desno ujednačeno */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            
-            {/* Naziv ture */}
             <div style={{
               backgroundColor: 'rgba(15, 23, 42, 0.8)',
               backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
               borderRadius: '12px',
-              padding: '8px 14px',
+              padding: '6px 12px',
               color: '#fff',
               fontSize: '13px',
               fontWeight: 600,
@@ -1020,16 +1025,15 @@ export default function TourPage() {
               {getLocalizedText(tour?.title_i18n, lang)}
             </div>
 
-            {/* Kontrole (Zvuk + Jezici u jednoj kutiji) */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '4px',
               backgroundColor: 'rgba(15, 23, 42, 0.8)',
               backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
               borderRadius: '12px',
-              padding: '4px 6px',
+              padding: '3px 6px',
               pointerEvents: 'auto',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
             }}>
@@ -1040,15 +1044,15 @@ export default function TourPage() {
                   border: 'none', 
                   color: '#fff', 
                   cursor: 'pointer', 
-                  fontSize: '15px', 
-                  padding: '4px 6px' 
+                  fontSize: '14px', 
+                  padding: '3px 4px' 
                 }}
                 title={isMuted ? 'Uključi zvuk' : 'Isključi zvuk'}
               >
                 {isMuted ? '🔇' : '🔊'}
               </button>
 
-              <div style={{ width: '1px', height: '16px', backgroundColor: 'rgba(255,255,255,0.2)', margin: '0 2px' }} />
+              <div style={{ width: '1px', height: '14px', backgroundColor: 'rgba(255,255,255,0.2)', margin: '0 2px' }} />
 
               {(['sr', 'en', 'de'] as Language[]).map((l) => (
                 <button
@@ -1059,7 +1063,7 @@ export default function TourPage() {
                     color: '#fff',
                     border: 'none',
                     borderRadius: '8px',
-                    padding: '4px 8px',
+                    padding: '3px 6px',
                     fontSize: '11px',
                     fontWeight: lang === l ? 'bold' : 'normal',
                     cursor: 'pointer',
@@ -1072,7 +1076,6 @@ export default function TourPage() {
             </div>
           </div>
 
-          {/* RED 2: Ticker za sobe (u svom posebnom redu) */}
           <div
             ref={tickerRef}
             onMouseEnter={() => { autoScrollPausedRef.current = true; }}
@@ -1106,10 +1109,10 @@ export default function TourPage() {
             onTouchEnd={() => { isDraggingRef.current = false; autoScrollPausedRef.current = false; }}
             style={{
               display: 'flex',
-              gap: '8px',
+              gap: '6px',
               overflowX: 'auto',
               maxWidth: '100%',
-              padding: '4px 2px',
+              padding: '2px 0',
               pointerEvents: 'auto',
               scrollbarWidth: 'none',
               cursor: 'grab',
@@ -1126,7 +1129,7 @@ export default function TourPage() {
                   color: idx === roomIdx ? '#000000' : '#ffffff',
                   border: idx === roomIdx ? '1px solid rgba(0, 0, 0, 0.3)' : '1px solid rgba(255, 255, 255, 0.2)',
                   borderRadius: '16px',
-                  padding: '6px 14px',
+                  padding: '5px 12px',
                   fontSize: '12px',
                   cursor: 'pointer',
                   fontWeight: idx === roomIdx ? 600 : 400,
@@ -1364,7 +1367,7 @@ export default function TourPage() {
       )}
 
       {adminMode && !pendingCoords && (
-        <div style={{ position: 'absolute', top: '105px', left: '12px', zIndex: 40, backgroundColor: 'rgba(0,0,0,0.85)', padding: '10px', borderRadius: '12px', border: '1px solid #333', color: '#fff', fontSize: '11px', maxWidth: '280px' }}>
+        <div style={{ position: 'absolute', top: '80px', left: '12px', zIndex: 40, backgroundColor: 'rgba(0,0,0,0.85)', padding: '10px', borderRadius: '12px', border: '1px solid #333', color: '#fff', fontSize: '11px', maxWidth: '280px' }}>
           <div style={{ fontWeight: 'bold', marginBottom: '6px', color: '#38bdf8' }}>ADMIN KONTROLE</div>
           <button onClick={handleStartEditEstablish} style={{ ...btnStyle, width: '100%', marginBottom: '6px' }}>{t.introNarration}</button>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '100px', overflowY: 'auto' }}>
@@ -1457,7 +1460,7 @@ export default function TourPage() {
                 type="text"
                 placeholder={t.audioUrlPlaceholder}
                 value={hotspotAudioUrl}
-                onChange={(e) => setHotspotAudioUrl(e.target.value)}
+                onChange={(e) => setHootsotAudioUrl(e.target.value)}
                 style={{ width: '100%', padding: '7px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', fontSize: '12px' }}
               />
             </>
