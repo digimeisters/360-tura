@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 
@@ -45,9 +45,12 @@ type Tour = {
   faq_2_i18n?: Record<string, string> | string;
   faq_3_i18n?: Record<string, string> | string;
   faq_4_i18n?: Record<string, string> | string;
+  contact_name?: string;
+  contact_phone?: string;
+  contact_email?: string;
 };
 
-type ActiveModal = 'plan' | 'location' | 'about' | 'faq' | null;
+type ActiveModal = 'plan' | 'location' | 'about' | 'faq' | 'contact' | null;
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
@@ -212,8 +215,6 @@ const translations = {
     roomLoadingPrefix: 'Pripremite se... ulazimo u: ',
     tourNotFound: 'Tura nije pronađena.',
     noRooms: 'Ova tura nema soba.',
-    audioOn: 'Zvuk',
-    audioOff: 'Bez zvuka',
     guideCompleted: 'Vodič završen',
     freeExplore: 'Slobodno razgledajte prostoriju ili pređite u drugu preko trake iznad ili strelica.',
     targetRoom: '-- Izaberi sobu --',
@@ -234,10 +235,17 @@ const translations = {
     btnLocation: '📍 Lokacija',
     btnAbout: 'ℹ️ O stanu',
     btnFaq: '❓ Pitanja',
+    btnContact: '📞 Kontakt',
     noPlan: 'Skica osnove trenutno nije dostupna za ovu nekretninu.',
     noLocation: 'Mapa lokacije trenutno nije dostupna za ovu nekretninu.',
     noAbout: 'Informacije trenutno nisu dostupne.',
     noFaq: 'Trenutno nema FAQ odgovora za ovu nekretninu.',
+    contactTitle: 'Kontakt informacije',
+    agentLabel: 'Agent / Vlasnik:',
+    phoneLabel: 'Telefon:',
+    emailLabel: 'Email:',
+    callBtn: 'Pozovi',
+    emailBtn: 'Pošalji Email',
     close: 'Zatvori',
     comingSoon: 'Odgovor uskoro...'
   },
@@ -248,8 +256,6 @@ const translations = {
     roomLoadingPrefix: 'Entering: ',
     tourNotFound: 'Tour not found.',
     noRooms: 'This tour has no rooms.',
-    audioOn: 'Sound',
-    audioOff: 'Mute',
     guideCompleted: 'Guide Completed',
     freeExplore: 'Feel free to look around or switch rooms using the top menu or arrows.',
     targetRoom: '-- Select room --',
@@ -270,10 +276,17 @@ const translations = {
     btnLocation: '📍 Location',
     btnAbout: 'ℹ️ Info',
     btnFaq: '❓ FAQ',
+    btnContact: '📞 Contact',
     noPlan: 'Floor plan is currently not available for this property.',
     noLocation: 'Location map is currently not available for this property.',
     noAbout: 'Information is currently unavailable.',
     noFaq: 'No FAQ available for this property at the moment.',
+    contactTitle: 'Contact Information',
+    agentLabel: 'Agent / Owner:',
+    phoneLabel: 'Phone:',
+    emailLabel: 'Email:',
+    callBtn: 'Call',
+    emailBtn: 'Send Email',
     close: 'Close',
     comingSoon: 'Answer coming soon...'
   },
@@ -284,8 +297,6 @@ const translations = {
     roomLoadingPrefix: 'Betrete: ',
     tourNotFound: 'Tour nicht gefunden.',
     noRooms: 'Diese Tour hat keine Räume.',
-    audioOn: 'Ton',
-    audioOff: 'Stumm',
     guideCompleted: 'Führung beendet',
     freeExplore: 'Schauen Sie sich frei um oder wechseln Sie den Raum oben.',
     targetRoom: '-- Raum wählen --',
@@ -306,10 +317,17 @@ const translations = {
     btnLocation: '📍 Standort',
     btnAbout: 'ℹ️ Info',
     btnFaq: '❓ FAQ',
+    btnContact: '📞 Kontakt',
     noPlan: 'Der Grundriss ist derzeit für diese Immobilie nicht verfügbar.',
     noLocation: 'Die Standortkarte ist derzeit für diese Immobilie nicht verfügbar.',
     noAbout: 'Informationen derzeit nicht verfügbar.',
     noFaq: 'Derzeit sind keine FAQ verfügbar.',
+    contactTitle: 'Kontaktinformationen',
+    agentLabel: 'Makler / Eigentümer:',
+    phoneLabel: 'Telefon:',
+    emailLabel: 'E-Mail:',
+    callBtn: 'Anrufen',
+    emailBtn: 'E-Mail senden',
     close: 'Schließen',
     comingSoon: 'Antwort folgt...'
   }
@@ -360,8 +378,6 @@ export default function TourPage() {
 
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const [selectedFaq, setSelectedFaq] = useState<number | null>(null);
-  const [isGuideCompletedState, setIsGuideCompletedState] = useState(false);
-  
   const [isRoomTourFullyCompleted, setIsRoomTourFullyCompleted] = useState(false);
 
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -465,7 +481,7 @@ export default function TourPage() {
     }
   };
 
-  const playAudioFileWithCompletion = (
+  const playAudioFileWithCompletion = useCallback((
     audioUrl?: string,
     textFallback?: any,
     title?: any,
@@ -515,7 +531,7 @@ export default function TourPage() {
         resolve();
       });
     });
-  };
+  }, []);
 
   useEffect(() => {
     if (!mounted) return;
@@ -555,11 +571,10 @@ export default function TourPage() {
     load();
   }, [slug, mounted]);
 
-  const changeRoomById = (id: string | number) => {
+  const changeRoomById = useCallback((id: string | number) => {
     sequenceActiveRef.current = false;
     isInterruptedRef.current = true;
     audioCurrentTimeRef.current = 0;
-    setIsGuideCompletedState(false);
     setIsRoomTourFullyCompleted(false);
     stopCurrentAnimation();
     stopAudio();
@@ -570,7 +585,7 @@ export default function TourPage() {
       setRoomIdx(foundIndex);
       setInfoBoxData(null);
     }
-  };
+  }, [rooms]);
 
   useEffect(() => {
     if (!tourStarted || rooms.length === 0 || !pannellumReady || !mounted) return;
@@ -580,7 +595,6 @@ export default function TourPage() {
     setRoomLoading(true);
     sequenceActiveRef.current = false;
     audioCurrentTimeRef.current = 0;
-    setIsGuideCompletedState(false);
     setIsRoomTourFullyCompleted(false);
     stopCurrentAnimation();
     stopAudio();
@@ -624,7 +638,6 @@ export default function TourPage() {
             changeRoomById(wp.targetRoomId);
           } else if (!isNav) {
             isInterruptedRef.current = true;
-            setIsGuideCompletedState(false);
             stopCurrentAnimation();
             audioCurrentTimeRef.current = 0;
             if (viewerRef.current) viewerRef.current.setHfov(50);
@@ -657,13 +670,11 @@ export default function TourPage() {
     const startInfiniteGlide = () => {
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
       stopCurrentAnimation();
-      setIsGuideCompletedState(true);
       setInfoBoxData({ titleRaw: translations[langRef.current].guideCompleted, textRaw: translations[langRef.current].freeExplore });
 
       if (guideCompleteTimerRef.current) clearTimeout(guideCompleteTimerRef.current);
       guideCompleteTimerRef.current = setTimeout(() => {
         setInfoBoxData(null);
-        setIsGuideCompletedState(false);
         setIsRoomTourFullyCompleted(true);
       }, 7000);
 
@@ -786,28 +797,7 @@ export default function TourPage() {
         try { viewerRef.current.destroy(); } catch (e) {}
       }
     };
-  }, [tourStarted, roomIdx, pannellumReady, mounted]);
-
-  useEffect(() => {
-    if (!viewerRef.current || !rooms[roomIdx]) return;
-    const waypointsList = parseWaypoints(rooms[roomIdx].waypoints_i18n);
-
-    waypointsList.forEach((wp, index) => {
-      const isNav = wp.type === 'navigation' || Boolean(wp.targetRoomId);
-      let tooltipText = getLocalizedText(wp.title_i18n, lang);
-      if (!tooltipText && !isNav) {
-        tooltipText = getLocalizedText(wp.text_i18n, lang);
-        if (tooltipText.length > 40) tooltipText = tooltipText.substring(0, 40) + '...';
-      }
-      if (isNav && !tooltipText && wp.targetRoomId) {
-        const targetRoomObj = rooms.find(r => r.id == wp.targetRoomId);
-        if (targetRoomObj) tooltipText = getLocalizedText(targetRoomObj.title_i18n, lang);
-      }
-
-      const elem = document.querySelector(`.pnm-hotspot-id-${index} .pnm-hotspot-text`);
-      if (elem) elem.textContent = tooltipText;
-    });
-  }, [lang, roomIdx, rooms]);
+  }, [tourStarted, roomIdx, pannellumReady, mounted, adminMode, rooms, changeRoomById, playAudioFileWithCompletion]);
 
   const handleStartEditWaypoint = (index: number) => {
     const currentRoom = rooms[roomIdx];
@@ -995,11 +985,52 @@ export default function TourPage() {
           right: '10px',
           zIndex: 35,
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          gap: '10px',
+          flexDirection: 'column',
+          gap: '8px',
           pointerEvents: 'none'
         }}>
+          {/* Red 1: Naslov ture levo, kontrole desno */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <div style={{
+              backgroundColor: 'rgba(15, 23, 42, 0.75)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '14px',
+              padding: '6px 14px',
+              color: '#fff',
+              fontSize: '13px',
+              fontWeight: 600,
+              pointerEvents: 'auto',
+              maxWidth: '60%',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
+            }}>
+              {getLocalizedText(tour?.title_i18n, lang)}
+            </div>
+
+            <div style={{
+              display: 'flex',
+              gap: '4px',
+              pointerEvents: 'auto',
+              flexWrap: 'wrap',
+              justifyContent: 'flex-end'
+            }}>
+              <button
+                onClick={toggleMute}
+                style={{ ...btnStyle, fontSize: '14px', padding: '5px 10px', minWidth: '32px' }}
+                title={isMuted ? 'Uključi zvuk' : 'Isključi zvuk'}
+              >
+                {isMuted ? '🔇' : '🔊'}
+              </button>
+              <button onClick={() => setLang('sr')} style={{ ...btnStyle, backgroundColor: lang === 'sr' ? '#0284c7' : btnStyle.backgroundColor, color: lang === 'sr' ? '#fff' : '#000' }}>SR</button>
+              <button onClick={() => setLang('en')} style={{ ...btnStyle, backgroundColor: lang === 'en' ? '#0284c7' : btnStyle.backgroundColor, color: lang === 'en' ? '#fff' : '#000' }}>EN</button>
+              <button onClick={() => setLang('de')} style={{ ...btnStyle, backgroundColor: lang === 'de' ? '#0284c7' : btnStyle.backgroundColor, color: lang === 'de' ? '#fff' : '#000' }}>DE</button>
+            </div>
+          </div>
+
+          {/* Red 2: Ticker traka sa sobama */}
           <div
             ref={tickerRef}
             onMouseEnter={() => { autoScrollPausedRef.current = true; }}
@@ -1035,7 +1066,7 @@ export default function TourPage() {
               display: 'flex',
               gap: '6px',
               overflowX: 'auto',
-              maxWidth: 'calc(100% - 130px)',
+              maxWidth: '100%',
               paddingBottom: '4px',
               pointerEvents: 'auto',
               scrollbarWidth: 'none',
@@ -1060,19 +1091,6 @@ export default function TourPage() {
               </button>
             ))}
           </div>
-
-          <div style={{
-            display: 'flex',
-            gap: '4px',
-            pointerEvents: 'auto',
-            flexWrap: 'wrap',
-            justifyContent: 'flex-end'
-          }}>
-            <button onClick={toggleMute} style={btnStyle}>{isMuted ? t.audioOn : t.audioOff}</button>
-            <button onClick={() => setLang('sr')} style={{ ...btnStyle, backgroundColor: lang === 'sr' ? '#0284c7' : btnStyle.backgroundColor, color: lang === 'sr' ? '#fff' : '#000' }}>SR</button>
-            <button onClick={() => setLang('en')} style={{ ...btnStyle, backgroundColor: lang === 'en' ? '#0284c7' : btnStyle.backgroundColor, color: lang === 'en' ? '#fff' : '#000' }}>EN</button>
-            <button onClick={() => setLang('de')} style={{ ...btnStyle, backgroundColor: lang === 'de' ? '#0284c7' : btnStyle.backgroundColor, color: lang === 'de' ? '#fff' : '#000' }}>DE</button>
-          </div>
         </div>
       )}
 
@@ -1086,27 +1104,30 @@ export default function TourPage() {
           transform: 'translateX(-50%)',
           zIndex: 35,
           display: 'flex',
-          gap: '6px',
-          width: '94%',
-          maxWidth: '450px',
+          gap: '5px',
+          width: '96%',
+          maxWidth: '520px',
           justifyContent: 'center'
         }}>
-          <button onClick={() => setActiveModal('plan')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'plan' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 4px', fontSize: '12px' }}>
+          <button onClick={() => setActiveModal('plan')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'plan' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
             {t.btnPlan}
           </button>
-          <button onClick={() => setActiveModal('location')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'location' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 4px', fontSize: '12px' }}>
+          <button onClick={() => setActiveModal('location')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'location' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
             {t.btnLocation}
           </button>
-          <button onClick={() => setActiveModal('about')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'about' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 4px', fontSize: '12px' }}>
+          <button onClick={() => setActiveModal('about')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'about' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
             {t.btnAbout}
           </button>
-          <button onClick={() => setActiveModal('faq')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'faq' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 4px', fontSize: '12px' }}>
+          <button onClick={() => setActiveModal('faq')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'faq' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
             {t.btnFaq}
+          </button>
+          <button onClick={() => setActiveModal('contact')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'contact' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
+            {t.btnContact}
           </button>
         </div>
       )}
 
-      {pendingCoords && (
+      {pendingCoords && !adminMode && (
         <div style={{
           position: 'absolute',
           top: '50%',
@@ -1162,6 +1183,7 @@ export default function TourPage() {
                 {activeModal === 'location' && t.btnLocation}
                 {activeModal === 'about' && t.btnAbout}
                 {activeModal === 'faq' && t.btnFaq}
+                {activeModal === 'contact' && t.btnContact}
               </h2>
               <button onClick={() => { setActiveModal(null); setSelectedFaq(null); }} style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#ef4444', padding: '6px 12px' }}>
                 {t.close}
@@ -1210,7 +1232,7 @@ export default function TourPage() {
                           border: '1px solid rgba(255,255,255,0.1)',
                           borderRadius: '10px',
                           padding: '12px 14px',
-                          color: '#38bdf8',
+                          color: '#fef08a',
                           fontSize: '14px',
                           fontWeight: 600,
                           cursor: 'pointer',
@@ -1225,6 +1247,37 @@ export default function TourPage() {
                   <p style={{ textAlign: 'center', color: '#94a3b8' }}>{t.noFaq}</p>
                 )
               )}
+
+              {activeModal === 'contact' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '6px' }}>
+                  <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.7)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <p style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#94a3b8' }}>{t.agentLabel}</p>
+                    <p style={{ margin: 0, fontSize: '15px', fontWeight: 'bold', color: '#fff' }}>{tour?.contact_name || 'Agent'}</p>
+                  </div>
+                  {tour?.contact_phone && (
+                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.7)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <p style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#94a3b8' }}>{t.phoneLabel}</p>
+                        <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#fff' }}>{tour.contact_phone}</p>
+                      </div>
+                      <a href={`tel:${tour.contact_phone}`} style={{ ...btnStyle, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', textDecoration: 'none', padding: '8px 14px' }}>
+                        {t.callBtn}
+                      </a>
+                    </div>
+                  )}
+                  {tour?.contact_email && (
+                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.7)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ overflow: 'hidden', paddingRight: '8px' }}>
+                        <p style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#94a3b8' }}>{t.emailLabel}</p>
+                        <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#fff', textOverflow: 'ellipsis', overflow: 'hidden' }}>{tour.contact_email}</p>
+                      </div>
+                      <a href={`mailto:${tour.contact_email}`} style={{ ...btnStyle, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', textDecoration: 'none', padding: '8px 14px', flexShrink: 0 }}>
+                        {t.emailBtn}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1232,9 +1285,9 @@ export default function TourPage() {
 
       {selectedFaq !== null && faqList[selectedFaq] && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 70, backgroundColor: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ backgroundColor: '#0f172a', border: '1px solid rgba(56, 189, 248, 0.4)', borderRadius: '20px', width: '100%', maxWidth: '450px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
+          <div style={{ backgroundColor: '#0f172a', border: '1px solid rgba(254, 240, 138, 0.4)', borderRadius: '20px', width: '100%', maxWidth: '450px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-              <h3 style={{ color: '#38bdf8', fontSize: '15px', margin: 0, paddingRight: '10px' }}>
+              <h3 style={{ color: '#fef08a', fontSize: '15px', margin: 0, paddingRight: '10px' }}>
                 {faqList[selectedFaq].question}
               </h3>
               <button onClick={() => setSelectedFaq(null)} style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#ef4444', flexShrink: 0, padding: '6px 12px' }}>
@@ -1251,7 +1304,7 @@ export default function TourPage() {
       )}
 
       {adminMode && !pendingCoords && (
-        <div style={{ position: 'absolute', top: '65px', left: '10px', zIndex: 40, backgroundColor: 'rgba(0,0,0,0.85)', padding: '10px', borderRadius: '12px', border: '1px solid #333', color: '#fff', fontSize: '11px', maxWidth: '280px' }}>
+        <div style={{ position: 'absolute', top: '95px', left: '10px', zIndex: 40, backgroundColor: 'rgba(0,0,0,0.85)', padding: '10px', borderRadius: '12px', border: '1px solid #333', color: '#fff', fontSize: '11px', maxWidth: '280px' }}>
           <div style={{ fontWeight: 'bold', marginBottom: '6px', color: '#38bdf8' }}>ADMIN KONTROLE</div>
           <button onClick={handleStartEditEstablish} style={{ ...btnStyle, width: '100%', marginBottom: '6px' }}>{t.introNarration}</button>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '100px', overflowY: 'auto' }}>
@@ -1379,4 +1432,3 @@ export default function TourPage() {
     </main>
   );
 }
-
