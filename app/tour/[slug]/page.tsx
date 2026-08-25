@@ -27,10 +27,10 @@ type Room = {
   id: string | number;
   tour_slug: string;
   title_i18n?: Record<string, string> | string;
-  panorama_url: string;
   order_index?: number;
   waypoints_i18n?: Waypoint[] | string;
   establish_i18n?: EstablishData | string;
+  panorama_url?: string;
 };
 
 type Tour = {
@@ -62,12 +62,14 @@ const btnStyle: React.CSSProperties = {
   backgroundColor: 'rgba(255, 255, 255, 0.15)',
   color: '#ffffff',
   border: '1px solid rgba(255, 255, 255, 0.25)',
-  borderRadius: '16px',
-  padding: '6px 12px',
-  fontSize: '12px',
+  borderRadius: '12px',
+  padding: '6px 10px',
+  fontSize: '11px',
   cursor: 'pointer',
   backdropFilter: 'blur(4px)',
-  transition: 'all 0.2s ease'
+  transition: 'all 0.2s ease',
+  flexShrink: 0,
+  userSelect: 'none'
 };
 
 const getLocalizedText = (textData: any, lang: string = 'sr'): string => {
@@ -136,15 +138,13 @@ const categoryQuestions: Record<string, Record<Language, string[]>> = {
       'Koliki su prosečni mesečni troškovi (režije i informatika) i kakvo je grejanje?',
       'Da li su dozvoljeni kućni ljubimci (pet friendly)?',
       'Kakvi su dodatni uslovi ugovora i obaveze zakupca?'
-
     ],
     en: [
-     'What is the monthly rent and what are the deposit conditions?',
+      'What is the monthly rent and what are the deposit conditions?',
       'What is the minimum lease period and from what date is the apartment available?',
       'What are the average monthly utilities and heating costs?',
       'Are pets allowed (pet friendly)?',
       'What are the additional contract terms and tenant obligations?'
-
     ],
     de: [
       'Wie hoch ist die monatliche Miete und wie sind die Kaubedingungen?',
@@ -152,7 +152,6 @@ const categoryQuestions: Record<string, Record<Language, string[]>> = {
       'Wie hoch sind die durchschnittlichen Nebenkosten und die Heizungsart?',
       'Sind Haustiere erlaubt (haustierfreundlich)?',
       'Wie lauten die zusätzlichen Vertragsbedingungen und Pflichten des Mieters?'
-
     ]
   },
   sale: {
@@ -162,7 +161,6 @@ const categoryQuestions: Record<string, Record<Language, string[]>> = {
       'Da li je nekretnina uknjižena i kakvo je vlasništvo (1/1, suvlasništvo)?',
       'Da li su porezi i agencijska provizija uključeni u cenu ili su dodatni?',
       'Da li nekretnina ima pripadajući podrum, terasu ili garažno mesto?'
-
     ],
     en: [
       'What is the selling price and is mortgage purchase possible?',
@@ -170,7 +168,6 @@ const categoryQuestions: Record<string, Record<Language, string[]>> = {
       'Is the property registered and what is the ownership type (1/1, co-ownership)?',
       'Are taxes and agency commission included in the price or additional?',
       'Does the property include a basement, terrace, or garage space?'
-
     ],
     de: [
       'Wie hoch ist der Verkaufspreis und ist ein Kreditkauf möglich?',
@@ -178,7 +175,6 @@ const categoryQuestions: Record<string, Record<Language, string[]>> = {
       'Ist die Immobilie im Grundbuch eingetragen und wie ist die Eigentumsverhältnisse (1/1)?',
       'Sind Steuern und Maklerprovision im Preis inbegriffen oder zusätzlich?',
       'Verfügt die Immobilie über einen Keller, eine Terrasse oder einen Garagenplatz?'
-
     ]
   },
   booking: {
@@ -188,15 +184,13 @@ const categoryQuestions: Record<string, Record<Language, string[]>> = {
       'Koje je tačno vreme za check-in i check-out?',
       'Koliki je iznos takse za čišćenje po boravku?',
       'Da li je obezbeđen parking, Wi-Fi i kakva su pravila otkazivanja?'
-
     ],
     en: [
-     'What is the price per night and what is the minimum stay?',
+      'What is the price per night and what is the minimum stay?',
       'What is the maximum number of guests (capacity) and what are the house rules?',
       'What are the exact check-in and check-out times?',
       'What is the cleaning fee amount per stay?',
       'Is parking and Wi-Fi provided, and what are the cancellation policies?'
-
     ],
     de: [
       'Wie hoch ist der Preis pro Nacht und wie lang ist der Mindestaufenthalt?',
@@ -216,10 +210,10 @@ const translations = {
     roomLoadingPrefix: 'Pripremite se... ulazimo u: ',
     tourNotFound: 'Tura nije pronađena.',
     noRooms: 'Ova tura nema soba.',
-    audioOn: 'Uključi zvuk',
-    audioOff: 'Isključi zvuk',
+    audioOn: 'Zvuk',
+    audioOff: 'Bez zvuka',
     guideCompleted: 'Vodič završen',
-    freeExplore: 'Slobodno razgledajte prostoriju ili pređite u drugu prostoriju preko trake iznad ili strelica.',
+    freeExplore: 'Slobodno razgledajte prostoriju ili pređite u drugu preko trake iznad ili strelica.',
     targetRoom: '-- Izaberi sobu --',
     save: 'Sačuvaj Poziciju & Podatke',
     cancel: 'Otkaži',
@@ -227,17 +221,17 @@ const translations = {
     editPoint: '✏️ Izmeni tačku',
     addPoint: 'Dodaj novu tačku',
     actionType: 'Tip akcije:',
-    navArrow: '🚪 Strelica za prelaz u sobu',
+    navArrow: '🚪 Strelica za prelaz',
     infoPoint: 'ℹ️ Info tačka',
     introNarration: '🎬 Uvodna naracija',
     titlePlaceholder: 'Naslov:',
     descPlaceholder: 'Opis / Tekst naracije...',
     audioUrlPlaceholder: 'Link do MP3 fajla:',
     welcomePrefix: 'Dobrodošli u ',
-    btnPlan: '🗺️ Skica / Plan',
+    btnPlan: '🗺️ Skica',
     btnLocation: '📍 Lokacija',
     btnAbout: 'ℹ️ O stanu',
-    btnFaq: '❓ Česta pitanja',
+    btnFaq: '❓ Pitanja',
     noPlan: 'Skica osnove trenutno nije dostupna za ovu nekretninu.',
     noLocation: 'Mapa lokacije trenutno nije dostupna za ovu nekretninu.',
     noAbout: 'Informacije trenutno nisu dostupne.',
@@ -252,7 +246,7 @@ const translations = {
     roomLoadingPrefix: 'Entering: ',
     tourNotFound: 'Tour not found.',
     noRooms: 'This tour has no rooms.',
-    audioOn: 'Unmute',
+    audioOn: 'Sound',
     audioOff: 'Mute',
     guideCompleted: 'Guide Completed',
     freeExplore: 'Feel free to look around or switch rooms using the top menu or arrows.',
@@ -263,16 +257,16 @@ const translations = {
     editPoint: '✏️ Edit Point',
     addPoint: 'Add New Point',
     actionType: 'Action Type:',
-    navArrow: '🚪 Room Navigation Arrow',
+    navArrow: '🚪 Room Navigation',
     infoPoint: 'ℹ️ Info Point',
     introNarration: '🎬 Intro Narration',
     titlePlaceholder: 'Title:',
     descPlaceholder: 'Description / Narration text...',
     audioUrlPlaceholder: 'MP3 URL:',
     welcomePrefix: 'Welcome to ',
-    btnPlan: '🗺️ Floor Plan',
+    btnPlan: '🗺️ Plan',
     btnLocation: '📍 Location',
-    btnAbout: 'ℹ️ Property Info',
+    btnAbout: 'ℹ️ Info',
     btnFaq: '❓ FAQ',
     noPlan: 'Floor plan is currently not available for this property.',
     noLocation: 'Location map is currently not available for this property.',
@@ -288,7 +282,7 @@ const translations = {
     roomLoadingPrefix: 'Betrete: ',
     tourNotFound: 'Tour nicht gefunden.',
     noRooms: 'Diese Tour hat keine Räume.',
-    audioOn: 'Ton an',
+    audioOn: 'Ton',
     audioOff: 'Stumm',
     guideCompleted: 'Führung beendet',
     freeExplore: 'Schauen Sie sich frei um oder wechseln Sie den Raum oben.',
@@ -308,7 +302,7 @@ const translations = {
     welcomePrefix: 'Willkommen in ',
     btnPlan: '🗺️ Grundriss',
     btnLocation: '📍 Standort',
-    btnAbout: 'ℹ️ Info zur Immobilie',
+    btnAbout: 'ℹ️ Info',
     btnFaq: '❓ FAQ',
     noPlan: 'Der Grundriss ist derzeit für diese Immobilie nicht verfügbar.',
     noLocation: 'Die Standortkarte ist derzeit für diese Immobilie nicht verfügbar.',
@@ -363,7 +357,8 @@ export default function TourPage() {
   const isMutedRef = useRef(false);
 
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
-  const [selectedFaq, setSelectedFaq] = useState<number | null>(null); // NOVO
+  const [selectedFaq, setSelectedFaq] = useState<number | null>(null);
+  const [isGuideCompletedState, setIsGuideCompletedState] = useState(false);
 
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
   const lastAudioUrlRef = useRef<string | undefined>(undefined);
@@ -373,6 +368,7 @@ export default function TourPage() {
   const audioCurrentTimeRef = useRef<number>(0);
 
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const guideCompleteTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [infoBoxData, setInfoBoxData] = useState<{ titleRaw?: any; textRaw: any; index?: number; audio_url?: string } | null>(null);
 
@@ -390,6 +386,13 @@ export default function TourPage() {
   const sequenceActiveRef = useRef<boolean>(false);
   const isInterruptedRef = useRef<boolean>(false);
 
+  // Reference for draggable & scrolling ticker bar
+  const tickerRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+  const autoScrollPausedRef = useRef(false);
+
   useEffect(() => {
     setMounted(true);
     const urlParams = new URLSearchParams(window.location.search);
@@ -398,6 +401,27 @@ export default function TourPage() {
       setAdminMode(true);
     }
   }, []);
+
+  // Cinematic automatic ticker loop
+  useEffect(() => {
+    if (!tourStarted) return;
+    const ticker = tickerRef.current;
+    if (!ticker) return;
+
+    let tickerAnimationId: number;
+    const step = () => {
+      if (ticker && !autoScrollPausedRef.current && !isDraggingRef.current) {
+        ticker.scrollLeft += 0.5;
+        // Infinite seamless loop effect reset
+        if (ticker.scrollLeft >= ticker.scrollWidth - ticker.clientWidth) {
+          ticker.scrollLeft = 0;
+        }
+      }
+      tickerAnimationId = requestAnimationFrame(step);
+    };
+    tickerAnimationId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(tickerAnimationId);
+  }, [tourStarted]);
 
   const stopCurrentAnimation = () => {
     if (animFrameRef.current !== null) {
@@ -415,6 +439,10 @@ export default function TourPage() {
     if (hideTimerRef.current) {
       clearTimeout(hideTimerRef.current);
       hideTimerRef.current = null;
+    }
+    if (guideCompleteTimerRef.current) {
+      clearTimeout(guideCompleteTimerRef.current);
+      guideCompleteTimerRef.current = null;
     }
   };
 
@@ -530,6 +558,7 @@ export default function TourPage() {
     sequenceActiveRef.current = false;
     isInterruptedRef.current = true;
     audioCurrentTimeRef.current = 0;
+    setIsGuideCompletedState(false);
     stopCurrentAnimation();
     stopAudio();
 
@@ -549,6 +578,7 @@ export default function TourPage() {
     setRoomLoading(true);
     sequenceActiveRef.current = false;
     audioCurrentTimeRef.current = 0;
+    setIsGuideCompletedState(false);
     stopCurrentAnimation();
     stopAudio();
 
@@ -591,6 +621,7 @@ export default function TourPage() {
             changeRoomById(wp.targetRoomId);
           } else if (!isNav) {
             isInterruptedRef.current = true;
+            setIsGuideCompletedState(false);
             stopCurrentAnimation();
             audioCurrentTimeRef.current = 0;
             if (viewerRef.current) viewerRef.current.setHfov(50);
@@ -623,10 +654,14 @@ export default function TourPage() {
     const startInfiniteGlide = () => {
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
       stopCurrentAnimation();
+      setIsGuideCompletedState(true);
       setInfoBoxData({ titleRaw: translations[langRef.current].guideCompleted, textRaw: translations[langRef.current].freeExplore });
 
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = setTimeout(() => { setInfoBoxData(null); }, 8000);
+      if (guideCompleteTimerRef.current) clearTimeout(guideCompleteTimerRef.current);
+      guideCompleteTimerRef.current = setTimeout(() => {
+        setInfoBoxData(null);
+        setIsGuideCompletedState(false);
+      }, 7000);
 
       if (viewerRef.current) viewerRef.current.setHfov(70);
 
@@ -948,40 +983,121 @@ export default function TourPage() {
         </div>
       )}
 
-      {tourStarted && rooms.length > 0 && (
-        <div style={{ position: 'absolute', top: '15px', left: '15px', zIndex: 35, display: 'flex', gap: '8px', overflowX: 'auto', maxWidth: 'calc(100vw - 260px)', paddingBottom: '5px' }}>
-          {rooms.map((room, idx) => (
-            <button
-              key={room.id}
-              onClick={() => changeRoomById(room.id)}
-              style={{
-                ...btnStyle,
-                backgroundColor: idx === roomIdx ? '#0284c7' : 'rgba(15, 23, 42, 0.75)',
-                borderColor: idx === roomIdx ? '#38bdf8' : 'rgba(255, 255, 255, 0.2)',
-                fontWeight: idx === roomIdx ? 'bold' : 'normal',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              🏠 {getLocalizedText(room.title_i18n, lang) || `Soba ${idx + 1}`}
-            </button>
-          ))}
+      {/* GORNJA TRAKA - FILMSKI TICKER (Kretanje + Kontrola prstom/mišem) */}
+      {tourStarted && (
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          left: '10px',
+          right: '10px',
+          zIndex: 35,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: '10px',
+          pointerEvents: 'none'
+        }}>
+          <div
+            ref={tickerRef}
+            onMouseEnter={() => { autoScrollPausedRef.current = true; }}
+            onMouseLeave={() => { autoScrollPausedRef.current = false; isDraggingRef.current = false; }}
+            onMouseDown={(e) => {
+              isDraggingRef.current = true;
+              autoScrollPausedRef.current = true;
+              startXRef.current = e.pageX - tickerRef.current!.offsetLeft;
+              scrollLeftRef.current = tickerRef.current!.scrollLeft;
+            }}
+            onMouseMove={(e) => {
+              if (!isDraggingRef.current) return;
+              e.preventDefault();
+              const x = e.pageX - tickerRef.current!.offsetLeft;
+              const walk = (x - startXRef.current) * 2;
+              tickerRef.current!.scrollLeft = scrollLeftRef.current - walk;
+            }}
+            onMouseUp={() => { isDraggingRef.current = false; }}
+            onTouchStart={(e) => {
+              isDraggingRef.current = true;
+              autoScrollPausedRef.current = true;
+              startXRef.current = e.touches[0].pageX - tickerRef.current!.offsetLeft;
+              scrollLeftRef.current = tickerRef.current!.scrollLeft;
+            }}
+            onTouchMove={(e) => {
+              if (!isDraggingRef.current) return;
+              const x = e.touches[0].pageX - tickerRef.current!.offsetLeft;
+              const walk = (x - startXRef.current) * 2;
+              tickerRef.current!.scrollLeft = scrollLeftRef.current - walk;
+            }}
+            onTouchEnd={() => { isDraggingRef.current = false; autoScrollPausedRef.current = false; }}
+            style={{
+              display: 'flex',
+              gap: '6px',
+              overflowX: 'auto',
+              maxWidth: 'calc(100% - 130px)',
+              paddingBottom: '4px',
+              pointerEvents: 'auto',
+              scrollbarWidth: 'none',
+              cursor: 'grab',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {rooms.map((room, idx) => (
+              <button
+                key={room.id}
+                onClick={() => changeRoomById(room.id)}
+                style={{
+                  ...btnStyle,
+                  backgroundColor: idx === roomIdx ? '#0284c7' : 'rgba(15, 23, 42, 0.85)',
+                  borderColor: idx === roomIdx ? '#38bdf8' : 'rgba(255, 255, 255, 0.2)',
+                  fontWeight: idx === roomIdx ? 'bold' : 'normal',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                🏠 {getLocalizedText(room.title_i18n, lang) || `Soba ${idx + 1}`}
+              </button>
+            ))}
+          </div>
+
+          <div style={{
+            display: 'flex',
+            gap: '4px',
+            pointerEvents: 'auto',
+            flexWrap: 'wrap',
+            justifyContent: 'flex-end'
+          }}>
+            <button onClick={toggleMute} style={btnStyle}>{isMuted ? t.audioOn : t.audioOff}</button>
+            <button onClick={() => setLang('sr')} style={{ ...btnStyle, backgroundColor: lang === 'sr' ? '#0284c7' : btnStyle.backgroundColor }}>SR</button>
+            <button onClick={() => setLang('en')} style={{ ...btnStyle, backgroundColor: lang === 'en' ? '#0284c7' : btnStyle.backgroundColor }}>EN</button>
+            <button onClick={() => setLang('de')} style={{ ...btnStyle, backgroundColor: lang === 'de' ? '#0284c7' : btnStyle.backgroundColor }}>DE</button>
+          </div>
         </div>
       )}
 
       <div id="panorama" style={{ width: '100%', height: '100%' }} />
 
-      {tourStarted && !pendingCoords && (
-        <div style={{ position: 'absolute', bottom: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 35, display: 'flex', gap: '10px' }}>
-          <button onClick={() => setActiveModal('plan')} style={{ ...btnStyle, backgroundColor: activeModal === 'plan' ? '#0284c7' : 'rgba(15, 23, 42, 0.85)', padding: '8px 16px', fontSize: '13px' }}>
+      {/* DONJA NAVIGACIONA TRAKA (Moduli: Skica, Lokacija, O stanu, Pitanja) */}
+      {tourStarted && !pendingCoords && (!isGuideCompletedState || infoBoxData === null) && (
+        <div style={{
+          position: 'absolute',
+          bottom: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 35,
+          display: 'flex',
+          gap: '6px',
+          width: '94%',
+          maxWidth: '450px',
+          justifyContent: 'center'
+        }}>
+          <button onClick={() => setActiveModal('plan')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'plan' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', padding: '10px 4px', fontSize: '12px' }}>
             {t.btnPlan}
           </button>
-          <button onClick={() => setActiveModal('location')} style={{ ...btnStyle, backgroundColor: activeModal === 'location' ? '#0284c7' : 'rgba(15, 23, 42, 0.85)', padding: '8px 16px', fontSize: '13px' }}>
+          <button onClick={() => setActiveModal('location')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'location' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', padding: '10px 4px', fontSize: '12px' }}>
             {t.btnLocation}
           </button>
-          <button onClick={() => setActiveModal('about')} style={{ ...btnStyle, backgroundColor: activeModal === 'about' ? '#0284c7' : 'rgba(15, 23, 42, 0.85)', padding: '8px 16px', fontSize: '13px' }}>
+          <button onClick={() => setActiveModal('about')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'about' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', padding: '10px 4px', fontSize: '12px' }}>
             {t.btnAbout}
           </button>
-          <button onClick={() => setActiveModal('faq')} style={{ ...btnStyle, backgroundColor: activeModal === 'faq' ? '#0284c7' : 'rgba(15, 23, 42, 0.85)', padding: '8px 16px', fontSize: '13px' }}>
+          <button onClick={() => setActiveModal('faq')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'faq' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', padding: '10px 4px', fontSize: '12px' }}>
             {t.btnFaq}
           </button>
         </div>
@@ -1012,38 +1128,45 @@ export default function TourPage() {
         </div>
       )}
 
-      {!pendingCoords && (
-        <div style={{ position: 'absolute', top: '15px', right: '15px', zIndex: 35, display: 'flex', gap: '6px' }}>
-          <button onClick={toggleMute} style={btnStyle}>{isMuted ? t.audioOn : t.audioOff}</button>
-          <button onClick={() => setLang('sr')} style={{ ...btnStyle, backgroundColor: lang === 'sr' ? '#0284c7' : btnStyle.backgroundColor }}>SRB</button>
-          <button onClick={() => setLang('en')} style={{ ...btnStyle, backgroundColor: lang === 'en' ? '#0284c7' : btnStyle.backgroundColor }}>ENG</button>
-          <button onClick={() => setLang('de')} style={{ ...btnStyle, backgroundColor: lang === 'de' ? '#0284c7' : btnStyle.backgroundColor }}>GER</button>
-        </div>
-      )}
-
+      {/* INFO BOX */}
       {infoBoxData && !pendingCoords && !activeModal && (
-        <div style={{ position: 'absolute', bottom: '80px', left: '50%', transform: 'translateX(-50%)', zIndex: 30, width: '90%', maxWidth: '500px', backgroundColor: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '16px', padding: '16px', color: '#fff', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
-          {displayedInfoTitle && <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', color: '#38bdf8' }}>{displayedInfoTitle}</h3>}
-          <p style={{ margin: 0, fontSize: '13px', lineHeight: '1.5', color: '#e2e8f0' }}>{displayedInfoText}</p>
+        <div style={{
+          position: 'absolute',
+          bottom: isGuideCompletedState ? '20px' : '80px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 30,
+          width: isGuideCompletedState ? '94%' : '92%',
+          maxWidth: '450px',
+          backgroundColor: 'rgba(15, 23, 42, 0.9)',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255,255,255,0.15)',
+          borderRadius: '16px',
+          padding: '14px',
+          color: '#fff',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
+        }}>
+          {displayedInfoTitle && <h3 style={{ margin: '0 0 6px 0', fontSize: '15px', color: '#38bdf8' }}>{displayedInfoTitle}</h3>}
+          <p style={{ margin: 0, fontSize: '12px', lineHeight: '1.4', color: '#e2e8f0' }}>{displayedInfoText}</p>
         </div>
       )}
 
       {activeModal && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 60, backgroundColor: 'rgba(0, 0, 0, 0.75)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div style={{ backgroundColor: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '20px', width: '100%', maxWidth: '650px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-              <h2 style={{ color: '#fff', fontSize: '18px', margin: 0 }}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 60, backgroundColor: 'rgba(0, 0, 0, 0.75)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ backgroundColor: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '20px', width: '100%', maxWidth: '600px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <h2 style={{ color: '#fff', fontSize: '16px', margin: 0 }}>
                 {activeModal === 'plan' && t.btnPlan}
                 {activeModal === 'location' && t.btnLocation}
                 {activeModal === 'about' && t.btnAbout}
                 {activeModal === 'faq' && t.btnFaq}
               </h2>
-              <button onClick={() => { setActiveModal(null); setSelectedFaq(null); }} style={{ ...btnStyle, backgroundColor: '#dc2626', borderColor: '#ef4444' }}>
+              <button onClick={() => { setActiveModal(null); setSelectedFaq(null); }} style={{ ...btnStyle, backgroundColor: '#dc2626', borderColor: '#ef4444', padding: '6px 12px' }}>
                 {t.close}
               </button>
             </div>
 
-            <div style={{ padding: '20px', overflowY: 'auto', flex: 1, color: '#e2e8f0', fontSize: '14px' }}>
+            <div style={{ padding: '16px', overflowY: 'auto', flex: 1, color: '#e2e8f0', fontSize: '13px' }}>
               {activeModal === 'plan' && (
                 tour?.floorplan_url ? (
                   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
@@ -1056,7 +1179,7 @@ export default function TourPage() {
 
               {activeModal === 'location' && (
                 tour?.location_map_url ? (
-                  <div style={{ width: '100%', height: '400px', borderRadius: '12px', overflow: 'hidden' }}>
+                  <div style={{ width: '100%', height: '350px', borderRadius: '12px', overflow: 'hidden' }}>
                     <iframe src={tour.location_map_url} width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
                   </div>
                 ) : (
@@ -1066,7 +1189,7 @@ export default function TourPage() {
 
               {activeModal === 'about' && (
                 aboutText ? (
-                  <p style={{ margin: 0, lineHeight: '1.6', color: '#cbd5e1', whiteSpace: 'pre-wrap' }}>{aboutText}</p>
+                  <p style={{ margin: 0, lineHeight: '1.5', color: '#cbd5e1', whiteSpace: 'pre-wrap' }}>{aboutText}</p>
                 ) : (
                   <p style={{ textAlign: 'center', color: '#94a3b8' }}>{t.noAbout}</p>
                 )
@@ -1074,7 +1197,7 @@ export default function TourPage() {
 
               {activeModal === 'faq' && (
                 faqList.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {faqList.map((item, index) => (
                       <button
                         key={index}
@@ -1083,10 +1206,10 @@ export default function TourPage() {
                           textAlign: 'left',
                           backgroundColor: 'rgba(30, 41, 59, 0.7)',
                           border: '1px solid rgba(255,255,255,0.1)',
-                          borderRadius: '12px',
-                          padding: '14px 16px',
+                          borderRadius: '10px',
+                          padding: '12px 14px',
                           color: '#38bdf8',
-                          fontSize: '15px',
+                          fontSize: '14px',
                           fontWeight: 600,
                           cursor: 'pointer',
                           width: '100%'
@@ -1105,41 +1228,19 @@ export default function TourPage() {
         </div>
       )}
 
-      {/* NOVI PROZOR – ODGOVOR NA ODABRANO FAQ PITANJE */}
       {selectedFaq !== null && faqList[selectedFaq] && (
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          zIndex: 70,
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          backdropFilter: 'blur(6px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '20px'
-        }}>
-          <div style={{
-            backgroundColor: '#0f172a',
-            border: '1px solid rgba(56, 189, 248, 0.4)',
-            borderRadius: '20px',
-            width: '100%',
-            maxWidth: '500px',
-            maxHeight: '80vh',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.8)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-              <h3 style={{ color: '#38bdf8', fontSize: '16px', margin: 0, paddingRight: '10px' }}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 70, backgroundColor: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ backgroundColor: '#0f172a', border: '1px solid rgba(56, 189, 248, 0.4)', borderRadius: '20px', width: '100%', maxWidth: '450px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <h3 style={{ color: '#38bdf8', fontSize: '15px', margin: 0, paddingRight: '10px' }}>
                 {faqList[selectedFaq].question}
               </h3>
-              <button onClick={() => setSelectedFaq(null)} style={{ ...btnStyle, backgroundColor: '#dc2626', borderColor: '#ef4444', flexShrink: 0 }}>
+              <button onClick={() => setSelectedFaq(null)} style={{ ...btnStyle, backgroundColor: '#dc2626', borderColor: '#ef4444', flexShrink: 0, padding: '6px 12px' }}>
                 {t.close}
               </button>
             </div>
-            <div style={{ padding: '20px', overflowY: 'auto', flex: 1, color: '#e2e8f0', fontSize: '14px' }}>
-              <p style={{ margin: 0, lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+            <div style={{ padding: '16px', overflowY: 'auto', flex: 1, color: '#e2e8f0', fontSize: '13px' }}>
+              <p style={{ margin: 0, lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
                 {faqList[selectedFaq].answer || t.comingSoon}
               </p>
             </div>
@@ -1148,10 +1249,10 @@ export default function TourPage() {
       )}
 
       {adminMode && !pendingCoords && (
-        <div style={{ position: 'absolute', top: '60px', left: '15px', zIndex: 40, backgroundColor: 'rgba(0,0,0,0.85)', padding: '12px', borderRadius: '12px', border: '1px solid #333', color: '#fff', fontSize: '12px', maxWidth: '300px' }}>
-          <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#38bdf8' }}>ADMIN KONTROLE</div>
-          <button onClick={handleStartEditEstablish} style={{ ...btnStyle, width: '100%', marginBottom: '8px' }}>{t.introNarration}</button>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '120px', overflowY: 'auto' }}>
+        <div style={{ position: 'absolute', top: '65px', left: '10px', zIndex: 40, backgroundColor: 'rgba(0,0,0,0.85)', padding: '10px', borderRadius: '12px', border: '1px solid #333', color: '#fff', fontSize: '11px', maxWidth: '280px' }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '6px', color: '#38bdf8' }}>ADMIN KONTROLE</div>
+          <button onClick={handleStartEditEstablish} style={{ ...btnStyle, width: '100%', marginBottom: '6px' }}>{t.introNarration}</button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '100px', overflowY: 'auto' }}>
             {waypointsList.map((wp, idx) => (
               <button key={idx} onClick={() => handleStartEditWaypoint(idx)} style={{ ...btnStyle, textAlign: 'left', width: '100%' }}>
                 {wp.type === 'navigation' || wp.targetRoomId ? '🚪 Nav' : 'ℹ️ Info'}: {getLocalizedText(wp.title_i18n, lang) || getLocalizedText(wp.text_i18n, lang) || `Tačka ${idx + 1}`}
@@ -1164,34 +1265,36 @@ export default function TourPage() {
       {pendingCoords && (
         <div style={{
           position: 'absolute',
-          top: '20px',
-          right: '20px',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
           zIndex: 45,
           backgroundColor: 'rgba(15, 23, 42, 0.95)',
-          padding: '20px',
+          padding: '16px',
           borderRadius: '16px',
           border: '1px solid #38bdf8',
           color: '#fff',
-          width: '360px',
-          maxHeight: 'calc(100vh - 40px)',
+          width: '92%',
+          maxWidth: '340px',
+          maxHeight: '85vh',
           overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px',
+          gap: '10px',
           boxShadow: '0 10px 25px rgba(0,0,0,0.7)',
           backdropFilter: 'blur(8px)'
         }}>
-          <h3 style={{ margin: 0, color: '#38bdf8', fontSize: '16px' }}>
+          <h3 style={{ margin: 0, color: '#38bdf8', fontSize: '15px' }}>
             {hotspotType === 'establish' ? t.introNarration : editingIndex !== null ? t.editPoint : t.addPoint}
           </h3>
 
           {hotspotType !== 'establish' && (
             <div>
-              <label style={{ fontSize: '12px', color: '#aaa', display: 'block', marginBottom: '4px' }}>{t.actionType}</label>
+              <label style={{ fontSize: '11px', color: '#aaa', display: 'block', marginBottom: '3px' }}>{t.actionType}</label>
               <select
                 value={hotspotType}
                 onChange={(e) => setHotspotType(e.target.value as any)}
-                style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569' }}
+                style={{ width: '100%', padding: '7px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '12px' }}
               >
                 <option value="navigation">{t.navArrow}</option>
                 <option value="info">{t.infoPoint}</option>
@@ -1201,11 +1304,11 @@ export default function TourPage() {
 
           {hotspotType === 'navigation' && (
             <div>
-              <label style={{ fontSize: '12px', color: '#aaa', display: 'block', marginBottom: '4px' }}>Ciljna soba:</label>
+              <label style={{ fontSize: '11px', color: '#aaa', display: 'block', marginBottom: '3px' }}>Ciljna soba:</label>
               <select
                 value={targetRoomId}
                 onChange={(e) => setTargetRoomId(e.target.value)}
-                style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569' }}
+                style={{ width: '100%', padding: '7px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '12px' }}
               >
                 <option value="">{t.targetRoom}</option>
                 {rooms.map((r) => (
@@ -1225,7 +1328,7 @@ export default function TourPage() {
                   placeholder={t.titlePlaceholder}
                   value={hotspotTitle}
                   onChange={(e) => setHotspotTitle(e.target.value)}
-                  style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '7px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', fontSize: '12px' }}
                 />
               )}
               <textarea
@@ -1233,36 +1336,36 @@ export default function TourPage() {
                 value={hotspotText}
                 onChange={(e) => setHotspotText(e.target.value)}
                 rows={3}
-                style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', resize: 'vertical' }}
+                style={{ width: '100%', padding: '7px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', resize: 'vertical', fontSize: '12px' }}
               />
               <input
                 type="text"
                 placeholder={t.audioUrlPlaceholder}
                 value={hotspotAudioUrl}
                 onChange={(e) => setHotspotAudioUrl(e.target.value)}
-                style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '7px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', fontSize: '12px' }}
               />
             </>
           )}
 
-          <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexDirection: 'column' }}>
             <button
               onClick={handleSaveWaypoint}
-              style={{ ...btnStyle, backgroundColor: '#0284c7', borderColor: '#38bdf8', fontWeight: 'bold', padding: '10px' }}
+              style={{ ...btnStyle, backgroundColor: '#0284c7', borderColor: '#38bdf8', fontWeight: 'bold', padding: '9px', fontSize: '12px' }}
             >
               {t.save}
             </button>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '6px' }}>
               <button
                 onClick={() => setPendingCoords(null)}
-                style={{ ...btnStyle, flex: 1, padding: '8px' }}
+                style={{ ...btnStyle, flex: 1, padding: '7px', fontSize: '12px' }}
               >
                 {t.cancel}
               </button>
               {editingIndex !== null && hotspotType !== 'establish' && (
                 <button
                   onClick={handleDeleteWaypoint}
-                  style={{ ...btnStyle, backgroundColor: '#dc2626', borderColor: '#ef4444', flex: 1, padding: '8px' }}
+                  style={{ ...btnStyle, backgroundColor: '#dc2626', borderColor: '#ef4444', flex: 1, padding: '7px', fontSize: '12px' }}
                 >
                   {t.delete}
                 </button>
