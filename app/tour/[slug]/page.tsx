@@ -359,6 +359,9 @@ export default function TourPage() {
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const [selectedFaq, setSelectedFaq] = useState<number | null>(null);
   const [isGuideCompletedState, setIsGuideCompletedState] = useState(false);
+  
+  // Novi state: označava da je kompletna uvodna tura za trenutnu sobu završena (uključujući 7s obaveštenja)
+  const [isRoomTourFullyCompleted, setIsRoomTourFullyCompleted] = useState(false);
 
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
   const lastAudioUrlRef = useRef<string | undefined>(undefined);
@@ -386,7 +389,6 @@ export default function TourPage() {
   const sequenceActiveRef = useRef<boolean>(false);
   const isInterruptedRef = useRef<boolean>(false);
 
-  // Reference for draggable & scrolling ticker bar
   const tickerRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
@@ -402,7 +404,6 @@ export default function TourPage() {
     }
   }, []);
 
-  // Cinematic automatic ticker loop
   useEffect(() => {
     if (!tourStarted) return;
     const ticker = tickerRef.current;
@@ -412,7 +413,6 @@ export default function TourPage() {
     const step = () => {
       if (ticker && !autoScrollPausedRef.current && !isDraggingRef.current) {
         ticker.scrollLeft += 0.5;
-        // Infinite seamless loop effect reset
         if (ticker.scrollLeft >= ticker.scrollWidth - ticker.clientWidth) {
           ticker.scrollLeft = 0;
         }
@@ -559,6 +559,7 @@ export default function TourPage() {
     isInterruptedRef.current = true;
     audioCurrentTimeRef.current = 0;
     setIsGuideCompletedState(false);
+    setIsRoomTourFullyCompleted(false); // Sakrij module pri promeni sobe dok nova tura ne završi
     stopCurrentAnimation();
     stopAudio();
 
@@ -579,6 +580,7 @@ export default function TourPage() {
     sequenceActiveRef.current = false;
     audioCurrentTimeRef.current = 0;
     setIsGuideCompletedState(false);
+    setIsRoomTourFullyCompleted(false); // Resetuj na početak nove sobe
     stopCurrentAnimation();
     stopAudio();
 
@@ -661,6 +663,8 @@ export default function TourPage() {
       guideCompleteTimerRef.current = setTimeout(() => {
         setInfoBoxData(null);
         setIsGuideCompletedState(false);
+        // Ovde se završava 7 sekundi obaveštenja -> otključavamo module!
+        setIsRoomTourFullyCompleted(true);
       }, 7000);
 
       if (viewerRef.current) viewerRef.current.setHfov(70);
@@ -983,7 +987,6 @@ export default function TourPage() {
         </div>
       )}
 
-      {/* GORNJA TRAKA - FILMSKI TICKER (Kretanje + Kontrola prstom/mišem) */}
       {tourStarted && (
         <div style={{
           position: 'absolute',
@@ -1074,8 +1077,8 @@ export default function TourPage() {
 
       <div id="panorama" style={{ width: '100%', height: '100%' }} />
 
-      {/* DONJA NAVIGACIONA TRAKA (Moduli: Skica, Lokacija, O stanu, Pitanja) */}
-      {tourStarted && !pendingCoords && (!isGuideCompletedState || infoBoxData === null) && (
+      {/* Donji meni se prikazuje ISKLJUČIVO kada se završi uvodna tura za sobu, info tačke i istekne 7s obaveštenja */}
+      {tourStarted && !pendingCoords && isRoomTourFullyCompleted && (
         <div style={{
           position: 'absolute',
           bottom: '20px',
@@ -1128,7 +1131,6 @@ export default function TourPage() {
         </div>
       )}
 
-      {/* INFO BOX */}
       {infoBoxData && !pendingCoords && !activeModal && (
         <div style={{
           position: 'absolute',
