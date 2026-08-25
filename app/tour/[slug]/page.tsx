@@ -447,7 +447,7 @@ export default function TourPage() {
     return () => cancelAnimationFrame(tickerAnimationId);
   }, [tourStarted]);
 
-  // Omogućavanje glatkog touch-to-zoom (štipanja prstima) na mobilnim uređajima
+  // Optimizovan touch-to-zoom (štipanje prstima)
   useEffect(() => {
     if (!tourStarted || !pannellumReady) return;
     const container = document.getElementById('panorama');
@@ -489,7 +489,7 @@ export default function TourPage() {
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchmove', handleTouchMove);
     };
-  }, [tourStarted, pannellumReady, roomIdx]);
+  }, [tourStarted, pannellumReady]);
 
   const stopCurrentAnimation = () => {
     if (animFrameRef.current !== null) {
@@ -620,7 +620,7 @@ export default function TourPage() {
       setLoading(false);
     }
     load();
-  }, [slug, mounted]);
+  }, [slug, mounted, t.tourNotFound, t.noRooms]);
 
   const changeRoomById = useCallback((id: string | number) => {
     sequenceActiveRef.current = false;
@@ -703,8 +703,6 @@ export default function TourPage() {
 
     const targetEstablishYaw = normalizeYaw(establishData.fromYaw ?? 0);
     const targetEstablishPitch = establishData.pitch ?? 0;
-
-    // Prilagođavanje početnog hfov-a za mobilne uređaje da ne deluje udaljeno
     const isMobileDevice = window.innerWidth <= 768;
     const initialHfovSetting = isMobileDevice ? 85 : 65;
 
@@ -1049,18 +1047,18 @@ export default function TourPage() {
       {tourStarted && (
         <div style={{
           position: 'absolute',
-          top: '4px',
-          left: '4px',
-          right: '4px',
+          top: '8px',
+          left: '8px',
+          right: '8px',
           zIndex: 35,
           display: 'flex',
           flexDirection: 'column',
-          gap: '4px',
+          gap: '6px',
           pointerEvents: 'none'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
             <div style={{
-              backgroundColor: 'rgba(15, 23, 42, 0.8)',
+              backgroundColor: 'rgba(15, 23, 42, 0.85)',
               backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
               borderRadius: '12px',
@@ -1082,7 +1080,7 @@ export default function TourPage() {
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
-              backgroundColor: 'rgba(15, 23, 42, 0.8)',
+              backgroundColor: 'rgba(15, 23, 42, 0.85)',
               backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
               borderRadius: '12px',
@@ -1204,49 +1202,31 @@ export default function TourPage() {
       {tourStarted && !pendingCoords && isRoomTourFullyCompleted && (
         <div style={{
           position: 'absolute',
-          bottom: '10px',
+          bottom: '16px',
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 35,
           display: 'flex',
-          gap: '5px',
+          gap: '6px',
           width: '96%',
           maxWidth: '520px',
           justifyContent: 'center'
         }}>
-          <button onClick={() => setActiveModal('plan')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'plan' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
+          <button onClick={() => setActiveModal('plan')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'plan' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 4px', fontSize: '11px' }}>
             {t.btnPlan}
           </button>
-          <button onClick={() => setActiveModal('location')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'location' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
+          <button onClick={() => setActiveModal('location')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'location' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 4px', fontSize: '11px' }}>
             {t.btnLocation}
           </button>
-          <button onClick={() => setActiveModal('about')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'about' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
+          <button onClick={() => setActiveModal('about')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'about' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 4px', fontSize: '11px' }}>
             {t.btnAbout}
           </button>
-          <button onClick={() => setActiveModal('faq')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'faq' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
+          <button onClick={() => setActiveModal('faq')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'faq' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 4px', fontSize: '11px' }}>
             {t.btnFaq}
           </button>
-          <button onClick={() => setActiveModal('contact')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'contact' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
+          <button onClick={() => setActiveModal('contact')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'contact' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 4px', fontSize: '11px' }}>
             {t.btnContact}
           </button>
-        </div>
-      )}
-
-      {pendingCoords && !adminMode && (
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          pointerEvents: 'none',
-          zIndex: 40,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div style={{ position: 'absolute', width: '28px', height: '2px', backgroundColor: '#38bdf8', boxShadow: '0 0 4px rgba(0,0,0,0.8)' }} />
-          <div style={{ position: 'absolute', width: '2px', height: '28px', backgroundColor: '#38bdf8', boxShadow: '0 0 4px rgba(0,0,0,0.8)' }} />
-          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ffffff', border: '2px solid #38bdf8' }} />
         </div>
       )}
 
@@ -1260,13 +1240,13 @@ export default function TourPage() {
       {infoBoxData && !pendingCoords && !activeModal && (
         <div style={{
           position: 'absolute',
-          bottom: '8px',
+          bottom: '16px',
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 30,
           width: '94%',
           maxWidth: '450px',
-          backgroundColor: 'rgba(15, 23, 42, 0.9)',
+          backgroundColor: 'rgba(15, 23, 42, 0.92)',
           backdropFilter: 'blur(8px)',
           border: '1px solid rgba(255,255,255,0.15)',
           borderRadius: '16px',
