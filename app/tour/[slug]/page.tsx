@@ -694,7 +694,7 @@ export default function TourPage() {
             if (viewerRef.current) viewerRef.current.lookAt(wp.pitch || 0, wp.yaw || 0, 50, 1000);
             playAudioFileWithCompletion(wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0).then(() => {
               const isMob = window.innerWidth <= 768;
-              if (viewerRef.current) viewerRef.current.setHfov(isMob ? 85 : 65);
+              if (viewerRef.current) viewerRef.current.setHfov(isMob ? 77 : 55);
             });
           }
         }
@@ -738,7 +738,7 @@ export default function TourPage() {
       }, 7000);
 
       const isMob = window.innerWidth <= 768;
-      if (viewerRef.current) viewerRef.current.setHfov(isMob ? 85 : 65);
+      if (viewerRef.current) viewerRef.current.setHfov(isMob ? 77: 55);
 
       let lastTime = performance.now();
       const degreesPerMs = 360 / 25000;
@@ -773,7 +773,7 @@ export default function TourPage() {
 
         if (viewerRef.current) {
           const isMob = window.innerWidth <= 768;
-          viewerRef.current.setHfov(isMob ? 85 : 65);
+          viewerRef.current.setHfov(isMob ? 77: 55);
           viewerRef.current.setYaw(targetEstablishYaw);
           viewerRef.current.setPitch(targetEstablishPitch);
           viewerRef.current.startAutoRotate(speed, targetEstablishPitch);
@@ -825,7 +825,7 @@ export default function TourPage() {
 
         if (viewerRef.current) {
           const isMob = window.innerWidth <= 768;
-          viewerRef.current.setHfov(isMob ? 85 : 65);
+          viewerRef.current.setHfov(isMob ? 77: 55);
         }
 
         await new Promise(r => setTimeout(r, 1000));
@@ -876,7 +876,7 @@ export default function TourPage() {
 
     if (viewerRef.current) {
       const isMob = window.innerWidth <= 768;
-      viewerRef.current.lookAt(targetWp.pitch || 0, targetWp.yaw || 0, isMob ? 85 : 65, 1000);
+      viewerRef.current.lookAt(targetWp.pitch || 0, targetWp.yaw || 0, isMob ? 77: 55, 1000);
     }
 
     const isNav = targetWp.type === 'navigation' || Boolean(targetWp.targetRoomId);
