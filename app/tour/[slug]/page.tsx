@@ -988,55 +988,91 @@ export default function TourPage() {
       {tourStarted && (
         <div style={{
           position: 'absolute',
-          top: '10px',
-          left: '10px',
-          right: '10px',
+          top: '12px',
+          left: '12px',
+          right: '12px',
           zIndex: 35,
           display: 'flex',
           flexDirection: 'column',
-          gap: '8px',
+          gap: '10px',
           pointerEvents: 'none'
         }}>
+          {/* RED 1: Naziv ture levo, Audio i Jezici desno ujednačeno */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            
+            {/* Naziv ture */}
             <div style={{
-              backgroundColor: 'rgba(15, 23, 42, 0.75)',
-              backdropFilter: 'blur(8px)',
+              backgroundColor: 'rgba(15, 23, 42, 0.8)',
+              backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '14px',
-              padding: '6px 14px',
+              borderRadius: '12px',
+              padding: '8px 14px',
               color: '#fff',
               fontSize: '13px',
               fontWeight: 600,
               pointerEvents: 'auto',
-              maxWidth: '60%',
+              maxWidth: '55%',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
             }}>
               {getLocalizedText(tour?.title_i18n, lang)}
             </div>
 
+            {/* Kontrole (Zvuk + Jezici u jednoj kutiji) */}
             <div style={{
               display: 'flex',
-              gap: '4px',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: 'rgba(15, 23, 42, 0.8)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '12px',
+              padding: '4px 6px',
               pointerEvents: 'auto',
-              flexWrap: 'wrap',
-              justifyContent: 'flex-end'
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
             }}>
               <button
                 onClick={toggleMute}
-                style={{ ...btnStyle, fontSize: '14px', padding: '5px 10px', minWidth: '32px' }}
+                style={{ 
+                  background: 'transparent', 
+                  border: 'none', 
+                  color: '#fff', 
+                  cursor: 'pointer', 
+                  fontSize: '15px', 
+                  padding: '4px 6px' 
+                }}
                 title={isMuted ? 'Uključi zvuk' : 'Isključi zvuk'}
               >
                 {isMuted ? '🔇' : '🔊'}
               </button>
-              <button onClick={() => setLang('sr')} style={{ ...btnStyle, backgroundColor: lang === 'sr' ? '#0284c7' : btnStyle.backgroundColor, color: lang === 'sr' ? '#fff' : '#000' }}>SR</button>
-              <button onClick={() => setLang('en')} style={{ ...btnStyle, backgroundColor: lang === 'en' ? '#0284c7' : btnStyle.backgroundColor, color: lang === 'en' ? '#fff' : '#000' }}>EN</button>
-              <button onClick={() => setLang('de')} style={{ ...btnStyle, backgroundColor: lang === 'de' ? '#0284c7' : btnStyle.backgroundColor, color: lang === 'de' ? '#fff' : '#000' }}>DE</button>
+
+              <div style={{ width: '1px', height: '16px', backgroundColor: 'rgba(255,255,255,0.2)', margin: '0 2px' }} />
+
+              {(['sr', 'en', 'de'] as Language[]).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLang(l)}
+                  style={{
+                    background: lang === l ? '#0284c7' : 'transparent',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '4px 8px',
+                    fontSize: '11px',
+                    fontWeight: lang === l ? 'bold' : 'normal',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s'
+                  }}
+                >
+                  {l.toUpperCase()}
+                </button>
+              ))}
             </div>
           </div>
 
+          {/* RED 2: Ticker za sobe (u svom posebnom redu) */}
           <div
             ref={tickerRef}
             onMouseEnter={() => { autoScrollPausedRef.current = true; }}
@@ -1070,10 +1106,10 @@ export default function TourPage() {
             onTouchEnd={() => { isDraggingRef.current = false; autoScrollPausedRef.current = false; }}
             style={{
               display: 'flex',
-              gap: '6px',
+              gap: '8px',
               overflowX: 'auto',
               maxWidth: '100%',
-              paddingBottom: '4px',
+              padding: '4px 2px',
               pointerEvents: 'auto',
               scrollbarWidth: 'none',
               cursor: 'grab',
@@ -1085,11 +1121,18 @@ export default function TourPage() {
                 key={room.id}
                 onClick={() => changeRoomById(room.id)}
                 style={{
-                  ...btnStyle,
-                  backgroundColor: idx === roomIdx ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.65)',
-                  color: '#000000',
-                  borderColor: idx === roomIdx ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.4)',
-                  fontWeight: idx === roomIdx ? 'bold' : 'normal',
+                  backgroundColor: idx === roomIdx ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 23, 42, 0.75)',
+                  backdropFilter: 'blur(8px)',
+                  color: idx === roomIdx ? '#000000' : '#ffffff',
+                  border: idx === roomIdx ? '1px solid rgba(0, 0, 0, 0.3)' : '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '16px',
+                  padding: '6px 14px',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  fontWeight: idx === roomIdx ? 600 : 400,
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                  flexShrink: 0,
+                  userSelect: 'none',
                   whiteSpace: 'nowrap'
                 }}
               >
@@ -1321,7 +1364,7 @@ export default function TourPage() {
       )}
 
       {adminMode && !pendingCoords && (
-        <div style={{ position: 'absolute', top: '95px', left: '10px', zIndex: 40, backgroundColor: 'rgba(0,0,0,0.85)', padding: '10px', borderRadius: '12px', border: '1px solid #333', color: '#fff', fontSize: '11px', maxWidth: '280px' }}>
+        <div style={{ position: 'absolute', top: '105px', left: '12px', zIndex: 40, backgroundColor: 'rgba(0,0,0,0.85)', padding: '10px', borderRadius: '12px', border: '1px solid #333', color: '#fff', fontSize: '11px', maxWidth: '280px' }}>
           <div style={{ fontWeight: 'bold', marginBottom: '6px', color: '#38bdf8' }}>ADMIN KONTROLE</div>
           <button onClick={handleStartEditEstablish} style={{ ...btnStyle, width: '100%', marginBottom: '6px' }}>{t.introNarration}</button>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '100px', overflowY: 'auto' }}>
@@ -1449,4 +1492,3 @@ export default function TourPage() {
     </main>
   );
 }
-
