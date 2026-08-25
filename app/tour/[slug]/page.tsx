@@ -27,8 +27,8 @@ type Room = {
   title: string | Record<string, string>;
   panorama_url: string;
   order_index?: number;
-  waypoints?: Waypoint[];
-  establish?: EstablishData;
+  waypoints?: Waypoint[] | string;
+  establish?: EstablishData | string;
 };
 
 type Tour = {
@@ -48,21 +48,61 @@ type Tour = {
 
 type Language = 'sr' | 'en' | 'de';
 
+function Centered({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ color: 'white', background: '#0a0a0a', height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', gap: '20px' }}>
+      <div className="dots-loader"><span></span><span></span><span></span></div>
+      <div style={{ color: '#aaa', fontSize: '14px', letterSpacing: '1px' }}>{children}</div>
+    </div>
+  );
+}
+
+const btnStyle: React.CSSProperties = {
+  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  color: '#ffffff',
+  border: '1px solid rgba(255, 255, 255, 0.2)',
+  borderRadius: '16px',
+  padding: '4px 10px',
+  fontSize: '11px',
+  cursor: 'pointer'
+};
+
 const getLocalizedText = (textData: any, lang: string = 'sr'): string => {
   if (!textData) return '';
-  if (typeof textData === 'object') {
-    return textData[lang] || textData['sr'] || Object.values(textData)[0] || '';
-  }
+  let parsed = textData;
   if (typeof textData === 'string') {
     try {
-      const parsed = JSON.parse(textData);
-      if (parsed && typeof parsed === 'object') {
-        return parsed[lang] || parsed['sr'] || Object.values(parsed)[0] || '';
-      }
-    } catch (e) {}
-    return textData;
+      parsed = JSON.parse(textData);
+    } catch (e) {
+      return textData;
+    }
   }
-  return String(textData);
+  if (parsed && typeof parsed === 'object') {
+    return parsed[lang] || parsed['sr'] || Object.values(parsed)[0] || '';
+  }
+  return String(parsed);
+};
+
+const parseWaypoints = (waypointsData: any): Waypoint[] => {
+  if (Array.isArray(waypointsData)) return waypointsData;
+  if (typeof waypointsData === 'string') {
+    try {
+      const parsed = JSON.parse(waypointsData);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {}
+  }
+  return [];
+};
+
+const parseEstablish = (establishData: any): EstablishData => {
+  if (establishData && typeof establishData === 'object') return establishData;
+  if (typeof establishData === 'string') {
+    try {
+      const parsed = JSON.parse(establishData);
+      if (parsed && typeof parsed === 'object') return parsed;
+    } catch (e) {}
+  }
+  return {};
 };
 
 const translations = {
@@ -157,7 +197,7 @@ const translations = {
     welcomePrefix: 'Welcome to '
   },
   de: {
-    startTour: '🇷🇸 Tour Starten',
+    startTour: '🇩🇪 Tour Starten',
     welcome: 'Willkommen! Klicken Sie unten, um die interaktive Tour mit Sprachführer zu starten.',
     loading: 'Tour wird geladen...',
     roomLoadingPrefix: 'Machen Sie sich bereit... wir betreten: ',
@@ -639,7 +679,10 @@ export default function TourPage() {
     const panoramaContainer = document.getElementById('panorama');
     if (panoramaContainer) panoramaContainer.innerHTML = '';
 
-    const formattedHotspots = (currentRoom.waypoints || []).map((wp, index) => {
+    const waypointsList = parseWaypoints(currentRoom.waypoints);
+    const establishData = parseEstablish(currentRoom.establish);
+
+    const formattedHotspots = waypointsList.map((wp, index) => {
       const isNav = wp.type === 'navigation' || Boolean(wp.targetRoomId);
       return {
         pitch: wp.pitch || 0,
@@ -661,8 +704,8 @@ export default function TourPage() {
       };
     });
 
-    const targetEstablishYaw = normalizeYaw(currentRoom.establish?.fromYaw ?? 0);
-    const targetEstablishPitch = currentRoom.establish?.pitch ?? 0;
+    const targetEstablishYaw = normalizeYaw(establishData.fromYaw ?? 0);
+    const targetEstablishPitch = establishData.pitch ?? 0;
 
     const v = (window as any).pannellum.viewer('panorama', {
       type: 'equirectangular',
@@ -677,7 +720,7 @@ export default function TourPage() {
     });
     viewerRef.current = v;
 
-    const infoPoints = (currentRoom.waypoints || [])
+    const infoPoints = waypointsList
       .map((wp, i) => ({ wp, i }))
       .filter(item => item.wp.type === 'info' || (!item.wp.type && !item.wp.targetRoomId));
 
@@ -712,8 +755,8 @@ export default function TourPage() {
       setRoomLoading(false);
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
-      const introTextRaw = currentRoom.establish?.text || `${t.welcomePrefix}${getLocalizedText(currentRoom.title, lang)}`;
-      const introAudioUrl = currentRoom.establish?.audio_url;
+      const introTextRaw = establishData.text || `${t.welcomePrefix}${getLocalizedText(currentRoom.title, lang)}`;
+      const introAudioUrl = establishData.audio_url;
 
       const rotatePromise = new Promise<void>((resolve) => {
         const durationPhase1 = 15000;
@@ -815,7 +858,8 @@ export default function TourPage() {
 
   const handleStartEditWaypoint = (index: number) => {
     const currentRoom = rooms[roomIdx];
-    const wp = currentRoom.waypoints?.[index];
+    const waypointsList = parseWaypoints(currentRoom.waypoints);
+    const wp = waypointsList[index];
     if (!wp) return;
 
     sequenceActiveRef.current = false;
@@ -841,7 +885,7 @@ export default function TourPage() {
 
   const handleStartEditEstablish = () => {
     const currentRoom = rooms[roomIdx];
-    const establish = currentRoom.establish;
+    const establish = parseEstablish(currentRoom.establish);
 
     sequenceActiveRef.current = false;
     isInterruptedRef.current = true;
@@ -866,7 +910,7 @@ export default function TourPage() {
   const handleDeleteWaypoint = async (index: number) => {
     if (!confirm('Da li ste sigurni da želite da obrišete ovu tačku?')) return;
     const currentRoom = rooms[roomIdx];
-    const updatedWaypoints = [...(currentRoom.waypoints || [])];
+    const updatedWaypoints = [...parseWaypoints(currentRoom.waypoints)];
     updatedWaypoints.splice(index, 1);
 
     const { error: updateErr } = await supabase.from('rooms').update({ waypoints: updatedWaypoints }).eq('id', currentRoom.id);
@@ -911,7 +955,7 @@ export default function TourPage() {
         targetRoomId: hotspotType === 'navigation' ? targetRoomId : undefined
       };
 
-      let updatedWaypoints = [...(currentRoom.waypoints || [])];
+      let updatedWaypoints = [...parseWaypoints(currentRoom.waypoints)];
       if (editingIndex !== null) {
         updatedWaypoints[editingIndex] = newWaypoint;
       } else {
@@ -991,7 +1035,7 @@ export default function TourPage() {
 
   if (!tourStarted) {
     return (
-      <div style={{ width: '100vw', height: '100vh', background: '#0a0a0a', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px', fontFamily: 'sans-serif', textAlign: 'center', padding: '20px' }}>
+      <div style={{ width: '100vw', height: '100dvh', background: '#0a0a0a', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px', fontFamily: 'sans-serif', textAlign: 'center', padding: '20px' }}>
         <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
           {(['sr', 'en', 'de'] as Language[]).map((l) => (
             <button
@@ -1026,7 +1070,7 @@ export default function TourPage() {
 
   const cat = tour?.category && categoryQuestions[tour.category] ? tour.category : 'rent';
   const qList = categoryQuestions[cat][lang] || categoryQuestions[cat]['sr'];
-  
+
   const faqList = [
     { q: qList[0], a: getLocalizedText(tour?.faq_1, lang) || t.notEntered },
     { q: qList[1], a: getLocalizedText(tour?.faq_2, lang) || t.notEntered },
@@ -1039,7 +1083,7 @@ export default function TourPage() {
     <main
       ref={mainContainerRef}
       suppressHydrationWarning
-      style={{ width: '100vw', height: '100vh', background: '#0a0a0a', color: '#fff', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}
+      style={{ width: '100vw', height: '100dvh', background: '#0a0a0a', color: '#fff', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}
     >
       {roomLoading && (
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(10, 10, 10, 0.92)', zIndex: 999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '24px', backdropFilter: 'blur(6px)' }}>
@@ -1150,7 +1194,7 @@ export default function TourPage() {
       {adminMode && (
         <div style={{ padding: '6px 14px', background: '#1e1e24', borderBottom: '1px solid #333', display: 'flex', gap: '8px', overflowX: 'auto', zIndex: 10 }}>
           <span style={{ fontSize: '11px', color: '#aaa', alignSelf: 'center', fontWeight: 'bold' }}>{t.points}</span>
-          {(rooms[roomIdx]?.waypoints || []).map((wp, idx) => (
+          {parseWaypoints(rooms[roomIdx]?.waypoints).map((wp, idx) => (
             <button
               key={idx}
               onClick={() => handleStartEditWaypoint(idx)}
@@ -1321,22 +1365,3 @@ export default function TourPage() {
     </main>
   );
 }
-
-function Centered({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ color: 'white', background: '#0a0a0a', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', gap: '20px' }}>
-      <div className="dots-loader"><span></span><span></span><span></span></div>
-      <div style={{ color: '#aaa', fontSize: '14px', letterSpacing: '1px' }}>{children}</div>
-    </div>
-  );
-}
-
-const btnStyle: React.CSSProperties = {
-  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  color: '#ffffff',
-  border: '1px solid rgba(255, 255, 255, 0.2)',
-  borderRadius: '16px',
-  padding: '4px 10px',
-  fontSize: '11px',
-  cursor: 'pointer'
-};
