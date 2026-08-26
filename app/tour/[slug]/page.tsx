@@ -249,7 +249,7 @@ const translations = {
     tourNotFound: 'Tura nije pronađena.',
     noRooms: 'Ova tura nema soba.',
     guideCompleted: 'Vodič završen',
-    freeExplore: 'Slobodno razgledajte prostoriju ili pređite u drugu preko trake iznad ili strelica.',
+    freeExplore: 'Slobodno razgledajte prostoriju ili pređite na drugu tačku, koristeći gornji meni ili plutajuću oznaku na podu.',
     targetRoom: '-- Izaberi sobu --',
     save: 'Sačuvaj Poziciju & Podatke',
     cancel: 'Otkaži',
@@ -673,8 +673,8 @@ export default function TourPage() {
         yaw: wp.yaw || 0,
         createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
           hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
-          hotSpotDiv.style.backgroundColor = isNav ? 'rgba(2, 132, 199, 0.85)' : 'rgba(15, 23, 42, 0.85)';
-          hotSpotDiv.style.border = '2px solid rgba(255, 255, 255, 0.9)';
+          hotSpotDiv.style.backgroundColor = isNav ? 'rgba(53, 154, 204, 0.85)' : 'rgba(3, 30, 43, 0.7)';
+          hotSpotDiv.style.border = '1px solid rgba(255, 255, 255, 0.9)';
           hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
           hotSpotDiv.style.color = '#fff';
           hotSpotDiv.style.display = 'flex';
@@ -682,12 +682,13 @@ export default function TourPage() {
           hotSpotDiv.style.justifyContent = 'center';
           hotSpotDiv.style.cursor = 'pointer';
           hotSpotDiv.style.padding = isNav ? '6px 12px' : '0px';
-          hotSpotDiv.style.width = isNav ? 'auto' : '28px';
-          hotSpotDiv.style.height = isNav ? 'auto' : '28px';
+          hotSpotDiv.style.width = isNav ? 'auto' : '24px';
+          hotSpotDiv.style.height = isNav ? 'auto' : '24px';
           hotSpotDiv.style.fontWeight = 'bold';
           hotSpotDiv.style.fontSize = isNav ? '12px' : '14px';
-          hotSpotDiv.style.boxShadow = '0 4px 10px rgba(0,0,0,0.4)';
-          hotSpotDiv.innerHTML = isNav ? `🚪 ${tooltipText}` : 'ℹ️';
+          hotSpotDiv.style.boxShadow = '3px 15px 30px rgba(0,0,0,0.4)';
+          hotSpotDiv.innerHTML = isNav ? `${tooltipText}` : 'ℹ';
+         
         },
         text: tooltipText,
         clickHandlerFunc: () => {
