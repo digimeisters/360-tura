@@ -143,10 +143,6 @@ function Centered({ children }: { children: React.ReactNode }) {
           0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
           40% { transform: scale(1.0); opacity: 1; }
         }
-        /* Sakrivanje fabričkog Pannellum loading box-a */
-        .pnlm-load-box {
-          display: none !important;
-        }
       `}</style>
       <div style={{ color: '#38bdf8', fontSize: '14px', letterSpacing: '1px', fontWeight: 500 }}>{children}</div>
     </div>
@@ -246,7 +242,7 @@ const translations = {
     startTour: '▶ Pokreni turu',
     welcome: 'Dobrodošli! Kliknite na dugme ispod da pokrenete interaktivnu turu.',
     loading: 'Učitavanje ture...',
-    roomLoadingPrefix: 'Pripremite se... ulazimo : ',
+    roomLoadingPrefix: 'Pripremite se... ulazimo u: ',
     tourNotFound: 'Tura nije pronađena.',
     noRooms: 'Ova tura nema soba.',
     guideCompleted: 'Vodič završen',
@@ -704,7 +700,7 @@ export default function TourPage() {
       pitch: targetEstablishPitch,
       autoRotate: 0,
       hotSpots: formattedHotspots,
-      loadingHtml: ''
+      loadingHtml: '' // Uklonjen fabrički Pannellum loader
     });
     viewerRef.current = v;
 
@@ -1028,13 +1024,6 @@ export default function TourPage() {
 
   return (
     <main style={{ position: 'relative', width: '100vw', height: '100dvh', backgroundColor: '#000', overflow: 'hidden' }}>
-      {/* Dodatni stil za uklanjanje Pannellum loadera u celoj komponenti */}
-      <style>{`
-        .pnlm-load-box {
-          display: none !important;
-        }
-      `}</style>
-
       {!tourStarted && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 50, backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', textAlign: 'center' }}>
           <h1 style={{ color: '#fff', fontSize: '24px', marginBottom: '10px' }}>{getLocalizedText(tour?.title_i18n, lang)}</h1>
