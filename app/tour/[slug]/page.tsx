@@ -56,6 +56,81 @@ type Tour = {
 
 type ActiveModal = 'plan' | 'location' | 'about' | 'faq' | 'contact' | null;
 
+// Pure Helper Functions (moved outside component for performance)
+const normalizeYaw = (yaw: number): number => {
+  let res = (yaw + 180) % 360;
+  if (res < 0) res += 360;
+  return res - 180;
+};
+
+const getShortestTargetYaw = (currentYaw: number, targetYaw: number): number => {
+  const normCurrent = normalizeYaw(currentYaw);
+  const normTarget = normalizeYaw(targetYaw);
+  let diff = normTarget - normCurrent;
+  if (diff > 180) diff -= 360;
+  if (diff < -180) diff += 360;
+  return currentYaw + diff;
+};
+
+const getLocalizedText = (textData: unknown, lang: string = 'sr'): string => {
+  if (!textData) return '';
+  let parsed = textData;
+  if (typeof textData === 'string') {
+    try {
+      parsed = JSON.parse(textData);
+    } catch {
+      return textData;
+    }
+  }
+  if (parsed && typeof parsed === 'object') {
+    const record = parsed as Record<string, string>;
+    return record[lang] || record['sr'] || Object.values(record)[0] || '';
+  }
+  return String(parsed);
+};
+
+const parseWaypoints = (waypointsData: unknown): Waypoint[] => {
+  if (!waypointsData) return [];
+  if (Array.isArray(waypointsData)) return waypointsData as Waypoint[];
+  if (typeof waypointsData === 'string') {
+    try {
+      const parsed = JSON.parse(waypointsData);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+  }
+  return [];
+};
+
+const parseEstablish = (establishData: unknown): EstablishData => {
+  if (!establishData) return {};
+  if (typeof establishData === 'object') return establishData as EstablishData;
+  if (typeof establishData === 'string') {
+    try {
+      const parsed = JSON.parse(establishData);
+      if (parsed && typeof parsed === 'object') return parsed as EstablishData;
+    } catch {}
+  }
+  return {};
+};
+
+const buildI18nObject = (textValue: string, existingData?: unknown, currentLang: Language = 'sr'): Record<string, string> => {
+  let result: Record<string, string> = { sr: '', en: '', de: '' };
+  if (existingData) {
+    if (typeof existingData === 'string') {
+      try {
+        const parsed = JSON.parse(existingData);
+        if (parsed && typeof parsed === 'object') result = { ...result, ...(parsed as Record<string, string>) };
+      } catch {
+        result.sr = existingData;
+      }
+    } else if (typeof existingData === 'object') {
+      result = { ...result, ...(existingData as Record<string, string>) };
+    }
+  }
+  result[currentLang] = textValue;
+  return result;
+};
+
 function Centered({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ color: 'white', background: '#0a0a0a', height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', gap: '20px' }}>
@@ -79,64 +154,6 @@ const btnStyle: React.CSSProperties = {
   userSelect: 'none',
   fontWeight: 500,
   boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-};
-
-const getLocalizedText = (textData: any, lang: string = 'sr'): string => {
-  if (!textData) return '';
-  let parsed = textData;
-  if (typeof textData === 'string') {
-    try {
-      parsed = JSON.parse(textData);
-    } catch (e) {
-      return textData;
-    }
-  }
-  if (parsed && typeof parsed === 'object') {
-    return parsed[lang] || parsed['sr'] || Object.values(parsed)[0] || '';
-  }
-  return String(parsed);
-};
-
-const buildI18nObject = (textValue: string, existingData?: any, currentLang: Language = 'sr'): Record<string, string> => {
-  let result: Record<string, string> = { sr: '', en: '', de: '' };
-  if (existingData) {
-    if (typeof existingData === 'string') {
-      try {
-        const parsed = JSON.parse(existingData);
-        if (typeof parsed === 'object') result = { ...result, ...parsed };
-      } catch (e) {
-        result.sr = existingData;
-      }
-    } else if (typeof existingData === 'object') {
-      result = { ...result, ...existingData };
-    }
-  }
-  result[currentLang] = textValue;
-  return result;
-};
-
-const parseWaypoints = (waypointsData: any): Waypoint[] => {
-  if (!waypointsData) return [];
-  if (Array.isArray(waypointsData)) return waypointsData;
-  if (typeof waypointsData === 'string') {
-    try {
-      const parsed = JSON.parse(waypointsData);
-      if (Array.isArray(parsed)) return parsed;
-    } catch (e) {}
-  }
-  return [];
-};
-
-const parseEstablish = (establishData: any): EstablishData => {
-  if (!establishData) return {};
-  if (typeof establishData === 'object') return establishData;
-  if (typeof establishData === 'string') {
-    try {
-      const parsed = JSON.parse(establishData);
-      if (parsed && typeof parsed === 'object') return parsed;
-    } catch (e) {}
-  }
-  return {};
 };
 
 const categoryQuestions: Record<string, Record<Language, string[]>> = {
@@ -340,23 +357,11 @@ const translations = {
   }
 };
 
-function normalizeYaw(yaw: number): number {
-  let res = (yaw + 180) % 360;
-  if (res < 0) res += 360;
-  return res - 180;
-}
-
-function getShortestTargetYaw(currentYaw: number, targetYaw: number): number {
-  const normCurrent = normalizeYaw(currentYaw);
-  const normTarget = normalizeYaw(targetYaw);
-  let diff = normTarget - normCurrent;
-  if (diff > 180) diff -= 360;
-  if (diff < -180) diff += 360;
-  return currentYaw + diff;
-}
-
 export default function TourPage() {
   const [mounted, setMounted] = useState(false);
+  const isMountedRef = useRef(true);
+  const roomSessionRef = useRef(0);
+
   const [tourStarted, setTourStarted] = useState(false);
   const [lang, setLang] = useState<Language>('sr');
 
@@ -389,15 +394,15 @@ export default function TourPage() {
 
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
   const lastAudioUrlRef = useRef<string | undefined>(undefined);
-  const lastAudioTextRef = useRef<any | undefined>(undefined);
-  const lastAudioTitleRef = useRef<any | undefined>(undefined);
+  const lastAudioTextRef = useRef<unknown | undefined>(undefined);
+  const lastAudioTitleRef = useRef<unknown | undefined>(undefined);
   const lastAudioIndexRef = useRef<number | undefined>(undefined);
   const audioCurrentTimeRef = useRef<number>(0);
 
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const guideCompleteTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [infoBoxData, setInfoBoxData] = useState<{ titleRaw?: any; textRaw: any; index?: number; audio_url?: string } | null>(null);
+  const [infoBoxData, setInfoBoxData] = useState<{ titleRaw?: unknown; textRaw: unknown; index?: number; audio_url?: string } | null>(null);
 
   const [pendingCoords, setPendingCoords] = useState<{ yaw: number; pitch: number } | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -419,45 +424,19 @@ export default function TourPage() {
   const scrollLeftRef = useRef(0);
   const autoScrollPausedRef = useRef(false);
 
-  useEffect(() => {
-    setMounted(true);
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('admin') === 'mojtajnikljuc' || localStorage.getItem('tour_admin') === 'true') {
-      localStorage.setItem('tour_admin', 'true');
-      setAdminMode(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!tourStarted) return;
-    const ticker = tickerRef.current;
-    if (!ticker) return;
-
-    let tickerAnimationId: number;
-    const step = () => {
-      if (ticker && !autoScrollPausedRef.current && !isDraggingRef.current) {
-        ticker.scrollLeft += 0.5;
-        if (ticker.scrollLeft >= ticker.scrollWidth - ticker.clientWidth) {
-          ticker.scrollLeft = 0;
-        }
-      }
-      tickerAnimationId = requestAnimationFrame(step);
-    };
-    tickerAnimationId = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(tickerAnimationId);
-  }, [tourStarted]);
-
-  const stopCurrentAnimation = () => {
+  const stopCurrentAnimation = useCallback(() => {
     if (animFrameRef.current !== null) {
       cancelAnimationFrame(animFrameRef.current);
       animFrameRef.current = null;
     }
-  };
+  }, []);
 
-  const stopAudio = () => {
+  const stopAudio = useCallback(() => {
     if (activeAudioRef.current) {
       audioCurrentTimeRef.current = activeAudioRef.current.currentTime;
       activeAudioRef.current.pause();
+      activeAudioRef.current.onended = null;
+      activeAudioRef.current.onerror = null;
       activeAudioRef.current = null;
     }
     if (hideTimerRef.current) {
@@ -468,7 +447,46 @@ export default function TourPage() {
       clearTimeout(guideCompleteTimerRef.current);
       guideCompleteTimerRef.current = null;
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    setMounted(true);
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('admin') === 'mojtajnikljuc' || localStorage.getItem('tour_admin') === 'true') {
+      localStorage.setItem('tour_admin', 'true');
+      setAdminMode(true);
+    }
+
+    return () => {
+      isMountedRef.current = false;
+      stopAudio();
+      stopCurrentAnimation();
+      if (viewerRef.current) {
+        try { viewerRef.current.destroy(); } catch {}
+        viewerRef.current = null;
+      }
+    };
+  }, [stopAudio, stopCurrentAnimation]);
+
+  useEffect(() => {
+    if (!tourStarted) return;
+    const ticker = tickerRef.current;
+    if (!ticker) return;
+
+    let tickerAnimationId: number;
+    const step = () => {
+      if (ticker && !autoScrollPausedRef.current && !isDraggingRef.current && isMountedRef.current && !document.hidden) {
+        ticker.scrollLeft += 0.5;
+        if (ticker.scrollLeft >= ticker.scrollWidth - ticker.clientWidth) {
+          ticker.scrollLeft = 0;
+        }
+      }
+      tickerAnimationId = requestAnimationFrame(step);
+    };
+    tickerAnimationId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(tickerAnimationId);
+  }, [tourStarted]);
 
   const toggleMute = () => {
     const nextMuteState = !isMutedRef.current;
@@ -490,13 +508,15 @@ export default function TourPage() {
 
   const playAudioFileWithCompletion = useCallback((
     audioUrl?: string,
-    textFallback?: any,
-    title?: any,
+    textFallback?: unknown,
+    title?: unknown,
     index?: number,
     startAt: number = 0
   ): Promise<void> => {
     return new Promise((resolve) => {
       stopAudio();
+
+      if (!isMountedRef.current) return resolve();
 
       lastAudioUrlRef.current = audioUrl;
       lastAudioTextRef.current = textFallback;
@@ -509,7 +529,10 @@ export default function TourPage() {
 
       if (isMutedRef.current || !audioUrl) {
         const readTime = Math.max(3000, resolvedText.length * 50);
-        setTimeout(resolve, readTime);
+        const timer = setTimeout(() => {
+          if (isMountedRef.current) resolve();
+        }, readTime);
+        hideTimerRef.current = timer;
         return;
       }
 
@@ -517,6 +540,7 @@ export default function TourPage() {
       activeAudioRef.current = audio;
 
       audio.onloadedmetadata = () => {
+        if (!isMountedRef.current) return;
         if (startAt > 0 && startAt < audio.duration) {
           audio.currentTime = startAt;
         }
@@ -525,20 +549,20 @@ export default function TourPage() {
       audio.onended = () => {
         activeAudioRef.current = null;
         audioCurrentTimeRef.current = 0;
-        resolve();
+        if (isMountedRef.current) resolve();
       };
 
       audio.onerror = () => {
         activeAudioRef.current = null;
-        resolve();
+        if (isMountedRef.current) resolve();
       };
 
       audio.play().catch(() => {
         activeAudioRef.current = null;
-        resolve();
+        if (isMountedRef.current) resolve();
       });
     });
-  }, []);
+  }, [stopAudio]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -558,27 +582,30 @@ export default function TourPage() {
       stopAudio();
       stopCurrentAnimation();
     };
-  }, [mounted]);
+  }, [mounted, stopAudio, stopCurrentAnimation]);
 
   useEffect(() => {
     if (!slug || !mounted) return;
     async function load() {
       setLoading(true);
-      const { data: tourData, error: tourErr } = await supabase.from('tours').select('*').eq('slug', slug).single();
-      const { data: roomRows, error: roomErr } = await supabase.from('rooms').select('*').eq('tour_slug', slug).order('order_index', { ascending: true });
+      const { data: tourData } = await supabase.from('tours').select('*').eq('slug', slug).single();
+      const { data: roomRows } = await supabase.from('rooms').select('*').eq('tour_slug', slug).order('order_index', { ascending: true });
 
-      if (tourErr || !tourData) setError(t.tourNotFound);
+      if (!isMountedRef.current) return;
+
+      if (!tourData) setError(t.tourNotFound);
       else setTour(tourData as Tour);
 
-      if (roomErr || !roomRows || roomRows.length === 0) setError(t.noRooms);
+      if (!roomRows || roomRows.length === 0) setError(t.noRooms);
       else setRooms(roomRows as Room[]);
 
       setLoading(false);
     }
     load();
-  }, [slug, mounted]);
+  }, [slug, mounted, t.tourNotFound, t.noRooms]);
 
   const changeRoomById = useCallback((id: string | number) => {
+    roomSessionRef.current += 1;
     sequenceActiveRef.current = false;
     isInterruptedRef.current = true;
     audioCurrentTimeRef.current = 0;
@@ -592,26 +619,22 @@ export default function TourPage() {
       setRoomIdx(foundIndex);
       setInfoBoxData(null);
     }
-  }, [rooms]);
+  }, [rooms, stopAudio, stopCurrentAnimation]);
 
   useEffect(() => {
     if (!tourStarted || rooms.length === 0 || !pannellumReady || !mounted) return;
+    
+    const currentSession = ++roomSessionRef.current;
     const currentRoom = rooms[roomIdx];
     if (!currentRoom?.panorama_url) return;
 
     setRoomLoading(true);
-    sequenceActiveRef.current = false;
-    audioCurrentTimeRef.current = 0;
-    setIsRoomTourFullyCompleted(false);
-    stopCurrentAnimation();
-    stopAudio();
-
     sequenceActiveRef.current = true;
     isInterruptedRef.current = false;
     setInfoBoxData(null);
 
     if (viewerRef.current) {
-      try { viewerRef.current.destroy(); } catch (e) {}
+      try { viewerRef.current.destroy(); } catch {}
       viewerRef.current = null;
     }
     const panoramaContainer = document.getElementById('panorama');
@@ -676,12 +699,14 @@ export default function TourPage() {
       .filter(item => item.wp.type === 'info' || (!item.wp.type && !item.wp.targetRoomId));
 
     const startInfiniteGlide = () => {
+      if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
       stopCurrentAnimation();
       setInfoBoxData({ titleRaw: translations[langRef.current].guideCompleted, textRaw: translations[langRef.current].freeExplore });
 
       if (guideCompleteTimerRef.current) clearTimeout(guideCompleteTimerRef.current);
       guideCompleteTimerRef.current = setTimeout(() => {
+        if (!isMountedRef.current || currentSession !== roomSessionRef.current) return;
         setInfoBoxData(null);
         setIsRoomTourFullyCompleted(true);
       }, 7000);
@@ -692,6 +717,7 @@ export default function TourPage() {
       const degreesPerMs = 360 / 25000;
 
       const animateGlide = (now: number) => {
+        if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
         const delta = now - lastTime;
         lastTime = now;
@@ -706,6 +732,7 @@ export default function TourPage() {
     };
 
     v.on('load', async () => {
+      if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
       setRoomLoading(false);
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
@@ -717,6 +744,7 @@ export default function TourPage() {
         const totalDegrees = 240;
         const speed = totalDegrees / (durationPhase1 / 1000);
 
+        if (currentSession !== roomSessionRef.current || !isMountedRef.current) return resolve();
         if (!sequenceActiveRef.current || isInterruptedRef.current) return resolve();
 
         if (viewerRef.current) {
@@ -728,6 +756,10 @@ export default function TourPage() {
 
         const startTime = performance.now();
         const checkCompletion = (now: number) => {
+          if (currentSession !== roomSessionRef.current || !isMountedRef.current) {
+            if (viewerRef.current) viewerRef.current.stopAutoRotate();
+            return resolve();
+          }
           if (!sequenceActiveRef.current || isInterruptedRef.current) {
             if (viewerRef.current) viewerRef.current.stopAutoRotate();
             return resolve();
@@ -748,9 +780,11 @@ export default function TourPage() {
         playAudioFileWithCompletion(introAudioUrl, introTextRaw, currentRoom.title_i18n, undefined, 0)
       ]);
 
+      if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
       const runInfoSequencePhase2 = async (index: number) => {
+        if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
         if (!sequenceActiveRef.current || isInterruptedRef.current || !viewerRef.current) return;
         if (index >= infoPoints.length) {
           startInfiniteGlide();
@@ -765,9 +799,11 @@ export default function TourPage() {
         viewerRef.current.lookAt(targetPitch, targetYaw, 50, 2200);
 
         await new Promise(r => setTimeout(r, 2300));
+        if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
         await playAudioFileWithCompletion(item.wp.audio_url, item.wp.text_i18n, item.wp.title_i18n, item.i, 0);
+        if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
         await new Promise(r => setTimeout(r, 1000));
@@ -799,13 +835,16 @@ export default function TourPage() {
 
     return () => {
       sequenceActiveRef.current = false;
+      isInterruptedRef.current = true;
       panoramaContainer?.removeEventListener('dblclick', handleDblClick);
       stopCurrentAnimation();
+      stopAudio();
       if (viewerRef.current) {
-        try { viewerRef.current.destroy(); } catch (e) {}
+        try { viewerRef.current.destroy(); } catch {}
+        viewerRef.current = null;
       }
     };
-  }, [tourStarted, roomIdx, pannellumReady, mounted, adminMode, rooms, changeRoomById, playAudioFileWithCompletion]);
+  }, [tourStarted, roomIdx, pannellumReady, mounted, adminMode, rooms, changeRoomById, playAudioFileWithCompletion, stopCurrentAnimation, stopAudio]);
 
   const handleStartEditWaypoint = (index: number) => {
     const currentRoom = rooms[roomIdx];
@@ -871,7 +910,7 @@ export default function TourPage() {
         .update({ establish_i18n: updatedEstablish })
         .eq('id', currentRoom.id);
 
-      if (!err) {
+      if (!err && isMountedRef.current) {
         const updatedRooms = [...rooms];
         updatedRooms[roomIdx].establish_i18n = updatedEstablish;
         setRooms(updatedRooms);
@@ -882,8 +921,8 @@ export default function TourPage() {
 
     const currentWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
 
-    let existingWpText: any = undefined;
-    let existingWpTitle: any = undefined;
+    let existingWpText: unknown = undefined;
+    let existingWpTitle: unknown = undefined;
     if (editingIndex !== null && currentWaypoints[editingIndex]) {
       existingWpText = currentWaypoints[editingIndex].text_i18n;
       existingWpTitle = currentWaypoints[editingIndex].title_i18n;
@@ -912,7 +951,7 @@ export default function TourPage() {
       .update({ waypoints_i18n: updatedList })
       .eq('id', currentRoom.id);
 
-    if (!err) {
+    if (!err && isMountedRef.current) {
       const updatedRooms = [...rooms];
       updatedRooms[roomIdx].waypoints_i18n = updatedList;
       setRooms(updatedRooms);
@@ -932,7 +971,7 @@ export default function TourPage() {
       .update({ waypoints_i18n: updatedList })
       .eq('id', currentRoom.id);
 
-    if (!err) {
+    if (!err && isMountedRef.current) {
       const updatedRooms = [...rooms];
       updatedRooms[roomIdx].waypoints_i18n = updatedList;
       setRooms(updatedRooms);
@@ -1171,7 +1210,6 @@ export default function TourPage() {
         </div>
       )}
 
-      {/* KRSTIĆ U CENTRU EKRANA (SAMO U ADMIN MODU) */}
       {tourStarted && adminMode && (
         <div style={{
           position: 'absolute',
@@ -1487,3 +1525,4 @@ export default function TourPage() {
     </main>
   );
 }
+
