@@ -249,7 +249,7 @@ const translations = {
     tourNotFound: 'Tura nije pronađena.',
     noRooms: 'Ova tura nema soba.',
     guideCompleted: 'Vodič završen',
-    freeExplore: 'Slobodno razgledajte prostoriju ili pređite na drugu tačku, koristeći gornji meni ili plutajuću oznaku na podu.',
+    freeExplore: 'Slobodno razgledajte prostoriju ili pređite na drugu tačku, koristeći gornji pokretni meni ili plutajuću oznaku na podu.',
     targetRoom: '-- Izaberi sobu --',
     save: 'Sačuvaj Poziciju & Podatke',
     cancel: 'Otkaži',
@@ -681,12 +681,12 @@ export default function TourPage() {
           hotSpotDiv.style.alignItems = 'center';
           hotSpotDiv.style.justifyContent = 'center';
           hotSpotDiv.style.cursor = 'pointer';
-          hotSpotDiv.style.padding = isNav ? '6px 12px' : '0px';
+          hotSpotDiv.style.padding = isNav ? '4px 8px' : '0px';
           hotSpotDiv.style.width = isNav ? 'auto' : '24px';
           hotSpotDiv.style.height = isNav ? 'auto' : '24px';
           hotSpotDiv.style.fontWeight = 'bold';
           hotSpotDiv.style.fontSize = isNav ? '12px' : '14px';
-          hotSpotDiv.style.boxShadow = '3px 15px 30px rgba(0,0,0,0.4)';
+          hotSpotDiv.style.boxShadow = '3px 15px 30px rgba(0, 0, 0, 0.53)';
           hotSpotDiv.innerHTML = isNav ? `${tooltipText}` : 'ℹ';
          
         },
