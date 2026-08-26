@@ -334,6 +334,7 @@ const translations = {
     noRooms: 'Diese Tour hat keine Räume.',
     guideCompleted: 'Führung beendet',
     freeExplore: 'Schauen Sie sich frei um oder wechseln Sie den Raum oben.',
+    targetRoom: '-- Raum wählen --',
     save: 'Speichern',
     cancel: 'Abbrechen',
     delete: '🗑️ Löschen',
