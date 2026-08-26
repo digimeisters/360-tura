@@ -56,7 +56,6 @@ type Tour = {
 
 type ActiveModal = 'plan' | 'location' | 'about' | 'faq' | 'contact' | null;
 
-// Pure Helper Functions (moved outside component for performance)
 const normalizeYaw = (yaw: number): number => {
   let res = (yaw + 180) % 360;
   if (res < 0) res += 360;
@@ -134,7 +133,7 @@ const buildI18nObject = (textValue: string, existingData?: unknown, currentLang:
 function Centered({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ color: 'white', background: '#0a0a0a', height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', gap: '20px' }}>
-      <div className="dots-loader"><span></span><span></span><span></span></div>
+      <div className="custom-loader-dots"><span></span><span></span><span></span></div>
       <div style={{ color: '#aaa', fontSize: '14px', letterSpacing: '1px' }}>{children}</div>
     </div>
   );
@@ -682,8 +681,28 @@ export default function TourPage() {
     const targetEstablishPitch = establishData.pitch ?? 0;
 
     const customLoadingHtml = `
-      <div style="background: rgba(10, 10, 10, 0.9); backdrop-filter: blur(8px); width: 100%; height: 100%; display: flex; flexDirection: column; align-items: center; justifyContent: center; gap: 20px; font-family: sans-serif;">
-        <div class="dots-loader"><span></span><span></span><span></span></div>
+      <style>
+        @keyframes customBounceDots {
+          0%, 80%, 100% { transform: scale(0); }
+          40% { transform: scale(1.0); }
+        }
+        .custom-loader-dots {
+          display: flex;
+          gap: 8px;
+        }
+        .custom-loader-dots span {
+          width: 10px;
+          height: 10px;
+          background-color: #38bdf8;
+          border-radius: 50%;
+          display: inline-block;
+          animation: customBounceDots 1.4s infinite ease-in-out both;
+        }
+        .custom-loader-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .custom-loader-dots span:nth-child(2) { animation-delay: -0.16s; }
+      </style>
+      <div style="background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(8px); width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; font-family: sans-serif; position: absolute; top: 0; left: 0; z-index: 9999;">
+        <div class="custom-loader-dots"><span></span><span></span><span></span></div>
         <div style="color: #38bdf8; font-size: 14px; letter-spacing: 1px; font-weight: 500;">Učitavanje panorame...</div>
       </div>
     `;
@@ -1238,7 +1257,7 @@ export default function TourPage() {
 
       {roomLoading && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 20, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '15px' }}>
-          <div className="dots-loader"><span></span><span></span><span></span></div>
+          <div className="custom-loader-dots"><span></span><span></span><span></span></div>
           <p style={{ color: '#38bdf8', fontSize: '14px', letterSpacing: '1px' }}>{t.roomLoadingPrefix}<b>{getLocalizedText(currentRoom?.title_i18n, lang)}</b></p>
         </div>
       )}
