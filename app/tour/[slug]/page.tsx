@@ -1171,8 +1171,8 @@ export default function TourPage() {
         </div>
       )}
 
-      {/* KRSTIĆ U CENTRU EKRANA ZA PRECIZNO POZICIONIRANJE */}
-      {tourStarted && (
+      {/* KRSTIĆ U CENTRU EKRANA (SAMO U ADMIN MODU) */}
+      {tourStarted && adminMode && (
         <div style={{
           position: 'absolute',
           top: '50%',
@@ -1373,7 +1373,6 @@ export default function TourPage() {
         </div>
       )}
 
-      {/* MODAL ZA UNOS/IZMENU TAČKE PREMEŠTEN U GORNJI DESNI UGAO */}
       {pendingCoords && (
         <div style={{
           position: 'absolute',
