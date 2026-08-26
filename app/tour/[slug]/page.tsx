@@ -673,8 +673,8 @@ export default function TourPage() {
         yaw: wp.yaw || 0,
         createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
           hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
-          hotSpotDiv.style.backgroundColor = isNav ? 'rgba(53, 154, 204, 0.85)' : 'rgba(3, 30, 43, 0.7)';
-          hotSpotDiv.style.border = '1px solid rgba(255, 255, 255, 0.9)';
+          hotSpotDiv.style.backgroundColor = isNav ? 'rgba(7, 9, 10, 0.68)' : 'rgba(4, 26, 37, 0.73)';
+          hotSpotDiv.style.border = '2px solid rgba(248, 244, 244, 0.9)';
           hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
           hotSpotDiv.style.color = '#fff';
           hotSpotDiv.style.display = 'flex';
@@ -685,8 +685,8 @@ export default function TourPage() {
           hotSpotDiv.style.width = isNav ? 'auto' : '24px';
           hotSpotDiv.style.height = isNav ? 'auto' : '24px';
           hotSpotDiv.style.fontWeight = 'bold';
-          hotSpotDiv.style.fontSize = isNav ? '10px' : '12px';
-          hotSpotDiv.style.boxShadow = '3px 15px 30px rgba(0, 0, 0, 0.53)';
+          hotSpotDiv.style.fontSize = isNav ? '11px' : '18px';
+          hotSpotDiv.style.boxShadow = '8px 15px 30px rgba(0, 0, 0, 0.53)';
           hotSpotDiv.innerHTML = isNav ? `${tooltipText}` : 'ℹ';
          
         },
