@@ -681,6 +681,13 @@ export default function TourPage() {
     const targetEstablishYaw = normalizeYaw(establishData.fromYaw ?? 0);
     const targetEstablishPitch = establishData.pitch ?? 0;
 
+    const customLoadingHtml = `
+      <div style="background: rgba(10, 10, 10, 0.9); backdrop-filter: blur(8px); width: 100%; height: 100%; display: flex; flexDirection: column; align-items: center; justifyContent: center; gap: 20px; font-family: sans-serif;">
+        <div class="dots-loader"><span></span><span></span><span></span></div>
+        <div style="color: #38bdf8; font-size: 14px; letter-spacing: 1px; font-weight: 500;">Učitavanje panorame...</div>
+      </div>
+    `;
+
     const v = (window as any).pannellum.viewer('panorama', {
       type: 'equirectangular',
       panorama: currentRoom.panorama_url,
@@ -690,7 +697,8 @@ export default function TourPage() {
       yaw: targetEstablishYaw,
       pitch: targetEstablishPitch,
       autoRotate: 0,
-      hotSpots: formattedHotspots
+      hotSpots: formattedHotspots,
+      loadingHtml: customLoadingHtml
     });
     viewerRef.current = v;
 
@@ -1525,4 +1533,3 @@ export default function TourPage() {
     </main>
   );
 }
-
