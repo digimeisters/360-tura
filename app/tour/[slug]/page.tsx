@@ -638,6 +638,7 @@ export default function TourPage() {
         yaw: wp.yaw || 0,
         type: isNav ? 'scene' : 'info',
         text: tooltipText,
+        sceneId: isNav ? wp.targetRoomId : undefined,
         clickHandlerFunc: () => {
           if (adminMode) {
             handleStartEditWaypoint(index);
@@ -996,10 +997,7 @@ export default function TourPage() {
           gap: '4px',
           pointerEvents: 'none'
         }}>
-          {/* RED 1: Naziv ture levo, Audio i Jezici desno ujednačeno */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            
-            {/* Naziv ture */}
             <div style={{
               backgroundColor: 'rgba(15, 23, 42, 0.8)',
               backdropFilter: 'blur(10px)',
@@ -1019,7 +1017,6 @@ export default function TourPage() {
               {getLocalizedText(tour?.title_i18n, lang)}
             </div>
 
-            {/* Kontrole (Zvuk + Jezici u jednoj kutiji) */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -1034,13 +1031,13 @@ export default function TourPage() {
             }}>
               <button
                 onClick={toggleMute}
-                style={{ 
-                  background: 'transparent', 
-                  border: 'none', 
-                  color: '#fff', 
-                  cursor: 'pointer', 
-                  fontSize: '14px', 
-                  padding: '3px 4px' 
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  padding: '3px 4px'
                 }}
                 title={isMuted ? 'Uključi zvuk' : 'Isključi zvuk'}
               >
@@ -1071,7 +1068,6 @@ export default function TourPage() {
             </div>
           </div>
 
-          {/* RED 2: Ticker za sobe (u svom posebnom redu sa minimalnim razmakom) */}
           <div
             ref={tickerRef}
             onMouseEnter={() => { autoScrollPausedRef.current = true; }}
@@ -1175,14 +1171,15 @@ export default function TourPage() {
         </div>
       )}
 
-      {pendingCoords && !adminMode && (
+      {/* KRSTIĆ U CENTRU EKRANA ZA PRECIZNO POZICIONIRANJE */}
+      {tourStarted && (
         <div style={{
           position: 'absolute',
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
           pointerEvents: 'none',
-          zIndex: 40,
+          zIndex: 25,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
@@ -1376,21 +1373,21 @@ export default function TourPage() {
         </div>
       )}
 
+      {/* MODAL ZA UNOS/IZMENU TAČKE PREMEŠTEN U GORNJI DESNI UGAO */}
       {pendingCoords && (
         <div style={{
           position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
+          top: '75px',
+          right: '12px',
           zIndex: 45,
           backgroundColor: 'rgba(15, 23, 42, 0.95)',
-          padding: '16px',
+          padding: '14px',
           borderRadius: '16px',
           border: '1px solid #38bdf8',
           color: '#fff',
           width: '92%',
-          maxWidth: '340px',
-          maxHeight: '85vh',
+          maxWidth: '320px',
+          maxHeight: '82vh',
           overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
@@ -1398,7 +1395,7 @@ export default function TourPage() {
           boxShadow: '0 10px 25px rgba(0,0,0,0.7)',
           backdropFilter: 'blur(8px)'
         }}>
-          <h3 style={{ margin: 0, color: '#38bdf8', fontSize: '15px' }}>
+          <h3 style={{ margin: 0, color: '#38bdf8', fontSize: '14px' }}>
             {hotspotType === 'establish' ? t.introNarration : editingIndex !== null ? t.editPoint : t.addPoint}
           </h3>
 
@@ -1408,7 +1405,7 @@ export default function TourPage() {
               <select
                 value={hotspotType}
                 onChange={(e) => setHotspotType(e.target.value as any)}
-                style={{ width: '100%', padding: '7px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '12px' }}
+                style={{ width: '100%', padding: '6px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '12px' }}
               >
                 <option value="navigation">{t.navArrow}</option>
                 <option value="info">{t.infoPoint}</option>
@@ -1422,7 +1419,7 @@ export default function TourPage() {
               <select
                 value={targetRoomId}
                 onChange={(e) => setTargetRoomId(e.target.value)}
-                style={{ width: '100%', padding: '7px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '12px' }}
+                style={{ width: '100%', padding: '6px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '12px' }}
               >
                 <option value="">{t.targetRoom}</option>
                 {rooms.map((r) => (
@@ -1442,7 +1439,7 @@ export default function TourPage() {
                   placeholder={t.titlePlaceholder}
                   value={hotspotTitle}
                   onChange={(e) => setHotspotTitle(e.target.value)}
-                  style={{ width: '100%', padding: '7px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', fontSize: '12px' }}
+                  style={{ width: '100%', padding: '6px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', fontSize: '12px' }}
                 />
               )}
               <textarea
@@ -1450,36 +1447,36 @@ export default function TourPage() {
                 value={hotspotText}
                 onChange={(e) => setHotspotText(e.target.value)}
                 rows={3}
-                style={{ width: '100%', padding: '7px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', resize: 'vertical', fontSize: '12px' }}
+                style={{ width: '100%', padding: '6px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', resize: 'vertical', fontSize: '12px' }}
               />
               <input
                 type="text"
                 placeholder={t.audioUrlPlaceholder}
                 value={hotspotAudioUrl}
                 onChange={(e) => setHotspotAudioUrl(e.target.value)}
-                style={{ width: '100%', padding: '7px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', fontSize: '12px' }}
+                style={{ width: '100%', padding: '6px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', fontSize: '12px' }}
               />
             </>
           )}
 
-          <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', gap: '6px', marginTop: '4px', flexDirection: 'column' }}>
             <button
               onClick={handleSaveWaypoint}
-              style={{ ...btnStyle, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', fontWeight: 'bold', padding: '9px', fontSize: '12px' }}
+              style={{ ...btnStyle, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', fontWeight: 'bold', padding: '8px', fontSize: '12px' }}
             >
               {t.save}
             </button>
             <div style={{ display: 'flex', gap: '6px' }}>
               <button
                 onClick={() => setPendingCoords(null)}
-                style={{ ...btnStyle, flex: 1, padding: '7px', fontSize: '12px' }}
+                style={{ ...btnStyle, flex: 1, padding: '6px', fontSize: '12px' }}
               >
                 {t.cancel}
               </button>
               {editingIndex !== null && hotspotType !== 'establish' && (
                 <button
                   onClick={handleDeleteWaypoint}
-                  style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#ef4444', flex: 1, padding: '7px', fontSize: '12px' }}
+                  style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#ef4444', flex: 1, padding: '6px', fontSize: '12px' }}
                 >
                   {t.delete}
                 </button>
