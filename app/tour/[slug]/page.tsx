@@ -681,11 +681,11 @@ export default function TourPage() {
           hotSpotDiv.style.alignItems = 'center';
           hotSpotDiv.style.justifyContent = 'center';
           hotSpotDiv.style.cursor = 'pointer';
-          hotSpotDiv.style.padding = isNav ? '3px 6px' : '0px';
-          hotSpotDiv.style.width = isNav ? 'auto' : '24px';
-          hotSpotDiv.style.height = isNav ? 'auto' : '24px';
+          hotSpotDiv.style.padding = isNav ? '3px 6px' : '0.5px';
+          hotSpotDiv.style.width = isNav ? 'auto' : '22px';
+          hotSpotDiv.style.height = isNav ? 'auto' : '22px';
           hotSpotDiv.style.fontWeight = 'bold';
-          hotSpotDiv.style.fontSize = isNav ? '10px' : '15px';
+          hotSpotDiv.style.fontSize = isNav ? '10px' : '18px';
           hotSpotDiv.style.boxShadow = '8px 15px 30px rgba(0, 0, 0, 0.53)';
           hotSpotDiv.innerHTML = isNav ? `${tooltipText}` : 'ℹ';
          
