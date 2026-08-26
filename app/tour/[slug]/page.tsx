@@ -56,6 +56,7 @@ type Tour = {
 
 type ActiveModal = 'plan' | 'location' | 'about' | 'faq' | 'contact' | null;
 
+// Pure Helper Functions (moved outside component for performance)
 const normalizeYaw = (yaw: number): number => {
   let res = (yaw + 180) % 360;
   if (res < 0) res += 360;
@@ -133,18 +134,8 @@ const buildI18nObject = (textValue: string, existingData?: unknown, currentLang:
 function Centered({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ color: 'white', background: '#0a0a0a', height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', gap: '20px' }}>
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-        <div style={{ width: '12px', height: '12px', backgroundColor: '#38bdf8', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.32s' }} />
-        <div style={{ width: '12px', height: '12px', backgroundColor: '#38bdf8', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.16s' }} />
-        <div style={{ width: '12px', height: '12px', backgroundColor: '#38bdf8', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both' }} />
-      </div>
-      <style>{`
-        @keyframes pulseDot {
-          0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
-          40% { transform: scale(1.0); opacity: 1; }
-        }
-      `}</style>
-      <div style={{ color: '#38bdf8', fontSize: '14px', letterSpacing: '1px', fontWeight: 500 }}>{children}</div>
+      <div className="dots-loader"><span></span><span></span><span></span></div>
+      <div style={{ color: '#aaa', fontSize: '14px', letterSpacing: '1px' }}>{children}</div>
     </div>
   );
 }
@@ -699,8 +690,7 @@ export default function TourPage() {
       yaw: targetEstablishYaw,
       pitch: targetEstablishPitch,
       autoRotate: 0,
-      hotSpots: formattedHotspots,
-      loadingHtml: '' // Uklonjen fabrički Pannellum loader
+      hotSpots: formattedHotspots
     });
     viewerRef.current = v;
 
@@ -1240,17 +1230,7 @@ export default function TourPage() {
 
       {roomLoading && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 20, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '15px' }}>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <div style={{ width: '12px', height: '12px', backgroundColor: '#38bdf8', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.32s' }} />
-            <div style={{ width: '12px', height: '12px', backgroundColor: '#38bdf8', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.16s' }} />
-            <div style={{ width: '12px', height: '12px', backgroundColor: '#38bdf8', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both' }} />
-          </div>
-          <style>{`
-            @keyframes pulseDot {
-              0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
-              40% { transform: scale(1.0); opacity: 1; }
-            }
-          `}</style>
+          <div className="dots-loader"><span></span><span></span><span></span></div>
           <p style={{ color: '#38bdf8', fontSize: '14px', letterSpacing: '1px' }}>{t.roomLoadingPrefix}<b>{getLocalizedText(currentRoom?.title_i18n, lang)}</b></p>
         </div>
       )}
@@ -1545,3 +1525,4 @@ export default function TourPage() {
     </main>
   );
 }
+
