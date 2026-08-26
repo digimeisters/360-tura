@@ -249,7 +249,7 @@ const translations = {
     tourNotFound: 'Tura nije pronađena.',
     noRooms: 'Ova tura nema soba.',
     guideCompleted: 'Vodič završen',
-    freeExplore: 'Slobodno razgledajte prostoriju ili pređite na drugu tačku, koristeći gornji pokretni meni ili plutajuću oznaku na podu.',
+    freeExplore: 'Slobodno razgledajte prostoriju ili pređite na drugu tačku, koristeći gornji pokretni meni ili plutajući naziv na slici .',
     targetRoom: '-- Izaberi sobu --',
     save: 'Sačuvaj Poziciju & Podatke',
     cancel: 'Otkaži',
@@ -674,7 +674,7 @@ export default function TourPage() {
         createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
           hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
           hotSpotDiv.style.backgroundColor = isNav ? 'rgba(7, 9, 10, 0.68)' : 'rgba(4, 26, 37, 0.73)';
-          hotSpotDiv.style.border = '2px solid rgba(248, 244, 244, 0.9)';
+          hotSpotDiv.style.border = '1.5px solid rgba(248, 244, 244, 0.9)';
           hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
           hotSpotDiv.style.color = '#fff';
           hotSpotDiv.style.display = 'flex';
@@ -685,7 +685,7 @@ export default function TourPage() {
           hotSpotDiv.style.width = isNav ? 'auto' : '24px';
           hotSpotDiv.style.height = isNav ? 'auto' : '24px';
           hotSpotDiv.style.fontWeight = 'bold';
-          hotSpotDiv.style.fontSize = isNav ? '11px' : '18px';
+          hotSpotDiv.style.fontSize = isNav ? '10px' : '15px';
           hotSpotDiv.style.boxShadow = '8px 15px 30px rgba(0, 0, 0, 0.53)';
           hotSpotDiv.innerHTML = isNav ? `${tooltipText}` : 'ℹ';
          
