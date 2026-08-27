@@ -112,13 +112,19 @@ const parseEstablish = (establishData: unknown): EstablishData => {
   return {};
 };
 
-const buildI18nObject = (textValue: string, existingData?: unknown, currentLang: Language = 'sr'): Record<string, string> => {
+const buildI18nObject = (
+  textValue: string, 
+  existingData?: unknown,
+  currentLang: Language = 'sr'
+): Record<string, string> => {
   let result: Record<string, string> = { sr: '', en: '', de: '' };
   if (existingData) {
     if (typeof existingData === 'string') {
       try {
         const parsed = JSON.parse(existingData);
-        if (parsed && typeof parsed === 'object') result = { ...result, ...(parsed as Record<string, string>) };
+        if (parsed && typeof parsed === 'object') {
+          result = { ...result, ...(parsed as Record<string, string>) };
+        }
       } catch {
         result.sr = existingData;
       }
@@ -245,7 +251,7 @@ const translations = {
     startTour: '▶ Pokreni turu',
     welcome: 'Dobrodošli! Kliknite na dugme ispod da pokrenete interaktivnu turu.',
     loading: 'Učitavanje ture...',
-    roomLoadingPrefix: 'Pripremite se... ulazimo u: ',
+    roomLoadingPrefix: 'Pripremite se... ulazimo : ',
     tourNotFound: 'Tura nije pronađena.',
     noRooms: 'Ova tura nema soba.',
     guideCompleted: 'Vodič završen',
@@ -403,6 +409,7 @@ export default function TourPage() {
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const [selectedFaq, setSelectedFaq] = useState<number | null>(null);
   const [isRoomTourFullyCompleted, setIsRoomTourFullyCompleted] = useState(false);
+  const [isInfoboxManuallyClosed, setIsInfoboxManuallyClosed] = useState(false);
 
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
   const lastAudioUrlRef = useRef<string | undefined>(undefined);
@@ -622,6 +629,7 @@ export default function TourPage() {
     isInterruptedRef.current = true;
     audioCurrentTimeRef.current = 0;
     setIsRoomTourFullyCompleted(false);
+    setIsInfoboxManuallyClosed(false);
     stopCurrentAnimation();
     stopAudio();
 
@@ -635,7 +643,7 @@ export default function TourPage() {
 
   useEffect(() => {
     if (!tourStarted || rooms.length === 0 || !pannellumReady || !mounted) return;
-    
+
     const currentSession = ++roomSessionRef.current;
     const currentRoom = rooms[roomIdx];
     if (!currentRoom?.panorama_url) return;
@@ -643,6 +651,7 @@ export default function TourPage() {
     setRoomLoading(true);
     sequenceActiveRef.current = true;
     isInterruptedRef.current = false;
+    setIsInfoboxManuallyClosed(false);
     setInfoBoxData(null);
 
     if (viewerRef.current) {
@@ -688,7 +697,6 @@ export default function TourPage() {
           hotSpotDiv.style.fontSize = isNav ? '10px' : '18px';
           hotSpotDiv.style.boxShadow = '8px 15px 30px rgba(0, 0, 0, 0.53)';
           hotSpotDiv.innerHTML = isNav ? `${tooltipText}` : 'ℹ';
-         
         },
         text: tooltipText,
         clickHandlerFunc: () => {
@@ -732,7 +740,10 @@ export default function TourPage() {
       if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
       stopCurrentAnimation();
-      setInfoBoxData({ titleRaw: translations[langRef.current].guideCompleted, textRaw: translations[langRef.current].freeExplore });
+      setInfoBoxData({ 
+        titleRaw: translations[langRef.current].guideCompleted, 
+        textRaw: translations[langRef.current].freeExplore 
+      });
 
       if (guideCompleteTimerRef.current) clearTimeout(guideCompleteTimerRef.current);
       guideCompleteTimerRef.current = setTimeout(() => {
@@ -1215,7 +1226,7 @@ export default function TourPage() {
 
       <div id="panorama" style={{ width: '100%', height: '100%' }} />
 
-      {tourStarted && !pendingCoords && isRoomTourFullyCompleted && (
+      {tourStarted && !pendingCoords && (isRoomTourFullyCompleted || isInfoboxManuallyClosed) && (
         <div style={{
           position: 'absolute',
           bottom: '10px',
@@ -1298,8 +1309,43 @@ export default function TourPage() {
           color: '#fff',
           boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
         }}>
-          {displayedInfoTitle && <h3 style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#38bdf8' }}>{displayedInfoTitle}</h3>}
-          <p style={{ margin: 0, fontSize: '12px', lineHeight: '1.35', color: '#e2e8f0' }}>{displayedInfoText}</p>
+          {/* Dugme za zatvaranje (x) */}
+          <button
+            onClick={() => {
+              stopAudio();
+              setInfoBoxData(null);
+              setIsInfoboxManuallyClosed(true);
+            }}
+            style={{
+              position: 'absolute',
+              top: '8px',
+              right: '10px',
+              background: 'transparent',
+              border: 'none',
+              color: '#94a3b8',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              padding: '2px 6px',
+              lineHeight: '1',
+              borderRadius: '4px',
+              transition: 'color 0.2s'
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
+            title={t.close}
+          >
+            ×
+          </button>
+
+          {displayedInfoTitle && (
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#38bdf8', paddingRight: '20px' }}>
+              {displayedInfoTitle}
+            </h3>
+          )}
+          <p style={{ margin: 0, fontSize: '12px', lineHeight: '1.35', color: '#e2e8f0', paddingRight: '10px' }}>
+            {displayedInfoText}
+          </p>
         </div>
       )}
 
