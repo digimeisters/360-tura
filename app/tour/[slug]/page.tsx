@@ -1258,7 +1258,7 @@ useEffect(() => {
                   whiteSpace: 'nowrap'
                 }}
               >
-                🏠 {getLocalizedText(room.title_i18n, lang) || `Soba ${idx + 1}`}
+                🚪 {getLocalizedText(room.title_i18n, lang) || `Soba ${idx + 1}`}
               </button>
             ))}
           </div>
