@@ -113,7 +113,7 @@ const parseEstablish = (establishData: unknown): EstablishData => {
 };
 
 const buildI18nObject = (
-  textValue: string,
+  textValue: string, 
   existingData?: unknown,
   currentLang: Language = 'sr'
 ): Record<string, string> => {
@@ -641,7 +641,6 @@ export default function TourPage() {
     }
   }, [rooms, stopAudio, stopCurrentAnimation]);
 
-  // DODATO: 'lang' je dodat u zavisnosti da bi se scena osvežila i tekstovi promenili odmah pri promeni jezika
   useEffect(() => {
     if (!tourStarted || rooms.length === 0 || !pannellumReady || !mounted) return;
 
@@ -741,9 +740,9 @@ export default function TourPage() {
       if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
       stopCurrentAnimation();
-      setInfoBoxData({
-        titleRaw: translations[langRef.current].guideCompleted,
-        textRaw: translations[langRef.current].freeExplore
+      setInfoBoxData({ 
+        titleRaw: translations[langRef.current].guideCompleted, 
+        textRaw: translations[langRef.current].freeExplore 
       });
 
       if (guideCompleteTimerRef.current) clearTimeout(guideCompleteTimerRef.current);
@@ -886,7 +885,7 @@ export default function TourPage() {
         viewerRef.current = null;
       }
     };
-  }, [tourStarted, roomIdx, pannellumReady, mounted, adminMode, rooms, lang, changeRoomById, playAudioFileWithCompletion, stopCurrentAnimation, stopAudio]);
+  }, [tourStarted, roomIdx, pannellumReady, mounted, adminMode, rooms, changeRoomById, playAudioFileWithCompletion, stopCurrentAnimation, stopAudio]);
 
   const handleStartEditWaypoint = (index: number) => {
     const currentRoom = rooms[roomIdx];
@@ -1025,6 +1024,7 @@ export default function TourPage() {
   if (error) return <Centered>{error}</Centered>;
 
   const currentRoom = rooms[roomIdx];
+  const waypointsList = parseWaypoints(currentRoom?.waypoints_i18n);
 
   let displayedInfoTitle = '';
   let displayedInfoText = '';
@@ -1309,6 +1309,7 @@ export default function TourPage() {
           color: '#fff',
           boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
         }}>
+          {/* Dugme za zatvaranje (x) */}
           <button
             onClick={() => {
               stopAudio();
@@ -1409,15 +1410,11 @@ export default function TourPage() {
                           color: '#fef08a',
                           fontSize: '14px',
                           fontWeight: 600,
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          width: '100%'
                         }}
                       >
                         {item.question}
-                        {selectedFaq === index && (
-                          <p style={{ marginTop: '8px', color: '#e2e8f0', fontSize: '13px', fontWeight: 'normal' }}>
-                            {item.answer || t.comingSoon}
-                          </p>
-                        )}
                       </button>
                     ))}
                   </div>
@@ -1427,20 +1424,42 @@ export default function TourPage() {
               )}
 
               {activeModal === 'contact' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <h3 style={{ margin: '0 0 8px 0', fontSize: '15px', color: '#38bdf8' }}>{t.contactTitle}</h3>
-                  {tour?.contact_name && <p style={{ margin: 0 }}><b>{t.agentLabel}</b> {tour.contact_name}</p>}
-                  {tour?.agency_name && <p style={{ margin: 0 }}><b>{t.agencyLabel}</b> {tour.agency_name}</p>}
-                  {tour?.contact_phone && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(30, 41, 59, 0.7)', padding: '10px 14px', borderRadius: '10px' }}>
-                      <span><b>{t.phoneLabel}</b> {tour.contact_phone}</span>
-                      <a href={`tel:${tour.contact_phone}`} style={{ ...btnStyle, backgroundColor: '#0284c7', color: '#fff', textDecoration: 'none', padding: '6px 14px' }}>{t.callBtn}</a>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '6px' }}>
+                  {tour?.agent_name && (
+                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.7)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#94a3b8' }}>{t.agentLabel}</p>
+                      <p style={{ margin: 0, fontSize: '15px', fontWeight: 'bold', color: '#fff' }}>{tour.agent_name}</p>
                     </div>
                   )}
-                  {tour?.contact_email && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(30, 41, 59, 0.7)', padding: '10px 14px', borderRadius: '10px' }}>
-                      <span><b>{t.emailLabel}</b> {tour.contact_email}</span>
-                      <a href={`mailto:${tour.contact_email}`} style={{ ...btnStyle, backgroundColor: '#0284c7', color: '#fff', textDecoration: 'none', padding: '6px 14px' }}>{t.emailBtn}</a>
+
+                  {tour?.agent_phone && (
+                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.7)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <p style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#94a3b8' }}>{t.phoneLabel}</p>
+                        <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#fff' }}>{tour.agent_phone}</p>
+                      </div>
+                      <a href={`tel:${tour.agent_phone}`} style={{ ...btnStyle, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', textDecoration: 'none', padding: '8px 14px' }}>
+                        {t.callBtn}
+                      </a>
+                    </div>
+                  )}
+
+                  {tour?.agent_email && (
+                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.7)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ overflow: 'hidden', paddingRight: '8px' }}>
+                        <p style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#94a3b8' }}>{t.emailLabel}</p>
+                        <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#fff', textOverflow: 'ellipsis', overflow: 'hidden' }}>{tour.agent_email}</p>
+                      </div>
+                      <a href={`mailto:${tour.agent_email}`} style={{ ...btnStyle, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', textDecoration: 'none', padding: '8px 14px', flexShrink: 0 }}>
+                        {t.emailBtn}
+                      </a>
+                    </div>
+                  )}
+
+                  {tour?.agency_name && (
+                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.7)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#94a3b8' }}>{t.agencyLabel}</p>
+                      <p style={{ margin: 0, fontSize: '15px', fontWeight: 'bold', color: '#fff' }}>{tour.agency_name}</p>
                     </div>
                   )}
                 </div>
@@ -1449,7 +1468,152 @@ export default function TourPage() {
           </div>
         </div>
       )}
+
+      {selectedFaq !== null && faqList[selectedFaq] && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 70, backgroundColor: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ backgroundColor: '#0f172a', border: '1px solid rgba(254, 240, 138, 0.4)', borderRadius: '20px', width: '100%', maxWidth: '450px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <h3 style={{ color: '#fef08a', fontSize: '15px', margin: 0, paddingRight: '10px' }}>
+                {faqList[selectedFaq].question}
+              </h3>
+              <button onClick={() => setSelectedFaq(null)} style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#ef4444', flexShrink: 0, padding: '6px 12px' }}>
+                {t.close}
+              </button>
+            </div>
+            <div style={{ padding: '16px', overflowY: 'auto', flex: 1, color: '#e2e8f0', fontSize: '13px' }}>
+              <p style={{ margin: 0, lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+                {faqList[selectedFaq].answer || t.comingSoon}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {adminMode && !pendingCoords && (
+        <div style={{ position: 'absolute', top: '80px', left: '12px', zIndex: 40, backgroundColor: 'rgba(0,0,0,0.85)', padding: '10px', borderRadius: '12px', border: '1px solid #333', color: '#fff', fontSize: '11px', maxWidth: '280px' }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '6px', color: '#38bdf8' }}>ADMIN KONTROLE</div>
+          <button onClick={handleStartEditEstablish} style={{ ...btnStyle, width: '100%', marginBottom: '6px' }}>{t.introNarration}</button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '100px', overflowY: 'auto' }}>
+            {waypointsList.map((wp, idx) => (
+              <button key={idx} onClick={() => handleStartEditWaypoint(idx)} style={{ ...btnStyle, textAlign: 'left', width: '100%' }}>
+                {wp.type === 'navigation' || wp.targetRoomId ? '🚪 Nav' : 'ℹ️ Info'}: {getLocalizedText(wp.title_i18n, lang) || getLocalizedText(wp.text_i18n, lang) || `Tačka ${idx + 1}`}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {pendingCoords && (
+        <div style={{
+          position: 'absolute',
+          top: '75px',
+          right: '12px',
+          zIndex: 45,
+          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+          padding: '14px',
+          borderRadius: '16px',
+          border: '1px solid #38bdf8',
+          color: '#fff',
+          width: '92%',
+          maxWidth: '320px',
+          maxHeight: '82vh',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.7)',
+          backdropFilter: 'blur(8px)'
+        }}>
+          <h3 style={{ margin: 0, color: '#38bdf8', fontSize: '14px' }}>
+            {hotspotType === 'establish' ? t.introNarration : editingIndex !== null ? t.editPoint : t.addPoint}
+          </h3>
+
+          {hotspotType !== 'establish' && (
+            <div>
+              <label style={{ fontSize: '11px', color: '#aaa', display: 'block', marginBottom: '3px' }}>{t.actionType}</label>
+              <select
+                value={hotspotType}
+                onChange={(e) => setHotspotType(e.target.value as any)}
+                style={{ width: '100%', padding: '6px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '12px' }}
+              >
+                <option value="navigation">{t.navArrow}</option>
+                <option value="info">{t.infoPoint}</option>
+              </select>
+            </div>
+          )}
+
+          {hotspotType === 'navigation' && (
+            <div>
+              <label style={{ fontSize: '11px', color: '#aaa', display: 'block', marginBottom: '3px' }}>Ciljna soba:</label>
+              <select
+                value={targetRoomId}
+                onChange={(e) => setTargetRoomId(e.target.value)}
+                style={{ width: '100%', padding: '6px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '12px' }}
+              >
+                <option value="">{t.targetRoom}</option>
+                {rooms.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {getLocalizedText(r.title_i18n, lang) || `Soba ${r.id}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {(hotspotType === 'info' || hotspotType === 'establish') && (
+            <>
+              {hotspotType === 'info' && (
+                <input
+                  type="text"
+                  placeholder={t.titlePlaceholder}
+                  value={hotspotTitle}
+                  onChange={(e) => setHotspotTitle(e.target.value)}
+                  style={{ width: '100%', padding: '6px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', fontSize: '12px' }}
+                />
+              )}
+              <textarea
+                placeholder={t.descPlaceholder}
+                value={hotspotText}
+                onChange={(e) => setHotspotText(e.target.value)}
+                rows={3}
+                style={{ width: '100%', padding: '6px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', resize: 'vertical', fontSize: '12px' }}
+              />
+              <input
+                type="text"
+                placeholder={t.audioUrlPlaceholder}
+                value={hotspotAudioUrl}
+                onChange={(e) => setHotspotAudioUrl(e.target.value)}
+                style={{ width: '100%', padding: '6px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', fontSize: '12px' }}
+              />
+            </>
+          )}
+
+          <div style={{ display: 'flex', gap: '6px', marginTop: '4px', flexDirection: 'column' }}>
+            <button
+              onClick={handleSaveWaypoint}
+              style={{ ...btnStyle, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', fontWeight: 'bold', padding: '8px', fontSize: '12px' }}
+            >
+              {t.save}
+            </button>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button
+                onClick={() => setPendingCoords(null)}
+                style={{ ...btnStyle, flex: 1, padding: '6px', fontSize: '12px' }}
+              >
+                {t.cancel}
+              </button>
+              {editingIndex !== null && hotspotType !== 'establish' && (
+                <button
+                  onClick={handleDeleteWaypoint}
+                  style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#ef4444', flex: 1, padding: '6px', fontSize: '12px' }}
+                >
+                  {t.delete}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
-
