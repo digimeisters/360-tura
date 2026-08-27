@@ -443,6 +443,117 @@ export default function TourPage() {
   const scrollLeftRef = useRef(0);
   const autoScrollPausedRef = useRef(false);
 
+  // Funkcija za promenu jezika i očuvanje trenutnog stanja
+  const changeLanguage = (newLang: Language) => {
+    setLang(newLang);
+    langRef.current = newLang;
+
+    // Ako je panorama učitana, osveži hotspotove sa novim jezikom
+    if (viewerRef.current && rooms[roomIdx]) {
+      const currentYaw = viewerRef.current.getYaw();
+      const currentPitch = viewerRef.current.getPitch();
+      const currentHfov = viewerRef.current.getHfov();
+
+      const currentRoom = rooms[roomIdx];
+      const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
+
+      waypointsList.forEach((wp, index) => {
+        try {
+          viewerRef.current.removeHotSpot(`hotspot-${index}`);
+        } catch {}
+
+        const isNav = wp.type === 'navigation' || Boolean(wp.targetRoomId);
+        let tooltipText = getLocalizedText(wp.title_i18n, newLang);
+        if (!tooltipText && !isNav) {
+          tooltipText = getLocalizedText(wp.text_i18n, newLang);
+          if (tooltipText.length > 40) tooltipText = tooltipText.substring(0, 40) + '...';
+        }
+        if (isNav && !tooltipText && wp.targetRoomId) {
+          const targetRoomObj = rooms.find(r => r.id == wp.targetRoomId);
+          if (targetRoomObj) tooltipText = getLocalizedText(targetRoomObj.title_i18n, newLang);
+        }
+
+        viewerRef.current.addHotSpot({
+          id: `hotspot-${index}`,
+          pitch: wp.pitch || 0,
+          yaw: wp.yaw || 0,
+          createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
+            hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
+            hotSpotDiv.style.backgroundColor = isNav ? 'rgba(7, 9, 10, 0.68)' : 'rgba(4, 26, 37, 0.73)';
+            hotSpotDiv.style.border = '1.5px solid rgba(248, 244, 244, 0.9)';
+            hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
+            hotSpotDiv.style.color = '#fff';
+            hotSpotDiv.style.display = 'flex';
+            hotSpotDiv.style.alignItems = 'center';
+            hotSpotDiv.style.justifyContent = 'center';
+            hotSpotDiv.style.cursor = 'pointer';
+            hotSpotDiv.style.padding = isNav ? '3px 6px' : '0.5px';
+            hotSpotDiv.style.width = isNav ? 'auto' : '22px';
+            hotSpotDiv.style.height = isNav ? 'auto' : '22px';
+            hotSpotDiv.style.fontWeight = 'bold';
+            hotSpotDiv.style.fontSize = isNav ? '10px' : '15px';
+            hotSpotDiv.style.boxShadow = '8px 10px 20px rgba(0, 0, 0, 0.53)';
+            hotSpotDiv.innerHTML = isNav ? `${tooltipText}` : 'ℹ';
+          },
+          text: tooltipText,
+          clickHandlerFunc: () => {
+            if (adminMode) {
+              handleStartEditWaypoint(index);
+            } else if (isNav && wp.targetRoomId) {
+              changeRoomById(wp.targetRoomId);
+            } else if (!isNav) {
+              isInterruptedRef.current = true;
+              stopCurrentAnimation();
+              audioCurrentTimeRef.current = 0;
+              if (viewerRef.current) viewerRef.current.setHfov(50);
+              playAudioFileWithCompletion(wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
+            }
+          }
+        });
+      });
+
+      // Zadrži trenutnu kameru
+      viewerRef.current.setYaw(currentYaw);
+      viewerRef.current.setPitch(currentPitch);
+      viewerRef.current.setHfov(currentHfov);
+    }
+  };
+
+  // Proverava da li postoji prevod za određeni jezik u bazi
+  const isLanguageAvailable = (l: Language): boolean => {
+    if (l === 'sr') return true; // Srpski je podrazumevani
+
+    const checkI18n = (data: any): boolean => {
+      if (!data) return false;
+      if (typeof data === 'object') return Boolean(data[l]);
+      if (typeof data === 'string') {
+        try {
+          const parsed = JSON.parse(data);
+          return Boolean(parsed && parsed[l]);
+        } catch {
+          return false;
+        }
+      }
+      return false;
+    };
+
+    if (tour) {
+      if (checkI18n(tour.title_i18n) || checkI18n(tour.about_text_i18n)) return true;
+    }
+
+    if (rooms && rooms.length > 0) {
+      for (const room of rooms) {
+        if (checkI18n(room.title_i18n)) return true;
+        const waypoints = parseWaypoints(room.waypoints_i18n);
+        for (const wp of waypoints) {
+          if (checkI18n(wp.text_i18n) || checkI18n(wp.title_i18n)) return true;
+        }
+      }
+    }
+
+    return false;
+  };
+
   const stopCurrentAnimation = useCallback(() => {
     if (animFrameRef.current !== null) {
       cancelAnimationFrame(animFrameRef.current);
@@ -468,31 +579,29 @@ export default function TourPage() {
     }
   }, []);
 
-useEffect(() => {
-  isMountedRef.current = true;
-  setMounted(true);
-  const urlParams = new URLSearchParams(window.location.search);
-  
-  // Proverava se samo URL parametar
-  if (urlParams.get('admin') === 'mojtajnikljuc') {
-    localStorage.setItem('tour_admin', 'true');
-    setAdminMode(true);
-  } else {
-    // Ako ključ nije prisutan u URL-u, briše se iz lokalne memorije i gasi se admin mode
-    localStorage.removeItem('tour_admin');
-    setAdminMode(false);
-  }
-
-  return () => {
-    isMountedRef.current = false;
-    stopAudio();
-    stopCurrentAnimation();
-    if (viewerRef.current) {
-      try { viewerRef.current.destroy(); } catch {}
-      viewerRef.current = null;
+  useEffect(() => {
+    isMountedRef.current = true;
+    setMounted(true);
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    if (urlParams.get('admin') === 'mojtajnikljuc') {
+      localStorage.setItem('tour_admin', 'true');
+      setAdminMode(true);
+    } else {
+      localStorage.removeItem('tour_admin');
+      setAdminMode(false);
     }
-  };
-}, [stopAudio, stopCurrentAnimation]);
+
+    return () => {
+      isMountedRef.current = false;
+      stopAudio();
+      stopCurrentAnimation();
+      if (viewerRef.current) {
+        try { viewerRef.current.destroy(); } catch {}
+        viewerRef.current = null;
+      }
+    };
+  }, [stopAudio, stopCurrentAnimation]);
 
   useEffect(() => {
     if (!tourStarted) return;
@@ -684,6 +793,7 @@ useEffect(() => {
       }
 
       return {
+        id: `hotspot-${index}`,
         pitch: wp.pitch || 0,
         yaw: wp.yaw || 0,
         createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
@@ -730,8 +840,8 @@ useEffect(() => {
       autoLoad: true,
       showControls: false,
       hfov: 67,
-      minHfov: 25, // Smanjenjem ove vrednosti omogućavate ZNATNO veći zum (default je 50)
-  maxHfov: 120, // Maksimalni udaljeni prikaz (odzumirano)
+      minHfov: 15,
+      maxHfov: 120,
       yaw: targetEstablishYaw,
       pitch: targetEstablishPitch,
       autoRotate: 0,
@@ -783,6 +893,7 @@ useEffect(() => {
     v.on('load', async () => {
       if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
       setRoomLoading(false);
+
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
       const introTextRaw = establishData.text_i18n || `${translations[langRef.current].welcomePrefix}${getLocalizedText(currentRoom.title_i18n, langRef.current)}`;
@@ -1070,47 +1181,49 @@ useEffect(() => {
       `}</style>
 
       {!tourStarted && (
-  <div style={{ position: 'absolute', inset: 0, zIndex: 50, backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', textAlign: 'center' }}>
-    {/* Izbor jezika na početnom ekranu */}
-    <div style={{
-      display: 'flex',
-      gap: '6px',
-      backgroundColor: 'rgba(15, 23, 42, 0.8)',
-      backdropFilter: 'blur(10px)',
-      border: '1px solid rgba(255, 255, 255, 0.15)',
-      borderRadius: '12px',
-      padding: '4px 8px',
-      marginBottom: '20px',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
-    }}>
-      {(['sr', 'en', 'de'] as Language[]).map((l) => (
-        <button
-          key={l}
-          onClick={() => setLang(l)}
-          style={{
-            background: lang === l ? '#0284c7' : 'transparent',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '6px 12px',
-            fontSize: '12px',
-            fontWeight: lang === l ? 'bold' : 'normal',
-            cursor: 'pointer',
-            transition: 'background 0.2s'
-          }}
-        >
-          {l.toUpperCase()}
-        </button>
-      ))}
-    </div>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 50, backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', textAlign: 'center' }}>
+          {/* Izbor jezika na početnom ekranu */}
+          <div style={{
+            display: 'flex',
+            gap: '6px',
+            backgroundColor: 'rgba(15, 23, 42, 0.8)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '12px',
+            padding: '4px 8px',
+            marginBottom: '20px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+          }}>
+            {(['sr', 'en', 'de'] as Language[])
+              .filter((l) => isLanguageAvailable(l))
+              .map((l) => (
+                <button
+                  key={l}
+                  onClick={() => changeLanguage(l)}
+                  style={{
+                    background: lang === l ? '#0284c7' : 'transparent',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    fontWeight: lang === l ? 'bold' : 'normal',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s'
+                  }}
+                >
+                  {l.toUpperCase()}
+                </button>
+              ))}
+          </div>
 
-    <h1 style={{ color: '#fff', fontSize: '24px', marginBottom: '10px' }}>{getLocalizedText(tour?.title_i18n, lang)}</h1>
-    <p style={{ color: '#aaa', fontSize: '14px', maxWidth: '400px', marginBottom: '30px' }}>{t.welcome}</p>
-    <button onClick={() => setTourStarted(true)} style={{ padding: '12px 28px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#0284c7', color: '#fff', border: 'none', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)' }}>
-      {t.startTour}
-    </button>
-  </div>
-)}
+          <h1 style={{ color: '#fff', fontSize: '24px', marginBottom: '10px' }}>{getLocalizedText(tour?.title_i18n, lang)}</h1>
+          <p style={{ color: '#aaa', fontSize: '14px', maxWidth: '400px', marginBottom: '30px' }}>{t.welcome}</p>
+          <button onClick={() => setTourStarted(true)} style={{ padding: '12px 28px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#0284c7', color: '#fff', border: 'none', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)' }}>
+            {t.startTour}
+          </button>
+        </div>
+      )}
 
       {tourStarted && (
         <div style={{
@@ -1173,25 +1286,27 @@ useEffect(() => {
 
               <div style={{ width: '1px', height: '14px', backgroundColor: 'rgba(255,255,255,0.2)', margin: '0 2px' }} />
 
-              {(['sr', 'en', 'de'] as Language[]).map((l) => (
-                <button
-                  key={l}
-                  onClick={() => setLang(l)}
-                  style={{
-                    background: lang === l ? '#0284c7' : 'transparent',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '3px 6px',
-                    fontSize: '11px',
-                    fontWeight: lang === l ? 'bold' : 'normal',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s'
-                  }}
-                >
-                  {l.toUpperCase()}
-                </button>
-              ))}
+              {(['sr', 'en', 'de'] as Language[])
+                .filter((l) => isLanguageAvailable(l))
+                .map((l) => (
+                  <button
+                    key={l}
+                    onClick={() => changeLanguage(l)}
+                    style={{
+                      background: lang === l ? '#0284c7' : 'transparent',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '3px 6px',
+                      fontSize: '11px',
+                      fontWeight: lang === l ? 'bold' : 'normal',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s'
+                    }}
+                  >
+                    {l.toUpperCase()}
+                  </button>
+                ))}
             </div>
           </div>
 
@@ -1350,7 +1465,6 @@ useEffect(() => {
           color: '#fff',
           boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
         }}>
-          {/* Dugme za zatvaranje (x) */}
           <button
             onClick={() => {
               stopAudio();
