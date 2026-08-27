@@ -249,7 +249,7 @@ const categoryQuestions: Record<string, Record<Language, string[]>> = {
 const translations = {
   sr: {
     startTour: '▶ Pokreni turu',
-    welcome: 'Dobrodošli! Kliknite na dugme ispod da pokrenete interaktivnu turu.',
+    welcome: 'Dobrodošli! Izaberite jezik i kliknite na dugme ispod da pokrenete interaktivnu turu.',
     loading: 'Učitavanje ture...',
     roomLoadingPrefix: 'Pripremite se... ulazimo : ',
     tourNotFound: 'Tura nije pronađena.',
@@ -291,7 +291,7 @@ const translations = {
   },
   en: {
     startTour: '▶ Start Tour',
-    welcome: 'Welcome! Click below to start the tour.',
+    welcome: 'Welcome! Select a language and click the button below to start the tour.',
     loading: 'Loading tour...',
     roomLoadingPrefix: 'Entering: ',
     tourNotFound: 'Tour not found.',
@@ -333,7 +333,7 @@ const translations = {
   },
   de: {
     startTour: '🇩🇪 Tour Starten',
-    welcome: 'Willkommen! Klicken Sie unten, um die Tour zu starten.',
+    welcome: 'Willkommen! Wahlen Sie eine Sprache und klicken Sie unten, um die Tour zu starten.',
     loading: 'Tour wird geladen...',
     roomLoadingPrefix: 'Betrete: ',
     tourNotFound: 'Tour nicht gefunden.',
