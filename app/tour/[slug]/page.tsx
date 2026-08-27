@@ -270,11 +270,11 @@ const translations = {
     descPlaceholder: 'Opis / Tekst naracije...',
     audioUrlPlaceholder: 'Link do MP3 fajla:',
     welcomePrefix: 'Dobrodošli u ',
-    btnPlan: '🗺️ Skica',
     btnLocation: '📍 Lokacija',
     btnAbout: 'ℹ️ O stanu',
     btnFaq: '❓ Pitanja',
     btnContact: '📞 Kontakt',
+    btnPlan: '🗺️ Skica',
     noPlan: 'Skica osnove trenutno nije dostupna za ovu nekretninu.',
     noLocation: 'Mapa lokacije trenutno nije dostupna za ovu nekretninu.',
     noAbout: 'Informacije trenutno nisu dostupne.',
@@ -723,7 +723,7 @@ export default function TourPage() {
       panorama: currentRoom.panorama_url,
       autoLoad: true,
       showControls: false,
-      hfov: 70,
+      hfov: 67,
       yaw: targetEstablishYaw,
       pitch: targetEstablishPitch,
       autoRotate: 0,
@@ -752,7 +752,7 @@ export default function TourPage() {
         setIsRoomTourFullyCompleted(true);
       }, 7000);
 
-      if (viewerRef.current) viewerRef.current.setHfov(70);
+      if (viewerRef.current) viewerRef.current.setHfov(67);
 
       let lastTime = performance.now();
       const degreesPerMs = 360 / 25000;
@@ -789,7 +789,7 @@ export default function TourPage() {
         if (!sequenceActiveRef.current || isInterruptedRef.current) return resolve();
 
         if (viewerRef.current) {
-          viewerRef.current.setHfov(70);
+          viewerRef.current.setHfov(67);
           viewerRef.current.setYaw(targetEstablishYaw);
           viewerRef.current.setPitch(targetEstablishPitch);
           viewerRef.current.startAutoRotate(speed, targetEstablishPitch);
@@ -1240,7 +1240,7 @@ export default function TourPage() {
           justifyContent: 'center'
         }}>
           <button onClick={() => setActiveModal('plan')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'plan' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
-            {t.btnPlan}
+            {t.btnFaq}
           </button>
           <button onClick={() => setActiveModal('location')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'location' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
             {t.btnLocation}
@@ -1249,7 +1249,7 @@ export default function TourPage() {
             {t.btnAbout}
           </button>
           <button onClick={() => setActiveModal('faq')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'faq' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
-            {t.btnFaq}
+            {t.btnPlan}
           </button>
           <button onClick={() => setActiveModal('contact')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'contact' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
             {t.btnContact}
