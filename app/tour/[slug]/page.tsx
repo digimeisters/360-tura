@@ -468,25 +468,31 @@ export default function TourPage() {
     }
   }, []);
 
-  useEffect(() => {
-    isMountedRef.current = true;
-    setMounted(true);
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('admin') === 'mojtajnikljuc' || localStorage.getItem('tour_admin') === 'true') {
-      localStorage.setItem('tour_admin', 'true');
-      setAdminMode(true);
-    }
+useEffect(() => {
+  isMountedRef.current = true;
+  setMounted(true);
+  const urlParams = new URLSearchParams(window.location.search);
+  
+  // Proverava se samo URL parametar
+  if (urlParams.get('admin') === 'mojtajnikljuc') {
+    localStorage.setItem('tour_admin', 'true');
+    setAdminMode(true);
+  } else {
+    // Ako ključ nije prisutan u URL-u, briše se iz lokalne memorije i gasi se admin mode
+    localStorage.removeItem('tour_admin');
+    setAdminMode(false);
+  }
 
-    return () => {
-      isMountedRef.current = false;
-      stopAudio();
-      stopCurrentAnimation();
-      if (viewerRef.current) {
-        try { viewerRef.current.destroy(); } catch {}
-        viewerRef.current = null;
-      }
-    };
-  }, [stopAudio, stopCurrentAnimation]);
+  return () => {
+    isMountedRef.current = false;
+    stopAudio();
+    stopCurrentAnimation();
+    if (viewerRef.current) {
+      try { viewerRef.current.destroy(); } catch {}
+      viewerRef.current = null;
+    }
+  };
+}, [stopAudio, stopCurrentAnimation]);
 
   useEffect(() => {
     if (!tourStarted) return;
