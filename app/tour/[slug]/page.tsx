@@ -1068,14 +1068,47 @@ useEffect(() => {
       `}</style>
 
       {!tourStarted && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 50, backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', textAlign: 'center' }}>
-          <h1 style={{ color: '#fff', fontSize: '24px', marginBottom: '10px' }}>{getLocalizedText(tour?.title_i18n, lang)}</h1>
-          <p style={{ color: '#aaa', fontSize: '14px', maxWidth: '400px', marginBottom: '30px' }}>{t.welcome}</p>
-          <button onClick={() => setTourStarted(true)} style={{ padding: '12px 28px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#0284c7', color: '#fff', border: 'none', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)' }}>
-            {t.startTour}
-          </button>
-        </div>
-      )}
+  <div style={{ position: 'absolute', inset: 0, zIndex: 50, backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', textAlign: 'center' }}>
+    {/* Izbor jezika na početnom ekranu */}
+    <div style={{
+      display: 'flex',
+      gap: '6px',
+      backgroundColor: 'rgba(15, 23, 42, 0.8)',
+      backdropFilter: 'blur(10px)',
+      border: '1px solid rgba(255, 255, 255, 0.15)',
+      borderRadius: '12px',
+      padding: '4px 8px',
+      marginBottom: '20px',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+    }}>
+      {(['sr', 'en', 'de'] as Language[]).map((l) => (
+        <button
+          key={l}
+          onClick={() => setLang(l)}
+          style={{
+            background: lang === l ? '#0284c7' : 'transparent',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '6px 12px',
+            fontSize: '12px',
+            fontWeight: lang === l ? 'bold' : 'normal',
+            cursor: 'pointer',
+            transition: 'background 0.2s'
+          }}
+        >
+          {l.toUpperCase()}
+        </button>
+      ))}
+    </div>
+
+    <h1 style={{ color: '#fff', fontSize: '24px', marginBottom: '10px' }}>{getLocalizedText(tour?.title_i18n, lang)}</h1>
+    <p style={{ color: '#aaa', fontSize: '14px', maxWidth: '400px', marginBottom: '30px' }}>{t.welcome}</p>
+    <button onClick={() => setTourStarted(true)} style={{ padding: '12px 28px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#0284c7', color: '#fff', border: 'none', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)' }}>
+      {t.startTour}
+    </button>
+  </div>
+)}
 
       {tourStarted && (
         <div style={{
@@ -1245,7 +1278,7 @@ useEffect(() => {
           maxWidth: '520px',
           justifyContent: 'center'
         }}>
-          <button onClick={() => setActiveModal('plan')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'plan' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
+          <button onClick={() => setActiveModal('faq')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'plan' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
             {t.btnFaq}
           </button>
           <button onClick={() => setActiveModal('location')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'location' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
@@ -1254,7 +1287,7 @@ useEffect(() => {
           <button onClick={() => setActiveModal('about')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'about' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
             {t.btnAbout}
           </button>
-          <button onClick={() => setActiveModal('faq')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'faq' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
+          <button onClick={() => setActiveModal('plan')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'faq' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
             {t.btnPlan}
           </button>
           <button onClick={() => setActiveModal('contact')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'contact' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
