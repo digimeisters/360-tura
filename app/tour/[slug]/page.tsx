@@ -627,7 +627,7 @@ useEffect(() => {
       setLoading(false);
     }
     load();
-  }, [slug, mounted, t.tourNotFound, t.noRooms]);
+  }, [slug, mounted]);
 
   const changeRoomById = useCallback((id: string | number) => {
     roomSessionRef.current += 1;
@@ -700,8 +700,8 @@ useEffect(() => {
           hotSpotDiv.style.width = isNav ? 'auto' : '22px';
           hotSpotDiv.style.height = isNav ? 'auto' : '22px';
           hotSpotDiv.style.fontWeight = 'bold';
-          hotSpotDiv.style.fontSize = isNav ? '10px' : '18px';
-          hotSpotDiv.style.boxShadow = '8px 15px 30px rgba(0, 0, 0, 0.53)';
+          hotSpotDiv.style.fontSize = isNav ? '10px' : '15px';
+          hotSpotDiv.style.boxShadow = '8px 10px 20px rgba(0, 0, 0, 0.53)';
           hotSpotDiv.innerHTML = isNav ? `${tooltipText}` : 'ℹ';
         },
         text: tooltipText,
@@ -893,7 +893,7 @@ useEffect(() => {
         viewerRef.current = null;
       }
     };
-  }, [tourStarted, roomIdx, pannellumReady, mounted, adminMode, rooms, changeRoomById, playAudioFileWithCompletion, stopCurrentAnimation, stopAudio]);
+  }, [tourStarted, roomIdx, pannellumReady, mounted, adminMode, rooms, changeRoomById, stopCurrentAnimation, stopAudio]);
 
   const handleStartEditWaypoint = (index: number) => {
     const currentRoom = rooms[roomIdx];
