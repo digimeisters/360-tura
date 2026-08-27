@@ -730,6 +730,8 @@ useEffect(() => {
       autoLoad: true,
       showControls: false,
       hfov: 67,
+      minHfov: 25, // Smanjenjem ove vrednosti omogućavate ZNATNO veći zum (default je 50)
+  maxHfov: 120, // Maksimalni udaljeni prikaz (odzumirano)
       yaw: targetEstablishYaw,
       pitch: targetEstablishPitch,
       autoRotate: 0,
