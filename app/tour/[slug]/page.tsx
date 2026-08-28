@@ -1765,7 +1765,7 @@ export default function TourPage() {
               {editingIndex !== null && hotspotType !== 'establish' && (
                 <button
                   onClick={handleDeleteWaypoint}
-                  style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#ef4444', flex1: 1, padding: '6px', fontSize: '12px' }}
+                  style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#df991b1b' }as React.CSSProperties}
                 >
                   {t.delete}
                 </button>
