@@ -443,10 +443,12 @@ export default function TourPage() {
   const scrollLeftRef = useRef(0);
   const autoScrollPausedRef = useRef(false);
 
+  // Funkcija za promenu jezika i očuvanje trenutnog stanja
   const changeLanguage = (newLang: Language) => {
     setLang(newLang);
     langRef.current = newLang;
 
+    // Ako je panorama učitana, osveži hotspotove sa novim jezikom
     if (viewerRef.current && rooms[roomIdx]) {
       const currentYaw = viewerRef.current.getYaw();
       const currentPitch = viewerRef.current.getPitch();
@@ -477,7 +479,6 @@ export default function TourPage() {
           yaw: wp.yaw || 0,
           createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
             hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
-            hotSpotDiv.setAttribute('title', tooltipText);
             hotSpotDiv.style.backgroundColor = isNav ? 'rgba(7, 9, 10, 0.68)' : 'rgba(4, 26, 37, 0.73)';
             hotSpotDiv.style.border = '1.5px solid rgba(248, 244, 244, 0.9)';
             hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
@@ -511,14 +512,16 @@ export default function TourPage() {
         });
       });
 
+      // Zadrži trenutnu kameru
       viewerRef.current.setYaw(currentYaw);
       viewerRef.current.setPitch(currentPitch);
       viewerRef.current.setHfov(currentHfov);
     }
   };
 
+  // Proverava da li postoji prevod za određeni jezik u bazi
   const isLanguageAvailable = (l: Language): boolean => {
-    if (l === 'sr') return true;
+    if (l === 'sr') return true; // Srpski je podrazumevani
 
     const checkI18n = (data: any): boolean => {
       if (!data) return false;
@@ -795,7 +798,6 @@ export default function TourPage() {
         yaw: wp.yaw || 0,
         createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
           hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
-          hotSpotDiv.setAttribute('title', tooltipText);
           hotSpotDiv.style.backgroundColor = isNav ? 'rgba(7, 9, 10, 0.68)' : 'rgba(4, 26, 37, 0.73)';
           hotSpotDiv.style.border = '1.5px solid rgba(248, 244, 244, 0.9)';
           hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
@@ -1180,6 +1182,7 @@ export default function TourPage() {
 
       {!tourStarted && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 50, backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', textAlign: 'center' }}>
+          {/* Izbor jezika na početnom ekranu */}
           <div style={{
             display: 'flex',
             gap: '6px',
@@ -1235,27 +1238,22 @@ export default function TourPage() {
           pointerEvents: 'none'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            {/* Gornji levi bedž - skraćen na mobilnom, na tap prikazuje pun naziv u nativnom tooltipu */}
-            <div 
-              title={getLocalizedText(tour?.title_i18n, lang)}
-              style={{
-                backgroundColor: 'rgba(15, 23, 42, 0.8)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                borderRadius: '12px',
-                padding: '6px 12px',
-                color: '#fff',
-                fontSize: '13px',
-                fontWeight: 600,
-                pointerEvents: 'auto',
-                maxWidth: '45vw',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                cursor: 'pointer'
-              }}
-            >
+            <div style={{
+              backgroundColor: 'rgba(15, 23, 42, 0.8)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '12px',
+              padding: '6px 12px',
+              color: '#fff',
+              fontSize: '13px',
+              fontWeight: 600,
+              pointerEvents: 'auto',
+              maxWidth: '55%',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+            }}>
               {getLocalizedText(tour?.title_i18n, lang)}
             </div>
 
@@ -1434,34 +1432,7 @@ export default function TourPage() {
       )}
 
       {roomLoading && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 20, backgroundColor: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '18px', padding: '20px' }}>
-          
-          {/* Naziv stana na loaderu - skraćen sa max-width za mobilni uz title atribut za dodir */}
-          {tour && (
-            <div 
-              title={getLocalizedText(tour.title_i18n, lang)}
-              style={{
-                backgroundColor: 'rgba(15, 23, 42, 0.75)',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
-                borderRadius: '24px',
-                padding: '8px 16px',
-                color: '#ffffff',
-                fontSize: '14px',
-                fontWeight: 600,
-                letterSpacing: '0.5px',
-                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4), 0 0 15px rgba(56, 189, 248, 0.15)',
-                textAlign: 'center',
-                maxWidth: '80vw',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                cursor: 'pointer'
-              }}
-            >
-              🏠 {getLocalizedText(tour.title_i18n, lang)}
-            </div>
-          )}
-
+        <div style={{ position: 'absolute', inset: 0, zIndex: 20, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '15px' }}>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <div style={{ width: '12px', height: '12px', backgroundColor: '#38bdf8', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.32s' }} />
             <div style={{ width: '12px', height: '12px', backgroundColor: '#38bdf8', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.16s' }} />
@@ -1473,7 +1444,7 @@ export default function TourPage() {
               40% { transform: scale(1.0); opacity: 1; }
             }
           `}</style>
-          <p style={{ color: '#38bdf8', fontSize: '14px', letterSpacing: '1px', margin: 0 }}>{t.roomLoadingPrefix}<b>{getLocalizedText(currentRoom?.title_i18n, lang)}</b></p>
+          <p style={{ color: '#38bdf8', fontSize: '14px', letterSpacing: '1px' }}>{t.roomLoadingPrefix}<b>{getLocalizedText(currentRoom?.title_i18n, lang)}</b></p>
         </div>
       )}
 
