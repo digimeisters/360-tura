@@ -113,7 +113,7 @@ const parseEstablish = (establishData: unknown): EstablishData => {
 };
 
 const buildI18nObject = (
-  textValue: string, 
+  textValue: string,
   existingData?: unknown,
   currentLang: Language = 'sr'
 ): Record<string, string> => {
@@ -251,7 +251,7 @@ const translations = {
     startTour: '▶ Pokreni turu',
     welcome: 'Dobrodošli! Izaberite jezik i kliknite na dugme ispod da pokrenete interaktivnu turu.',
     loading: 'Učitavanje ture...',
-    roomLoadingPrefix: 'Pripremite se... ulazimo : ',
+    roomLoadingPrefix: 'Ulazimo u prostoriju: ',
     tourNotFound: 'Tura nije pronađena.',
     noRooms: 'Ova tura nema soba.',
     guideCompleted: 'Vodič završen',
@@ -293,7 +293,7 @@ const translations = {
     startTour: '▶ Start Tour',
     welcome: 'Welcome! Select a language and click the button below to start the tour.',
     loading: 'Loading tour...',
-    roomLoadingPrefix: 'Entering: ',
+    roomLoadingPrefix: 'Entering room: ',
     tourNotFound: 'Tour not found.',
     noRooms: 'This tour has no rooms.',
     guideCompleted: 'Guide Completed',
@@ -335,7 +335,7 @@ const translations = {
     startTour: '🇩🇪 Tour Starten',
     welcome: 'Willkommen! Wahlen Sie eine Sprache und klicken Sie unten, um die Tour zu starten.',
     loading: 'Tour wird geladen...',
-    roomLoadingPrefix: 'Betrete: ',
+    roomLoadingPrefix: 'Betrete Raum: ',
     tourNotFound: 'Tour nicht gefunden.',
     noRooms: 'Diese Tour hat keine Räume.',
     guideCompleted: 'Führung beendet',
@@ -443,12 +443,10 @@ export default function TourPage() {
   const scrollLeftRef = useRef(0);
   const autoScrollPausedRef = useRef(false);
 
-  // Funkcija za promenu jezika i očuvanje trenutnog stanja
   const changeLanguage = (newLang: Language) => {
     setLang(newLang);
     langRef.current = newLang;
 
-    // Ako je panorama učitana, osveži hotspotove sa novim jezikom
     if (viewerRef.current && rooms[roomIdx]) {
       const currentYaw = viewerRef.current.getYaw();
       const currentPitch = viewerRef.current.getPitch();
@@ -512,16 +510,14 @@ export default function TourPage() {
         });
       });
 
-      // Zadrži trenutnu kameru
       viewerRef.current.setYaw(currentYaw);
       viewerRef.current.setPitch(currentPitch);
       viewerRef.current.setHfov(currentHfov);
     }
   };
 
-  // Proverava da li postoji prevod za određeni jezik u bazi
   const isLanguageAvailable = (l: Language): boolean => {
-    if (l === 'sr') return true; // Srpski je podrazumevani
+    if (l === 'sr') return true;
 
     const checkI18n = (data: any): boolean => {
       if (!data) return false;
@@ -583,7 +579,7 @@ export default function TourPage() {
     isMountedRef.current = true;
     setMounted(true);
     const urlParams = new URLSearchParams(window.location.search);
-    
+
     if (urlParams.get('admin') === 'mojtajnikljuc') {
       localStorage.setItem('tour_admin', 'true');
       setAdminMode(true);
@@ -858,9 +854,9 @@ export default function TourPage() {
       if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
       stopCurrentAnimation();
-      setInfoBoxData({ 
-        titleRaw: translations[langRef.current].guideCompleted, 
-        textRaw: translations[langRef.current].freeExplore 
+      setInfoBoxData({
+        titleRaw: translations[langRef.current].guideCompleted,
+        textRaw: translations[langRef.current].freeExplore
       });
 
       if (guideCompleteTimerRef.current) clearTimeout(guideCompleteTimerRef.current);
@@ -1172,6 +1168,9 @@ export default function TourPage() {
 
   const aboutText = getLocalizedText(tour?.about_text_i18n, lang);
 
+  const fullTourTitle = getLocalizedText(tour?.title_i18n, lang);
+  const currentRoomTitle = getLocalizedText(currentRoom?.title_i18n, lang) || `Soba ${roomIdx + 1}`;
+
   return (
     <main style={{ position: 'relative', width: '100vw', height: '100dvh', backgroundColor: '#000', overflow: 'hidden' }}>
       <style>{`
@@ -1182,7 +1181,6 @@ export default function TourPage() {
 
       {!tourStarted && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 50, backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', textAlign: 'center' }}>
-          {/* Izbor jezika na početnom ekranu */}
           <div style={{
             display: 'flex',
             gap: '6px',
@@ -1217,7 +1215,7 @@ export default function TourPage() {
               ))}
           </div>
 
-          <h1 style={{ color: '#fff', fontSize: '24px', marginBottom: '10px' }}>{getLocalizedText(tour?.title_i18n, lang)}</h1>
+          <h1 style={{ color: '#fff', fontSize: '24px', marginBottom: '10px' }}>{fullTourTitle}</h1>
           <p style={{ color: '#aaa', fontSize: '14px', maxWidth: '400px', marginBottom: '30px' }}>{t.welcome}</p>
           <button onClick={() => setTourStarted(true)} style={{ padding: '12px 28px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#0284c7', color: '#fff', border: 'none', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)' }}>
             {t.startTour}
@@ -1254,7 +1252,7 @@ export default function TourPage() {
               textOverflow: 'ellipsis',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
             }}>
-              {getLocalizedText(tour?.title_i18n, lang)}
+              {fullTourTitle}
             </div>
 
             <div style={{
@@ -1432,7 +1430,7 @@ export default function TourPage() {
       )}
 
       {roomLoading && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 20, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '15px' }}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 20, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '15px', padding: '20px', textAlign: 'center' }}>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <div style={{ width: '12px', height: '12px', backgroundColor: '#38bdf8', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.32s' }} />
             <div style={{ width: '12px', height: '12px', backgroundColor: '#38bdf8', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.16s' }} />
@@ -1444,7 +1442,14 @@ export default function TourPage() {
               40% { transform: scale(1.0); opacity: 1; }
             }
           `}</style>
-          <p style={{ color: '#38bdf8', fontSize: '14px', letterSpacing: '1px' }}>{t.roomLoadingPrefix}<b>{getLocalizedText(currentRoom?.title_i18n, lang)}</b></p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '450px' }}>
+            <div style={{ color: '#fff', fontSize: '15px', fontWeight: 600, letterSpacing: '0.5px' }}>
+              {fullTourTitle}
+            </div>
+            <div style={{ color: '#38bdf8', fontSize: '13px', letterSpacing: '0.5px' }}>
+              {t.roomLoadingPrefix}<b style={{ color: '#fff' }}>{currentRoomTitle}</b>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1760,7 +1765,7 @@ export default function TourPage() {
               {editingIndex !== null && hotspotType !== 'establish' && (
                 <button
                   onClick={handleDeleteWaypoint}
-                  style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#ef4444', flex: 1, padding: '6px', fontSize: '12px' }}
+                  style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#ef4444', flex1: 1, padding: '6px', fontSize: '12px' }}
                 >
                   {t.delete}
                 </button>
@@ -1772,3 +1777,4 @@ export default function TourPage() {
     </main>
   );
 }
+
