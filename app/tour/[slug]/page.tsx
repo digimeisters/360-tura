@@ -251,7 +251,7 @@ const translations = {
     startTour: '▶ Pokreni turu',
     welcome: 'Dobrodošli! Izaberite jezik i kliknite na dugme ispod da pokrenete interaktivnu turu.',
     loading: 'Učitavanje ture...',
-    roomLoadingPrefix: 'Pripremite se... ulazimo : ',
+    roomLoadingPrefix: 'Pripremite se... ulazimo u ',
     tourNotFound: 'Tura nije pronađena.',
     noRooms: 'Ova tura nema soba.',
     guideCompleted: 'Vodič završen',
@@ -443,12 +443,10 @@ export default function TourPage() {
   const scrollLeftRef = useRef(0);
   const autoScrollPausedRef = useRef(false);
 
-  // Funkcija za promenu jezika i očuvanje trenutnog stanja
   const changeLanguage = (newLang: Language) => {
     setLang(newLang);
     langRef.current = newLang;
 
-    // Ako je panorama učitana, osveži hotspotove sa novim jezikom
     if (viewerRef.current && rooms[roomIdx]) {
       const currentYaw = viewerRef.current.getYaw();
       const currentPitch = viewerRef.current.getPitch();
@@ -466,7 +464,6 @@ export default function TourPage() {
         let tooltipText = getLocalizedText(wp.title_i18n, newLang);
         if (!tooltipText && !isNav) {
           tooltipText = getLocalizedText(wp.text_i18n, newLang);
-          if (tooltipText.length > 40) tooltipText = tooltipText.substring(0, 40) + '...';
         }
         if (isNav && !tooltipText && wp.targetRoomId) {
           const targetRoomObj = rooms.find(r => r.id == wp.targetRoomId);
@@ -479,22 +476,64 @@ export default function TourPage() {
           yaw: wp.yaw || 0,
           createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
             hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
-            hotSpotDiv.setAttribute('title', tooltipText);
-            hotSpotDiv.style.backgroundColor = isNav ? 'rgba(7, 9, 10, 0.68)' : 'rgba(4, 26, 37, 0.73)';
-            hotSpotDiv.style.border = '1.5px solid rgba(248, 244, 244, 0.9)';
-            hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
-            hotSpotDiv.style.color = '#fff';
-            hotSpotDiv.style.display = 'flex';
-            hotSpotDiv.style.alignItems = 'center';
-            hotSpotDiv.style.justifyContent = 'center';
-            hotSpotDiv.style.cursor = 'pointer';
-            hotSpotDiv.style.padding = isNav ? '3px 6px' : '0.5px';
-            hotSpotDiv.style.width = isNav ? 'auto' : '22px';
-            hotSpotDiv.style.height = isNav ? 'auto' : '22px';
-            hotSpotDiv.style.fontWeight = 'bold';
-            hotSpotDiv.style.fontSize = isNav ? '10px' : '15px';
-            hotSpotDiv.style.boxShadow = '8px 10px 20px rgba(0, 0, 0, 0.53)';
-            hotSpotDiv.innerHTML = isNav ? `${tooltipText}` : 'ℹ';
+            
+            if (isNav) {
+              hotSpotDiv.style.backgroundColor = 'rgba(7, 9, 10, 0.85)';
+              hotSpotDiv.style.border = '1.5px solid rgba(248, 244, 244, 0.9)';
+              hotSpotDiv.style.borderRadius = '20px';
+              hotSpotDiv.style.color = '#fff';
+              hotSpotDiv.style.display = 'inline-flex';
+              hotSpotDiv.style.alignItems = 'center';
+              hotSpotDiv.style.justifyContent = 'center';
+              hotSpotDiv.style.cursor = 'pointer';
+              hotSpotDiv.style.padding = '5px 10px';
+              hotSpotDiv.style.whiteSpace = 'nowrap';
+              hotSpotDiv.style.fontWeight = 'bold';
+              hotSpotDiv.style.fontSize = '12px';
+              hotSpotDiv.style.boxShadow = '0 4px 14px rgba(0, 0, 0, 0.6)';
+              hotSpotDiv.innerHTML = `🚪 ${tooltipText}`;
+            } else {
+              hotSpotDiv.style.position = 'relative';
+              hotSpotDiv.style.backgroundColor = 'rgba(4, 26, 37, 0.85)';
+              hotSpotDiv.style.border = '1.5px solid rgba(248, 244, 244, 0.9)';
+              hotSpotDiv.style.borderRadius = '50%';
+              hotSpotDiv.style.color = '#fff';
+              hotSpotDiv.style.display = 'flex';
+              hotSpotDiv.style.alignItems = 'center';
+              hotSpotDiv.style.justifyContent = 'center';
+              hotSpotDiv.style.cursor = 'pointer';
+              hotSpotDiv.style.width = '26px';
+              hotSpotDiv.style.height = '26px';
+              hotSpotDiv.style.fontWeight = 'bold';
+              hotSpotDiv.style.fontSize = '14px';
+              hotSpotDiv.style.boxShadow = '0 4px 14px rgba(0, 0, 0, 0.6)';
+              
+              if (tooltipText) {
+                hotSpotDiv.innerHTML = `
+                  ℹ
+                  <div style="
+                    position: absolute;
+                    bottom: 110%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background-color: rgba(15, 23, 42, 0.9);
+                    border: 1px solid rgba(255,255,255,0.2);
+                    color: #fff;
+                    padding: 4px 8px;
+                    border-radius: 8px;
+                    font-size: 11px;
+                    font-weight: 500;
+                    white-space: nowrap;
+                    pointer-events: none;
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+                  ">
+                    ${tooltipText}
+                  </div>
+                `;
+              } else {
+                hotSpotDiv.innerHTML = 'ℹ';
+              }
+            }
           },
           text: tooltipText,
           clickHandlerFunc: () => {
@@ -513,16 +552,14 @@ export default function TourPage() {
         });
       });
 
-      // Zadrži trenutnu kameru
       viewerRef.current.setYaw(currentYaw);
       viewerRef.current.setPitch(currentPitch);
       viewerRef.current.setHfov(currentHfov);
     }
   };
 
-  // Proverava da li postoji prevod za određeni jezik u bazi
   const isLanguageAvailable = (l: Language): boolean => {
-    if (l === 'sr') return true; // Srpski je podrazumevani
+    if (l === 'sr') return true;
 
     const checkI18n = (data: any): boolean => {
       if (!data) return false;
@@ -786,7 +823,6 @@ export default function TourPage() {
       let tooltipText = getLocalizedText(wp.title_i18n, langRef.current);
       if (!tooltipText && !isNav) {
          tooltipText = getLocalizedText(wp.text_i18n, langRef.current);
-         if (tooltipText.length > 40) tooltipText = tooltipText.substring(0, 40) + '...';
       }
       if (isNav && !tooltipText && wp.targetRoomId) {
         const targetRoomObj = rooms.find(r => r.id == wp.targetRoomId);
@@ -799,22 +835,64 @@ export default function TourPage() {
         yaw: wp.yaw || 0,
         createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
           hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
-          hotSpotDiv.setAttribute('title', tooltipText);
-          hotSpotDiv.style.backgroundColor = isNav ? 'rgba(7, 9, 10, 0.68)' : 'rgba(4, 26, 37, 0.73)';
-          hotSpotDiv.style.border = '1.5px solid rgba(248, 244, 244, 0.9)';
-          hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
-          hotSpotDiv.style.color = '#fff';
-          hotSpotDiv.style.display = 'flex';
-          hotSpotDiv.style.alignItems = 'center';
-          hotSpotDiv.style.justifyContent = 'center';
-          hotSpotDiv.style.cursor = 'pointer';
-          hotSpotDiv.style.padding = isNav ? '3px 6px' : '0.5px';
-          hotSpotDiv.style.width = isNav ? 'auto' : '22px';
-          hotSpotDiv.style.height = isNav ? 'auto' : '22px';
-          hotSpotDiv.style.fontWeight = 'bold';
-          hotSpotDiv.style.fontSize = isNav ? '10px' : '15px';
-          hotSpotDiv.style.boxShadow = '8px 10px 20px rgba(0, 0, 0, 0.53)';
-          hotSpotDiv.innerHTML = isNav ? `${tooltipText}` : 'ℹ';
+          
+          if (isNav) {
+            hotSpotDiv.style.backgroundColor = 'rgba(7, 9, 10, 0.85)';
+            hotSpotDiv.style.border = '1.5px solid rgba(248, 244, 244, 0.9)';
+            hotSpotDiv.style.borderRadius = '20px';
+            hotSpotDiv.style.color = '#fff';
+            hotSpotDiv.style.display = 'inline-flex';
+            hotSpotDiv.style.alignItems = 'center';
+            hotSpotDiv.style.justifyContent = 'center';
+            hotSpotDiv.style.cursor = 'pointer';
+            hotSpotDiv.style.padding = '5px 10px';
+            hotSpotDiv.style.whiteSpace = 'nowrap';
+            hotSpotDiv.style.fontWeight = 'bold';
+            hotSpotDiv.style.fontSize = '12px';
+            hotSpotDiv.style.boxShadow = '0 4px 14px rgba(0, 0, 0, 0.6)';
+            hotSpotDiv.innerHTML = `🚪 ${tooltipText}`;
+          } else {
+            hotSpotDiv.style.position = 'relative';
+            hotSpotDiv.style.backgroundColor = 'rgba(4, 26, 37, 0.85)';
+            hotSpotDiv.style.border = '1.5px solid rgba(248, 244, 244, 0.9)';
+            hotSpotDiv.style.borderRadius = '50%';
+            hotSpotDiv.style.color = '#fff';
+            hotSpotDiv.style.display = 'flex';
+            hotSpotDiv.style.alignItems = 'center';
+            hotSpotDiv.style.justifyContent = 'center';
+            hotSpotDiv.style.cursor = 'pointer';
+            hotSpotDiv.style.width = '26px';
+            hotSpotDiv.style.height = '26px';
+            hotSpotDiv.style.fontWeight = 'bold';
+            hotSpotDiv.style.fontSize = '14px';
+            hotSpotDiv.style.boxShadow = '0 4px 14px rgba(0, 0, 0, 0.6)';
+            
+            if (tooltipText) {
+              hotSpotDiv.innerHTML = `
+                ℹ
+                <div style="
+                  position: absolute;
+                  bottom: 110%;
+                  left: 50%;
+                  transform: translateX(-50%);
+                  background-color: rgba(15, 23, 42, 0.9);
+                  border: 1px solid rgba(255,255,255,0.2);
+                  color: #fff;
+                  padding: 4px 8px;
+                  border-radius: 8px;
+                  font-size: 11px;
+                  font-weight: 500;
+                  white-space: nowrap;
+                  pointer-events: none;
+                  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+                ">
+                  ${tooltipText}
+                </div>
+              `;
+            } else {
+              hotSpotDiv.innerHTML = 'ℹ';
+            }
+          }
         },
         text: tooltipText,
         clickHandlerFunc: () => {
@@ -1145,7 +1223,6 @@ export default function TourPage() {
   if (error) return <Centered>{error}</Centered>;
 
   const currentRoom = rooms[roomIdx];
-  const waypointsList = parseWaypoints(currentRoom?.waypoints_i18n);
 
   let displayedInfoTitle = '';
   let displayedInfoText = '';
@@ -1184,7 +1261,6 @@ export default function TourPage() {
 
       {!tourStarted && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 50, backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', textAlign: 'center' }}>
-          {/* Izbor jezika na početnom ekranu */}
           <div style={{
             display: 'flex',
             gap: '6px',
@@ -1436,23 +1512,21 @@ export default function TourPage() {
       {roomLoading && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 20, backgroundColor: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '18px', padding: '20px' }}>
           
-          {/* Title Stana sa stilizovanim dizajn kontejnerom */}
           {tour && (
             <div style={{
-              backgroundColor: 'rgba(15, 23, 42, 0.75)',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              borderRadius: '24px',
-              padding: '8px 20px',
+              backgroundColor: 'rgba(15, 23, 42, 0.85)',
+              border: '1px solid rgba(56, 189, 248, 0.4)',
+              borderRadius: '20px',
+              padding: '10px 20px',
               color: '#ffffff',
               fontSize: '15px',
               fontWeight: 600,
-              letterSpacing: '0.5px',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4), 0 0 15px rgba(56, 189, 248, 0.15)',
+              letterSpacing: '0.4px',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5), 0 0 15px rgba(56, 189, 248, 0.2)',
               textAlign: 'center',
-              maxWidth: '90%',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis'
+              maxWidth: '92%',
+              lineHeight: '1.4',
+              wordBreak: 'break-word'
             }}>
               🏠 {getLocalizedText(tour.title_i18n, lang)}
             </div>
@@ -1469,7 +1543,9 @@ export default function TourPage() {
               40% { transform: scale(1.0); opacity: 1; }
             }
           `}</style>
-          <p style={{ color: '#38bdf8', fontSize: '14px', letterSpacing: '1px', margin: 0 }}>{t.roomLoadingPrefix}<b>{getLocalizedText(currentRoom?.title_i18n, lang)}</b></p>
+          <p style={{ color: '#38bdf8', fontSize: '14px', letterSpacing: '1px', margin: 0, textAlign: 'center', padding: '0 10px' }}>
+            {t.roomLoadingPrefix}<b>{getLocalizedText(currentRoom?.title_i18n, lang)}</b>
+          </p>
         </div>
       )}
 
@@ -1674,7 +1750,7 @@ export default function TourPage() {
           <div style={{ fontWeight: 'bold', marginBottom: '6px', color: '#38bdf8' }}>ADMIN KONTROLE</div>
           <button onClick={handleStartEditEstablish} style={{ ...btnStyle, width: '100%', marginBottom: '6px' }}>{t.introNarration}</button>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '100px', overflowY: 'auto' }}>
-            {waypointsList.map((wp, idx) => (
+            {parseWaypoints(currentRoom?.waypoints_i18n).map((wp, idx) => (
               <button key={idx} onClick={() => handleStartEditWaypoint(idx)} style={{ ...btnStyle, textAlign: 'left', width: '100%' }}>
                 {wp.type === 'navigation' || wp.targetRoomId ? '🚪 Nav' : 'ℹ️ Info'}: {getLocalizedText(wp.title_i18n, lang) || getLocalizedText(wp.text_i18n, lang) || `Tačka ${idx + 1}`}
               </button>
