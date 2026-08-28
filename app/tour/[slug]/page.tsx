@@ -479,6 +479,7 @@ export default function TourPage() {
           yaw: wp.yaw || 0,
           createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
             hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
+            hotSpotDiv.setAttribute('title', tooltipText);
             hotSpotDiv.style.backgroundColor = isNav ? 'rgba(7, 9, 10, 0.68)' : 'rgba(4, 26, 37, 0.73)';
             hotSpotDiv.style.border = '1.5px solid rgba(248, 244, 244, 0.9)';
             hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
@@ -798,6 +799,7 @@ export default function TourPage() {
         yaw: wp.yaw || 0,
         createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
           hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
+          hotSpotDiv.setAttribute('title', tooltipText);
           hotSpotDiv.style.backgroundColor = isNav ? 'rgba(7, 9, 10, 0.68)' : 'rgba(4, 26, 37, 0.73)';
           hotSpotDiv.style.border = '1.5px solid rgba(248, 244, 244, 0.9)';
           hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
@@ -1432,7 +1434,30 @@ export default function TourPage() {
       )}
 
       {roomLoading && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 20, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '15px' }}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 20, backgroundColor: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '18px', padding: '20px' }}>
+          
+          {/* Title Stana sa stilizovanim dizajn kontejnerom */}
+          {tour && (
+            <div style={{
+              backgroundColor: 'rgba(15, 23, 42, 0.75)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              borderRadius: '24px',
+              padding: '8px 20px',
+              color: '#ffffff',
+              fontSize: '15px',
+              fontWeight: 600,
+              letterSpacing: '0.5px',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4), 0 0 15px rgba(56, 189, 248, 0.15)',
+              textAlign: 'center',
+              maxWidth: '90%',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}>
+              🏠 {getLocalizedText(tour.title_i18n, lang)}
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <div style={{ width: '12px', height: '12px', backgroundColor: '#38bdf8', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.32s' }} />
             <div style={{ width: '12px', height: '12px', backgroundColor: '#38bdf8', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.16s' }} />
@@ -1444,7 +1469,7 @@ export default function TourPage() {
               40% { transform: scale(1.0); opacity: 1; }
             }
           `}</style>
-          <p style={{ color: '#38bdf8', fontSize: '14px', letterSpacing: '1px' }}>{t.roomLoadingPrefix}<b>{getLocalizedText(currentRoom?.title_i18n, lang)}</b></p>
+          <p style={{ color: '#38bdf8', fontSize: '14px', letterSpacing: '1px', margin: 0 }}>{t.roomLoadingPrefix}<b>{getLocalizedText(currentRoom?.title_i18n, lang)}</b></p>
         </div>
       )}
 
