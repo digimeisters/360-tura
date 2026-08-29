@@ -11,19 +11,36 @@ export async function POST(req: Request) {
     const body = await req.json();
     console.log("PRIMLJENO IZ FORME:", JSON.stringify(body));
 
-    const slug = body.slug || body.parameter?.slug;
-    
+    let slug = body.slug || body.parameter?.slug;
+    let rawAnswers = body.answers || body.namedValues || body;
+    let updateData: Record<string, any> = {};
+
+    // Ako je answers niz, pretvaramo ga u objekat ključ-vrednost
+    if (Array.isArray(rawAnswers)) {
+      for (const item of rawAnswers) {
+        const key = item.field || item.id || item.name;
+        const val = item.value !== undefined ? item.value : (item.text || item.answer);
+        if (key) {
+          updateData[key] = val;
+        }
+      }
+    } else if (typeof rawAnswers === 'object' && rawAnswers !== null) {
+      updateData = { ...rawAnswers };
+    }
+
+    if (!slug) {
+      slug = updateData.slug;
+    }
+
     if (!slug) {
       return NextResponse.json({ error: "Nedostaje slug (identifikator ture)" }, { status: 400 });
     }
 
-    // Izvlačimo odgovore iz forme (prilagodi polja u zavisnosti šta forma tačno šalje)
-    const formData = body.answers || body.namedValues || body;
+    delete updateData.slug;
 
-    // Ažuriramo postojeći red u 'tours' tabeli na osnovu slug-a
     const { data, error } = await supabase
       .from('tours')
-      .update(formData)
+      .update(updateData)
       .eq('slug', slug);
 
     if (error) {
