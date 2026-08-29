@@ -11,12 +11,20 @@ export async function POST(req: Request) {
     const body = await req.json();
     console.log("PRIMLJENO IZ FORME:", JSON.stringify(body));
 
-    const slug = body.slug || body.parameter?.slug || "nepoznato";
-    const answers = body.answers || body.namedValues || body;
+    const slug = body.slug || body.parameter?.slug;
+    
+    if (!slug) {
+      return NextResponse.json({ error: "Nedostaje slug (identifikator ture)" }, { status: 400 });
+    }
 
+    // Izvlačimo odgovore iz forme (prilagodi polja u zavisnosti šta forma tačno šalje)
+    const formData = body.answers || body.namedValues || body;
+
+    // Ažuriramo postojeći red u 'tours' tabeli na osnovu slug-a
     const { data, error } = await supabase
       .from('tours')
-      .insert([{ slug: slug, answers: answers }]);
+      .update(formData)
+      .eq('slug', slug);
 
     if (error) {
       console.error("Supabase greska:", error.message);
@@ -25,7 +33,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
-    console.error("Greska u API-ju:", error);
+    console.errog("Greska u API-ju:", error);
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
-  }
+}
