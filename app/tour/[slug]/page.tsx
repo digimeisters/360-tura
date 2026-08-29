@@ -402,6 +402,7 @@ export default function TourPage() {
 
   const [pannellumReady, setPannellumReady] = useState(false);
   const [adminMode, setAdminMode] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const [isMuted, setIsMuted] = useState(false);
   const isMutedRef = useRef(false);
@@ -442,6 +443,39 @@ export default function TourPage() {
   const startXRef = useRef(0);
   const scrollLeftRef = useRef(0);
   const autoScrollPausedRef = useRef(false);
+
+  const handleAutoPopulateRoom = async () => {
+    const currentRoom = rooms[roomIdx];
+    if (!currentRoom || !currentRoom.panorama_url) {
+      alert('Nema dostupne panorame za ovu sobu.');
+      return;
+    }
+
+    setAiLoading(true);
+    try {
+      const res = await fetch('/api/ai/auto-populate-room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: currentRoom.id,
+          panoramaUrl: currentRoom.panorama_url,
+        }),
+      });
+
+      const result = await res.json();
+      if (result.success) {
+        alert('Soba je uspešno automatski popunjena pomoću AI-ja!');
+        window.location.reload();
+      } else {
+        alert('Greška pri obradi: ' + (result.error || 'Nepoznata greška'));
+      }
+    } catch (err) {
+      console.error('AI Error:', err);
+      alert('Došlo je do greške prilikom pozivanja AI servisa.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const changeLanguage = (newLang: Language) => {
     setLang(newLang);
@@ -892,7 +926,8 @@ export default function TourPage() {
 
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
-      const introTextRaw = establishData.text_i18n || `${translations[langRef.current].welcomePrefix}${getLocalizedText(currentRoom.title_i18n, langRef.current)}`;
+      const introTextRaw = establishData.text_i18n ||
+`${translations[langRef.current].welcomePrefix}${getLocalizedText(currentRoom.title_i18n, langRef.current)}`;
       const introAudioUrl = establishData.audio_url;
 
       const rotatePromise = new Promise<void>((resolve) => {
@@ -1652,6 +1687,22 @@ export default function TourPage() {
       {adminMode && !pendingCoords && (
         <div style={{ position: 'absolute', top: '80px', left: '12px', zIndex: 40, backgroundColor: 'rgba(0,0,0,0.85)', padding: '10px', borderRadius: '12px', border: '1px solid #333', color: '#fff', fontSize: '11px', maxWidth: '280px' }}>
           <div style={{ fontWeight: 'bold', marginBottom: '6px', color: '#38bdf8' }}>ADMIN KONTROLE</div>
+          <button
+            onClick={handleAutoPopulateRoom}
+            disabled={aiLoading}
+            style={{
+              ...btnStyle,
+              width: '100%',
+              marginBottom: '6px',
+              backgroundColor: aiLoading ? '#64748b' : '#9333ea',
+              color: '#fff',
+              borderColor: '#c084fc',
+              fontWeight: 'bold',
+              cursor: aiLoading ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {aiLoading ? '⚡ AI Generiše...' : '✨ Popuni sobu pomoću AI'}
+          </button>
           <button onClick={handleStartEditEstablish} style={{ ...btnStyle, width: '100%', marginBottom: '6px' }}>{t.introNarration}</button>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '100px', overflowY: 'auto' }}>
             {waypointsList.map((wp, idx) => (
@@ -1765,7 +1816,7 @@ export default function TourPage() {
               {editingIndex !== null && hotspotType !== 'establish' && (
                 <button
                   onClick={handleDeleteWaypoint}
-                  style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#df991b1b' }as React.CSSProperties}
+                  style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#df991b1b' } as React.CSSProperties}
                 >
                   {t.delete}
                 </button>
@@ -1777,4 +1828,3 @@ export default function TourPage() {
     </main>
   );
 }
-
