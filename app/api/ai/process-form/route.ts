@@ -15,21 +15,22 @@ export async function POST(req: Request) {
     let rawAnswers = body.answers || body.namedValues || body;
     let updateData: Record<string, any> = {};
 
-    // Ako je answers niz, pretvaramo ga u objekat ključ-vrednost
     if (Array.isArray(rawAnswers)) {
       for (const item of rawAnswers) {
-        const key = item.field || item.id || item.name;
-        const val = item.value !== undefined ? item.value : (item.text || item.answer);
-        if (key) {
-          updateData[key] = val;
+        if (item && typeof item === 'object') {
+          const key = item.field || item.id || item.name || item.question;
+          const val = item.value !== undefined ? item.value : (item.text || item.answer);
+          if (key) {
+            updateData[String(key)] = val;
+          }
         }
       }
-    } else if (typeof rawAnswers === 'object' && rawAnswers !== null) {
+    } else if (rawAnswers && typeof rawAnswers === 'object') {
       updateData = { ...rawAnswers };
     }
 
     if (!slug) {
-      slug = updateData.slug;
+      slug = updateData.slug || updateData.id;
     }
 
     if (!slug) {
@@ -51,6 +52,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
     console.error("Greska u API-ju:", error);
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: error.message || String(error) }, { status: 400 });
   }
 }
