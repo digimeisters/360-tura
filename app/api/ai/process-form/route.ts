@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
-    console.errog("Greska u API-ju:", error);
+    console.error("Greska u API-ju:", error);
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 }
