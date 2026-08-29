@@ -28,3 +28,4 @@ export async function POST(req: Request) {
     console.error("Greska u API-ju:", error);
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
+  }
