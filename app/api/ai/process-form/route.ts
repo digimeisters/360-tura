@@ -11,15 +11,22 @@ export async function POST(req: Request) {
     const body = await req.json();
     console.log("PRIMLJENO IZ FORME:", JSON.stringify(body));
 
+    // Izvuci podatke koje saljes iz Google Forme
     const { slug, answers } = body;
 
-    // Ovde ide tvoja logika za upis u Supabase...
-    // Na primer:
-    // const { data, error } = await supabase.from('tvoja_tabela').insert([...]);
+    // Upis u Supabase tabelu (promeni 'tvoja_tabela' u naziv tvoje tabele)
+    const { data, error } = await supabase
+      .from('tours')
+      .insert([{ slug: slug, answers: answers }]);
 
-    return NextResponse.json({ success: true });
+    if (error) {
+      console.error("Supabase greska:", error.message);
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
     console.error("Greska u API-ju:", error);
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
-  }
+}
