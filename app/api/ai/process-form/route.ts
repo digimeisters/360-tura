@@ -11,8 +11,9 @@ export async function POST(req: Request) {
     const body = await req.json();
     console.log("PRIMLJENO IZ FORME:", JSON.stringify(body));
 
-    // Izvuci podatke koje saljes iz Google Forme
-    const { slug, answers } = body;
+    // Fleksibilno izvlačenje podataka (hvata različite formate iz App Script-a 
+        const slug = body.slug || body.parameter?.slug //"nepoznato";
+        const answers =body.answers //body.namedValues //body;
 
     // Upis u Supabase tabelu (promeni 'tvoja_tabela' u naziv tvoje tabele)
     const { data, error } = await supabase
