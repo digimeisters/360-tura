@@ -12,7 +12,7 @@ export const maxDuration = 60;
  */
 
 // Zvanični stabilni Gemini Flash model
-const MODEL = 'gemini-2.5-flash';
+const MODEL = 'gemini-3.6-flash';
 
 const MAX_WAYPOINTS = 4;
 const MAX_RETRIES = 3;
