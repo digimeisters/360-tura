@@ -775,7 +775,7 @@ export default function TourPage() {
               isInterruptedRef.current = true;
               stopCurrentAnimation();
               audioCurrentTimeRef.current = 0;
-              if (viewerRef.current) viewerRef.current.setHfov(50);
+              if (viewerRef.current) viewerRef.current.setHfov(48);
               playAudioFileWithCompletion(wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
             }
           }
@@ -993,7 +993,7 @@ export default function TourPage() {
             isInterruptedRef.current = true;
             stopCurrentAnimation();
             audioCurrentTimeRef.current = 0;
-            if (viewerRef.current) viewerRef.current.setHfov(50);
+            if (viewerRef.current) viewerRef.current.setHfov(48);
             playAudioFileWithCompletion(wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
           }
         }
@@ -1008,9 +1008,9 @@ export default function TourPage() {
       panorama: currentRoom.panorama_url,
       autoLoad: true,
       showControls: false,
-      hfov: 67,
-      minHfov: 15,
-      maxHfov: 120,
+      hfov: 65,
+      minHfov: 30,
+      maxHfov: 110,
       yaw: targetEstablishYaw,
       pitch: targetEstablishPitch,
       autoRotate: 0,
@@ -1039,7 +1039,8 @@ export default function TourPage() {
         setIsRoomTourFullyCompleted(true);
       }, 7000);
 
-      if (viewerRef.current) viewerRef.current.setHfov(67);
+      if (viewerRef.current) viewerRef.current.setHfov(65
+      );
 
       let lastTime = performance.now();
       const degreesPerMs = 360 / 25000;
@@ -1078,7 +1079,7 @@ export default function TourPage() {
         if (!sequenceActiveRef.current || isInterruptedRef.current) return resolve();
 
         if (viewerRef.current) {
-          viewerRef.current.setHfov(67);
+          viewerRef.current.setHfov(65);
           viewerRef.current.setYaw(targetEstablishYaw);
           viewerRef.current.setPitch(targetEstablishPitch);
           viewerRef.current.startAutoRotate(speed, targetEstablishPitch);
