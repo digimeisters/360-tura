@@ -2,31 +2,21 @@ import { NextResponse } from 'next/server';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 
+// Vreme trajanja API zahteve za serverless (Next.js / Vercel)
+export const maxDuration = 60;
+
 /**
  * ============================================================
  * CONFIG
  * ============================================================
  */
 
-// Popravljen naziv modela na zvanični stable 3.6 flash
-const MODEL = 'gemini-3.6-flash';
+// Zvanični stabilni Gemini Flash model
+const MODEL = 'gemini-2.5-flash';
 
 const MAX_WAYPOINTS = 4;
 const MAX_RETRIES = 3;
-
 const REQUEST_TIMEOUT_MS = 45_000;
-
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY!,
-});
-
-// Service role ključ treba uvek imati prednost za pozadinske API rute (izbegavanje RLS blokada)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
  * ============================================================
@@ -35,7 +25,6 @@ const supabase = createClient(supabaseUrl, supabaseKey);
  */
 
 type ListingType = 'sale' | 'rent' | 'booking';
-
 const LISTING_TYPES: ListingType[] = ['sale', 'rent', 'booking'];
 
 /**
@@ -135,12 +124,6 @@ The copy should create the feeling: "I can imagine myself staying here."
 `;
   }
 }
-
-/**
- * ============================================================
- * REAL ESTATE WRITING RULES & LANGUAGE
- * ============================================================
- */
 
 function getWritingRules(): string {
   return `
@@ -467,12 +450,12 @@ function isRetryableError(error: any): boolean {
   );
 }
 
-async function generateWithRetry(contents: any[], config: any) {
+async function generateWithRetry(aiClient: GoogleGenAI, contents: any[], config: any) {
   let lastError: any;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      return await ai.models.generateContent({
+      return await aiClient.models.generateContent({
         model: MODEL,
         contents,
         config,
@@ -516,11 +499,9 @@ function validateAndSanitize(data: any): any {
     throw new Error('AI rezultat ne sadrži sve obavezne objekte (room, visual_facts, listing_copy, camera).');
   }
 
-  // Camera bounds
   data.camera.yaw = clamp(Number(data.camera.yaw) || 0, -180, 180);
   data.camera.pitch = clamp(Number(data.camera.pitch) || 0, -90, 90);
 
-  // Waypoints
   if (!Array.isArray(data.waypoints)) {
     data.waypoints = [];
   }
@@ -535,13 +516,11 @@ function validateAndSanitize(data: any): any {
     }))
     .sort((a: any, b: any) => b.priority - a.priority);
 
-  // Highlights
   if (!Array.isArray(data.highlights)) {
     data.highlights = [];
   }
   data.highlights = data.highlights.slice(0, 5);
 
-  // Client value safety check
   if (!data.client_value) {
     data.client_value = { primary_value: '', secondary_values: [], lifestyle_benefit: '' };
   } else if (!Array.isArray(data.client_value.secondary_values)) {
@@ -595,6 +574,24 @@ async function fetchPanorama(panoramaUrl: string) {
 
 export async function POST(req: Request) {
   try {
+    // Provera API Ključa
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { success: false, error: 'GEMINI_API_KEY nije podešen u .env fajlu.' },
+        { status: 500 }
+      );
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
+
+    // Inicijalizacija Supabase klijenta unutar handlera
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const body = await req.json();
     const { roomId, panoramaUrl, listingType = 'rent' } = body;
 
@@ -613,8 +610,9 @@ export async function POST(req: Request) {
     const image = await fetchPanorama(panoramaUrl);
     const prompt = buildPrompt(safeListingType);
 
-    // Poziv ka Gemini uz odgovarajući SDK config
+    // Poziv ka Gemini uz ISPRAVAN config parametar: responseSchema
     const response = await generateWithRetry(
+      ai,
       [
         {
           inlineData: {
@@ -626,14 +624,14 @@ export async function POST(req: Request) {
       ],
       {
         responseMimeType: 'application/json',
-        responseJsonSchema: roomAnalysisSchema, // Zvanični ključ za novije SDK verzije
+        responseSchema: roomAnalysisSchema, // Zvanični parametar SDK-a
       }
     );
 
     let data = parseAIResponse(response);
     data = validateAndSanitize(data);
 
-    // Supabase DB Update
+    // Upis u bazu
     const { error: updateError } = await supabase
       .from('rooms')
       .update({
@@ -664,7 +662,7 @@ export async function POST(req: Request) {
       data,
     });
   } catch (error: any) {
-    console.error('REAL ESTATE AI V3 ERROR:', error);
+    console.error('REAL ESTATE AI ERROR:', error);
 
     const status = error?.status === 429 ? 429 : 500;
     return NextResponse.json(
