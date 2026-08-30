@@ -168,22 +168,42 @@ AKO JE CATEGORY = "booking":
     }
 
     const processedData = JSON.parse(aiResponse.text);
-    console.log("Obrađeni podaci za Supabase sa pojedinačnim FAQ kolonama:", processedData);
+    console.log("Obrađeni podaci od strane AI-ja:", processedData);
 
-    if (!processedData.slug) {
-    if (!processedData.slug) {
-  const fallbackSource = processedData.address || "tura";
-  processedData.slug = fallbackSource
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '-')
-    .replace(/-+/g, '-') + '-' + Date.now();
-};
+    // Sigurna provera i generisanje slug-a ako iz nekog razloga nedostaje
+    if (!processedData.slug || processedData.slug.trim() === '') {
+      const fallbackSource = processedData.address || "tura";
+      processedData.slug = fallbackSource
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '-')
+        .replace(/-+/g, '-') + '-' + Date.now();
     }
 
-    // 4. Upis u Supabase
+    // 4. Filtriranje samo onih polja koja stvarno postoje u Supabase tabeli 'tours'
+    const supabasePayload = {
+      slug: processedData.slug,
+      category: processedData.category,
+      property_type: processedData.property_type || null,
+      advertiser_type: processedData.advertiser_type || null,
+      agent_name: processedData.agent_name || null,
+      agent_phone: processedData.agent_phone || null,
+      agent_email: processedData.agent_email || null,
+      address: processedData.address || null,
+      floorplan_url: processedData.floorplan_url || null,
+      title_i18n: processedData.title_i18n,
+      faq_1_i18n: processedData.faq_1_i18n,
+      faq_2_i18n: processedData.faq_2_i18n,
+      faq_3_i18n: processedData.faq_3_i18n,
+      faq_4_i18n: processedData.faq_4_i18n,
+      faq_5_i18n: processedData.faq_5_i18n,
+    };
+
+    console.log("ČIST PAYLOAD ZA SUPABASE:", supabasePayload);
+
+    // 5. Upis u Supabase
     const { data, error } = await supabase
       .from('tours')
-      .upsert(processedData, { onConflict: 'slug' })
+      .upsert(supabasePayload, { onConflict: 'slug' })
       .select();
 
     if (error) {
