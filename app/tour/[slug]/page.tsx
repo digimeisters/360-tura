@@ -255,7 +255,7 @@ const translations = {
     tourNotFound: 'Tura nije pronađena.',
     noRooms: 'Ova tura nema soba.',
     guideCompleted: 'Vodič završen',
-    freeExplore: 'Slobodno razgledajte prostoriju ili pređite na drugu tačku, koristeći gornji pokretni meni ili plutajući naziv na slici .',
+    freeExplore: 'Slobodno razgledajte prostoriju ili pređite na drugu tačku, koristeći gornji pokretni meni ili plutajući naziv na slici.',
     targetRoom: '-- Izaberi sobu --',
     save: 'Sačuvaj Poziciju & Podatke',
     cancel: 'Otkaži',
@@ -376,7 +376,7 @@ const translations = {
 };
 
 export default function TourPage() {
-  const [mounted, setMounted] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
   const isMountedRef = useRef(true);
   const roomSessionRef = useRef(0);
 
@@ -402,6 +402,7 @@ export default function TourPage() {
 
   const [pannellumReady, setPannellumReady] = useState(false);
   const [adminMode, setAdminMode] = useState(false);
+  const adminModeRef = useRef(false);
   const [aiLoading, setAiLoading] = useState(false);
 
   const [isMuted, setIsMuted] = useState(false);
@@ -529,7 +530,7 @@ export default function TourPage() {
           },
           text: tooltipText,
           clickHandlerFunc: () => {
-            if (adminMode) {
+            if (adminModeRef.current) {
               handleStartEditWaypoint(index);
             } else if (isNav && wp.targetRoomId) {
               changeRoomById(wp.targetRoomId);
@@ -611,15 +612,17 @@ export default function TourPage() {
 
   useEffect(() => {
     isMountedRef.current = true;
-    setMounted(true);
+    setHasMounted(true);
     const urlParams = new URLSearchParams(window.location.search);
 
-    if (urlParams.get('admin') === 'mojtajnikljuc') {
+    const isAdmin = urlParams.get('admin') === 'mojtajnikljuc';
+    setAdminMode(isAdmin);
+    adminModeRef.current = isAdmin;
+
+    if (isAdmin) {
       localStorage.setItem('tour_admin', 'true');
-      setAdminMode(true);
     } else {
       localStorage.removeItem('tour_admin');
-      setAdminMode(false);
     }
 
     return () => {
@@ -729,7 +732,7 @@ export default function TourPage() {
   }, [stopAudio]);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!hasMounted) return;
     if ((window as any).pannellum) { setPannellumReady(true); return; }
 
     const link = document.createElement('link');
@@ -746,10 +749,10 @@ export default function TourPage() {
       stopAudio();
       stopCurrentAnimation();
     };
-  }, [mounted, stopAudio, stopCurrentAnimation]);
+  }, [hasMounted, stopAudio, stopCurrentAnimation]);
 
   useEffect(() => {
-    if (!slug || !mounted) return;
+    if (!slug || !hasMounted) return;
     async function load() {
       setLoading(true);
       const { data: tourData } = await supabase.from('tours').select('*').eq('slug', slug).single();
@@ -757,16 +760,16 @@ export default function TourPage() {
 
       if (!isMountedRef.current) return;
 
-      if (!tourData) setError(t.tourNotFound);
+      if (!tourData) setError(translations[langRef.current].tourNotFound);
       else setTour(tourData as Tour);
 
-      if (!roomRows || roomRows.length === 0) setError(t.noRooms);
+      if (!roomRows || roomRows.length === 0) setError(translations[langRef.current].noRooms);
       else setRooms(roomRows as Room[]);
 
       setLoading(false);
     }
     load();
-  }, [slug, mounted]);
+  }, [slug, hasMounted]);
 
   const changeRoomById = useCallback((id: string | number) => {
     roomSessionRef.current += 1;
@@ -787,7 +790,7 @@ export default function TourPage() {
   }, [rooms, stopAudio, stopCurrentAnimation]);
 
   useEffect(() => {
-    if (!tourStarted || rooms.length === 0 || !pannellumReady || !mounted) return;
+    if (!tourStarted || rooms.length === 0 || !pannellumReady || !hasMounted) return;
 
     const currentSession = ++roomSessionRef.current;
     const currentRoom = rooms[roomIdx];
@@ -846,7 +849,7 @@ export default function TourPage() {
         },
         text: tooltipText,
         clickHandlerFunc: () => {
-          if (adminMode) {
+          if (adminModeRef.current) {
             handleStartEditWaypoint(index);
           } else if (isNav && wp.targetRoomId) {
             changeRoomById(wp.targetRoomId);
@@ -1009,7 +1012,7 @@ export default function TourPage() {
     });
 
     const handleDblClick = () => {
-      if (adminMode && viewerRef.current) {
+      if (adminModeRef.current && viewerRef.current) {
         const currentPitch = Math.round(viewerRef.current.getPitch() * 10) / 10;
         const currentYaw = Math.round(normalizeYaw(viewerRef.current.getYaw()) * 10) / 10;
         setPendingCoords({ pitch: currentPitch, yaw: currentYaw });
@@ -1035,7 +1038,7 @@ export default function TourPage() {
         viewerRef.current = null;
       }
     };
-  }, [tourStarted, roomIdx, pannellumReady, mounted, adminMode, rooms, changeRoomById, stopCurrentAnimation, stopAudio]);
+  }, [tourStarted, roomIdx, pannellumReady, hasMounted, changeRoomById, stopCurrentAnimation, stopAudio]);
 
   const handleStartEditWaypoint = (index: number) => {
     const currentRoom = rooms[roomIdx];
@@ -1170,7 +1173,7 @@ export default function TourPage() {
     }
   };
 
-  if (!mounted || loading) return <Centered>{t.loading}</Centered>;
+  if (!hasMounted || loading) return <Centered>{t.loading}</Centered>;
   if (error) return <Centered>{error}</Centered>;
 
   const currentRoom = rooms[roomIdx];
@@ -1428,7 +1431,7 @@ export default function TourPage() {
           maxWidth: '520px',
           justifyContent: 'center'
         }}>
-          <button onClick={() => setActiveModal('faq')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'plan' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
+          <button onClick={() => setActiveModal('faq')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'faq' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
             {t.btnFaq}
           </button>
           <button onClick={() => setActiveModal('location')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'location' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
@@ -1437,7 +1440,7 @@ export default function TourPage() {
           <button onClick={() => setActiveModal('about')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'about' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
             {t.btnAbout}
           </button>
-          <button onClick={() => setActiveModal('plan')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'faq' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
+          <button onClick={() => setActiveModal('plan')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'plan' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
             {t.btnPlan}
           </button>
           <button onClick={() => setActiveModal('contact')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'contact' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
@@ -1544,7 +1547,7 @@ export default function TourPage() {
         </div>
       )}
 
-      {activeModal && (
+      {hasMounted && activeModal && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 60, backgroundColor: 'rgba(0, 0, 0, 0.75)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ backgroundColor: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '20px', width: '100%', maxWidth: '600px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
@@ -1664,7 +1667,7 @@ export default function TourPage() {
         </div>
       )}
 
-      {selectedFaq !== null && faqList[selectedFaq] && (
+      {hasMounted && selectedFaq !== null && faqList[selectedFaq] && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 70, backgroundColor: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ backgroundColor: '#0f172a', border: '1px solid rgba(254, 240, 138, 0.4)', borderRadius: '20px', width: '100%', maxWidth: '450px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
@@ -1816,7 +1819,7 @@ export default function TourPage() {
               {editingIndex !== null && hotspotType !== 'establish' && (
                 <button
                   onClick={handleDeleteWaypoint}
-                  style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#df991b1b' } as React.CSSProperties}
+                  style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#ef4444' }}
                 >
                   {t.delete}
                 </button>
