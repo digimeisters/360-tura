@@ -6,7 +6,29 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
 });
 
-const MODEL = 'gemini-3.6-flash';
+const MODEL_NAME = 'gemini-2.5-flash';
+
+// Pomoćna funkcija za automatsko ponavljanje poziva u slučaju 503 greške (API overload)
+async function callGeminiWithRetry(prompt: string, config: any, retries = 3, delayMs = 2000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await ai.models.generateContent({
+        model: MODEL_NAME,
+        contents: prompt,
+        config: config,
+      });
+    } catch (err: any) {
+      const is503 = err?.status === 503 || String(err).includes('503');
+      if (is503 && i < retries - 1) {
+        console.warn(`Gemini API preopterećen (503). Pokušaj ${i + 1}/${retries} za ${delayMs}ms...`);
+        await new Promise((res) => setTimeout(res, delayMs));
+      } else {
+        throw err;
+      }
+    }
+  }
+  throw new Error("Svi pokušaji pozivanja Gemini API-ja su neuspešni.");
+}
 
 export async function POST(req: Request) {
   try {
@@ -113,53 +135,49 @@ AKO JE CATEGORY = "booking":
 - faq_5_i18n: Pitanje: "Da li je obezbeđen parking, Wi-Fi i kakva su pravila otkazivanja?"
 `;
 
-    // 3. Poziv Gemini API-ja sa strogom JSON šemom koja odgovara pojedinačnim kolonama
-    const aiResponse = await ai.models.generateContent({
-      model: MODEL,
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            slug: { type: Type.STRING },
-            category: { 
-              type: Type.STRING,
-              enum: ['sale', 'rent', 'booking']
-            },
-            property_type: { type: Type.STRING },
-            advertiser_type: { type: Type.STRING },
-            agent_name: { type: Type.STRING },
-            agent_phone: { type: Type.STRING },
-            agent_email: { type: Type.STRING },
-            address: { type: Type.STRING },
-            floorplan_url: { type: Type.STRING },
-            title_i18n: {
-              type: Type.OBJECT,
-              properties: {
-                sr: { type: Type.STRING },
-                en: { type: Type.STRING },
-                de: { type: Type.STRING },
-              },
-              required: ['sr', 'en', 'de'],
-            },
-            faq_1_i18n: faqItemSchema,
-            faq_2_i18n: faqItemSchema,
-            faq_3_i18n: faqItemSchema,
-            faq_4_i18n: faqItemSchema,
-            faq_5_i18n: faqItemSchema,
+    // 3. Poziv Gemini API-ja preko retry funkcije
+    const aiResponse = await callGeminiWithRetry(prompt, {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          slug: { type: Type.STRING },
+          category: { 
+            type: Type.STRING,
+            enum: ['sale', 'rent', 'booking']
           },
-          required: [
-            'slug', 
-            'category', 
-            'title_i18n', 
-            'faq_1_i18n', 
-            'faq_2_i18n', 
-            'faq_3_i18n', 
-            'faq_4_i18n', 
-            'faq_5_i18n'
-          ],
+          property_type: { type: Type.STRING },
+          advertiser_type: { type: Type.STRING },
+          agent_name: { type: Type.STRING },
+          agent_phone: { type: Type.STRING },
+          agent_email: { type: Type.STRING },
+          address: { type: Type.STRING },
+          floorplan_url: { type: Type.STRING },
+          title_i18n: {
+            type: Type.OBJECT,
+            properties: {
+              sr: { type: Type.STRING },
+              en: { type: Type.STRING },
+              de: { type: Type.STRING },
+            },
+            required: ['sr', 'en', 'de'],
+          },
+          faq_1_i18n: faqItemSchema,
+          faq_2_i18n: faqItemSchema,
+          faq_3_i18n: faqItemSchema,
+          faq_4_i18n: faqItemSchema,
+          faq_5_i18n: faqItemSchema,
         },
+        required: [
+          'slug', 
+          'category', 
+          'title_i18n', 
+          'faq_1_i18n', 
+          'faq_2_i18n', 
+          'faq_3_i18n', 
+          'faq_4_i18n', 
+          'faq_5_i18n'
+        ],
       },
     });
 
