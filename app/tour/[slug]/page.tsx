@@ -445,6 +445,243 @@ export default function TourPage() {
   const scrollLeftRef = useRef(0);
   const autoScrollPausedRef = useRef(false);
 
+  // Define Admin/Waypoint control functions prior to effects/handlers that reference them
+  const handleStartEditWaypoint = useCallback((index: number) => {
+    const currentRoom = rooms[roomIdx];
+    if (!currentRoom) return;
+    const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
+    const targetWp = waypointsList[index];
+    if (!targetWp) return;
+
+    setEditingIndex(index);
+    setPendingCoords({ pitch: targetWp.pitch || 0, yaw: targetWp.yaw || 0 });
+
+    if (viewerRef.current) {
+      viewerRef.current.lookAt(targetWp.pitch || 0, targetWp.yaw || 0, 70, 1000);
+    }
+
+    const isNav = targetWp.type === 'navigation' || Boolean(targetWp.targetRoomId);
+    setHotspotType(isNav ? 'navigation' : 'info');
+
+    setHotspotText(getLocalizedText(targetWp.text_i18n, langRef.current));
+    setHotspotTitle(getLocalizedText(targetWp.title_i18n, langRef.current));
+    setHotspotAudioUrl(targetWp.audio_url || '');
+    setTargetRoomId(targetWp.targetRoomId || '');
+  }, [rooms, roomIdx]);
+
+  const handleStartEditEstablish = () => {
+    const currentRoom = rooms[roomIdx];
+    if (!currentRoom) return;
+    const est = parseEstablish(currentRoom.establish_i18n);
+
+    setHotspotType('establish');
+    setEditingIndex(null);
+
+    const currentPitch = viewerRef.current ? Math.round(viewerRef.current.getPitch() * 10) / 10 : (est.pitch || 0);
+    const currentYaw = viewerRef.current ? Math.round(normalizeYaw(viewerRef.current.getYaw()) * 10) / 10 : (est.fromYaw || 0);
+
+    setPendingCoords({ pitch: currentPitch, yaw: currentYaw });
+    setHotspotText(getLocalizedText(est.text_i18n, lang));
+    setHotspotAudioUrl(est.audio_url || '');
+  };
+
+  const handleSaveWaypoint = async () => {
+    if (!pendingCoords || !rooms[roomIdx]) return;
+    const currentRoom = rooms[roomIdx];
+
+    let finalPitch = pendingCoords.pitch;
+    let finalYaw = pendingCoords.yaw;
+
+    if (viewerRef.current) {
+      finalPitch = Math.round(viewerRef.current.getPitch() * 10) / 10;
+      finalYaw = Math.round(normalizeYaw(viewerRef.current.getYaw()) * 10) / 10;
+    }
+
+    if (hotspotType === 'establish') {
+      const existingEst = parseEstablish(currentRoom.establish_i18n);
+      const updatedEstablish: EstablishData = {
+        ...existingEst,
+        pitch: finalPitch,
+        fromYaw: finalYaw,
+        audio_url: hotspotAudioUrl,
+        text_i18n: buildI18nObject(hotspotText, existingEst.text_i18n, lang)
+      };
+
+      const { error: err } = await supabase
+        .from('rooms')
+        .update({ establish_i18n: updatedEstablish })
+        .eq('id', currentRoom.id);
+
+      if (!err && isMountedRef.current) {
+        const updatedRooms = [...rooms];
+        updatedRooms[roomIdx].establish_i18n = updatedEstablish;
+        setRooms(updatedRooms);
+        setPendingCoords(null);
+      }
+      return;
+    }
+
+    const currentWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
+
+    let existingWpText: unknown = undefined;
+    let existingWpTitle: unknown = undefined;
+    if (editingIndex !== null && currentWaypoints[editingIndex]) {
+      existingWpText = currentWaypoints[editingIndex].text_i18n;
+      existingWpTitle = currentWaypoints[editingIndex].title_i18n;
+    }
+
+    const newWaypoint: Waypoint = {
+      pitch: finalPitch,
+      yaw: finalYaw,
+      type: hotspotType === 'navigation' ? 'navigation' : 'info',
+      audio_url: hotspotType === 'info' ? hotspotAudioUrl : undefined,
+      text_i18n: hotspotType === 'info' ? buildI18nObject(hotspotText, existingWpText, lang) : undefined,
+      title_i18n: hotspotType === 'info' ? buildI18nObject(hotspotTitle, existingWpTitle, lang) : undefined,
+      targetRoomId: hotspotType === 'navigation' ? targetRoomId : undefined
+    };
+
+    let updatedList: Waypoint[] = [];
+    if (editingIndex !== null) {
+      updatedList = [...currentWaypoints];
+      updatedList[editingIndex] = newWaypoint;
+    } else {
+      updatedList = [...currentWaypoints, newWaypoint];
+    }
+
+    const { error: err } = await supabase
+      .from('rooms')
+      .update({ waypoints_i18n: updatedList })
+      .eq('id', currentRoom.id);
+
+    if (!err && isMountedRef.current) {
+      const updatedRooms = [...rooms];
+      updatedRooms[roomIdx].waypoints_i18n = updatedList;
+      setRooms(updatedRooms);
+      setPendingCoords(null);
+    }
+  };
+
+  const handleDeleteWaypoint = async () => {
+    if (editingIndex === null || !rooms[roomIdx]) return;
+    const currentRoom = rooms[roomIdx];
+    const currentWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
+
+    const updatedList = currentWaypoints.filter((_, idx) => idx !== editingIndex);
+
+    const { error: err } = await supabase
+      .from('rooms')
+      .update({ waypoints_i18n: updatedList })
+      .eq('id', currentRoom.id);
+
+    if (!err && isMountedRef.current) {
+      const updatedRooms = [...rooms];
+      updatedRooms[roomIdx].waypoints_i18n = updatedList;
+      setRooms(updatedRooms);
+      setPendingCoords(null);
+    }
+  };
+
+  const stopCurrentAnimation = useCallback(() => {
+    if (animFrameRef.current !== null) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+  }, []);
+
+  const stopAudio = useCallback(() => {
+    if (activeAudioRef.current) {
+      audioCurrentTimeRef.current = activeAudioRef.current.currentTime;
+      activeAudioRef.current.pause();
+      activeAudioRef.current.onended = null;
+      activeAudioRef.current.onerror = null;
+      activeAudioRef.current = null;
+    }
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+    if (guideCompleteTimerRef.current) {
+      clearTimeout(guideCompleteTimerRef.current);
+      guideCompleteTimerRef.current = null;
+    }
+  }, []);
+
+  const playAudioFileWithCompletion = useCallback((
+    audioUrl?: string,
+    textFallback?: unknown,
+    title?: unknown,
+    index?: number,
+    startAt: number = 0
+  ): Promise<void> => {
+    return new Promise((resolve) => {
+      stopAudio();
+
+      if (!isMountedRef.current) return resolve();
+
+      lastAudioUrlRef.current = audioUrl;
+      lastAudioTextRef.current = textFallback;
+      lastAudioTitleRef.current = title;
+      lastAudioIndexRef.current = index;
+
+      setInfoBoxData({ titleRaw: title, textRaw: textFallback, index, audio_url: audioUrl });
+
+      const resolvedText = getLocalizedText(textFallback, langRef.current);
+
+      if (isMutedRef.current || !audioUrl) {
+        const readTime = Math.max(3000, resolvedText.length * 50);
+        const timer = setTimeout(() => {
+          if (isMountedRef.current) resolve();
+        }, readTime);
+        hideTimerRef.current = timer;
+        return;
+      }
+
+      const audio = new Audio(audioUrl);
+      activeAudioRef.current = audio;
+
+      audio.onloadedmetadata = () => {
+        if (!isMountedRef.current) return;
+        if (startAt > 0 && startAt < audio.duration) {
+          audio.currentTime = startAt;
+        }
+      };
+
+      audio.onended = () => {
+        activeAudioRef.current = null;
+        audioCurrentTimeRef.current = 0;
+        if (isMountedRef.current) resolve();
+      };
+
+      audio.onerror = () => {
+        activeAudioRef.current = null;
+        if (isMountedRef.current) resolve();
+      };
+
+      audio.play().catch(() => {
+        activeAudioRef.current = null;
+        if (isMountedRef.current) resolve();
+      });
+    });
+  }, [stopAudio]);
+
+  const changeRoomById = useCallback((id: string | number) => {
+    roomSessionRef.current += 1;
+    sequenceActiveRef.current = false;
+    isInterruptedRef.current = true;
+    audioCurrentTimeRef.current = 0;
+    setIsRoomTourFullyCompleted(false);
+    setIsInfoboxManuallyClosed(false);
+    stopCurrentAnimation();
+    stopAudio();
+
+    const foundIndex = rooms.findIndex(r => r.id == id);
+    if (foundIndex !== -1) {
+      setRoomLoading(true);
+      setRoomIdx(foundIndex);
+      setInfoBoxData(null);
+    }
+  }, [rooms, stopAudio, stopCurrentAnimation]);
+
   const handleAutoPopulateRoom = async () => {
     const currentRoom = rooms[roomIdx];
     if (!currentRoom || !currentRoom.panorama_url) {
@@ -585,31 +822,6 @@ export default function TourPage() {
     return false;
   };
 
-  const stopCurrentAnimation = useCallback(() => {
-    if (animFrameRef.current !== null) {
-      cancelAnimationFrame(animFrameRef.current);
-      animFrameRef.current = null;
-    }
-  }, []);
-
-  const stopAudio = useCallback(() => {
-    if (activeAudioRef.current) {
-      audioCurrentTimeRef.current = activeAudioRef.current.currentTime;
-      activeAudioRef.current.pause();
-      activeAudioRef.current.onended = null;
-      activeAudioRef.current.onerror = null;
-      activeAudioRef.current = null;
-    }
-    if (hideTimerRef.current) {
-      clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = null;
-    }
-    if (guideCompleteTimerRef.current) {
-      clearTimeout(guideCompleteTimerRef.current);
-      guideCompleteTimerRef.current = null;
-    }
-  }, []);
-
   useEffect(() => {
     isMountedRef.current = true;
     setHasMounted(true);
@@ -673,64 +885,6 @@ export default function TourPage() {
     }
   };
 
-  const playAudioFileWithCompletion = useCallback((
-    audioUrl?: string,
-    textFallback?: unknown,
-    title?: unknown,
-    index?: number,
-    startAt: number = 0
-  ): Promise<void> => {
-    return new Promise((resolve) => {
-      stopAudio();
-
-      if (!isMountedRef.current) return resolve();
-
-      lastAudioUrlRef.current = audioUrl;
-      lastAudioTextRef.current = textFallback;
-      lastAudioTitleRef.current = title;
-      lastAudioIndexRef.current = index;
-
-      setInfoBoxData({ titleRaw: title, textRaw: textFallback, index, audio_url: audioUrl });
-
-      const resolvedText = getLocalizedText(textFallback, langRef.current);
-
-      if (isMutedRef.current || !audioUrl) {
-        const readTime = Math.max(3000, resolvedText.length * 50);
-        const timer = setTimeout(() => {
-          if (isMountedRef.current) resolve();
-        }, readTime);
-        hideTimerRef.current = timer;
-        return;
-      }
-
-      const audio = new Audio(audioUrl);
-      activeAudioRef.current = audio;
-
-      audio.onloadedmetadata = () => {
-        if (!isMountedRef.current) return;
-        if (startAt > 0 && startAt < audio.duration) {
-          audio.currentTime = startAt;
-        }
-      };
-
-      audio.onended = () => {
-        activeAudioRef.current = null;
-        audioCurrentTimeRef.current = 0;
-        if (isMountedRef.current) resolve();
-      };
-
-      audio.onerror = () => {
-        activeAudioRef.current = null;
-        if (isMountedRef.current) resolve();
-      };
-
-      audio.play().catch(() => {
-        activeAudioRef.current = null;
-        if (isMountedRef.current) resolve();
-      });
-    });
-  }, [stopAudio]);
-
   useEffect(() => {
     if (!hasMounted) return;
     if ((window as any).pannellum) { setPannellumReady(true); return; }
@@ -770,24 +924,6 @@ export default function TourPage() {
     }
     load();
   }, [slug, hasMounted]);
-
-  const changeRoomById = useCallback((id: string | number) => {
-    roomSessionRef.current += 1;
-    sequenceActiveRef.current = false;
-    isInterruptedRef.current = true;
-    audioCurrentTimeRef.current = 0;
-    setIsRoomTourFullyCompleted(false);
-    setIsInfoboxManuallyClosed(false);
-    stopCurrentAnimation();
-    stopAudio();
-
-    const foundIndex = rooms.findIndex(r => r.id == id);
-    if (foundIndex !== -1) {
-      setRoomLoading(true);
-      setRoomIdx(foundIndex);
-      setInfoBoxData(null);
-    }
-  }, [rooms, stopAudio, stopCurrentAnimation]);
 
   useEffect(() => {
     if (!tourStarted || rooms.length === 0 || !pannellumReady || !hasMounted) return;
@@ -1038,140 +1174,7 @@ export default function TourPage() {
         viewerRef.current = null;
       }
     };
-  }, [tourStarted, roomIdx, pannellumReady, hasMounted, changeRoomById, stopCurrentAnimation, stopAudio]);
-
-  const handleStartEditWaypoint = (index: number) => {
-    const currentRoom = rooms[roomIdx];
-    const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
-    const targetWp = waypointsList[index];
-    if (!targetWp) return;
-
-    setEditingIndex(index);
-    setPendingCoords({ pitch: targetWp.pitch || 0, yaw: targetWp.yaw || 0 });
-
-    if (viewerRef.current) {
-      viewerRef.current.lookAt(targetWp.pitch || 0, targetWp.yaw || 0, 70, 1000);
-    }
-
-    const isNav = targetWp.type === 'navigation' || Boolean(targetWp.targetRoomId);
-    setHotspotType(isNav ? 'navigation' : 'info');
-
-    setHotspotText(getLocalizedText(targetWp.text_i18n, lang));
-    setHotspotTitle(getLocalizedText(targetWp.title_i18n, lang));
-    setHotspotAudioUrl(targetWp.audio_url || '');
-    setTargetRoomId(targetWp.targetRoomId || '');
-  };
-
-  const handleStartEditEstablish = () => {
-    const currentRoom = rooms[roomIdx];
-    const est = parseEstablish(currentRoom.establish_i18n);
-
-    setHotspotType('establish');
-    setEditingIndex(null);
-
-    const currentPitch = viewerRef.current ? Math.round(viewerRef.current.getPitch() * 10) / 10 : (est.pitch || 0);
-    const currentYaw = viewerRef.current ? Math.round(normalizeYaw(viewerRef.current.getYaw()) * 10) / 10 : (est.fromYaw || 0);
-
-    setPendingCoords({ pitch: currentPitch, yaw: currentYaw });
-    setHotspotText(getLocalizedText(est.text_i18n, lang));
-    setHotspotAudioUrl(est.audio_url || '');
-  };
-
-  const handleSaveWaypoint = async () => {
-    if (!pendingCoords || !rooms[roomIdx]) return;
-    const currentRoom = rooms[roomIdx];
-
-    let finalPitch = pendingCoords.pitch;
-    let finalYaw = pendingCoords.yaw;
-
-    if (viewerRef.current) {
-      finalPitch = Math.round(viewerRef.current.getPitch() * 10) / 10;
-      finalYaw = Math.round(normalizeYaw(viewerRef.current.getYaw()) * 10) / 10;
-    }
-
-    if (hotspotType === 'establish') {
-      const existingEst = parseEstablish(currentRoom.establish_i18n);
-      const updatedEstablish: EstablishData = {
-        ...existingEst,
-        pitch: finalPitch,
-        fromYaw: finalYaw,
-        audio_url: hotspotAudioUrl,
-        text_i18n: buildI18nObject(hotspotText, existingEst.text_i18n, lang)
-      };
-
-      const { error: err } = await supabase
-        .from('rooms')
-        .update({ establish_i18n: updatedEstablish })
-        .eq('id', currentRoom.id);
-
-      if (!err && isMountedRef.current) {
-        const updatedRooms = [...rooms];
-        updatedRooms[roomIdx].establish_i18n = updatedEstablish;
-        setRooms(updatedRooms);
-        setPendingCoords(null);
-      }
-      return;
-    }
-
-    const currentWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
-
-    let existingWpText: unknown = undefined;
-    let existingWpTitle: unknown = undefined;
-    if (editingIndex !== null && currentWaypoints[editingIndex]) {
-      existingWpText = currentWaypoints[editingIndex].text_i18n;
-      existingWpTitle = currentWaypoints[editingIndex].title_i18n;
-    }
-
-    const newWaypoint: Waypoint = {
-      pitch: finalPitch,
-      yaw: finalYaw,
-      type: hotspotType === 'navigation' ? 'navigation' : 'info',
-      audio_url: hotspotType === 'info' ? hotspotAudioUrl : undefined,
-      text_i18n: hotspotType === 'info' ? buildI18nObject(hotspotText, existingWpText, lang) : undefined,
-      title_i18n: hotspotType === 'info' ? buildI18nObject(hotspotTitle, existingWpTitle, lang) : undefined,
-      targetRoomId: hotspotType === 'navigation' ? targetRoomId : undefined
-    };
-
-    let updatedList: Waypoint[] = [];
-    if (editingIndex !== null) {
-      updatedList = [...currentWaypoints];
-      updatedList[editingIndex] = newWaypoint;
-    } else {
-      updatedList = [...currentWaypoints, newWaypoint];
-    }
-
-    const { error: err } = await supabase
-      .from('rooms')
-      .update({ waypoints_i18n: updatedList })
-      .eq('id', currentRoom.id);
-
-    if (!err && isMountedRef.current) {
-      const updatedRooms = [...rooms];
-      updatedRooms[roomIdx].waypoints_i18n = updatedList;
-      setRooms(updatedRooms);
-      setPendingCoords(null);
-    }
-  };
-
-  const handleDeleteWaypoint = async () => {
-    if (editingIndex === null || !rooms[roomIdx]) return;
-    const currentRoom = rooms[roomIdx];
-    const currentWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
-
-    const updatedList = currentWaypoints.filter((_, idx) => idx !== editingIndex);
-
-    const { error: err } = await supabase
-      .from('rooms')
-      .update({ waypoints_i18n: updatedList })
-      .eq('id', currentRoom.id);
-
-    if (!err && isMountedRef.current) {
-      const updatedRooms = [...rooms];
-      updatedRooms[roomIdx].waypoints_i18n = updatedList;
-      setRooms(updatedRooms);
-      setPendingCoords(null);
-    }
-  };
+  }, [tourStarted, roomIdx, pannellumReady, hasMounted, changeRoomById, stopCurrentAnimation, stopAudio, handleStartEditWaypoint, playAudioFileWithCompletion]);
 
   if (!hasMounted || loading) return <Centered>{t.loading}</Centered>;
   if (error) return <Centered>{error}</Centered>;
