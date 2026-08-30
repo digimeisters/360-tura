@@ -60,36 +60,21 @@ export async function POST(req: Request) {
       extractedText = String(rawAnswers);
     }
 
-    // Schema za pojedinačno FAQ polje (pitanje + odgovor na 3 jezika)
-    const faqItemSchema = {
+    // Schema za i18n tekstualni objekat (samo i18n jezici direktno)
+    const i18nTextSchema = {
       type: Type.OBJECT,
       properties: {
-        question: {
-          type: Type.OBJECT,
-          properties: {
-            sr: { type: Type.STRING },
-            en: { type: Type.STRING },
-            de: { type: Type.STRING },
-          },
-          required: ['sr', 'en', 'de'],
-        },
-        answer: {
-          type: Type.OBJECT,
-          properties: {
-            sr: { type: Type.STRING },
-            en: { type: Type.STRING },
-            de: { type: Type.STRING },
-          },
-          required: ['sr', 'en', 'de'],
-        },
+        sr: { type: Type.STRING },
+        en: { type: Type.STRING },
+        de: { type: Type.STRING },
       },
-      required: ['question', 'answer'],
+      required: ['sr', 'en', 'de'],
     };
 
-    // 2. Prompt sa definisanim fiksnim pitanjima i biznis logikom
+    // 2. Prompt sa definisanim fiksnim pitanjima i biznis logikom za sastavljanje DIREKTNIH odgovora
     const prompt = `
 Ti si stručni AI administrator baze podataka za nekretnine i 360 virtuelne ture.
-Analiziraj sledeće sirove podatke iz popunjene Google Forme/Tabele, očisti ih od tipfera, odredi kategoriju i popuni tačno 5 zasebnih FAQ polja: faq_1_i18n, faq_2_i18n, faq_3_i18n, faq_4_i18n, faq_5_i18n.
+Analiziraj sledeće sirove podatke iz popunjene Google Forme/Tabele, očisti ih od tipfera, odredi kategoriju i sastavi ODGOVORE na tačno 5 zasebnih FAQ polja: faq_1_i18n, faq_2_i18n, faq_3_i18n, faq_4_i18n, faq_5_i18n.
 
 Sirovi ulaz:
 """
@@ -110,29 +95,32 @@ UPOZORENJA I PRAVILA OBRADE:
    - address: Ispravi nazive ulica/gradova (npr. "janka katica 17" -> "Janka Katica 17").
    - title_i18n: Prevedi profesionalan i ulepšan naslov na tri jezika (sr, en, de).
 
-4. **FAKTOI (faq_1_i18n do faq_5_i18n)**:
-U zavisnosti od prepoznate kategorije, MORAŠ upotrebiti sledeća fiksna pitanja i sastaviti tačne i precizne odgovore na osnovu unetih podataka. Pitanja i odgovore prevedi na srpski (sr), engleski (en) i nemački (de).
+4. **FAKTOI ODGOVORI (faq_1_i18n do faq_5_i18n)**:
+Generiši SAMO ODGOVORE (bez reči "answer" ili "question" i bez ponavljanja samog pitanja u JSON-u).
+Odgovore sastavi na osnovu unetih podataka i prevedi ih direktno na tri jezika (sr, en, de).
+
+Kontekst pitanja za koje sastavljaš odgovore prema kategoriji:
 
 AKO JE CATEGORY = "sale":
-- faq_1_i18n: Pitanje: "Kolika je prodajna cena i da li postoji mogućnost kupovine na kredit?"
-- faq_2_i18n: Pitanje: "Kolika je kvadratura i kakvo je stanje objekta (novogradnja, starogradnja, renoviran)?"
-- faq_3_i18n: Pitanje: "Da li je nekretnina uknjižena i kakvo je vlasništvo (1/1, suvlasništvo)?"
-- faq_4_i18n: Pitanje: "Da li su porezi i agencijska provizija uključeni u cenu ili su dodatni?"
-- faq_5_i18n: Pitanje: "Da li nekretnina ima pripadajući podrum, terasu ili garažno mesto?"
+- faq_1_i18n: Odgovor na pitanje o prodajnoj ceni i mogućnosti kupovine na kredit.
+- faq_2_i18n: Odgovor na pitanje o kvadraturi i stanju objekta (novogradnja, starogradnja, renoviran).
+- faq_3_i18n: Odgovor na pitanje o uknjiženosti i vlasništvu (1/1, suvlasništvo).
+- faq_4_i18n: Odgovor na pitanje da li su porezi i agencijska provizija uključeni u cenu.
+- faq_5_i18n: Odgovor na pitanje o pripadajućem podrumu, terasi ili garažnom mestu.
 
 AKO JE CATEGORY = "rent":
-- faq_1_i18n: Pitanje: "Kolika je mesečna zakupnina i kakvi su uslovi za depozit?"
-- faq_2_i18n: Pitanje: "Koji je minimalni period zakupa i od kog datuma je stan useljiv?"
-- faq_3_i18n: Pitanje: "Koliki su prosečni mesečni troškovi (režije i informatika) i kakvo je grejanje?"
-- faq_4_i18n: Pitanje: "Da li su dozvoljeni kućni ljubimci (pet friendly)?"
-- faq_5_i18n: Pitanje: "Kakvi su dodatni uslovi ugovora i obaveze zakupca?"
+- faq_1_i18n: Odgovor na pitanje o mesečnoj zakupnini i uslovima za depozit.
+- faq_2_i18n: Odgovor na pitanje o minimalnom periodu zakupa i datumu useljenja.
+- faq_3_i18n: Odgovor na pitanje o mesečnim troškovima (režije) i grejanju.
+- faq_4_i18n: Odgovor na pitanje da li su dozvoljeni kućni ljubimci (pet friendly).
+- faq_5_i18n: Odgovor na pitanje o dodatnim uslovima ugovora i obavezama zakupca.
 
 AKO JE CATEGORY = "booking":
-- faq_1_i18n: Pitanje: "Kolika je cena po noćenju i koliki je minimalni boravak?"
-- faq_2_i18n: Pitanje: "Koliki je maksimalan broj gostiju (kapacitet) i kakva su pravila kuće?"
-- faq_3_i18n: Pitanje: "Koje je tačno vreme za check-in i check-out?"
-- faq_4_i18n: Pitanje: "Koliki je iznos takse za čišćenje po boravku?"
-- faq_5_i18n: Pitanje: "Da li je obezbeđen parking, Wi-Fi i kakva su pravila otkazivanja?"
+- faq_1_i18n: Odgovor na pitanje o ceni po noćenju i minimalnom boravku.
+- faq_2_i18n: Odgovor na pitanje o kapacitetu gostiju i pravilima kuće.
+- faq_3_i18n: Odgovor na pitanje o vremenu za check-in i check-out.
+- faq_4_i18n: Odgovor na pitanje o iznosu takse za čišćenje.
+- faq_5_i18n: Odgovor na pitanje o parking-u, Wi-Fi-ju i pravilima otkazivanja.
 `;
 
     // 3. Poziv Gemini API-ja preko retry funkcije
@@ -153,20 +141,12 @@ AKO JE CATEGORY = "booking":
           agent_email: { type: Type.STRING },
           address: { type: Type.STRING },
           floorplan_url: { type: Type.STRING },
-          title_i18n: {
-            type: Type.OBJECT,
-            properties: {
-              sr: { type: Type.STRING },
-              en: { type: Type.STRING },
-              de: { type: Type.STRING },
-            },
-            required: ['sr', 'en', 'de'],
-          },
-          faq_1_i18n: faqItemSchema,
-          faq_2_i18n: faqItemSchema,
-          faq_3_i18n: faqItemSchema,
-          faq_4_i18n: faqItemSchema,
-          faq_5_i18n: faqItemSchema,
+          title_i18n: i18nTextSchema,
+          faq_1_i18n: i18nTextSchema,
+          faq_2_i18n: i18nTextSchema,
+          faq_3_i18n: i18nTextSchema,
+          faq_4_i18n: i18nTextSchema,
+          faq_5_i18n: i18nTextSchema,
         },
         required: [
           'slug', 
