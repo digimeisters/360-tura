@@ -182,6 +182,7 @@ AKO JE CATEGORY = "booking":
     // 4. Filtriranje samo onih polja koja stvarno postoje u Supabase tabeli 'tours'
     const supabasePayload = {
       slug: processedData.slug,
+      title: processedData.title_i18n.sr,
       category: processedData.category,
       property_type: processedData.property_type || null,
       advertiser_type: processedData.advertiser_type || null,
