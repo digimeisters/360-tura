@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 
-type Language = 'sr' | 'en' | 'de';
+type Language = 'sr' | 'en' | 'de' | 'ru';
 
 type Waypoint = {
   yaw: number;
@@ -45,6 +45,7 @@ type Tour = {
   faq_2_i18n?: Record<string, string> | string;
   faq_3_i18n?: Record<string, string> | string;
   faq_4_i18n?: Record<string, string> | string;
+  faq_5_i18n?: Record<string, string> | string;
   contact_name?: string;
   contact_phone?: string;
   contact_email?: string;
@@ -117,7 +118,7 @@ const buildI18nObject = (
   existingData?: unknown,
   currentLang: Language = 'sr'
 ): Record<string, string> => {
-  let result: Record<string, string> = { sr: '', en: '', de: '' };
+  let result: Record<string, string> = { sr: '', en: '', de: '', ru: '' };
   if (existingData) {
     if (typeof existingData === 'string') {
       try {
@@ -191,11 +192,18 @@ const categoryQuestions: Record<string, Record<Language, string[]>> = {
       'What are the additional contract terms and tenant obligations?'
     ],
     de: [
-      'Wie hoch ist die monatliche Miete und wie sind die Kaubedingungen?',
+      'Wie hoch ist die monatliche Miete und wie sind die Kautionsbedingungen?',
       'Wie lange ist die Mindestmietdauer und ab welchem Datum ist die Wohnung verfügbar?',
       'Wie hoch sind die durchschnittlichen Nebenkosten und die Heizungsart?',
       'Sind Haustiere erlaubt (haustierfreundlich)?',
       'Wie lauten die zusätzlichen Vertragsbedingungen und Pflichten des Mieters?'
+    ],
+    ru: [
+      'Какова ежемесячная арендная плата и каковы условия залога?',
+      'Каков минимальный срок аренды и с какой даты квартира свободна для заселения?',
+      'Каковы средние ежемесячные коммунальные расходы и тип отопления?',
+      'Разрешено ли проживание с домашними животными?',
+      'Каковы дополнительные условия договора и обязанности арендатора?'
     ]
   },
   sale: {
@@ -219,6 +227,13 @@ const categoryQuestions: Record<string, Record<Language, string[]>> = {
       'Ist die Immobilie im Grundbuch eingetragen und wie ist die Eigentumsverhältnisse (1/1)?',
       'Sind Steuern und Maklerprovision im Preis inbegriffen oder zusätzlich?',
       'Verfügt die Immobilie über einen Keller, eine Terrasse oder einen Garagenplatz?'
+    ],
+    ru: [
+      'Какова цена продажи и возможна ли покупка в ипотеку?',
+      'Какова площадь и состояние объекта (новостройка, вторичное жилье, ремонт)?',
+      'Зарегистрирована ли недвижимость в кадастре и каков тип собственности?',
+      'Включены ли налоги и комиссия агентства в стоимость или оплачиваются отдельно?',
+      'Есть ли у недвижимости подвал, терраса или парковочное место?'
     ]
   },
   booking: {
@@ -242,11 +257,18 @@ const categoryQuestions: Record<string, Record<Language, string[]>> = {
       'Um wie viel Uhr ist Check-in und Check-out?',
       'Wie hoch ist die Reinigungsgebühr pro Aufenthalt?',
       'Sind Parkplätze und WLAN vorhanden und wie lauten die Stornierungsbedingungen?'
+    ],
+    ru: [
+      'Какова стоимость за ночь и каков минимальный срок проживания?',
+      'Какова максимальное количество гостей (вместимость) и каковы правила дома?',
+      'Каково точное время заезда (check-in) и выезда (check-out)?',
+      'Какова сумма платы за уборку за всё время проживания?',
+      'Предоставляется ли парковка, Wi-Fi и каковы правила отмены бронирования?'
     ]
   }
 };
 
-const translations = {
+const translations: Record<Language, Record<string, string>> = {
   sr: {
     startTour: '▶ Pokreni turu',
     welcome: 'Dobrodošli! Izaberite jezik i kliknite na dugme ispod da pokrenete interaktivnu turu.',
@@ -332,8 +354,8 @@ const translations = {
     comingSoon: 'Answer coming soon...'
   },
   de: {
-    startTour: '🇩🇪 Tour Starten',
-    welcome: 'Willkommen! Wahlen Sie eine Sprache und klicken Sie unten, um die Tour zu starten.',
+    startTour: '▶ Tour Starten',
+    welcome: 'Willkommen! Wählen Sie eine Sprache und klicken Sie unten, um die Tour zu starten.',
     loading: 'Tour wird geladen...',
     roomLoadingPrefix: 'Betrete Raum: ',
     tourNotFound: 'Tour nicht gefunden.',
@@ -372,6 +394,48 @@ const translations = {
     emailBtn: 'E-Mail senden',
     close: 'Schließen',
     comingSoon: 'Antwort folgt...'
+  },
+  ru: {
+    startTour: '▶ Начать тур',
+    welcome: 'Добро пожаловать! Выберите язык и нажмите кнопку ниже, чтобы начать виртуальный тур.',
+    loading: 'Загрузка тура...',
+    roomLoadingPrefix: 'Входим в помещение: ',
+    tourNotFound: 'Тур не найден.',
+    noRooms: 'В этом туре нет комнат.',
+    guideCompleted: 'Экскурсия завершена',
+    freeExplore: 'Осмотритесь или перейдите в другую комнату, используя верхнее меню или стрелки.',
+    targetRoom: '-- Выберите комнату --',
+    save: 'Сохранить позицию и данные',
+    cancel: 'Отмена',
+    delete: '🗑️ Удалить точку',
+    editPoint: '✏️ Редактировать точку',
+    addPoint: 'Добавить новую точку',
+    actionType: 'Тип действия:',
+    navArrow: '🚪 Переход в комнату',
+    infoPoint: 'ℹ️ Инфо-точка',
+    introNarration: '🎬 Вводная озвучка',
+    titlePlaceholder: 'Заголовок:',
+    descPlaceholder: 'Описание / Текст озвучки...',
+    audioUrlPlaceholder: 'Ссылка на MP3 файл:',
+    welcomePrefix: 'Добро пожаловать в ',
+    btnPlan: '🗺️ План',
+    btnLocation: '📍 Локация',
+    btnAbout: 'ℹ️ О жилье',
+    btnFaq: '❓ Вопросы',
+    btnContact: '📞 Контакты',
+    noPlan: 'План помещения временно недоступен для этого объекта.',
+    noLocation: 'Карта расположения временно недоступна.',
+    noAbout: 'Информация временно недоступна.',
+    noFaq: 'Часто задаваемые вопросы временно отсутствуют.',
+    contactTitle: 'Контактная информация',
+    agentLabel: 'Агент:',
+    agencyLabel: 'Агентство:',
+    phoneLabel: 'Телефон:',
+    emailLabel: 'Email:',
+    callBtn: 'Позвонить',
+    emailBtn: 'Написать Email',
+    close: 'Закрыть',
+    comingSoon: 'Ответ скоро появится...'
   }
 };
 
@@ -445,7 +509,6 @@ export default function TourPage() {
   const scrollLeftRef = useRef(0);
   const autoScrollPausedRef = useRef(false);
 
-  // Define Admin/Waypoint control functions prior to effects/handlers that reference them
   const handleStartEditWaypoint = useCallback((index: number) => {
     const currentRoom = rooms[roomIdx];
     if (!currentRoom) return;
@@ -806,7 +869,15 @@ export default function TourPage() {
     };
 
     if (tour) {
-      if (checkI18n(tour.title_i18n) || checkI18n(tour.about_text_i18n)) return true;
+      if (
+        checkI18n(tour.title_i18n) || 
+        checkI18n(tour.about_text_i18n) ||
+        checkI18n(tour.faq_1_i18n) ||
+        checkI18n(tour.faq_2_i18n) ||
+        checkI18n(tour.faq_3_i18n) ||
+        checkI18n(tour.faq_4_i18n) ||
+        checkI18n(tour.faq_5_i18n)
+      ) return true;
     }
 
     if (rooms && rooms.length > 0) {
@@ -1039,8 +1110,7 @@ export default function TourPage() {
         setIsRoomTourFullyCompleted(true);
       }, 7000);
 
-      if (viewerRef.current) viewerRef.current.setHfov(65
-      );
+      if (viewerRef.current) viewerRef.current.setHfov(65);
 
       let lastTime = performance.now();
       const degreesPerMs = 360 / 25000;
@@ -1200,7 +1270,8 @@ export default function TourPage() {
     getLocalizedText(tour?.faq_1_i18n, lang),
     getLocalizedText(tour?.faq_2_i18n, lang),
     getLocalizedText(tour?.faq_3_i18n, lang),
-    getLocalizedText(tour?.faq_4_i18n, lang)
+    getLocalizedText(tour?.faq_4_i18n, lang),
+    getLocalizedText(tour?.faq_5_i18n, lang)
   ];
 
   const faqList = questionsList.map((q, idx) => ({
@@ -1212,6 +1283,8 @@ export default function TourPage() {
 
   const fullTourTitle = getLocalizedText(tour?.title_i18n, lang);
   const currentRoomTitle = getLocalizedText(currentRoom?.title_i18n, lang) || `Soba ${roomIdx + 1}`;
+
+  const availableLanguages: Language[] = ['sr', 'en', 'de', 'ru'];
 
   return (
     <main style={{ position: 'relative', width: '100vw', height: '100dvh', backgroundColor: '#000', overflow: 'hidden' }}>
@@ -1234,7 +1307,7 @@ export default function TourPage() {
             marginBottom: '20px',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
           }}>
-            {(['sr', 'en', 'de'] as Language[])
+            {availableLanguages
               .filter((l) => isLanguageAvailable(l))
               .map((l) => (
                 <button
@@ -1326,7 +1399,7 @@ export default function TourPage() {
 
               <div style={{ width: '1px', height: '14px', backgroundColor: 'rgba(255,255,255,0.2)', margin: '0 2px' }} />
 
-              {(['sr', 'en', 'de'] as Language[])
+              {availableLanguages
                 .filter((l) => isLanguageAvailable(l))
                 .map((l) => (
                   <button

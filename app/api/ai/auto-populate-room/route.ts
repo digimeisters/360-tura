@@ -2,12 +2,12 @@ import { NextResponse } from 'next/server';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 
-// Vreme trajanja API zahteve za serverless (Next.js / Vercel)
+// Vreme trajanja API zahteva za serverless (Next.js / Vercel)
 export const maxDuration = 60;
 
 /**
  * ============================================================
- * CONFIG
+ * CONFIG & CLIENTS
  * ============================================================
  */
 
@@ -17,6 +17,11 @@ const MODEL = 'gemini-3.6-flash';
 const MAX_WAYPOINTS = 4;
 const MAX_RETRIES = 3;
 const REQUEST_TIMEOUT_MS = 45_000;
+
+// Supabase klijent se inicijalizuje jednom van req/res ciklusa
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
  * ============================================================
@@ -146,7 +151,7 @@ function getLanguageRules(): string {
 ============================================================
 LANGUAGE RULES
 ============================================================
-Generate three independent native versions (SR - Serbian Latin, EN - English, DE - German).
+Generate four independent native versions (SR - Serbian Latin, EN - English, DE - German, RU - Russian).
 Do NOT translate word-for-word. Each version must sound natural to native real estate buyers.
 `;
 }
@@ -187,8 +192,9 @@ const roomAnalysisSchema: Schema = {
             sr: { type: Type.STRING },
             en: { type: Type.STRING },
             de: { type: Type.STRING },
+            ru: { type: Type.STRING },
           },
-          required: ['sr', 'en', 'de'],
+          required: ['sr', 'en', 'de', 'ru'],
         },
       },
       required: ['type', 'confidence', 'title_i18n'],
@@ -293,8 +299,9 @@ const roomAnalysisSchema: Schema = {
               sr: { type: Type.STRING },
               en: { type: Type.STRING },
               de: { type: Type.STRING },
+              ru: { type: Type.STRING },
             },
-            required: ['sr', 'en', 'de'],
+            required: ['sr', 'en', 'de', 'ru'],
           },
           text_i18n: {
             type: Type.OBJECT,
@@ -302,8 +309,9 @@ const roomAnalysisSchema: Schema = {
               sr: { type: Type.STRING },
               en: { type: Type.STRING },
               de: { type: Type.STRING },
+              ru: { type: Type.STRING },
             },
-            required: ['sr', 'en', 'de'],
+            required: ['sr', 'en', 'de', 'ru'],
           },
         },
         required: ['title_i18n', 'text_i18n'],
@@ -327,8 +335,9 @@ const roomAnalysisSchema: Schema = {
               sr: { type: Type.STRING },
               en: { type: Type.STRING },
               de: { type: Type.STRING },
+              ru: { type: Type.STRING },
             },
-            required: ['sr', 'en', 'de'],
+            required: ['sr', 'en', 'de', 'ru'],
           },
           text_i18n: {
             type: Type.OBJECT,
@@ -336,8 +345,9 @@ const roomAnalysisSchema: Schema = {
               sr: { type: Type.STRING },
               en: { type: Type.STRING },
               de: { type: Type.STRING },
+              ru: { type: Type.STRING },
             },
-            required: ['sr', 'en', 'de'],
+            required: ['sr', 'en', 'de', 'ru'],
           },
         },
         required: [
@@ -359,8 +369,9 @@ const roomAnalysisSchema: Schema = {
             sr: { type: Type.STRING },
             en: { type: Type.STRING },
             de: { type: Type.STRING },
+            ru: { type: Type.STRING },
           },
-          required: ['sr', 'en', 'de'],
+          required: ['sr', 'en', 'de', 'ru'],
         },
         short_description_i18n: {
           type: Type.OBJECT,
@@ -368,8 +379,9 @@ const roomAnalysisSchema: Schema = {
             sr: { type: Type.STRING },
             en: { type: Type.STRING },
             de: { type: Type.STRING },
+            ru: { type: Type.STRING },
           },
-          required: ['sr', 'en', 'de'],
+          required: ['sr', 'en', 'de', 'ru'],
         },
         full_description_i18n: {
           type: Type.OBJECT,
@@ -377,8 +389,9 @@ const roomAnalysisSchema: Schema = {
             sr: { type: Type.STRING },
             en: { type: Type.STRING },
             de: { type: Type.STRING },
+            ru: { type: Type.STRING },
           },
-          required: ['sr', 'en', 'de'],
+          required: ['sr', 'en', 'de', 'ru'],
         },
       },
       required: [
@@ -585,13 +598,6 @@ export async function POST(req: Request) {
 
     const ai = new GoogleGenAI({ apiKey });
 
-    // Inicijalizacija Supabase klijenta unutar handlera
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     const body = await req.json();
     const { roomId, panoramaUrl, listingType = 'rent' } = body;
 
@@ -610,7 +616,7 @@ export async function POST(req: Request) {
     const image = await fetchPanorama(panoramaUrl);
     const prompt = buildPrompt(safeListingType);
 
-    // Poziv ka Gemini uz ISPRAVAN config parametar: responseSchema
+    // Poziv ka Gemini uz odgovarajući config sa responseSchema
     const response = await generateWithRetry(
       ai,
       [
@@ -624,7 +630,7 @@ export async function POST(req: Request) {
       ],
       {
         responseMimeType: 'application/json',
-        responseSchema: roomAnalysisSchema, // Zvanični parametar SDK-a
+        responseSchema: roomAnalysisSchema,
       }
     );
 

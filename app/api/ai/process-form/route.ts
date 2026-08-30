@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+iimport { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI, Type } from '@google/genai';
 
@@ -8,7 +8,12 @@ const ai = new GoogleGenAI({
 
 const MODEL_NAME = 'gemini-3.6-flash';
 
-// Pomoćna funkcija za automatsko ponavljanje poziva u slučaju 503 greške (API overload)
+// Supabase klijent se inicijalizuje jednom van req/res ciklusa
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Pomoćna funkcija za eksponencijalno ponavljanje poziva u slučaju 503/429 grešaka
 async function callGeminiWithRetry(prompt: string, config: any, retries = 3, delayMs = 2000) {
   for (let i = 0; i < retries; i++) {
     try {
@@ -18,10 +23,12 @@ async function callGeminiWithRetry(prompt: string, config: any, retries = 3, del
         config: config,
       });
     } catch (err: any) {
-      const is503 = err?.status === 503 || String(err).includes('503');
-      if (is503 && i < retries - 1) {
-        console.warn(`Gemini API preopterećen (503). Pokušaj ${i + 1}/${retries} za ${delayMs}ms...`);
-        await new Promise((res) => setTimeout(res, delayMs));
+      const status = err?.status || err?.code;
+      const isRetryable = status === 503 || status === 429 || String(err).includes('503') || String(err).includes('429');
+
+      if (isRetryable && i < retries - 1) {
+        console.warn(`Gemini API preopterećen (${status || 'greška'}). Pokušaj ${i + 1}/${retries} za ${delayMs}ms...`);
+        await new Promise((res) => setTimeout(res, delayMs * (i + 1)));
       } else {
         throw err;
       }
@@ -32,16 +39,11 @@ async function callGeminiWithRetry(prompt: string, config: any, retries = 3, del
 
 export async function POST(req: Request) {
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-
     const body = await req.json();
     console.log("Sirovi ulazni podaci iz forme/tabele:", JSON.stringify(body, null, 2));
 
     // 1. Ekstrakcija i spajanje svih dobijenih ključeva i vrednosti
-    let rawAnswers = body.answers || body.namedValues || body.data || body;
+    const rawAnswers = body.answers || body.namedValues || body.data || body;
     let extractedText = "";
 
     if (Array.isArray(rawAnswers)) {
@@ -60,18 +62,19 @@ export async function POST(req: Request) {
       extractedText = String(rawAnswers);
     }
 
-    // Schema za i18n tekstualni objekat (samo i18n jezici direktno)
+    // Schema za i18n tekstualni objekat (sr, en, de, ru)
     const i18nTextSchema = {
       type: Type.OBJECT,
       properties: {
         sr: { type: Type.STRING },
         en: { type: Type.STRING },
         de: { type: Type.STRING },
+        ru: { type: Type.STRING },
       },
-      required: ['sr', 'en', 'de'],
+      required: ['sr', 'en', 'de', 'ru'],
     };
 
-    // 2. Prompt sa definisanim fiksnim pitanjima i biznis logikom za sastavljanje DIREKTNIH odgovora
+    // 2. Prompt sa definisanim fiksnim pitanjima i biznis logikom
     const prompt = `
 Ti si stručni AI administrator baze podataka za nekretnine i 360 virtuelne ture.
 Analiziraj sledeće sirove podatke iz popunjene Google Forme/Tabele, očisti ih od tipfera, odredi kategoriju i sastavi ODGOVORE na tačno 5 zasebnih FAQ polja: faq_1_i18n, faq_2_i18n, faq_3_i18n, faq_4_i18n, faq_5_i18n.
@@ -93,11 +96,11 @@ UPOZORENJA I PRAVILA OBRADE:
    - agent_email: Ispravi očigledne greške (npr. "gmail.con" -> "gmail.com").
    - agent_name: Pravilno kapitalizuj (npr. "Nikola STOJA" -> "Nikola Stoja").
    - address: Ispravi nazive ulica/gradova (npr. "janka katica 17" -> "Janka Katica 17").
-   - title_i18n: Prevedi profesionalan i ulepšan naslov na tri jezika (sr, en, de).
+   - title_i18n: Prevedi profesionalan i ulepšan naslov na četiri jezika (sr, en, de, ru).
 
 4. **FAKTOI ODGOVORI (faq_1_i18n do faq_5_i18n)**:
 Generiši SAMO ODGOVORE (bez reči "answer" ili "question" i bez ponavljanja samog pitanja u JSON-u).
-Odgovore sastavi na osnovu unetih podataka i prevedi ih direktno na tri jezika (sr, en, de).
+Odgovore sastavi na osnovu unetih podataka i prevedi ih direktno na četiri jezika (sr, en, de, ru).
 
 Kontekst pitanja za koje sastavljaš odgovore prema kategoriji:
 
@@ -123,7 +126,7 @@ AKO JE CATEGORY = "booking":
 - faq_5_i18n: Odgovor na pitanje o parking-u, Wi-Fi-ju i pravilima otkazivanja.
 `;
 
-    // 3. Poziv Gemini API-ja preko retry funkcije
+    // 3. Poziv Gemini API-ja
     const aiResponse = await callGeminiWithRetry(prompt, {
       responseMimeType: 'application/json',
       responseSchema: {
@@ -165,22 +168,30 @@ AKO JE CATEGORY = "booking":
       throw new Error("AI nije vratio validan tekstualni odgovor.");
     }
 
-    const processedData = JSON.parse(aiResponse.text);
-    console.log("Obrađeni podaci od strane AI-ja:", processedData);
-
-    // Sigurna provera i generisanje slug-a ako iz nekog razloga nedostaje
-    if (!processedData.slug || processedData.slug.trim() === '') {
-      const fallbackSource = processedData.address || "tura";
-      processedData.slug = fallbackSource
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '-')
-        .replace(/-+/g, '-') + '-' + Date.now();
+    let processedData: any;
+    try {
+      processedData = JSON.parse(aiResponse.text);
+    } catch {
+      throw new Error("Greška pri parsiranju AI JSON odgovora.");
     }
 
-    // 4. Filtriranje samo onih polja koja stvarno postoje u Supabase tabeli 'tours'
+    // Sigurna provera i sanitizacija slug-a
+    if (!processedData.slug || processedData.slug.trim() === '') {
+      const fallbackSource = processedData.address || "tura";
+      processedData.slug = fallbackSource;
+    }
+
+    processedData.slug = processedData.slug
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    // 4. Priprema payload-a za Supabase tabelu 'tours'
     const supabasePayload = {
       slug: processedData.slug,
-      title: processedData.title_i18n.sr,
+      title: processedData.title_i18n?.sr || '',
       category: processedData.category,
       property_type: processedData.property_type || null,
       advertiser_type: processedData.advertiser_type || null,
@@ -196,8 +207,6 @@ AKO JE CATEGORY = "booking":
       faq_4_i18n: processedData.faq_4_i18n,
       faq_5_i18n: processedData.faq_5_i18n,
     };
-
-    console.log("ČIST PAYLOAD ZA SUPABASE:", supabasePayload);
 
     // 5. Upis u Supabase
     const { data, error } = await supabase
