@@ -61,36 +61,51 @@ export async function POST(req: Request) {
     // 1. Ekstrakcija tekstualnog sadržaja
     const rawAnswers = body.answers || body.namedValues || body.data || body;
     let extractedText = "";
+    let rawLangFieldText = "";
 
     if (Array.isArray(rawAnswers)) {
       extractedText = rawAnswers
         .map((item) => {
           const k = item.field || item.id || item.name || item.question || item.label || item.key || '';
           const v = item.value !== undefined ? item.value : (item.text !== undefined ? item.text : item.answer);
+          
+          // Ako je u pitanju polje za jezike, sačuvaj njegov tekst
+          if (/jezik|language/i.test(k)) {
+            rawLangFieldText += ` ${Array.isArray(v) ? v.join(' ') : v}`;
+          }
           return `${k}: ${Array.isArray(v) ? v.join(', ') : v}`;
         })
         .join('\n');
     } else if (typeof rawAnswers === 'object' && rawAnswers !== null) {
       extractedText = Object.entries(rawAnswers)
-        .map(([k, v]) => `${k}: ${Array.isArray(v) ? (v as any[]).join(', ') : v}`)
+        .map(([k, v]) => {
+          if (/jezik|language/i.test(k)) {
+            rawLangFieldText += ` ${Array.isArray(v) ? (v as any[]).join(' ') : v}`;
+          }
+          return `${k}: ${Array.isArray(v) ? (v as any[]).join(', ') : v}`;
+        })
         .join('\n');
     } else {
       extractedText = String(rawAnswers);
     }
 
-    // 2. Precizna detekcija jezika (isključuje lažne ulove)
-    const rawSearchStr = JSON.stringify(body);
-    const detectedLangs = new Set<string>();
+    // Dodatno proveravamo i direktne ključeve iz body-ja ako postoje
+    if (body["Jezici za implementaciju"]) rawLangFieldText += ` ${body["Jezici za implementaciju"]}`;
+    if (body.target_languages) rawLangFieldText += ` ${JSON.stringify(body.target_languages)}`;
+    if (body.targetLanguages) rawLangFieldText += ` ${JSON.stringify(body.targetLanguages)}`;
 
-    // Provera pomoću \b (word boundary) da "sr" ne uhvati reči poput "adresa"
-    if (/\b(sr|rs|srpski|serbian)\b/i.test(rawSearchStr)) detectedLangs.add('sr');
-    if (/\b(ru|ruski|russian)\b/i.test(rawSearchStr)) detectedLangs.add('ru');
-    if (/\b(en|engleski|english)\b/i.test(rawSearchStr)) detectedLangs.add('en');
-    if (/\b(de|nemački|nemacki|german)\b/i.test(rawSearchStr)) detectedLangs.add('de');
+    // 2. Najsigurnija detekcija ciljnih jezika (bez lažnih 'en' pogodaka)
+    const detectedLangs = new Set<string>();
+    const searchTarget = rawLangFieldText.trim().length > 0 ? rawLangFieldText : extractedText;
+
+    if (/srpski|\b(sr|rs)\b/i.test(searchTarget)) detectedLangs.add('sr');
+    if (/ruski|\b(ru)\b/i.test(searchTarget)) detectedLangs.add('ru');
+    if (/engleski|\benglish\b/i.test(searchTarget)) detectedLangs.add('en');
+    if (/nemački|nemacki|\bgerman\b/i.test(searchTarget)) detectedLangs.add('de');
 
     let targetLanguages = Array.from(detectedLangs);
 
-    // Fallback samo ako ništa nije detektovano
+    // Fallback samo ako korisnik u formi nije odabrao nijedan jezik
     if (targetLanguages.length === 0) {
       targetLanguages = ['sr', 'en'];
     }
@@ -106,6 +121,7 @@ Ti si stručni AI administrator baze podataka za nekretnine i 360 virtuelne ture
 Analiziraj sledeće sirove podatke iz popunjene Google Forme/Tabele, očisti ih od tipfera, odredi kategoriju i sastavi ODGOVORE na tačno 5 zasebnih FAQ polja: faq_1_i18n, faq_2_i18n, faq_3_i18n, faq_4_i18n, faq_5_i18n.
 
 CILJNI JEZICI: Generiši prevode i i18n objekte ISKLJUČIVO za sledeće jezike: ${langListStr}.
+NEMOJ generisati prevode za bilo koji drugi jezik osim navedenih u listi!
 
 Sirovi ulaz:
 """
