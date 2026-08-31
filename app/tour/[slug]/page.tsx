@@ -761,7 +761,7 @@ export default function TourPage() {
 
     setAiLoading(true);
     try {
-      const res = await fetch('/api/process-form/routes', {
+      const res = await fetch('/api/process-form', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
