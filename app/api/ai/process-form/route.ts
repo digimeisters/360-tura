@@ -8,11 +8,6 @@ const ai = new GoogleGenAI({
 
 const MODEL_NAME = 'gemini-3.6-flash';
 
-// Supabase klijent se inicijalizuje van req/res ciklusa
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 // Pomoćna funkcija za eksponencijalno ponavljanje poziva u slučaju 503/429 grešaka
 async function callGeminiWithRetry(prompt: string, config: any, retries = 3, delayMs = 2000) {
   for (let i = 0; i < retries; i++) {
@@ -55,6 +50,20 @@ function buildI18nSchema(languages: string[]): Schema {
 
 export async function POST(req: Request) {
   try {
+    // Inicijalizacija Supabase klijenta unutar request-a kako bi se sigurno učitale enviroment varijable
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Nedostaju Supabase environment promenljive!", {
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseKey,
+      });
+      return NextResponse.json({ error: "Supabase API ključ ili URL nisu definisani u okruženju." }, { status: 500 });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const body = await req.json();
     console.log("Sirovi ulazni podaci iz forme/tabele:", JSON.stringify(body, null, 2));
 
@@ -217,7 +226,6 @@ AKO JE CATEGORY = "booking":
       .replace(/^-+|-+$/g, '');
 
     // 5. Priprema payload-a za Supabase tabelu 'tours'
-    // Primarni naslov uzimamo sa prvog izabranog jezika ili sa srpskog ako postoji
     const primaryTitle = processedData.title_i18n?.sr || processedData.title_i18n?.[targetLanguages[0]] || '';
 
     const supabasePayload = {
@@ -237,7 +245,7 @@ AKO JE CATEGORY = "booking":
       faq_3_i18n: processedData.faq_3_i18n,
       faq_4_i18n: processedData.faq_4_i18n,
       faq_5_i18n: processedData.faq_5_i18n,
-      target_languages: targetLanguages, // <-- Ovde se upisuju štiklirani jezici u tours tabelu
+      target_languages: targetLanguages,
     };
 
     // 6. Upis u Supabase
