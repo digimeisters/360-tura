@@ -8,7 +8,6 @@ const ai = new GoogleGenAI({
 
 const MODEL_NAME = 'gemini-3.6-flash';
 
-// Pomoćna funkcija za eksponencijalno ponavljanje poziva u slučaju 503/429 grešaka
 async function callGeminiWithRetry(prompt: string, config: any, retries = 3, delayMs = 2000) {
   for (let i = 0; i < retries; i++) {
     try {
@@ -32,9 +31,6 @@ async function callGeminiWithRetry(prompt: string, config: any, retries = 3, del
   throw new Error("Svi pokušaji pozivanja Gemini API-ja su neuspešni.");
 }
 
-/**
- * DINAMIČKA I18N ŠEMA NA OSNOVU ODABRANIH JEZIKA
- */
 function buildI18nSchema(languages: string[]): Schema {
   const properties: Record<string, Schema> = {};
   languages.forEach((lang) => {
@@ -50,15 +46,10 @@ function buildI18nSchema(languages: string[]): Schema {
 
 export async function POST(req: Request) {
   try {
-    // Inicijalizacija Supabase klijenta unutar request-a kako bi se sigurno učitale enviroment varijable
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-      console.error("Nedostaju Supabase environment promenljive!", {
-        hasUrl: !!supabaseUrl,
-        hasKey: !!supabaseKey,
-      });
       return NextResponse.json({ error: "Supabase API ključ ili URL nisu definisani u okruženju." }, { status: 500 });
     }
 
@@ -67,7 +58,6 @@ export async function POST(req: Request) {
     const body = await req.json();
     console.log("Sirovi ulazni podaci iz forme/tabele:", JSON.stringify(body, null, 2));
 
-    // 1. Ekstrakcija i spajanje svih dobijenih ključeva i vrednosti
     const rawAnswers = body.answers || body.namedValues || body.data || body;
     let extractedText = "";
 
@@ -87,10 +77,8 @@ export async function POST(req: Request) {
       extractedText = String(rawAnswers);
     }
 
-    // 2. Detekcija izabranih jezika iz zahteva (primer: ['sr', 'en'])
     let targetLanguages: string[] = body.target_languages || body.targetLanguages || body.languages;
 
-    // Ako jezici nisu eksplicitno prosleđeni u body-ju, pokušaj da ih nađeš u rawAnswers
     if (!Array.isArray(targetLanguages) || targetLanguages.length === 0) {
       if (typeof rawAnswers === 'object' && rawAnswers !== null && rawAnswers.target_languages) {
         targetLanguages = Array.isArray(rawAnswers.target_languages)
@@ -99,17 +87,13 @@ export async function POST(req: Request) {
       }
     }
 
-    // Fallback ako i dalje nema izabranih jezika
     if (!Array.isArray(targetLanguages) || targetLanguages.length === 0) {
       targetLanguages = ['sr', 'en'];
     }
 
     const langListStr = targetLanguages.map((l) => l.toUpperCase()).join(', ');
-
-    // Kreiranje dinamičke i18n šeme za Gemini
     const i18nTextSchema = buildI18nSchema(targetLanguages);
 
-    // 3. Prompt prilagođen izabranim jezicima
     const prompt = `
 Ti si stručni AI administrator baze podataka za nekretnine i 360 virtuelne ture.
 Analiziraj sledeće sirove podatke iz popunjene Google Forme/Tabele, očisti ih od tipfera, odredi kategoriju i sastavi ODGOVORE na tačno 5 zasebnih FAQ polja: faq_1_i18n, faq_2_i18n, faq_3_i18n, faq_4_i18n, faq_5_i18n.
@@ -163,7 +147,6 @@ AKO JE CATEGORY = "booking":
 - faq_5_i18n: Odgovor na pitanje o parking-u, Wi-Fi-ju i pravilima otkazivanja.
 `;
 
-    // 4. Poziv Gemini API-ja sa dinamičkom šemom
     const aiResponse = await callGeminiWithRetry(prompt, {
       responseMimeType: 'application/json',
       responseSchema: {
@@ -212,7 +195,6 @@ AKO JE CATEGORY = "booking":
       throw new Error("Greška pri parsiranju AI JSON odgovora.");
     }
 
-    // Sigurna provera i sanitizacija slug-a
     if (!processedData.slug || processedData.slug.trim() === '') {
       const fallbackSource = processedData.address || "tura";
       processedData.slug = fallbackSource;
@@ -225,7 +207,6 @@ AKO JE CATEGORY = "booking":
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
 
-    // 5. Priprema payload-a za Supabase tabelu 'tours'
     const primaryTitle = processedData.title_i18n?.sr || processedData.title_i18n?.[targetLanguages[0]] || '';
 
     const supabasePayload = {
@@ -248,7 +229,6 @@ AKO JE CATEGORY = "booking":
       target_languages: targetLanguages,
     };
 
-    // 6. Upis u Supabase
     const { data, error } = await supabase
       .from('tours')
       .upsert(supabasePayload, { onConflict: 'slug' })
