@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI, Type, Schema } from '@google/genai';
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
@@ -8,7 +8,7 @@ const ai = new GoogleGenAI({
 
 const MODEL_NAME = 'gemini-3.6-flash';
 
-// Supabase klijent se inicijalizuje jednom van req/res ciklusa
+// Supabase klijent se inicijalizuje van req/res ciklusa
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -37,6 +37,22 @@ async function callGeminiWithRetry(prompt: string, config: any, retries = 3, del
   throw new Error("Svi pokušaji pozivanja Gemini API-ja su neuspešni.");
 }
 
+/**
+ * DINAMIČKA I18N ŠEMA NA OSNOVU ODABRANIH JEZIKA
+ */
+function buildI18nSchema(languages: string[]): Schema {
+  const properties: Record<string, Schema> = {};
+  languages.forEach((lang) => {
+    properties[lang] = { type: Type.STRING };
+  });
+
+  return {
+    type: Type.OBJECT,
+    properties,
+    required: languages,
+  };
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -62,22 +78,34 @@ export async function POST(req: Request) {
       extractedText = String(rawAnswers);
     }
 
-    // Schema za i18n tekstualni objekat (sr, en, de, ru)
-    const i18nTextSchema = {
-      type: Type.OBJECT,
-      properties: {
-        sr: { type: Type.STRING },
-        en: { type: Type.STRING },
-        de: { type: Type.STRING },
-        ru: { type: Type.STRING },
-      },
-      required: ['sr', 'en', 'de', 'ru'],
-    };
+    // 2. Detekcija izabranih jezika iz zahteva (primer: ['sr', 'en'])
+    let targetLanguages: string[] = body.target_languages || body.targetLanguages || body.languages;
 
-    // 2. Prompt sa definisanim fiksnim pitanjima i biznis logikom
+    // Ako jezici nisu eksplicitno prosleđeni u body-ju, pokušaj da ih nađeš u rawAnswers
+    if (!Array.isArray(targetLanguages) || targetLanguages.length === 0) {
+      if (typeof rawAnswers === 'object' && rawAnswers !== null && rawAnswers.target_languages) {
+        targetLanguages = Array.isArray(rawAnswers.target_languages)
+          ? rawAnswers.target_languages
+          : String(rawAnswers.target_languages).split(',').map((s) => s.trim());
+      }
+    }
+
+    // Fallback ako i dalje nema izabranih jezika
+    if (!Array.isArray(targetLanguages) || targetLanguages.length === 0) {
+      targetLanguages = ['sr', 'en'];
+    }
+
+    const langListStr = targetLanguages.map((l) => l.toUpperCase()).join(', ');
+
+    // Kreiranje dinamičke i18n šeme za Gemini
+    const i18nTextSchema = buildI18nSchema(targetLanguages);
+
+    // 3. Prompt prilagođen izabranim jezicima
     const prompt = `
 Ti si stručni AI administrator baze podataka za nekretnine i 360 virtuelne ture.
 Analiziraj sledeće sirove podatke iz popunjene Google Forme/Tabele, očisti ih od tipfera, odredi kategoriju i sastavi ODGOVORE na tačno 5 zasebnih FAQ polja: faq_1_i18n, faq_2_i18n, faq_3_i18n, faq_4_i18n, faq_5_i18n.
+
+CILJNI JEZICI: Generiši prevode i i18n objekte ISKLJUČIVO za sledeće jezike: ${langListStr}.
 
 Sirovi ulaz:
 """
@@ -96,11 +124,11 @@ UPOZORENJA I PRAVILA OBRADE:
    - agent_email: Ispravi očigledne greške (npr. "gmail.con" -> "gmail.com").
    - agent_name: Pravilno kapitalizuj (npr. "Nikola STOJA" -> "Nikola Stoja").
    - address: Ispravi nazive ulica/gradova (npr. "janka katica 17" -> "Janka Katica 17").
-   - title_i18n: Prevedi profesionalan i ulepšan naslov na četiri jezika (sr, en, de, ru).
+   - title_i18n: Prevedi profesionalan i ulepšan naslov ISKLJUČIVO na izabrane jezike (${langListStr}).
 
 4. **FAKTOI ODGOVORI (faq_1_i18n do faq_5_i18n)**:
 Generiši SAMO ODGOVORE (bez reči "answer" ili "question" i bez ponavljanja samog pitanja u JSON-u).
-Odgovore sastavi na osnovu unetih podataka i prevedi ih direktno na četiri jezika (sr, en, de, ru).
+Odgovore sastavi na osnovu unetih podataka i prevedi ih direktno na izabrane jezike (${langListStr}).
 
 Kontekst pitanja za koje sastavljaš odgovore prema kategoriji:
 
@@ -126,7 +154,7 @@ AKO JE CATEGORY = "booking":
 - faq_5_i18n: Odgovor na pitanje o parking-u, Wi-Fi-ju i pravilima otkazivanja.
 `;
 
-    // 3. Poziv Gemini API-ja
+    // 4. Poziv Gemini API-ja sa dinamičkom šemom
     const aiResponse = await callGeminiWithRetry(prompt, {
       responseMimeType: 'application/json',
       responseSchema: {
@@ -188,10 +216,13 @@ AKO JE CATEGORY = "booking":
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
 
-    // 4. Priprema payload-a za Supabase tabelu 'tours'
+    // 5. Priprema payload-a za Supabase tabelu 'tours'
+    // Primarni naslov uzimamo sa prvog izabranog jezika ili sa srpskog ako postoji
+    const primaryTitle = processedData.title_i18n?.sr || processedData.title_i18n?.[targetLanguages[0]] || '';
+
     const supabasePayload = {
       slug: processedData.slug,
-      title: processedData.title_i18n?.sr || '',
+      title: primaryTitle,
       category: processedData.category,
       property_type: processedData.property_type || null,
       advertiser_type: processedData.advertiser_type || null,
@@ -206,9 +237,10 @@ AKO JE CATEGORY = "booking":
       faq_3_i18n: processedData.faq_3_i18n,
       faq_4_i18n: processedData.faq_4_i18n,
       faq_5_i18n: processedData.faq_5_i18n,
+      target_languages: targetLanguages, // <-- Ovde se upisuju štiklirani jezici u tours tabelu
     };
 
-    // 5. Upis u Supabase
+    // 6. Upis u Supabase
     const { data, error } = await supabase
       .from('tours')
       .upsert(supabasePayload, { onConflict: 'slug' })

@@ -446,6 +446,7 @@ export default function TourPage() {
 
   const [tourStarted, setTourStarted] = useState(false);
   const [lang, setLang] = useState<Language>('sr');
+  const [targetLanguages, setTargetLanguages] = useState<Language[]>(['sr', 'en', 'de', 'ru']);
 
   const langRef = useRef<Language>('sr');
   useEffect(() => {
@@ -508,6 +509,12 @@ export default function TourPage() {
   const startXRef = useRef(0);
   const scrollLeftRef = useRef(0);
   const autoScrollPausedRef = useRef(false);
+
+  const toggleTargetLanguage = (l: Language) => {
+    setTargetLanguages((prev) =>
+      prev.includes(l) ? prev.filter((langItem) => langItem !== l) : [...prev, l]
+    );
+  };
 
   const handleStartEditWaypoint = useCallback((index: number) => {
     const currentRoom = rooms[roomIdx];
@@ -754,12 +761,13 @@ export default function TourPage() {
 
     setAiLoading(true);
     try {
-      const res = await fetch('/api/ai/auto-populate-room', {
+      const res = await fetch('/api/process-form/routes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           roomId: currentRoom.id,
           panoramaUrl: currentRoom.panorama_url,
+          target_languages: targetLanguages,
         }),
       });
 
@@ -1767,6 +1775,23 @@ export default function TourPage() {
       {adminMode && !pendingCoords && (
         <div style={{ position: 'absolute', top: '80px', left: '12px', zIndex: 40, backgroundColor: 'rgba(0,0,0,0.85)', padding: '10px', borderRadius: '12px', border: '1px solid #333', color: '#fff', fontSize: '11px', maxWidth: '280px' }}>
           <div style={{ fontWeight: 'bold', marginBottom: '6px', color: '#38bdf8' }}>ADMIN KONTROLE</div>
+          
+          <div style={{ marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ fontSize: '10px', color: '#aaa' }}>Ciljni jezici za AI:</span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {availableLanguages.map((l) => (
+                <label key={l} style={{ display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer', fontSize: '10px' }}>
+                  <input
+                    type="checkbox"
+                    checked={targetLanguages.includes(l)}
+                    onChange={() => toggleTargetLanguage(l)}
+                  />
+                  {l.toUpperCase()}
+                </label>
+              ))}
+            </div>
+          </div>
+
           <button
             onClick={handleAutoPopulateRoom}
             disabled={aiLoading}
