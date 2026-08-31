@@ -58,6 +58,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     console.log("Sirovi ulazni podaci iz forme/tabele:", JSON.stringify(body, null, 2));
 
+    // 1. Ekstrakcija tekstualnog sadržaja
     const rawAnswers = body.answers || body.namedValues || body.data || body;
     let extractedText = "";
 
@@ -77,23 +78,29 @@ export async function POST(req: Request) {
       extractedText = String(rawAnswers);
     }
 
-    let targetLanguages: string[] = body.target_languages || body.targetLanguages || body.languages;
+    // 2. Precizna detekcija jezika (isključuje lažne ulove)
+    const rawSearchStr = JSON.stringify(body);
+    const detectedLangs = new Set<string>();
 
-    if (!Array.isArray(targetLanguages) || targetLanguages.length === 0) {
-      if (typeof rawAnswers === 'object' && rawAnswers !== null && rawAnswers.target_languages) {
-        targetLanguages = Array.isArray(rawAnswers.target_languages)
-          ? rawAnswers.target_languages
-          : String(rawAnswers.target_languages).split(',').map((s) => s.trim());
-      }
-    }
+    // Provera pomoću \b (word boundary) da "sr" ne uhvati reči poput "adresa"
+    if (/\b(sr|rs|srpski|serbian)\b/i.test(rawSearchStr)) detectedLangs.add('sr');
+    if (/\b(ru|ruski|russian)\b/i.test(rawSearchStr)) detectedLangs.add('ru');
+    if (/\b(en|engleski|english)\b/i.test(rawSearchStr)) detectedLangs.add('en');
+    if (/\b(de|nemački|nemacki|german)\b/i.test(rawSearchStr)) detectedLangs.add('de');
 
-    if (!Array.isArray(targetLanguages) || targetLanguages.length === 0) {
+    let targetLanguages = Array.from(detectedLangs);
+
+    // Fallback samo ako ništa nije detektovano
+    if (targetLanguages.length === 0) {
       targetLanguages = ['sr', 'en'];
     }
+
+    console.log("Detektovani ciljni jezici:", targetLanguages);
 
     const langListStr = targetLanguages.map((l) => l.toUpperCase()).join(', ');
     const i18nTextSchema = buildI18nSchema(targetLanguages);
 
+    // 3. Prompt za Gemini
     const prompt = `
 Ti si stručni AI administrator baze podataka za nekretnine i 360 virtuelne ture.
 Analiziraj sledeće sirove podatke iz popunjene Google Forme/Tabele, očisti ih od tipfera, odredi kategoriju i sastavi ODGOVORE na tačno 5 zasebnih FAQ polja: faq_1_i18n, faq_2_i18n, faq_3_i18n, faq_4_i18n, faq_5_i18n.
@@ -239,7 +246,7 @@ AKO JE CATEGORY = "booking":
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({ success: true, targetLanguages, data });
   } catch (error: any) {
     console.error("Greška u API obradi:", error);
     return NextResponse.json({ error: error.message || String(error) }, { status: 500 });
