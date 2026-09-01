@@ -846,7 +846,7 @@ export default function TourPage() {
               isInterruptedRef.current = true;
               stopCurrentAnimation();
               audioCurrentTimeRef.current = 0;
-              if (viewerRef.current) viewerRef.current.setHfov(48);
+              if (viewerRef.current) viewerRef.current.setHfov(45);
               playAudioFileWithCompletion(wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
             }
           }
@@ -1518,20 +1518,20 @@ export default function TourPage() {
           maxWidth: '560px',
           justifyContent: 'center'
         }}>
-          <button onClick={() => setActiveModal('faq')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'faq' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '12px 4px', fontSize: '13px' }}>
-            {t.btnFaq}
+          <button onClick={() => setActiveModal('faq')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'faq' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '12px 4px', fontSize: '15px' }}>
+            ❓ {t.btnFaq.replace(/^[^\s]+\s*/, '')}
           </button>
-          <button onClick={() => setActiveModal('location')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'location' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '12px 4px', fontSize: '13px' }}>
-            {t.btnLocation}
+          <button onClick={() => setActiveModal('location')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'location' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '12px 4px', fontSize: '15px' }}>
+            📍 {t.btnLocation.replace(/^[^\s]+\s*/, '')}
           </button>
-          <button onClick={() => setActiveModal('about')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'about' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '12px 4px', fontSize: '13px' }}>
-            {t.btnAbout}
+          <button onClick={() => setActiveModal('about')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'about' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '12px 4px', fontSize: '15px' }}>
+            ℹ️ {t.btnAbout.replace(/^[^\s]+\s*/, '')}
           </button>
-          <button onClick={() => setActiveModal('plan')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'plan' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '12px 4px', fontSize: '13px' }}>
-            {t.btnPlan}
+          <button onClick={() => setActiveModal('plan')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'plan' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '12px 4px', fontSize: '15px' }}>
+            🗺️ {t.btnPlan.replace(/^[^\s]+\s*/, '')}
           </button>
-          <button onClick={() => setActiveModal('contact')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'contact' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '12px 4px', fontSize: '13px' }}>
-            {t.btnContact}
+          <button onClick={() => setActiveModal('contact')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'contact' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '12px 4px', fontSize: '15px' }}>
+            📞 {t.btnContact.replace(/^[^\s]+\s*/, '')}
           </button>
         </div>
       )}
@@ -1624,11 +1624,11 @@ export default function TourPage() {
           </button>
 
           {displayedInfoTitle && (
-            <h3 style={{ margin: '0 0 6px 0', fontSize: '17px', color: '#38bdf8', paddingRight: '22px', fontWeight: 600 }}>
+            <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', color: '#38bdf8', paddingRight: '22px', fontWeight: 600 }}>
               {displayedInfoTitle}
             </h3>
           )}
-          <p style={{ margin: 0, fontSize: '15px', lineHeight: '1.5', color: '#f1f5f9', paddingRight: '12px' }}>
+          <p style={{ margin: 0, fontSize: '13px', lineHeight: '1.5', color: '#f1f5f9', paddingRight: '12px' }}>
             {displayedInfoText}
           </p>
         </div>
