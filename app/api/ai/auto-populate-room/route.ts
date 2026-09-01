@@ -24,6 +24,19 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PU
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
+ * Mapiranje kodova jezika u pun naziv radi nepogrešive AI instrukcije
+ */
+const LANGUAGE_NAMES: Record<string, string> = {
+  sr: 'Serbian (Serbian Latin script - Srpski)',
+  de: 'German (Deutsch)',
+  en: 'English',
+  fr: 'French (Français)',
+  it: 'Italian (Italiano)',
+  es: 'Spanish (Español)',
+  ru: 'Russian (Русский)',
+};
+
+/**
  * ============================================================
  * TYPES
  * ============================================================
@@ -31,6 +44,30 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 type ListingType = 'sale' | 'rent' | 'booking';
 const LISTING_TYPES: ListingType[] = ['sale', 'rent', 'booking'];
+
+/**
+ * ============================================================
+ * DYNAMIC I18N SCHEMA BUILDER WITH LANGUAGE DESCRIPTIONS
+ * ============================================================
+ */
+
+function buildI18nSchema(languages: string[]): Schema {
+  const properties: Record<string, Schema> = {};
+  
+  languages.forEach((lang) => {
+    const langName = LANGUAGE_NAMES[lang.toLowerCase()] || lang.toUpperCase();
+    properties[lang] = { 
+      type: Type.STRING,
+      description: `Text MUST be written entirely and naturally in ${langName}. Do NOT use any other language here.`
+    };
+  });
+
+  return {
+    type: Type.OBJECT,
+    properties,
+    required: languages,
+  };
+}
 
 /**
  * ============================================================
@@ -146,271 +183,214 @@ The image is the source of truth. Never invent square meters, price, location, f
 `;
 }
 
-function getLanguageRules(): string {
+function getLanguageRules(languages: string[]): string {
+  const langDetails = languages
+    .map((l) => `- Key "${l}": MUST be written in ${LANGUAGE_NAMES[l.toLowerCase()] || l}`)
+    .join('\n');
+
   return `
 ============================================================
-LANGUAGE RULES
+STRICT MULTILINGUAL REQUIREMENT
 ============================================================
-Generate four independent native versions (SR - Serbian Latin, EN - English, DE - German, RU - Russian).
-Do NOT translate word-for-word. Each version must sound natural to native real estate buyers.
+You MUST generate localized content ONLY for the following language keys: [${languages.join(', ')}].
+
+EXPLICIT TRANSLATION RULES:
+${langDetails}
+
+FORBIDDEN:
+- NEVER copy content from one language key into another (e.g. DO NOT copy Serbian text into German 'de' key).
+- NEVER output 'en' (English) key unless explicitly requested in the list above.
+- EACH language version must be fully translated and adapted natively for that target language!
 `;
 }
 
 /**
  * ============================================================
- * JSON SCHEMA DEFINITION
+ * JSON SCHEMA GENERATOR
  * ============================================================
  */
 
-const roomAnalysisSchema: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    room: {
-      type: Type.OBJECT,
-      properties: {
-        type: {
-          type: Type.STRING,
-          enum: [
-            'living_room',
-            'bedroom',
-            'kitchen',
-            'dining_room',
-            'bathroom',
-            'hallway',
-            'entrance',
-            'terrace',
-            'balcony',
-            'office',
-            'utility_room',
-            'other',
-          ],
-        },
-        confidence: { type: Type.NUMBER },
-        title_i18n: {
-          type: Type.OBJECT,
-          properties: {
-            sr: { type: Type.STRING },
-            en: { type: Type.STRING },
-            de: { type: Type.STRING },
-            ru: { type: Type.STRING },
-          },
-          required: ['sr', 'en', 'de', 'ru'],
-        },
-      },
-      required: ['type', 'confidence', 'title_i18n'],
-    },
-    visual_facts: {
-      type: Type.OBJECT,
-      properties: {
-        light: {
-          type: Type.STRING,
-          enum: ['very_low', 'low', 'moderate', 'good', 'excellent', 'unknown'],
-        },
-        spatial_feel: {
-          type: Type.STRING,
-          enum: ['compact', 'moderate', 'spacious', 'very_spacious', 'unknown'],
-        },
-        condition: {
-          type: Type.STRING,
-          enum: [
-            'needs_attention',
-            'dated',
-            'maintained',
-            'good',
-            'very_good',
-            'renovated',
-            'unknown',
-          ],
-        },
-        style: {
-          type: Type.STRING,
-          enum: [
-            'modern',
-            'contemporary',
-            'minimalist',
-            'classic',
-            'traditional',
-            'industrial',
-            'scandinavian',
-            'rustic',
-            'eclectic',
-            'neutral',
-            'mixed',
-            'unknown',
-          ],
-        },
-        visible_features: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING },
-        },
-        furniture: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING },
-        },
-        appliances: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING },
-        },
-        architectural_features: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING },
-        },
-      },
-      required: [
-        'light',
-        'spatial_feel',
-        'condition',
-        'style',
-        'visible_features',
-        'furniture',
-        'appliances',
-        'architectural_features',
-      ],
-    },
-    camera: {
-      type: Type.OBJECT,
-      properties: {
-        yaw: { type: Type.NUMBER },
-        pitch: { type: Type.NUMBER },
-        reason: { type: Type.STRING },
-      },
-      required: ['yaw', 'pitch', 'reason'],
-    },
-    client_value: {
-      type: Type.OBJECT,
-      properties: {
-        primary_value: { type: Type.STRING },
-        secondary_values: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING },
-        },
-        lifestyle_benefit: { type: Type.STRING },
-      },
-      required: ['primary_value', 'secondary_values', 'lifestyle_benefit'],
-    },
-    highlights: {
-      type: Type.ARRAY,
-      items: {
+function buildRoomAnalysisSchema(languages: string[]): Schema {
+  const i18nSchema = buildI18nSchema(languages);
+
+  return {
+    type: Type.OBJECT,
+    properties: {
+      room: {
         type: Type.OBJECT,
         properties: {
-          title_i18n: {
-            type: Type.OBJECT,
-            properties: {
-              sr: { type: Type.STRING },
-              en: { type: Type.STRING },
-              de: { type: Type.STRING },
-              ru: { type: Type.STRING },
-            },
-            required: ['sr', 'en', 'de', 'ru'],
+          type: {
+            type: Type.STRING,
+            enum: [
+              'living_room',
+              'bedroom',
+              'kitchen',
+              'dining_room',
+              'bathroom',
+              'hallway',
+              'entrance',
+              'terrace',
+              'balcony',
+              'office',
+              'utility_room',
+              'other',
+            ],
           },
-          text_i18n: {
-            type: Type.OBJECT,
-            properties: {
-              sr: { type: Type.STRING },
-              en: { type: Type.STRING },
-              de: { type: Type.STRING },
-              ru: { type: Type.STRING },
-            },
-            required: ['sr', 'en', 'de', 'ru'],
+          confidence: { type: Type.NUMBER },
+          title_i18n: i18nSchema,
+        },
+        required: ['type', 'confidence', 'title_i18n'],
+      },
+      visual_facts: {
+        type: Type.OBJECT,
+        properties: {
+          light: {
+            type: Type.STRING,
+            enum: ['very_low', 'low', 'moderate', 'good', 'excellent', 'unknown'],
+          },
+          spatial_feel: {
+            type: Type.STRING,
+            enum: ['compact', 'moderate', 'spacious', 'very_spacious', 'unknown'],
+          },
+          condition: {
+            type: Type.STRING,
+            enum: [
+              'needs_attention',
+              'dated',
+              'maintained',
+              'good',
+              'very_good',
+              'renovated',
+              'unknown',
+            ],
+          },
+          style: {
+            type: Type.STRING,
+            enum: [
+              'modern',
+              'contemporary',
+              'minimalist',
+              'classic',
+              'traditional',
+              'industrial',
+              'scandinavian',
+              'rustic',
+              'eclectic',
+              'neutral',
+              'mixed',
+              'unknown',
+            ],
+          },
+          visible_features: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+          },
+          furniture: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+          },
+          appliances: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+          },
+          architectural_features: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
           },
         },
-        required: ['title_i18n', 'text_i18n'],
+        required: [
+          'light',
+          'spatial_feel',
+          'condition',
+          'style',
+          'visible_features',
+          'furniture',
+          'appliances',
+          'architectural_features',
+        ],
       },
-    },
-    waypoints: {
-      type: Type.ARRAY,
-      items: {
+      camera: {
         type: Type.OBJECT,
         properties: {
           yaw: { type: Type.NUMBER },
           pitch: { type: Type.NUMBER },
-          type: {
-            type: Type.STRING,
-            enum: ['info', 'navigation'],
+          reason: { type: Type.STRING },
+        },
+        required: ['yaw', 'pitch', 'reason'],
+      },
+      client_value: {
+        type: Type.OBJECT,
+        properties: {
+          primary_value: { type: Type.STRING },
+          secondary_values: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
           },
-          priority: { type: Type.NUMBER },
-          title_i18n: {
-            type: Type.OBJECT,
-            properties: {
-              sr: { type: Type.STRING },
-              en: { type: Type.STRING },
-              de: { type: Type.STRING },
-              ru: { type: Type.STRING },
+          lifestyle_benefit: { type: Type.STRING },
+        },
+        required: ['primary_value', 'secondary_values', 'lifestyle_benefit'],
+      },
+      highlights: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            title_i18n: i18nSchema,
+            text_i18n: i18nSchema,
+          },
+          required: ['title_i18n', 'text_i18n'],
+        },
+      },
+      waypoints: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            yaw: { type: Type.NUMBER },
+            pitch: { type: Type.NUMBER },
+            type: {
+              type: Type.STRING,
+              enum: ['info', 'navigation'],
             },
-            required: ['sr', 'en', 'de', 'ru'],
+            priority: { type: Type.NUMBER },
+            title_i18n: i18nSchema,
+            text_i18n: i18nSchema,
           },
-          text_i18n: {
-            type: Type.OBJECT,
-            properties: {
-              sr: { type: Type.STRING },
-              en: { type: Type.STRING },
-              de: { type: Type.STRING },
-              ru: { type: Type.STRING },
-            },
-            required: ['sr', 'en', 'de', 'ru'],
-          },
+          required: [
+            'yaw',
+            'pitch',
+            'type',
+            'priority',
+            'title_i18n',
+            'text_i18n',
+          ],
+        },
+      },
+      listing_copy: {
+        type: Type.OBJECT,
+        properties: {
+          headline_i18n: i18nSchema,
+          short_description_i18n: i18nSchema,
+          full_description_i18n: i18nSchema,
         },
         required: [
-          'yaw',
-          'pitch',
-          'type',
-          'priority',
-          'title_i18n',
-          'text_i18n',
+          'headline_i18n',
+          'short_description_i18n',
+          'full_description_i18n',
         ],
       },
     },
-    listing_copy: {
-      type: Type.OBJECT,
-      properties: {
-        headline_i18n: {
-          type: Type.OBJECT,
-          properties: {
-            sr: { type: Type.STRING },
-            en: { type: Type.STRING },
-            de: { type: Type.STRING },
-            ru: { type: Type.STRING },
-          },
-          required: ['sr', 'en', 'de', 'ru'],
-        },
-        short_description_i18n: {
-          type: Type.OBJECT,
-          properties: {
-            sr: { type: Type.STRING },
-            en: { type: Type.STRING },
-            de: { type: Type.STRING },
-            ru: { type: Type.STRING },
-          },
-          required: ['sr', 'en', 'de', 'ru'],
-        },
-        full_description_i18n: {
-          type: Type.OBJECT,
-          properties: {
-            sr: { type: Type.STRING },
-            en: { type: Type.STRING },
-            de: { type: Type.STRING },
-            ru: { type: Type.STRING },
-          },
-          required: ['sr', 'en', 'de', 'ru'],
-        },
-      },
-      required: [
-        'headline_i18n',
-        'short_description_i18n',
-        'full_description_i18n',
-      ],
-    },
-  },
-  required: [
-    'room',
-    'visual_facts',
-    'camera',
-    'client_value',
-    'highlights',
-    'waypoints',
-    'listing_copy',
-  ],
-};
+    required: [
+      'room',
+      'visual_facts',
+      'camera',
+      'client_value',
+      'highlights',
+      'waypoints',
+      'listing_copy',
+    ],
+  };
+}
 
 /**
  * ============================================================
@@ -418,7 +398,7 @@ const roomAnalysisSchema: Schema = {
  * ============================================================
  */
 
-function buildPrompt(listingType: ListingType): string {
+function buildPrompt(listingType: ListingType, targetLanguages: string[]): string {
   return `
 You are a senior residential real-estate agent, property marketing specialist and client psychology expert.
 You are analyzing ONE equirectangular 360-degree panorama of a property.
@@ -427,9 +407,9 @@ The description MUST be CLIENT-CENTRIC depending on: ${listingType.toUpperCase()
 
 ${getClientStrategy(listingType)}
 ${getWritingRules()}
-${getLanguageRules()}
+${getLanguageRules(targetLanguages)}
 
-Return ONLY valid JSON matching the schema.
+Return ONLY valid JSON matching the provided schema.
 `;
 }
 
@@ -587,7 +567,6 @@ async function fetchPanorama(panoramaUrl: string) {
 
 export async function POST(req: Request) {
   try {
-    // Provera API Ključa
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
@@ -599,7 +578,7 @@ export async function POST(req: Request) {
     const ai = new GoogleGenAI({ apiKey });
 
     const body = await req.json();
-    const { roomId, panoramaUrl, listingType = 'rent' } = body;
+    const { roomId, tourId, panoramaUrl, listingType = 'rent', targetLanguages: bodyLanguages } = body;
 
     if (!roomId) {
       return NextResponse.json({ success: false, error: 'roomId je obavezan.' }, { status: 400 });
@@ -609,14 +588,51 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'panoramaUrl je obavezan.' }, { status: 400 });
     }
 
+    // 1. Provera jezika prosleđenih direktno iz zahteva
+    let targetLanguages: string[] = Array.isArray(bodyLanguages) && bodyLanguages.length > 0 ? bodyLanguages : [];
+
+    // 2. Ako nisu prosleđeni iz zahteva, dohvati ih iz baze
+    if (targetLanguages.length === 0) {
+      let effectiveTourId = tourId;
+
+      if (!effectiveTourId && roomId) {
+        const { data: roomData } = await supabase
+          .from('rooms')
+          .select('tour_id')
+          .eq('id', roomId)
+          .single();
+        effectiveTourId = roomData?.tour_id;
+      }
+
+      if (effectiveTourId) {
+        const { data: tourData } = await supabase
+          .from('tours')
+          .select('target_languages')
+          .eq('id', effectiveTourId)
+          .single();
+
+        if (tourData?.target_languages && Array.isArray(tourData.target_languages) && tourData.target_languages.length > 0) {
+          targetLanguages = tourData.target_languages;
+        }
+      }
+    }
+
+    // Fallback ako baza ili request i dalje nemaju jezike
+    if (targetLanguages.length === 0) {
+      targetLanguages = ['sr', 'de'];
+    }
+
+    console.log('Final target languages for AI prompt:', targetLanguages);
+
     const safeListingType: ListingType = LISTING_TYPES.includes(listingType)
       ? listingType
       : 'rent';
 
     const image = await fetchPanorama(panoramaUrl);
-    const prompt = buildPrompt(safeListingType);
+    const prompt = buildPrompt(safeListingType, targetLanguages);
+    const dynamicSchema = buildRoomAnalysisSchema(targetLanguages);
 
-    // Poziv ka Gemini uz odgovarajući config sa responseSchema
+    // Poziv ka Gemini uz odgovarajući config sa dinamičkom responseSchema
     const response = await generateWithRetry(
       ai,
       [
@@ -630,7 +646,7 @@ export async function POST(req: Request) {
       ],
       {
         responseMimeType: 'application/json',
-        responseSchema: roomAnalysisSchema,
+        responseSchema: dynamicSchema,
       }
     );
 
@@ -665,6 +681,7 @@ export async function POST(req: Request) {
       success: true,
       model: MODEL,
       listingType: safeListingType,
+      targetLanguages,
       data,
     });
   } catch (error: any) {

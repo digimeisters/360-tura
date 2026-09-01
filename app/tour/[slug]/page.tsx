@@ -154,7 +154,7 @@ function Centered({ children }: { children: React.ReactNode }) {
           display: none !important;
         }
       `}</style>
-      <div style={{ color: '#38bdf8', fontSize: '14px', letterSpacing: '1px', fontWeight: 500 }}>{children}</div>
+      <div style={{ color: '#38bdf8', fontSize: '16px', letterSpacing: '1px', fontWeight: 500 }}>{children}</div>
     </div>
   );
 }
@@ -164,15 +164,15 @@ const btnStyle: React.CSSProperties = {
   color: '#000000',
   border: '1px solid rgba(255, 255, 255, 0.4)',
   borderRadius: '16px',
-  padding: '6px 12px',
-  fontSize: '11px',
+  padding: '8px 14px',
+  fontSize: '13px',
   cursor: 'pointer',
   backdropFilter: 'blur(8px)',
   transition: 'all 0.2s ease',
   flexShrink: 0,
   userSelect: 'none',
   fontWeight: 500,
-  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
 };
 
 const categoryQuestions: Record<string, Record<Language, string[]>> = {
@@ -761,7 +761,7 @@ export default function TourPage() {
 
     setAiLoading(true);
     try {
-      const res = await fetch('/api/process-form', {
+      const res = await fetch('/api/ai/auto-populate-room', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1059,7 +1059,7 @@ export default function TourPage() {
           hotSpotDiv.style.height = isNav ? 'auto' : '22px';
           hotSpotDiv.style.fontWeight = 'bold';
           hotSpotDiv.style.fontSize = isNav ? '10px' : '15px';
-          hotSpotDiv.style.boxShadow = '8px 10px 20px rgba(0, 0, 0, 0.53)';
+          hotSpotDiv.style.boxShadow = '2px 4px 12px rgba(0, 0, 0, 0.53)';
           hotSpotDiv.innerHTML = isNav ? `${tooltipText}` : 'ℹ';
         },
         text: tooltipText,
@@ -1294,6 +1294,8 @@ export default function TourPage() {
 
   const availableLanguages: Language[] = ['sr', 'en', 'de', 'ru'];
 
+  const isModalToolbarVisible = !tourStarted || (isRoomTourFullyCompleted || isInfoboxManuallyClosed);
+
   return (
     <main style={{ position: 'relative', width: '100vw', height: '100dvh', backgroundColor: '#000', overflow: 'hidden' }}>
       <style>{`
@@ -1327,7 +1329,7 @@ export default function TourPage() {
                     border: 'none',
                     borderRadius: '8px',
                     padding: '6px 12px',
-                    fontSize: '12px',
+                    fontSize: '13px',
                     fontWeight: lang === l ? 'bold' : 'normal',
                     cursor: 'pointer',
                     transition: 'background 0.2s'
@@ -1338,9 +1340,9 @@ export default function TourPage() {
               ))}
           </div>
 
-          <h1 style={{ color: '#fff', fontSize: '24px', marginBottom: '10px' }}>{fullTourTitle}</h1>
-          <p style={{ color: '#aaa', fontSize: '14px', maxWidth: '400px', marginBottom: '30px' }}>{t.welcome}</p>
-          <button onClick={() => setTourStarted(true)} style={{ padding: '12px 28px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#0284c7', color: '#fff', border: 'none', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)' }}>
+          <h1 style={{ color: '#fff', fontSize: '26px', marginBottom: '12px', fontWeight: 700 }}>{fullTourTitle}</h1>
+          <p style={{ color: '#cbd5e1', fontSize: '16px', maxWidth: '440px', marginBottom: '32px', lineHeight: '1.5' }}>{t.welcome}</p>
+          <button onClick={() => setTourStarted(true)} style={{ padding: '14px 32px', fontSize: '17px', fontWeight: 'bold', backgroundColor: '#0284c7', color: '#fff', border: 'none', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)' }}>
             {t.startTour}
           </button>
         </div>
@@ -1503,32 +1505,32 @@ export default function TourPage() {
 
       <div id="panorama" style={{ width: '100%', height: '100%' }} />
 
-      {tourStarted && !pendingCoords && (isRoomTourFullyCompleted || isInfoboxManuallyClosed) && (
+      {!pendingCoords && isModalToolbarVisible && (
         <div style={{
           position: 'absolute',
-          bottom: '10px',
+          bottom: '12px',
           left: '50%',
           transform: 'translateX(-50%)',
-          zIndex: 35,
+          zIndex: 55,
           display: 'flex',
-          gap: '5px',
+          gap: '6px',
           width: '96%',
-          maxWidth: '520px',
+          maxWidth: '560px',
           justifyContent: 'center'
         }}>
-          <button onClick={() => setActiveModal('faq')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'faq' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
+          <button onClick={() => setActiveModal('faq')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'faq' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '12px 4px', fontSize: '13px' }}>
             {t.btnFaq}
           </button>
-          <button onClick={() => setActiveModal('location')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'location' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
+          <button onClick={() => setActiveModal('location')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'location' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '12px 4px', fontSize: '13px' }}>
             {t.btnLocation}
           </button>
-          <button onClick={() => setActiveModal('about')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'about' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
+          <button onClick={() => setActiveModal('about')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'about' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '12px 4px', fontSize: '13px' }}>
             {t.btnAbout}
           </button>
-          <button onClick={() => setActiveModal('plan')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'plan' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
+          <button onClick={() => setActiveModal('plan')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'plan' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '12px 4px', fontSize: '13px' }}>
             {t.btnPlan}
           </button>
-          <button onClick={() => setActiveModal('contact')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'contact' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '10px 2px', fontSize: '11px' }}>
+          <button onClick={() => setActiveModal('contact')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'contact' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '12px 4px', fontSize: '13px' }}>
             {t.btnContact}
           </button>
         </div>
@@ -1566,10 +1568,10 @@ export default function TourPage() {
             }
           `}</style>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '450px' }}>
-            <div style={{ color: '#fff', fontSize: '15px', fontWeight: 600, letterSpacing: '0.5px' }}>
+            <div style={{ color: '#fff', fontSize: '16px', fontWeight: 600, letterSpacing: '0.5px' }}>
               {fullTourTitle}
             </div>
-            <div style={{ color: '#38bdf8', fontSize: '13px', letterSpacing: '0.5px' }}>
+            <div style={{ color: '#38bdf8', fontSize: '14px', letterSpacing: '0.5px' }}>
               {t.roomLoadingPrefix}<b style={{ color: '#fff' }}>{currentRoomTitle}</b>
             </div>
           </div>
@@ -1579,19 +1581,19 @@ export default function TourPage() {
       {infoBoxData && !pendingCoords && !activeModal && (
         <div style={{
           position: 'absolute',
-          bottom: '8px',
+          bottom: '12px',
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 30,
           width: '94%',
-          maxWidth: '450px',
-          backgroundColor: 'rgba(15, 23, 42, 0.9)',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(255,255,255,0.15)',
-          borderRadius: '16px',
-          padding: '12px 14px',
+          maxWidth: '520px',
+          backgroundColor: 'rgba(15, 23, 42, 0.92)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.18)',
+          borderRadius: '18px',
+          padding: '16px 18px',
           color: '#fff',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
+          boxShadow: '0 8px 32px rgba(0,0,0,0.6)'
         }}>
           <button
             onClick={() => {
@@ -1601,12 +1603,12 @@ export default function TourPage() {
             }}
             style={{
               position: 'absolute',
-              top: '8px',
-              right: '10px',
+              top: '10px',
+              right: '12px',
               background: 'transparent',
               border: 'none',
               color: '#94a3b8',
-              fontSize: '16px',
+              fontSize: '18px',
               fontWeight: 'bold',
               cursor: 'pointer',
               padding: '2px 6px',
@@ -1622,79 +1624,80 @@ export default function TourPage() {
           </button>
 
           {displayedInfoTitle && (
-            <h3 style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#38bdf8', paddingRight: '20px' }}>
+            <h3 style={{ margin: '0 0 6px 0', fontSize: '17px', color: '#38bdf8', paddingRight: '22px', fontWeight: 600 }}>
               {displayedInfoTitle}
             </h3>
           )}
-          <p style={{ margin: 0, fontSize: '12px', lineHeight: '1.35', color: '#e2e8f0', paddingRight: '10px' }}>
+          <p style={{ margin: 0, fontSize: '15px', lineHeight: '1.5', color: '#f1f5f9', paddingRight: '12px' }}>
             {displayedInfoText}
           </p>
         </div>
       )}
 
       {hasMounted && activeModal && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 60, backgroundColor: 'rgba(0, 0, 0, 0.75)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ backgroundColor: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '20px', width: '100%', maxWidth: '600px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-              <h2 style={{ color: '#fff', fontSize: '16px', margin: 0 }}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 80, backgroundColor: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ backgroundColor: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '20px', width: '100%', maxWidth: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <h2 style={{ color: '#fff', fontSize: '20px', margin: 0, fontWeight: 700 }}>
                 {activeModal === 'plan' && t.btnPlan}
                 {activeModal === 'location' && t.btnLocation}
                 {activeModal === 'about' && t.btnAbout}
                 {activeModal === 'faq' && t.btnFaq}
                 {activeModal === 'contact' && t.btnContact}
               </h2>
-              <button onClick={() => { setActiveModal(null); setSelectedFaq(null); }} style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#ef4444', padding: '6px 12px' }}>
+              <button onClick={() => { setActiveModal(null); setSelectedFaq(null); }} style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#ef4444', padding: '8px 16px', fontSize: '14px' }}>
                 {t.close}
               </button>
             </div>
 
-            <div style={{ padding: '16px', overflowY: 'auto', flex: 1, color: '#e2e8f0', fontSize: '13px' }}>
+            <div style={{ padding: '20px', overflowY: 'auto', flex: 1, color: '#f1f5f9', fontSize: '16px' }}>
               {activeModal === 'plan' && (
                 tour?.floorplan_url ? (
                   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                     <img src={tour.floorplan_url} alt="Floorplan" style={{ maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain', borderRadius: '12px' }} />
                   </div>
                 ) : (
-                  <p style={{ textAlign: 'center', color: '#94a3b8' }}>{t.noPlan}</p>
+                  <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '16px' }}>{t.noPlan}</p>
                 )
               )}
 
               {activeModal === 'location' && (
                 tour?.location_map_url ? (
-                  <div style={{ width: '100%', height: '350px', borderRadius: '12px', overflow: 'hidden' }}>
+                  <div style={{ width: '100%', height: '380px', borderRadius: '12px', overflow: 'hidden' }}>
                     <iframe src={tour.location_map_url} width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
                   </div>
                 ) : (
-                  <p style={{ textAlign: 'center', color: '#94a3b8' }}>{t.noLocation}</p>
+                  <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '16px' }}>{t.noLocation}</p>
                 )
               )}
 
               {activeModal === 'about' && (
                 aboutText ? (
-                  <p style={{ margin: 0, lineHeight: '1.5', color: '#cbd5e1', whiteSpace: 'pre-wrap' }}>{aboutText}</p>
+                  <p style={{ margin: 0, lineHeight: '1.6', color: '#e2e8f0', whiteSpace: 'pre-wrap', fontSize: '16px' }}>{aboutText}</p>
                 ) : (
-                  <p style={{ textAlign: 'center', color: '#94a3b8' }}>{t.noAbout}</p>
+                  <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '16px' }}>{t.noAbout}</p>
                 )
               )}
 
               {activeModal === 'faq' && (
                 faqList.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {faqList.map((item, index) => (
                       <button
                         key={index}
                         onClick={() => setSelectedFaq(index)}
                         style={{
                           textAlign: 'left',
-                          backgroundColor: 'rgba(30, 41, 59, 0.7)',
-                          border: '1px solid rgba(255,255,255,0.1)',
-                          borderRadius: '10px',
-                          padding: '12px 14px',
+                          backgroundColor: 'rgba(30, 41, 59, 0.8)',
+                          border: '1px solid rgba(255,255,255,0.15)',
+                          borderRadius: '12px',
+                          padding: '14px 16px',
                           color: '#fef08a',
-                          fontSize: '14px',
+                          fontSize: '16px',
                           fontWeight: 600,
                           cursor: 'pointer',
-                          width: '100%'
+                          width: '100%',
+                          lineHeight: '1.4'
                         }}
                       >
                         {item.question}
@@ -1702,47 +1705,47 @@ export default function TourPage() {
                     ))}
                   </div>
                 ) : (
-                  <p style={{ textAlign: 'center', color: '#94a3b8' }}>{t.noFaq}</p>
+                  <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '16px' }}>{t.noFaq}</p>
                 )
               )}
 
               {activeModal === 'contact' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '6px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '4px' }}>
                   {tour?.agent_name && (
-                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.7)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                      <p style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#94a3b8' }}>{t.agentLabel}</p>
-                      <p style={{ margin: 0, fontSize: '15px', fontWeight: 'bold', color: '#fff' }}>{tour.agent_name}</p>
+                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.8)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)' }}>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#94a3b8' }}>{t.agentLabel}</p>
+                      <p style={{ margin: 0, fontSize: '17px', fontWeight: 'bold', color: '#fff' }}>{tour.agent_name}</p>
                     </div>
                   )}
 
                   {tour?.agent_phone && (
-                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.7)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.8)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <p style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#94a3b8' }}>{t.phoneLabel}</p>
-                        <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#fff' }}>{tour.agent_phone}</p>
+                        <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#94a3b8' }}>{t.phoneLabel}</p>
+                        <p style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: '#fff' }}>{tour.agent_phone}</p>
                       </div>
-                      <a href={`tel:${tour.agent_phone}`} style={{ ...btnStyle, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', textDecoration: 'none', padding: '8px 14px' }}>
+                      <a href={`tel:${tour.agent_phone}`} style={{ ...btnStyle, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', textDecoration: 'none', padding: '10px 18px', fontSize: '14px' }}>
                         {t.callBtn}
                       </a>
                     </div>
                   )}
 
                   {tour?.agent_email && (
-                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.7)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.8)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ overflow: 'hidden', paddingRight: '8px' }}>
-                        <p style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#94a3b8' }}>{t.emailLabel}</p>
-                        <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#fff', textOverflow: 'ellipsis', overflow: 'hidden' }}>{tour.agent_email}</p>
+                        <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#94a3b8' }}>{t.emailLabel}</p>
+                        <p style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: '#fff', textOverflow: 'ellipsis', overflow: 'hidden' }}>{tour.agent_email}</p>
                       </div>
-                      <a href={`mailto:${tour.agent_email}`} style={{ ...btnStyle, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', textDecoration: 'none', padding: '8px 14px', flexShrink: 0 }}>
+                      <a href={`mailto:${tour.agent_email}`} style={{ ...btnStyle, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', textDecoration: 'none', padding: '10px 18px', fontSize: '14px', flexShrink: 0 }}>
                         {t.emailBtn}
                       </a>
                     </div>
                   )}
 
                   {tour?.agency_name && (
-                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.7)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                      <p style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#94a3b8' }}>{t.agencyLabel}</p>
-                      <p style={{ margin: 0, fontSize: '15px', fontWeight: 'bold', color: '#fff' }}>{tour.agency_name}</p>
+                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.8)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)' }}>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#94a3b8' }}>{t.agencyLabel}</p>
+                      <p style={{ margin: 0, fontSize: '17px', fontWeight: 'bold', color: '#fff' }}>{tour.agency_name}</p>
                     </div>
                   )}
                 </div>
@@ -1753,18 +1756,18 @@ export default function TourPage() {
       )}
 
       {hasMounted && selectedFaq !== null && faqList[selectedFaq] && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 70, backgroundColor: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ backgroundColor: '#0f172a', border: '1px solid rgba(254, 240, 138, 0.4)', borderRadius: '20px', width: '100%', maxWidth: '450px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-              <h3 style={{ color: '#fef08a', fontSize: '15px', margin: 0, paddingRight: '10px' }}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 90, backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ backgroundColor: '#0f172a', border: '1px solid rgba(254, 240, 138, 0.5)', borderRadius: '20px', width: '100%', maxWidth: '520px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <h3 style={{ color: '#fef08a', fontSize: '17px', margin: 0, paddingRight: '12px', fontWeight: 600 }}>
                 {faqList[selectedFaq].question}
               </h3>
-              <button onClick={() => setSelectedFaq(null)} style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#ef4444', flexShrink: 0, padding: '6px 12px' }}>
+              <button onClick={() => setSelectedFaq(null)} style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#ef4444', flexShrink: 0, padding: '8px 14px', fontSize: '13px' }}>
                 {t.close}
               </button>
             </div>
-            <div style={{ padding: '16px', overflowY: 'auto', flex: 1, color: '#e2e8f0', fontSize: '13px' }}>
-              <p style={{ margin: 0, lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+            <div style={{ padding: '20px', overflowY: 'auto', flex: 1, color: '#f1f5f9', fontSize: '16px' }}>
+              <p style={{ margin: 0, lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
                 {faqList[selectedFaq].answer || t.comingSoon}
               </p>
             </div>
