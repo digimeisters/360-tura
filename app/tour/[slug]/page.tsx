@@ -171,7 +171,7 @@ const btnStyle: React.CSSProperties = {
   transition: 'all 0.2s ease',
   flexShrink: 0,
   userSelect: 'none',
-  fontWeight: 500,
+  fontWeight: 650,
   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
 };
 
