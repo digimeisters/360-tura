@@ -473,6 +473,10 @@ export default function TourPage() {
   const [isMuted, setIsMuted] = useState(false);
   const isMutedRef = useRef(false);
 
+  // Fullscreen & Gyroscope State
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isGyroActive, setIsGyroActive] = useState(false);
+
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const [selectedFaq, setSelectedFaq] = useState<number | null>(null);
   const [isRoomTourFullyCompleted, setIsRoomTourFullyCompleted] = useState(false);
@@ -509,6 +513,89 @@ export default function TourPage() {
   const startXRef = useRef(0);
   const scrollLeftRef = useRef(0);
   const autoScrollPausedRef = useRef(false);
+
+  // Helper funkcija za gašenje giroskopa
+  const stopGyroscope = useCallback(() => {
+    if (viewerRef.current && typeof viewerRef.current.stopOrientation === 'function') {
+      viewerRef.current.stopOrientation();
+    }
+    setIsGyroActive(false);
+  }, []);
+
+  // Helper funkcija za pokretanje giroskopa
+  const startGyroscope = useCallback(async () => {
+    if (!viewerRef.current) return;
+
+    // Provera za iOS requestPermission
+    if (
+      typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof (DeviceOrientationEvent as any).requestPermission === 'function'
+    ) {
+      try {
+        const permissionState = await (DeviceOrientationEvent as any).requestPermission();
+        if (permissionState === 'granted') {
+          if (typeof viewerRef.current.startOrientation === 'function') {
+            viewerRef.current.startOrientation();
+            setIsGyroActive(true);
+          }
+        } else {
+          console.warn('Dozvola za giroskop nije odobrena.');
+        }
+      } catch (err) {
+        console.error('Greška pri traženju dozvole za giroskop:', err);
+      }
+    } else {
+      // Android / Standardni pregledači
+      if (typeof viewerRef.current.startOrientation === 'function') {
+        viewerRef.current.startOrientation();
+        setIsGyroActive(true);
+      }
+    }
+  }, []);
+
+  // Prekidač za manuelno paljenje/gašenje giroskopa unutar Fullscreen-a
+  const toggleGyroscope = useCallback(() => {
+    if (isGyroActive) {
+      stopGyroscope();
+    } else {
+      startGyroscope();
+    }
+  }, [isGyroActive, startGyroscope, stopGyroscope]);
+
+  // Fullscreen pokretanje sa Giroskopom
+  const toggleFullscreen = useCallback(async () => {
+    if (!document.fullscreenElement) {
+      try {
+        await document.documentElement.requestFullscreen();
+        setIsFullscreen(true);
+        await startGyroscope();
+      } catch (err) {
+        console.error('Greška pri ulasku u Fullscreen:', err);
+      }
+    } else {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      }
+    }
+  }, [startGyroscope]);
+
+  // Event Listener za izlazak iz Fullscreen-a
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isFS = Boolean(document.fullscreenElement);
+      setIsFullscreen(isFS);
+
+      // Kada korisnik napusti Fullscreen, gasi se giroskop i vraća prevlačenje
+      if (!isFS) {
+        stopGyroscope();
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, [stopGyroscope]);
 
   const toggleTargetLanguage = (l: Language) => {
     setTargetLanguages((prev) =>
@@ -1294,7 +1381,7 @@ export default function TourPage() {
 
   const availableLanguages: Language[] = ['sr', 'en', 'de', 'ru'];
 
-  const isModalToolbarVisible = !tourStarted || (isRoomTourFullyCompleted || isInfoboxManuallyClosed);
+  const isModalToolbarVisible = !infoBoxData && (!tourStarted || isRoomTourFullyCompleted || isInfoboxManuallyClosed);
 
   return (
     <main style={{ position: 'relative', width: '100vw', height: '100dvh', backgroundColor: '#000', overflow: 'hidden' }}>
@@ -1406,6 +1493,44 @@ export default function TourPage() {
               >
                 {isMuted ? '🔇' : '🔊'}
               </button>
+
+              <div style={{ width: '1px', height: '14px', backgroundColor: 'rgba(255,255,255,0.2)', margin: '0 2px' }} />
+
+              {/* Fullscreen dugme */}
+              <button
+                onClick={toggleFullscreen}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  padding: '3px 4px'
+                }}
+                title={isFullscreen ? 'Napusti ceo ekran' : 'Ceo ekran'}
+              >
+                {isFullscreen ? '🗗' : '⛶'}
+              </button>
+
+              {/* Ikona za ručnu kontrolu giroskopa (vidljiva kada je u Fullscreen-u) */}
+              {isFullscreen && (
+                <button
+                  onClick={toggleGyroscope}
+                  style={{
+                    background: isGyroActive ? '#0284c7' : 'transparent',
+                    border: 'none',
+                    color: '#fff',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    padding: '3px 5px',
+                    transition: 'background 0.2s'
+                  }}
+                  title={isGyroActive ? 'Ugasi giroskop (pređi na dodir)' : 'Upali giroskop'}
+                >
+                  🧭
+                </button>
+              )}
 
               <div style={{ width: '1px', height: '14px', backgroundColor: 'rgba(255,255,255,0.2)', margin: '0 2px' }} />
 
