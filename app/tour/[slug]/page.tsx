@@ -113,32 +113,27 @@ const parseEstablish = (establishData: unknown): EstablishData => {
   return {};
 };
 
-// 1. Unapređena buildI18nObject funkcija
 const buildI18nObject = (
   textValue: string,
   existingData?: unknown,
   currentLang: Language = 'sr'
 ): Record<string, string> => {
   let result: Record<string, string> = { sr: '', en: '', de: '', ru: '' };
-
   if (existingData) {
-    if (typeof existingData === 'object' && existingData !== null) {
-      result = { ...result, ...(existingData as Record<string, string>) };
-    } else if (typeof existingData === 'string') {
+    if (typeof existingData === 'string') {
       try {
         const parsed = JSON.parse(existingData);
         if (parsed && typeof parsed === 'object') {
           result = { ...result, ...(parsed as Record<string, string>) };
-        } else {
-          result.sr = existingData;
         }
       } catch {
         result.sr = existingData;
       }
+    } else if (typeof existingData === 'object') {
+      result = { ...result, ...(existingData as Record<string, string>) };
     }
   }
-
-  result[currentLang] = textValue || '';
+  result[currentLang] = textValue;
   return result;
 };
 
@@ -521,10 +516,12 @@ export default function TourPage() {
   const scrollLeftRef = useRef(0);
   const autoScrollPausedRef = useRef(false);
 
-  const changeLanguage = (newLang: Language) => {
+  // ZAMENA/DEFINICIJA FUNKCIJE ZA PROMENU JEZIKA
+  const changeLanguage = useCallback((newLang: Language) => {
     setLang(newLang);
     langRef.current = newLang;
-  };
+    setRoomIdx(prev => prev); // Triggers re-evaluation of view text
+  }, []);
 
   const stopGyroscope = useCallback(() => {
     if (viewerRef.current && typeof viewerRef.current.stopOrientation === 'function') {
@@ -734,7 +731,6 @@ export default function TourPage() {
     }
   }, [rooms, stopAudio, stopCurrentAnimation]);
 
-  // CANCEL & DELETE & SAVE HOTSPOTS (ADMIN REŽIM)
   const handleCancelEdit = () => {
     setPendingCoords(null);
     setEditingIndex(null);
@@ -744,7 +740,6 @@ export default function TourPage() {
     setTargetRoomId('');
   };
 
-  // 3. Popravljena handleSaveHotspot funkcija
   const handleSaveHotspot = async () => {
     const currentRoom = rooms[roomIdx];
     if (!currentRoom || !pendingCoords) return;
@@ -799,9 +794,9 @@ export default function TourPage() {
       } : r);
       
       setRooms(newRooms);
-      handleCancelEdit();
 
-      // Sinhrono osvežavanje Pannellum prikaza
+      handleCancelEdit();
+      
       setTimeout(() => {
         changeLanguage(langRef.current);
       }, 50);
@@ -839,7 +834,6 @@ export default function TourPage() {
     }
   };
 
-  // KORAK 1: Generisanje SR drafta
   const handleAutoPopulateRoom = async () => {
     const currentRoom = rooms[roomIdx];
     if (!currentRoom || !currentRoom.panorama_url) {
@@ -874,7 +868,6 @@ export default function TourPage() {
     }
   };
 
-  // 2. Popravljena handleConfirmDraftAndProcess funkcija
   const handleConfirmDraftAndProcess = async () => {
     if (!aiDraft || !rooms[roomIdx]) return;
     
@@ -888,11 +881,11 @@ export default function TourPage() {
     const currentRoom = rooms[roomIdx];
     const otherLangs = targetLanguages.filter((l) => l !== 'sr');
 
-    // 1. Inicijalizacija sa osiguravanjem postojećih jezika
     let currentTitleI18n: Record<string, string> = buildI18nObject(aiDraft.title, currentRoom.title_i18n, 'sr');
-    
-    let existingEstablish = parseEstablish(currentRoom.establish_i18n);
-    let currentEstablishTextI18n: Record<string, string> = buildI18nObject(aiDraft.narration, existingEstablish.text_i18n, 'sr');
+    let currentEstablishI18n: EstablishData = {
+      ...parseEstablish(currentRoom.establish_i18n),
+      text_i18n: buildI18nObject(aiDraft.narration, parseEstablish(currentRoom.establish_i18n).text_i18n, 'sr')
+    };
 
     let currentWaypoints: Waypoint[] = aiDraft.waypoints.map((wp) => ({
       ...wp,
@@ -922,33 +915,31 @@ export default function TourPage() {
 
         const result = await res.json();
         if (result.success && result.translated) {
-          // Ažuriranje naslova sobe
-          currentTitleI18n = buildI18nObject(result.translated.title, currentTitleI18n, targetLang);
+          currentTitleI18n[targetLang] = result.translated.title;
+          
+          currentEstablishI18n.text_i18n = buildI18nObject(
+            result.translated.narration,
+            currentEstablishI18n.text_i18n,
+            targetLang
+          );
 
-          // Ažuriranje uvodne naracije
-          currentEstablishTextI18n = buildI18nObject(result.translated.narration, currentEstablishTextI18n, targetLang);
-
-          // Ažuriranje tačaka
           if (Array.isArray(result.translated.waypoints)) {
-            currentWaypoints = currentWaypoints.map((wp, idx) => {
-              const transWp = result.translated.waypoints[idx];
-              const translatedTitle = transWp ? getLocalizedText(transWp.title_i18n, targetLang) : '';
-              const translatedText = transWp ? getLocalizedText(transWp.text_i18n, targetLang) : '';
-
-              return {
-                ...wp,
-                title_i18n: buildI18nObject(translatedTitle, wp.title_i18n, targetLang),
-                text_i18n: buildI18nObject(translatedText, wp.text_i18n, targetLang)
-              };
-            });
+            currentWaypoints = currentWaypoints.map((wp, idx) => ({
+              ...wp,
+              text_i18n: buildI18nObject(
+                getLocalizedText(result.translated.waypoints[idx]?.text_i18n, targetLang),
+                wp.text_i18n,
+                targetLang
+              ),
+              title_i18n: buildI18nObject(
+                getLocalizedText(result.translated.waypoints[idx]?.title_i18n, targetLang),
+                wp.title_i18n,
+                targetLang
+              )
+            }));
           }
         }
       }
-
-      const finalEstablish: EstablishData = {
-        ...existingEstablish,
-        text_i18n: currentEstablishTextI18n
-      };
 
       setTranslationProgress('Upisivanje u bazu podataka...');
 
@@ -956,35 +947,31 @@ export default function TourPage() {
         .from('rooms')
         .update({
           title_i18n: currentTitleI18n,
-          establish_i18n: finalEstablish,
+          establish_i18n: currentEstablishI18n,
           waypoints_i18n: currentWaypoints
         })
         .eq('id', currentRoom.id);
 
-      if (dbErr) throw dbErr;
+      if (dbErr) {
+        throw dbErr;
+      }
 
-      // 2. Osvežavamo lokalno stanje
-      const updatedRooms = rooms.map((r, idx) =>
-        idx === roomIdx
-          ? {
-              ...r,
-              title_i18n: currentTitleI18n,
-              establish_i18n: finalEstablish,
-              waypoints_i18n: currentWaypoints
-            }
-          : r
+      setRooms((prevRooms: any[]) =>
+        prevRooms.map((r, idx) =>
+          idx === roomIdx
+            ? {
+                ...r,
+                title_i18n: currentTitleI18n,
+                establish_i18n: currentEstablishI18n,
+                waypoints_i18n: currentWaypoints
+              }
+            : r
+        )
       );
 
-      setRooms(updatedRooms);
+      changeLanguage(langRef.current);
 
-      // 3. Forsirano rendersko osvežavanje tačaka u sceni
-      setTimeout(() => {
-        if (viewerRef.current) {
-          changeLanguage(langRef.current);
-        }
-      }, 100);
-
-      alert('Soba je uspešno popunjena, prevedena i sačuvana!');
+      alert('Soba je uspešno popunjena i prevedena!');
     } catch (err: any) {
       console.error('Translation & Saving Error:', err);
       alert('Greška tokom prevođenja i upisa: ' + (err.message || 'Nepoznata greška'));
@@ -1232,7 +1219,6 @@ export default function TourPage() {
     });
     viewerRef.current = v;
 
-    // ADMIN MODE CLICK TO ADD WAYPOINT
     v.on('mouseup', (e: MouseEvent) => {
       if (adminModeRef.current && e.button === 0) {
         const coords = v.mouseEventToCoords(e);
@@ -1398,7 +1384,7 @@ export default function TourPage() {
         viewerRef.current = null;
       }
     };
-  }, [tourStarted, roomIdx, pannellumReady, hasMounted, changeRoomById, stopCurrentAnimation, stopAudio, handleStartEditWaypoint, playAudioFileWithCompletion]);
+  }, [tourStarted, roomIdx, pannellumReady, hasMounted, changeRoomById, stopCurrentAnimation, stopAudio, handleStartEditWaypoint, playAudioFileWithCompletion, lang]);
 
   if (!hasMounted || loading) return <Centered>{t.loading}</Centered>;
   if (error) return <Centered>{error}</Centered>;
@@ -1778,7 +1764,6 @@ export default function TourPage() {
         </div>
       )}
 
-      {/* ADMIN EDIT / ADD HOTSPOT FORMA */}
       {pendingCoords && adminMode && (
         <div style={{
           position: 'absolute',
@@ -1983,7 +1968,6 @@ export default function TourPage() {
         </div>
       )}
 
-      {/* MODAL: PREGLED I IZMENA SRPSKO DRAFTA + ODABIR JEZIKA */}
       {showDraftModal && aiDraft && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ backgroundColor: '#0f172a', border: '1px solid #38bdf8', borderRadius: '20px', width: '100%', maxWidth: '650px', maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.9)' }}>
@@ -2052,7 +2036,6 @@ export default function TourPage() {
                 </div>
               </div>
 
-              {/* SELEKCIJA CILJNIH JEZIKA DIREKTNO U MODALU */}
               <div style={{ backgroundColor: '#1e293b', padding: '12px 14px', borderRadius: '10px', border: '1px solid #334155' }}>
                 <label style={{ fontSize: '12px', color: '#38bdf8', display: 'block', marginBottom: '6px', fontWeight: 700 }}>
                   Prevedi i ubaci u scenu na sledeće jezike:
@@ -2085,7 +2068,6 @@ export default function TourPage() {
         </div>
       )}
 
-      {/* MODAL: PROGRESS PREVOĐENJA */}
       {translationProgress && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 110, backgroundColor: 'rgba(0, 0, 0, 0.9)', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
           <div style={{ width: '16px', height: '16px', backgroundColor: '#c084fc', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both' }} />
