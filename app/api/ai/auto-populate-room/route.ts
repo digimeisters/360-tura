@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
  */
 
 const PRIMARY_MODEL = 'gemini-2.0-flash';
-const FALLBACK_MODEL = 'gemini-1.5-flash';
+const FALLBACK_MODEL = 'gemini-1.5-flash-latest';
 
 const MAX_WAYPOINTS = 5;
 const MIN_WAYPOINTS = 4;
