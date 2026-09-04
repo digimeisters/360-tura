@@ -448,10 +448,13 @@ export default function TourPage() {
   const [lang, setLang] = useState<Language>('sr');
   const [targetLanguages, setTargetLanguages] = useState<Language[]>(['sr', 'en', 'de', 'ru']);
 
+  // AI Generation States
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiDraft, setAiDraft] = useState<{ title: string; narration: string; waypoints: Waypoint[] } | null>(null);
+  const [showDraftModal, setShowDraftModal] = useState(false);
+  const [translationProgress, setTranslationProgress] = useState<string | null>(null);
+
   const langRef = useRef<Language>('sr');
-  useEffect(() => {
-    langRef.current = lang;
-  }, [lang]);
 
   const t = translations[lang];
 
@@ -468,12 +471,10 @@ export default function TourPage() {
   const [pannellumReady, setPannellumReady] = useState(false);
   const [adminMode, setAdminMode] = useState(false);
   const adminModeRef = useRef(false);
-  const [aiLoading, setAiLoading] = useState(false);
 
   const [isMuted, setIsMuted] = useState(false);
   const isMutedRef = useRef(false);
 
-  // Fullscreen & Gyroscope State
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isGyroActive, setIsGyroActive] = useState(false);
   const isGyroActiveRef = useRef(false);
@@ -515,7 +516,6 @@ export default function TourPage() {
   const scrollLeftRef = useRef(0);
   const autoScrollPausedRef = useRef(false);
 
-  // Helper funkcija za gašenje giroskopa
   const stopGyroscope = useCallback(() => {
     if (viewerRef.current && typeof viewerRef.current.stopOrientation === 'function') {
       viewerRef.current.stopOrientation();
@@ -524,7 +524,6 @@ export default function TourPage() {
     isGyroActiveRef.current = false;
   }, []);
 
-  // Helper funkcija za pokretanje giroskopa
   const startGyroscope = useCallback(async () => {
     if (!viewerRef.current) return;
 
@@ -555,7 +554,6 @@ export default function TourPage() {
     }
   }, []);
 
-  // Prekidač za manuelno paljenje/gašenje giroskopa unutar Fullscreen-a
   const toggleGyroscope = useCallback(() => {
     if (isGyroActive) {
       stopGyroscope();
@@ -564,7 +562,6 @@ export default function TourPage() {
     }
   }, [isGyroActive, startGyroscope, stopGyroscope]);
 
-  // Fullscreen pokretanje sa Giroskopom
   const toggleFullscreen = useCallback(async () => {
     if (!document.fullscreenElement) {
       try {
@@ -581,7 +578,6 @@ export default function TourPage() {
     }
   }, [startGyroscope]);
 
-  // Event Listener za izlazak iz Fullscreen-a
   useEffect(() => {
     const handleFullscreenChange = () => {
       const isFS = Boolean(document.fullscreenElement);
@@ -626,118 +622,6 @@ export default function TourPage() {
     setHotspotAudioUrl(targetWp.audio_url || '');
     setTargetRoomId(targetWp.targetRoomId || '');
   }, [rooms, roomIdx]);
-
-  const handleStartEditEstablish = () => {
-    const currentRoom = rooms[roomIdx];
-    if (!currentRoom) return;
-    const est = parseEstablish(currentRoom.establish_i18n);
-
-    setHotspotType('establish');
-    setEditingIndex(null);
-
-    const currentPitch = viewerRef.current ? Math.round(viewerRef.current.getPitch() * 10) / 10 : (est.pitch || 0);
-    const currentYaw = viewerRef.current ? Math.round(normalizeYaw(viewerRef.current.getYaw()) * 10) / 10 : (est.fromYaw || 0);
-
-    setPendingCoords({ pitch: currentPitch, yaw: currentYaw });
-    setHotspotText(getLocalizedText(est.text_i18n, lang));
-    setHotspotAudioUrl(est.audio_url || '');
-  };
-
-  const handleSaveWaypoint = async () => {
-    if (!pendingCoords || !rooms[roomIdx]) return;
-    const currentRoom = rooms[roomIdx];
-
-    let finalPitch = pendingCoords.pitch;
-    let finalYaw = pendingCoords.yaw;
-
-    if (viewerRef.current) {
-      finalPitch = Math.round(viewerRef.current.getPitch() * 10) / 10;
-      finalYaw = Math.round(normalizeYaw(viewerRef.current.getYaw()) * 10) / 10;
-    }
-
-    if (hotspotType === 'establish') {
-      const existingEst = parseEstablish(currentRoom.establish_i18n);
-      const updatedEstablish: EstablishData = {
-        ...existingEst,
-        pitch: finalPitch,
-        fromYaw: finalYaw,
-        audio_url: hotspotAudioUrl,
-        text_i18n: buildI18nObject(hotspotText, existingEst.text_i18n, lang)
-      };
-
-      const { error: err } = await supabase
-        .from('rooms')
-        .update({ establish_i18n: updatedEstablish })
-        .eq('id', currentRoom.id);
-
-      if (!err && isMountedRef.current) {
-        const updatedRooms = [...rooms];
-        updatedRooms[roomIdx].establish_i18n = updatedEstablish;
-        setRooms(updatedRooms);
-        setPendingCoords(null);
-      }
-      return;
-    }
-
-    const currentWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
-
-    let existingWpText: unknown = undefined;
-    let existingWpTitle: unknown = undefined;
-    if (editingIndex !== null && currentWaypoints[editingIndex]) {
-      existingWpText = currentWaypoints[editingIndex].text_i18n;
-      existingWpTitle = currentWaypoints[editingIndex].title_i18n;
-    }
-
-    const newWaypoint: Waypoint = {
-      pitch: finalPitch,
-      yaw: finalYaw,
-      type: hotspotType === 'navigation' ? 'navigation' : 'info',
-      audio_url: hotspotType === 'info' ? hotspotAudioUrl : undefined,
-      text_i18n: hotspotType === 'info' ? buildI18nObject(hotspotText, existingWpText, lang) : undefined,
-      title_i18n: hotspotType === 'info' ? buildI18nObject(hotspotTitle, existingWpTitle, lang) : undefined,
-      targetRoomId: hotspotType === 'navigation' ? targetRoomId : undefined
-    };
-
-    let updatedList: Waypoint[] = [];
-    if (editingIndex !== null) {
-      updatedList = [...currentWaypoints];
-      updatedList[editingIndex] = newWaypoint;
-    } else {
-      updatedList = [...currentWaypoints, newWaypoint];
-    }
-
-    const { error: err } = await supabase
-      .from('rooms')
-      .update({ waypoints_i18n: updatedList })
-      .eq('id', currentRoom.id);
-
-    if (!err && isMountedRef.current) {
-      const updatedRooms = [...rooms];
-      updatedRooms[roomIdx].waypoints_i18n = updatedList;
-      setRooms(updatedRooms);
-      setPendingCoords(null);
-    }
-  };
-
-  const handleDeleteWaypoint = async () => {
-    if (editingIndex === null || !rooms[roomIdx]) return;
-    const currentRoom = rooms[roomIdx];
-    const currentWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
-
-    const updatedList = currentWaypoints.filter((_, idx) => idx !== editingIndex);
-
-    const { error: err } = await supabase
-      .from('rooms')
-      .update({ waypoints_i18n: updatedList })
-      .eq('id', currentRoom.id);
-
-    if (!err && isMountedRef.current) {
-      const updatedRooms = [...rooms];
-      updatedRooms[roomIdx].waypoints_i18n = updatedList;
-      setRooms(updatedRooms);
-      setPendingCoords(null);
-    }
-  };
 
   const stopCurrentAnimation = useCallback(() => {
     if (animFrameRef.current !== null) {
@@ -840,6 +724,103 @@ export default function TourPage() {
     }
   }, [rooms, stopAudio, stopCurrentAnimation]);
 
+  // CANCEL & DELETE & SAVE HOTSPOTS (ADMIN REŽIM)
+  const handleCancelEdit = () => {
+    setPendingCoords(null);
+    setEditingIndex(null);
+    setHotspotText('');
+    setHotspotTitle('');
+    setHotspotAudioUrl('');
+    setTargetRoomId('');
+  };
+
+  const handleSaveHotspot = async () => {
+    const currentRoom = rooms[roomIdx];
+    if (!currentRoom || !pendingCoords) return;
+
+    let updatedWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
+    let updatedEstablish = parseEstablish(currentRoom.establish_i18n);
+
+    if (hotspotType === 'establish') {
+      updatedEstablish = {
+        ...updatedEstablish,
+        fromYaw: pendingCoords.yaw,
+        pitch: pendingCoords.pitch,
+        audio_url: hotspotAudioUrl || updatedEstablish.audio_url,
+        text_i18n: buildI18nObject(hotspotText, updatedEstablish.text_i18n, langRef.current)
+      };
+    } else {
+      const existingWp = editingIndex !== null ? updatedWaypoints[editingIndex] : undefined;
+      const newWaypoint: Waypoint = {
+        yaw: pendingCoords.yaw,
+        pitch: pendingCoords.pitch,
+        type: hotspotType,
+        targetRoomId: hotspotType === 'navigation' ? targetRoomId : undefined,
+        audio_url: hotspotAudioUrl,
+        title_i18n: buildI18nObject(hotspotTitle, existingWp?.title_i18n, langRef.current),
+        text_i18n: buildI18nObject(hotspotText, existingWp?.text_i18n, langRef.current)
+      };
+
+      if (editingIndex !== null) {
+        updatedWaypoints[editingIndex] = newWaypoint;
+      } else {
+        updatedWaypoints.push(newWaypoint);
+      }
+    }
+
+    try {
+      const { error: dbErr } = await supabase
+        .from('rooms')
+        .update({
+          waypoints_i18n: updatedWaypoints,
+          establish_i18n: updatedEstablish
+        })
+        .eq('id', currentRoom.id);
+
+      if (dbErr) throw dbErr;
+
+      setRooms(prev => prev.map((r, i) => i === roomIdx ? {
+        ...r,
+        waypoints_i18n: updatedWaypoints,
+        establish_i18n: updatedEstablish
+      } : r));
+
+      handleCancelEdit();
+      changeLanguage(langRef.current);
+    } catch (err: any) {
+      alert('Greška pri čuvanju tačke: ' + err.message);
+    }
+  };
+
+  const handleDeleteHotspot = async () => {
+    if (editingIndex === null) return;
+    const currentRoom = rooms[roomIdx];
+    if (!currentRoom) return;
+
+    let updatedWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
+    updatedWaypoints.splice(editingIndex, 1);
+
+    try {
+      const { error: dbErr } = await supabase
+        .from('rooms')
+        .update({ waypoints_i18n: updatedWaypoints })
+        .eq('id', currentRoom.id);
+
+      if (dbErr) throw dbErr;
+
+      setRooms(prev => prev.map((r, i) => i === roomIdx ? {
+        ...r,
+        waypoints_i18n: updatedWaypoints
+      } : r));
+
+      handleCancelEdit();
+      changeLanguage(langRef.current);
+    } catch (err: any) {
+      alert('Greška pri brisanju tačke: ' + err.message);
+    }
+  };
+
+  // KORAK 1: Generisanje SR drafta
   const handleAutoPopulateRoom = async () => {
     const currentRoom = rooms[roomIdx];
     if (!currentRoom || !currentRoom.panorama_url) {
@@ -855,20 +836,20 @@ export default function TourPage() {
         body: JSON.stringify({
           roomId: currentRoom.id,
           panoramaUrl: currentRoom.panorama_url,
-          target_languages: targetLanguages,
-        }),
+          action: 'generate_draft'
+        })
       });
 
       const result = await res.json();
-      if (result.success) {
-        alert('Soba je uspešno automatski popunjena pomoću AI-ja!');
-        window.location.reload();
+      if (result.success && result.draft) {
+        setAiDraft(result.draft);
+        setShowDraftModal(true);
       } else {
         alert('Greška pri obradi: ' + (result.error || 'Nepoznata greška'));
       }
     } catch (err) {
-      console.error('AI Error:', err);
-      alert('Došlo je do greške prilikom pozivanja AI servisa.');
+      console.error('AI Draft Error:', err);
+      alert('Došlo je do greške prilikom generisanja SR drafta.');
     } finally {
       setAiLoading(false);
     }
@@ -944,6 +925,117 @@ export default function TourPage() {
       viewerRef.current.setYaw(currentYaw);
       viewerRef.current.setPitch(currentPitch);
       viewerRef.current.setHfov(currentHfov);
+    }
+  };
+
+  // KORAK 2 & 3: Potvrda SR drafta, sekvencijalno prevođenje i upis u bazu
+  const handleConfirmDraftAndProcess = async () => {
+    if (!aiDraft || !rooms[roomIdx]) return;
+    
+    if (targetLanguages.length === 0) {
+      alert('Molimo izaberite bar jedan jezik za prevođenje i prikaz.');
+      return;
+    }
+
+    setShowDraftModal(false);
+
+    const currentRoom = rooms[roomIdx];
+    const otherLangs = targetLanguages.filter((l) => l !== 'sr');
+
+    let currentTitleI18n: Record<string, string> = buildI18nObject(aiDraft.title, currentRoom.title_i18n, 'sr');
+    let currentEstablishI18n: EstablishData = {
+      ...parseEstablish(currentRoom.establish_i18n),
+      text_i18n: buildI18nObject(aiDraft.narration, parseEstablish(currentRoom.establish_i18n).text_i18n, 'sr')
+    };
+
+    let currentWaypoints: Waypoint[] = aiDraft.waypoints.map((wp) => ({
+      ...wp,
+      title_i18n: buildI18nObject(getLocalizedText(wp.title_i18n, 'sr'), wp.title_i18n, 'sr'),
+      text_i18n: buildI18nObject(getLocalizedText(wp.text_i18n, 'sr'), wp.text_i18n, 'sr')
+    }));
+
+    try {
+      for (const targetLang of otherLangs) {
+        setTranslationProgress(`Prevođenje na jezik: ${targetLang.toUpperCase()}...`);
+
+        const res = await fetch('/api/ai/auto-populate-room', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            roomId: currentRoom.id,
+            panoramaUrl: currentRoom.panorama_url,
+            action: 'translate_step',
+            targetLang,
+            draft: {
+              title: aiDraft.title,
+              narration: aiDraft.narration,
+              waypoints: currentWaypoints
+            }
+          })
+        });
+
+        const result = await res.json();
+        if (result.success && result.translated) {
+          currentTitleI18n[targetLang] = result.translated.title;
+          currentEstablishI18n.text_i18n = {
+            ...(typeof currentEstablishI18n.text_i18n === 'object' ? currentEstablishI18n.text_i18n : {}),
+            [targetLang]: result.translated.narration
+          };
+
+          if (Array.isArray(result.translated.waypoints)) {
+            currentWaypoints = currentWaypoints.map((wp, idx) => ({
+              ...wp,
+              text_i18n: buildI18nObject(
+                getLocalizedText(result.translated.waypoints[idx]?.text_i18n, targetLang),
+                wp.text_i18n,
+                targetLang
+              ),
+              title_i18n: buildI18nObject(
+                getLocalizedText(result.translated.waypoints[idx]?.title_i18n, targetLang),
+                wp.title_i18n,
+                targetLang
+              )
+            }));
+          }
+        }
+      }
+
+      setTranslationProgress('Upisivanje u bazu podataka...');
+
+      const { error: dbErr } = await supabase
+        .from('rooms')
+        .update({
+          title_i18n: currentTitleI18n,
+          establish_i18n: currentEstablishI18n,
+          waypoints_i18n: currentWaypoints
+        })
+        .eq('id', currentRoom.id);
+
+      if (dbErr) {
+        throw dbErr;
+      }
+
+      setRooms((prevRooms: any[]) =>
+        prevRooms.map((r, idx) =>
+          idx === roomIdx
+            ? {
+                ...r,
+                title_i18n: currentTitleI18n,
+                establish_i18n: currentEstablishI18n,
+                waypoints_i18n: currentWaypoints
+              }
+            : r
+        )
+      );
+
+      changeLanguage(langRef.current);
+
+      alert('Soba je uspešno popunjena i prevedena!');
+    } catch (err: any) {
+      console.error('Translation & Saving Error:', err);
+      alert('Greška tokom prevođenja i upisa: ' + (err.message || 'Nepoznata greška'));
+    } finally {
+      setTranslationProgress(null);
     }
   };
 
@@ -1186,7 +1278,21 @@ export default function TourPage() {
     });
     viewerRef.current = v;
 
-    // Ponovno aktiviranje žiroskopa nakon drag/touch prevlačenja
+    // ADMIN MODE CLICK TO ADD WAYPOINT
+    v.on('mouseup', (e: MouseEvent) => {
+      if (adminModeRef.current && e.button === 0) {
+        const coords = v.mouseEventToCoords(e);
+        if (coords) {
+          setEditingIndex(null);
+          setPendingCoords({ yaw: coords[0], pitch: coords[1] });
+          setHotspotText('');
+          setHotspotTitle('');
+          setHotspotAudioUrl('');
+          setTargetRoomId('');
+        }
+      }
+    });
+
     const handlePanEnd = () => {
       if (isGyroActiveRef.current && viewerRef.current && typeof viewerRef.current.startOrientation === 'function') {
         viewerRef.current.startOrientation();
@@ -1326,26 +1432,9 @@ export default function TourPage() {
       }
     });
 
-    const handleDblClick = () => {
-      if (adminModeRef.current && viewerRef.current) {
-        const currentPitch = Math.round(viewerRef.current.getPitch() * 10) / 10;
-        const currentYaw = Math.round(normalizeYaw(viewerRef.current.getYaw()) * 10) / 10;
-        setPendingCoords({ pitch: currentPitch, yaw: currentYaw });
-        setEditingIndex(null);
-        setHotspotText('');
-        setHotspotTitle('');
-        setHotspotAudioUrl('');
-        setTargetRoomId('');
-        setHotspotType('navigation');
-      }
-    };
-
-    panoramaContainer?.addEventListener('dblclick', handleDblClick);
-
     return () => {
       sequenceActiveRef.current = false;
       isInterruptedRef.current = true;
-      panoramaContainer?.removeEventListener('dblclick', handleDblClick);
       panoramaContainer?.removeEventListener('mouseup', handlePanEnd);
       panoramaContainer?.removeEventListener('touchend', handlePanEnd);
       stopCurrentAnimation();
@@ -1361,7 +1450,6 @@ export default function TourPage() {
   if (error) return <Centered>{error}</Centered>;
 
   const currentRoom = rooms[roomIdx];
-  const waypointsList = parseWaypoints(currentRoom?.waypoints_i18n);
 
   let displayedInfoTitle = '';
   let displayedInfoText = '';
@@ -1402,7 +1490,7 @@ export default function TourPage() {
     <main style={{ position: 'relative', width: '100vw', height: '100dvh', backgroundColor: '#000', overflow: 'hidden' }}>
       <style>{`
         .pnlm-load-box {
-          display: none !important;
+          display: none !important;   
         }
       `}</style>
 
@@ -1495,6 +1583,26 @@ export default function TourPage() {
                 pointerEvents: 'auto',
                 boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
               }}>
+                {adminMode && (
+                  <button
+                    onClick={handleAutoPopulateRoom}
+                    disabled={aiLoading}
+                    style={{
+                      background: '#7c3aed',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '4px 8px',
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      marginRight: '6px'
+                    }}
+                  >
+                    {aiLoading ? '🤖 Generisanje...' : '🤖 AI Popuni Sobu'}
+                  </button>
+                )}
+
                 <button
                   onClick={toggleMute}
                   style={{
@@ -1605,7 +1713,6 @@ export default function TourPage() {
             </div>
           </div>
 
-          {/* Full Screen dugme ispod trake sa sobama */}
           <div style={{
             position: 'absolute',
             top: '82px',
@@ -1717,6 +1824,131 @@ export default function TourPage() {
         </div>
       )}
 
+      {/* ADMIN EDIT / ADD HOTSPOT FORMA */}
+      {pendingCoords && adminMode && (
+        <div style={{
+          position: 'absolute',
+          bottom: '12px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 60,
+          width: '92%',
+          maxWidth: '480px',
+          backgroundColor: '#0f172a',
+          border: '1px solid #38bdf8',
+          borderRadius: '16px',
+          padding: '16px',
+          color: '#fff',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px'
+        }}>
+          <h4 style={{ margin: 0, color: '#38bdf8', fontSize: '15px' }}>
+            {editingIndex !== null ? t.editPoint : t.addPoint} (Yaw: {pendingCoords.yaw.toFixed(1)}, Pitch: {pendingCoords.pitch.toFixed(1)})
+          </h4>
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => setHotspotType('navigation')}
+              style={{
+                flex: 1,
+                padding: '6px',
+                borderRadius: '8px',
+                border: 'none',
+                background: hotspotType === 'navigation' ? '#0284c7' : '#1e293b',
+                color: '#fff',
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              {t.navArrow}
+            </button>
+            <button
+              onClick={() => setHotspotType('info')}
+              style={{
+                flex: 1,
+                padding: '6px',
+                borderRadius: '8px',
+                border: 'none',
+                background: hotspotType === 'info' ? '#0284c7' : '#1e293b',
+                color: '#fff',
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              {t.infoPoint}
+            </button>
+            <button
+              onClick={() => setHotspotType('establish')}
+              style={{
+                flex: 1,
+                padding: '6px',
+                borderRadius: '8px',
+                border: 'none',
+                background: hotspotType === 'establish' ? '#0284c7' : '#1e293b',
+                color: '#fff',
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              {t.introNarration}
+            </button>
+          </div>
+
+          {hotspotType === 'navigation' && (
+            <select
+              value={targetRoomId}
+              onChange={(e) => setTargetRoomId(e.target.value)}
+              style={{ padding: '8px', borderRadius: '6px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '13px' }}
+            >
+              <option value="">{t.targetRoom}</option>
+              {rooms.map(r => (
+                <option key={r.id} value={r.id}>{getLocalizedText(r.title_i18n, langRef.current) || `Soba ${r.id}`}</option>
+              ))}
+            </select>
+          )}
+
+          <input
+            type="text"
+            placeholder={t.titlePlaceholder}
+            value={hotspotTitle}
+            onChange={(e) => setHotspotTitle(e.target.value)}
+            style={{ padding: '8px', borderRadius: '6px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '13px' }}
+          />
+
+          <textarea
+            placeholder={t.descPlaceholder}
+            value={hotspotText}
+            onChange={(e) => setHotspotText(e.target.value)}
+            rows={2}
+            style={{ padding: '8px', borderRadius: '6px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '13px', resize: 'none' }}
+          />
+
+          <input
+            type="text"
+            placeholder={t.audioUrlPlaceholder}
+            value={hotspotAudioUrl}
+            onChange={(e) => setHotspotAudioUrl(e.target.value)}
+            style={{ padding: '8px', borderRadius: '6px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '13px' }}
+          />
+
+          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+            <button onClick={handleSaveHotspot} style={{ ...btnStyle, flex: 1, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8' }}>
+              {t.save}
+            </button>
+            {editingIndex !== null && (
+              <button onClick={handleDeleteHotspot} style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#ef4444' }}>
+                {t.delete}
+              </button>
+            )}
+            <button onClick={handleCancelEdit} style={{ ...btnStyle, backgroundColor: '#475569', color: '#fff', borderColor: '#64748b' }}>
+              {t.cancel}
+            </button>
+          </div>
+        </div>
+      )}
+
       {roomLoading && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 20, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '15px', padding: '20px', textAlign: 'center' }}>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -1794,6 +2026,117 @@ export default function TourPage() {
           <p style={{ margin: 0, fontSize: '13px', lineHeight: '1.5', color: '#f1f5f9', paddingRight: '12px' }}>
             {displayedInfoText}
           </p>
+        </div>
+      )}
+
+      {/* MODAL: PREGLED I IZMENA SRPSKO DRAFTA + ODABIR JEZIKA */}
+      {showDraftModal && aiDraft && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ backgroundColor: '#0f172a', border: '1px solid #38bdf8', borderRadius: '20px', width: '100%', maxWidth: '650px', maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.9)' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ color: '#38bdf8', fontSize: '18px', margin: 0, fontWeight: 700 }}>✏️ Pregled i Izmena AI Drafta (SR)</h2>
+              <button onClick={() => setShowDraftModal(false)} style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', padding: '6px 12px' }}>Zatvori</button>
+            </div>
+            
+            <div style={{ padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+              <div>
+                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px', fontWeight: 600 }}>Naziv sobe (SR):</label>
+                <input
+                  type="text"
+                  value={aiDraft.title}
+                  onChange={(e) => setAiDraft({ ...aiDraft, title: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '14px', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px', fontWeight: 600 }}>Uvodna naracija (SR):</label>
+                <textarea
+                  value={aiDraft.narration}
+                  onChange={(e) => setAiDraft({ ...aiDraft, narration: e.target.value })}
+                  rows={3}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '14px', resize: 'vertical', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '8px', fontWeight: 600 }}>Generisane tačke ({aiDraft.waypoints.length}):</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '220px', overflowY: 'auto', paddingRight: '4px' }}>
+                  {aiDraft.waypoints.map((wp, i) => (
+                    <div key={i} style={{ backgroundColor: '#1e293b', padding: '12px', borderRadius: '10px', fontSize: '13px', border: '1px solid #334155', color: '#e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <span style={{ color: '#38bdf8', fontWeight: 'bold' }}>Tačka {i + 1}:</span>
+                      <input
+                        type="text"
+                        placeholder="Naslov tačke (SR)..."
+                        value={getLocalizedText(wp.title_i18n, 'sr')}
+                        onChange={(e) => {
+                          const updatedWps = [...aiDraft.waypoints];
+                          updatedWps[i] = {
+                            ...updatedWps[i],
+                            title_i18n: buildI18nObject(e.target.value, updatedWps[i].title_i18n, 'sr')
+                          };
+                          setAiDraft({ ...aiDraft, waypoints: updatedWps });
+                        }}
+                        style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', background: '#0f172a', color: '#fff', border: '1px solid #475569', fontSize: '12px', boxSizing: 'border-box' }}
+                      />
+                      <textarea
+                        placeholder="Opis / Tekst tačke (SR)..."
+                        value={getLocalizedText(wp.text_i18n, 'sr')}
+                        onChange={(e) => {
+                          const updatedWps = [...aiDraft.waypoints];
+                          updatedWps[i] = {
+                            ...updatedWps[i],
+                            text_i18n: buildI18nObject(e.target.value, updatedWps[i].text_i18n, 'sr')
+                          };
+                          setAiDraft({ ...aiDraft, waypoints: updatedWps });
+                        }}
+                        rows={2}
+                        style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', background: '#0f172a', color: '#fff', border: '1px solid #475569', fontSize: '12px', resize: 'vertical', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* SELEKCIJA CILJNIH JEZIKA DIREKTNO U MODALU */}
+              <div style={{ backgroundColor: '#1e293b', padding: '12px 14px', borderRadius: '10px', border: '1px solid #334155' }}>
+                <label style={{ fontSize: '12px', color: '#38bdf8', display: 'block', marginBottom: '6px', fontWeight: 700 }}>
+                  Prevedi i ubaci u scenu na sledeće jezike:
+                </label>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                  {availableLanguages.map((l) => (
+                    <label key={l} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: '#fff' }}>
+                      <input
+                        type="checkbox"
+                        checked={targetLanguages.includes(l)}
+                        onChange={() => toggleTargetLanguage(l)}
+                        style={{ accentColor: '#0284c7', width: '16px', height: '16px' }}
+                      />
+                      {l.toUpperCase()} {l === 'sr' && '(Maternji)'}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', gap: '10px' }}>
+              <button
+                onClick={handleConfirmDraftAndProcess}
+                style={{ ...btnStyle, flex: 1, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', padding: '12px', fontSize: '14px', fontWeight: 'bold' }}
+              >
+                🚀 Potvrdi Draft & Pokreni Prevođenje
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: PROGRESS PREVOĐENJA */}
+      {translationProgress && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 110, backgroundColor: 'rgba(0, 0, 0, 0.9)', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+          <div style={{ width: '16px', height: '16px', backgroundColor: '#c084fc', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both' }} />
+          <div style={{ color: '#c084fc', fontSize: '18px', fontWeight: 'bold' }}>{translationProgress}</div>
+          <p style={{ color: '#94a3b8', fontSize: '13px' }}>Molimo vas sačekajte, prevođenje i upis u bazu su u toku...</p>
         </div>
       )}
 
@@ -1933,165 +2276,6 @@ export default function TourPage() {
               <p style={{ margin: 0, lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
                 {faqList[selectedFaq].answer || t.comingSoon}
               </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {adminMode && !pendingCoords && (
-        <div style={{ position: 'absolute', top: '80px', left: '12px', zIndex: 40, backgroundColor: 'rgba(0,0,0,0.85)', padding: '10px', borderRadius: '12px', border: '1px solid #333', color: '#fff', fontSize: '11px', maxWidth: '280px' }}>
-          <div style={{ fontWeight: 'bold', marginBottom: '6px', color: '#38bdf8' }}>ADMIN KONTROLE</div>
-          
-          <div style={{ marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span style={{ fontSize: '10px', color: '#aaa' }}>Ciljni jezici za AI:</span>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {availableLanguages.map((l) => (
-                <label key={l} style={{ display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer', fontSize: '10px' }}>
-                  <input
-                    type="checkbox"
-                    checked={targetLanguages.includes(l)}
-                    onChange={() => toggleTargetLanguage(l)}
-                  />
-                  {l.toUpperCase()}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <button
-            onClick={handleAutoPopulateRoom}
-            disabled={aiLoading}
-            style={{
-              ...btnStyle,
-              width: '100%',
-              marginBottom: '6px',
-              backgroundColor: aiLoading ? '#64748b' : '#9333ea',
-              color: '#fff',
-              borderColor: '#c084fc',
-              fontWeight: 'bold',
-              cursor: aiLoading ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {aiLoading ? '⚡ AI Generiše...' : '✨ Popuni sobu pomoću AI'}
-          </button>
-          <button onClick={handleStartEditEstablish} style={{ ...btnStyle, width: '100%', marginBottom: '6px' }}>{t.introNarration}</button>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '100px', overflowY: 'auto' }}>
-            {waypointsList.map((wp, idx) => (
-              <button key={idx} onClick={() => handleStartEditWaypoint(idx)} style={{ ...btnStyle, textAlign: 'left', width: '100%' }}>
-                {wp.type === 'navigation' || wp.targetRoomId ? '🚪 Nav' : 'ℹ️ Info'}: {getLocalizedText(wp.title_i18n, lang) || getLocalizedText(wp.text_i18n, lang) || `Tačka ${idx + 1}`}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {pendingCoords && (
-        <div style={{
-          position: 'absolute',
-          top: '75px',
-          right: '12px',
-          zIndex: 45,
-          backgroundColor: 'rgba(15, 23, 42, 0.95)',
-          padding: '14px',
-          borderRadius: '16px',
-          border: '1px solid #38bdf8',
-          color: '#fff',
-          width: '92%',
-          maxWidth: '320px',
-          maxHeight: '82vh',
-          overflowY: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.7)',
-          backdropFilter: 'blur(8px)'
-        }}>
-          <h3 style={{ margin: 0, color: '#38bdf8', fontSize: '14px' }}>
-            {hotspotType === 'establish' ? t.introNarration : editingIndex !== null ? t.editPoint : t.addPoint}
-          </h3>
-
-          {hotspotType !== 'establish' && (
-            <div>
-              <label style={{ fontSize: '11px', color: '#aaa', display: 'block', marginBottom: '3px' }}>{t.actionType}</label>
-              <select
-                value={hotspotType}
-                onChange={(e) => setHotspotType(e.target.value as any)}
-                style={{ width: '100%', padding: '6px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '12px' }}
-              >
-                <option value="navigation">{t.navArrow}</option>
-                <option value="info">{t.infoPoint}</option>
-              </select>
-            </div>
-          )}
-
-          {hotspotType === 'navigation' && (
-            <div>
-              <label style={{ fontSize: '11px', color: '#aaa', display: 'block', marginBottom: '3px' }}>Ciljna soba:</label>
-              <select
-                value={targetRoomId}
-                onChange={(e) => setTargetRoomId(e.target.value)}
-                style={{ width: '100%', padding: '6px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '12px' }}
-              >
-                <option value="">{t.targetRoom}</option>
-                {rooms.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {getLocalizedText(r.title_i18n, lang) || `Soba ${r.id}`}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {(hotspotType === 'info' || hotspotType === 'establish') && (
-            <>
-              {hotspotType === 'info' && (
-                <input
-                  type="text"
-                  placeholder={t.titlePlaceholder}
-                  value={hotspotTitle}
-                  onChange={(e) => setHotspotTitle(e.target.value)}
-                  style={{ width: '100%', padding: '6px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', fontSize: '12px' }}
-                />
-              )}
-              <textarea
-                placeholder={t.descPlaceholder}
-                value={hotspotText}
-                onChange={(e) => setHotspotText(e.target.value)}
-                rows={3}
-                style={{ width: '100%', padding: '6px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', resize: 'vertical', fontSize: '12px' }}
-              />
-              <input
-                type="text"
-                placeholder={t.audioUrlPlaceholder}
-                value={hotspotAudioUrl}
-                onChange={(e) => setHotspotAudioUrl(e.target.value)}
-                style={{ width: '100%', padding: '6px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', boxSizing: 'border-box', fontSize: '12px' }}
-              />
-            </>
-          )}
-
-          <div style={{ display: 'flex', gap: '6px', marginTop: '4px', flexDirection: 'column' }}>
-            <button
-              onClick={handleSaveWaypoint}
-              style={{ ...btnStyle, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', fontWeight: 'bold', padding: '8px', fontSize: '12px' }}
-            >
-              {t.save}
-            </button>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <button
-                onClick={() => setPendingCoords(null)}
-                style={{ ...btnStyle, flex: 1, padding: '6px', fontSize: '12px' }}
-              >
-                {t.cancel}
-              </button>
-              {editingIndex !== null && hotspotType !== 'establish' && (
-                <button
-                  onClick={handleDeleteWaypoint}
-                  style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#ef4444' }}
-                >
-                  {t.delete}
-                </button>
-              )}
             </div>
           </div>
         </div>

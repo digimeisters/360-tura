@@ -1,217 +1,51 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
+import sharp from 'sharp';
 
-// Vreme trajanja API zahteva za serverless (Next.js / Vercel)
 export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
 
 /**
  * ============================================================
- * CONFIG & CLIENTS
+ * CONFIG & MODELS
  * ============================================================
  */
 
-// Zvanični stabilni Gemini Flash model
-const MODEL = 'gemini-3.6-flash';
+const PRIMARY_MODEL = 'gemini-2.0-flash';
+const FALLBACK_MODEL = 'gemini-1.5-flash';
 
 const MAX_WAYPOINTS = 4;
-const MAX_RETRIES = 3;
-const REQUEST_TIMEOUT_MS = 45_000;
+const MIN_WAYPOINTS = 3;
 
-// Supabase klijent se inicijalizuje jednom van req/res ciklusa
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-/**
- * Mapiranje kodova jezika u pun naziv radi nepogrešive AI instrukcije
- */
-const LANGUAGE_NAMES: Record<string, string> = {
-  sr: 'Serbian (Serbian Latin script - Srpski)',
-  de: 'German (Deutsch)',
-  en: 'English',
-  fr: 'French (Français)',
-  it: 'Italian (Italiano)',
-  es: 'Spanish (Español)',
-  ru: 'Russian (Русский)',
-};
-
-/**
- * ============================================================
- * TYPES
- * ============================================================
- */
+// Povećani tajmeri kako ne bi ulazio u timeout pre Vercel granice
+const FETCH_TIMEOUT_MS = 5_000;
+const AI_TIMEOUT_MS = 7_500;
 
 type ListingType = 'sale' | 'rent' | 'booking';
 const LISTING_TYPES: ListingType[] = ['sale', 'rent', 'booking'];
 
 /**
  * ============================================================
- * DYNAMIC I18N SCHEMA BUILDER WITH LANGUAGE DESCRIPTIONS
+ * SCHEMAS
  * ============================================================
  */
 
-function buildI18nSchema(languages: string[]): Schema {
-  const properties: Record<string, Schema> = {};
-  
-  languages.forEach((lang) => {
-    const langName = LANGUAGE_NAMES[lang.toLowerCase()] || lang.toUpperCase();
-    properties[lang] = { 
-      type: Type.STRING,
-      description: `Text MUST be written entirely and naturally in ${langName}. Do NOT use any other language here.`
-    };
-  });
-
+function buildSingleLangSchema(): Schema {
   return {
     type: Type.OBJECT,
-    properties,
-    required: languages,
+    properties: {
+      sr: { 
+        type: Type.STRING,
+        description: 'Text MUST be written entirely and naturally in Serbian (Serbian Latin script - Srpski).'
+      }
+    },
+    required: ['sr'],
   };
 }
 
-/**
- * ============================================================
- * CLIENT-CENTRIC STRATEGY
- * ============================================================
- */
-
-function getClientStrategy(listingType: ListingType): string {
-  switch (listingType) {
-    case 'sale':
-      return `
-CLIENT: POTENTIAL BUYER
-
-The reader is considering buying the property.
-Think like a highly experienced residential real-estate agent.
-
-The buyer wants to understand:
-- How comfortable will everyday life be?
-- Does the space feel pleasant and well organized?
-- What makes the property attractive compared with alternatives?
-- Does the interior feel maintained and coherent?
-- What visible qualities suggest good usability?
-- Which features contribute to perceived property quality?
-- Is the space flexible enough for different lifestyles?
-
-WRITING PRIORITIES:
-1. Lifestyle
-2. Quality of space
-3. Natural light
-4. Layout
-5. Functionality
-6. Visible finishes
-7. Architectural character
-8. Long-term usability
-
-Do NOT make unsupported claims about investment return, appreciation, yield, or location.
-The copy should create the feeling: "This is a property I can genuinely imagine owning and living in."
-`;
-
-    case 'rent':
-      return `
-CLIENT: LONG-TERM TENANT
-
-The reader is considering renting the property for everyday life.
-Think like an experienced rental agent.
-
-The tenant wants to understand:
-- Is the space practical?
-- Is it comfortable for daily routines?
-- Is the layout easy to use?
-- Is there enough usable furniture?
-- Is there a comfortable place to relax?
-- Is there room for working from home if visible?
-- Is storage practical if visible?
-- Does the room feel bright and pleasant?
-
-WRITING PRIORITIES:
-1. Everyday usability
-2. Comfort
-3. Practical layout
-4. Furniture
-5. Storage
-6. Natural light
-7. Work / relaxation possibilities
-8. Ease of living
-
-Avoid luxury language unless clearly justified.
-The copy should create the feeling: "I could comfortably live here."
-`;
-
-    case 'booking':
-      return `
-CLIENT: SHORT-TERM GUEST
-
-The reader is considering staying in the property for a short vacation/trip.
-Think like a high-quality hospitality and short-term rental agent.
-
-The guest wants to understand:
-- How will the room feel when I arrive?
-- Is it comfortable and bright?
-- Where can I relax or work?
-- Is there a comfortable dining area?
-- What makes the stay pleasant?
-
-WRITING PRIORITIES:
-1. Experience
-2. Comfort
-3. Atmosphere
-4. Relaxation
-5. Practicality
-6. Natural light
-7. Guest experience
-
-Never invent amenities not visible in the image.
-The copy should create the feeling: "I can imagine myself staying here."
-`;
-  }
-}
-
-function getWritingRules(): string {
-  return `
-============================================================
-REAL ESTATE COPYWRITING RULES
-============================================================
-Write like a real human real-estate professional.
-Answer the client's implicit question: "Why does this space matter to me?"
-
-DO: Concrete observations, natural professional language, specific benefits.
-DO NOT: Avoid generic AI clichés ("beautiful space", "dream home", "luxurious").
-
-FACTUAL INTEGRITY:
-The image is the source of truth. Never invent square meters, price, location, floor, heating, etc.
-`;
-}
-
-function getLanguageRules(languages: string[]): string {
-  const langDetails = languages
-    .map((l) => `- Key "${l}": MUST be written in ${LANGUAGE_NAMES[l.toLowerCase()] || l}`)
-    .join('\n');
-
-  return `
-============================================================
-STRICT MULTILINGUAL REQUIREMENT
-============================================================
-You MUST generate localized content ONLY for the following language keys: [${languages.join(', ')}].
-
-EXPLICIT TRANSLATION RULES:
-${langDetails}
-
-FORBIDDEN:
-- NEVER copy content from one language key into another (e.g. DO NOT copy Serbian text into German 'de' key).
-- NEVER output 'en' (English) key unless explicitly requested in the list above.
-- EACH language version must be fully translated and adapted natively for that target language!
-`;
-}
-
-/**
- * ============================================================
- * JSON SCHEMA GENERATOR
- * ============================================================
- */
-
-function buildRoomAnalysisSchema(languages: string[]): Schema {
-  const i18nSchema = buildI18nSchema(languages);
+function buildRoomAnalysisSchema(): Schema {
+  const srI18nSchema = buildSingleLangSchema();
 
   return {
     type: Type.OBJECT,
@@ -222,22 +56,13 @@ function buildRoomAnalysisSchema(languages: string[]): Schema {
           type: {
             type: Type.STRING,
             enum: [
-              'living_room',
-              'bedroom',
-              'kitchen',
-              'dining_room',
-              'bathroom',
-              'hallway',
-              'entrance',
-              'terrace',
-              'balcony',
-              'office',
-              'utility_room',
-              'other',
+              'living_room', 'bedroom', 'kitchen', 'dining_room',
+              'bathroom', 'hallway', 'entrance', 'terrace',
+              'balcony', 'office', 'utility_room', 'other',
             ],
           },
           confidence: { type: Type.NUMBER },
-          title_i18n: i18nSchema,
+          title_i18n: srI18nSchema,
         },
         required: ['type', 'confidence', 'title_i18n'],
       },
@@ -255,58 +80,26 @@ function buildRoomAnalysisSchema(languages: string[]): Schema {
           condition: {
             type: Type.STRING,
             enum: [
-              'needs_attention',
-              'dated',
-              'maintained',
-              'good',
-              'very_good',
-              'renovated',
-              'unknown',
+              'needs_attention', 'dated', 'maintained', 'good',
+              'very_good', 'renovated', 'unknown',
             ],
           },
           style: {
             type: Type.STRING,
             enum: [
-              'modern',
-              'contemporary',
-              'minimalist',
-              'classic',
-              'traditional',
-              'industrial',
-              'scandinavian',
-              'rustic',
-              'eclectic',
-              'neutral',
-              'mixed',
-              'unknown',
+              'modern', 'contemporary', 'minimalist', 'classic',
+              'traditional', 'industrial', 'scandinavian', 'rustic',
+              'eclectic', 'neutral', 'mixed', 'unknown',
             ],
           },
-          visible_features: {
-            type: Type.ARRAY,
-            items: { type: Type.STRING },
-          },
-          furniture: {
-            type: Type.ARRAY,
-            items: { type: Type.STRING },
-          },
-          appliances: {
-            type: Type.ARRAY,
-            items: { type: Type.STRING },
-          },
-          architectural_features: {
-            type: Type.ARRAY,
-            items: { type: Type.STRING },
-          },
+          visible_features: { type: Type.ARRAY, items: { type: Type.STRING } },
+          furniture: { type: Type.ARRAY, items: { type: Type.STRING } },
+          appliances: { type: Type.ARRAY, items: { type: Type.STRING } },
+          architectural_features: { type: Type.ARRAY, items: { type: Type.STRING } },
         },
         required: [
-          'light',
-          'spatial_feel',
-          'condition',
-          'style',
-          'visible_features',
-          'furniture',
-          'appliances',
-          'architectural_features',
+          'light', 'spatial_feel', 'condition', 'style',
+          'visible_features', 'furniture', 'appliances', 'architectural_features',
         ],
       },
       camera: {
@@ -322,10 +115,7 @@ function buildRoomAnalysisSchema(languages: string[]): Schema {
         type: Type.OBJECT,
         properties: {
           primary_value: { type: Type.STRING },
-          secondary_values: {
-            type: Type.ARRAY,
-            items: { type: Type.STRING },
-          },
+          secondary_values: { type: Type.ARRAY, items: { type: Type.STRING } },
           lifestyle_benefit: { type: Type.STRING },
         },
         required: ['primary_value', 'secondary_values', 'lifestyle_benefit'],
@@ -335,233 +125,218 @@ function buildRoomAnalysisSchema(languages: string[]): Schema {
         items: {
           type: Type.OBJECT,
           properties: {
-            title_i18n: i18nSchema,
-            text_i18n: i18nSchema,
+            title_i18n: srI18nSchema,
+            text_i18n: srI18nSchema,
           },
           required: ['title_i18n', 'text_i18n'],
         },
       },
       waypoints: {
         type: Type.ARRAY,
+        description: 'Array containing strictly 3 or 4 purely informational feature points. NEVER contain room transition or door navigation points.',
         items: {
           type: Type.OBJECT,
           properties: {
             yaw: { type: Type.NUMBER },
             pitch: { type: Type.NUMBER },
-            type: {
-              type: Type.STRING,
-              enum: ['info', 'navigation'],
-            },
+            type: { type: Type.STRING, enum: ['info'] },
             priority: { type: Type.NUMBER },
-            title_i18n: i18nSchema,
-            text_i18n: i18nSchema,
+            title_i18n: srI18nSchema,
+            text_i18n: srI18nSchema,
           },
-          required: [
-            'yaw',
-            'pitch',
-            'type',
-            'priority',
-            'title_i18n',
-            'text_i18n',
-          ],
+          required: ['yaw', 'pitch', 'type', 'priority', 'title_i18n', 'text_i18n'],
         },
       },
       listing_copy: {
         type: Type.OBJECT,
         properties: {
-          headline_i18n: i18nSchema,
-          short_description_i18n: i18nSchema,
-          full_description_i18n: i18nSchema,
+          headline_i18n: srI18nSchema,
+          short_description_i18n: srI18nSchema,
+          full_description_i18n: srI18nSchema,
         },
-        required: [
-          'headline_i18n',
-          'short_description_i18n',
-          'full_description_i18n',
-        ],
+        required: ['headline_i18n', 'short_description_i18n', 'full_description_i18n'],
       },
     },
     required: [
-      'room',
-      'visual_facts',
-      'camera',
-      'client_value',
-      'highlights',
-      'waypoints',
-      'listing_copy',
+      'room', 'visual_facts', 'camera', 'client_value',
+      'highlights', 'waypoints', 'listing_copy',
     ],
   };
 }
 
 /**
  * ============================================================
- * PROMPT BUILDER
+ * PROMPT & HELPER UTILS
  * ============================================================
  */
 
-function buildPrompt(listingType: ListingType, targetLanguages: string[]): string {
-  return `
-You are a senior residential real-estate agent, property marketing specialist and client psychology expert.
-You are analyzing ONE equirectangular 360-degree panorama of a property.
-
-The description MUST be CLIENT-CENTRIC depending on: ${listingType.toUpperCase()}.
-
-${getClientStrategy(listingType)}
-${getWritingRules()}
-${getLanguageRules(targetLanguages)}
-
-Return ONLY valid JSON matching the provided schema.
-`;
+function getClientStrategy(listingType: ListingType): string {
+  switch (listingType) {
+    case 'sale':
+      return `CLIENT: POTENTIAL BUYER\nFocus on long-term value, comfort, layout quality, natural light, and property appeal.`;
+    case 'rent':
+      return `CLIENT: LONG-TERM TENANT\nFocus on everyday practicality, comfort, storage space, functional layout.`;
+    case 'booking':
+      return `CLIENT: SHORT-TERM GUEST\nFocus on overall experience, cozy atmosphere, relaxation, bright and inviting room aesthetics.`;
+  }
 }
 
-/**
- * ============================================================
- * UTILS & RETRY
- * ============================================================
- */
+function buildPrompt(listingType: ListingType): string {
+  return `
+You are a senior residential real-estate agent. Analyze this equirectangular 360 panorama image.
+
+${getClientStrategy(listingType)}
+
+STRICT INSTRUCTIONS FOR GENERATION:
+- Generate copy strictly and naturally in Serbian language using Latin script.
+- CRITICAL: Do NOT generate any other language keys (like 'de', 'en', 'ru') in i18n objects. Include ONLY the 'sr' key.
+- Base descriptions on visible details in the image.
+
+CRITICAL WAYPOINT RULES:
+- Generate EXACTLY between 4 and 6 waypoints.
+- EVERY single waypoint MUST be purely INFORMATIONAL ('info').
+- Focus waypoints ONLY on interior design, furniture, lighting, flooring, appliances, window views, or materials in the room.
+- STRICTLY DO NOT place waypoints on doors, hallways, stairs, or exits intended for room navigation/transitions.
+
+- Output valid JSON matching the schema.
+`;
+}
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function sanitizeI18n(i18nObj: any, allowedLangs: string[]): Record<string, string> {
+  if (!i18nObj || typeof i18nObj !== 'object') return { sr: '' };
+  const clean: Record<string, string> = {};
+  allowedLangs.forEach((lang) => {
+    if (i18nObj[lang]) clean[lang] = i18nObj[lang];
+  });
+  return Object.keys(clean).length > 0 ? clean : { sr: i18nObj.sr || '' };
 }
-
-function isRetryableError(error: any): boolean {
-  const status = error?.status || error?.code || error?.response?.status;
-  const message = String(error?.message || '').toLowerCase();
-
-  return (
-    status === 429 ||
-    status === 500 ||
-    status === 502 ||
-    status === 503 ||
-    message.includes('429') ||
-    message.includes('resource exhausted') ||
-    message.includes('rate limit') ||
-    message.includes('temporarily unavailable')
-  );
-}
-
-async function generateWithRetry(aiClient: GoogleGenAI, contents: any[], config: any) {
-  let lastError: any;
-
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      return await aiClient.models.generateContent({
-        model: MODEL,
-        contents,
-        config,
-      });
-    } catch (error: any) {
-      lastError = error;
-      if (attempt === MAX_RETRIES || !isRetryableError(error)) {
-        throw error;
-      }
-
-      const baseDelay = Math.pow(2, attempt) * 1000;
-      const jitter = Math.floor(Math.random() * 500);
-      await sleep(baseDelay + jitter);
-    }
-  }
-
-  throw lastError;
-}
-
-function parseAIResponse(response: any): any {
-  if (!response?.text) {
-    throw new Error('Gemini nije vratio tekstualni rezultat.');
-  }
-
-  try {
-    return JSON.parse(response.text);
-  } catch {
-    console.error('Gemini invalid JSON:', response.text);
-    throw new Error('Gemini je vratio neispravan JSON.');
-  }
-}
-
-/**
- * ============================================================
- * SANITIZATION
- * ============================================================
- */
-
-function validateAndSanitize(data: any): any {
-  if (!data?.room || !data?.visual_facts || !data?.listing_copy || !data?.camera) {
-    throw new Error('AI rezultat ne sadrži sve obavezne objekte (room, visual_facts, listing_copy, camera).');
-  }
-
-  data.camera.yaw = clamp(Number(data.camera.yaw) || 0, -180, 180);
-  data.camera.pitch = clamp(Number(data.camera.pitch) || 0, -90, 90);
-
-  if (!Array.isArray(data.waypoints)) {
-    data.waypoints = [];
-  }
-
-  data.waypoints = data.waypoints
-    .slice(0, MAX_WAYPOINTS)
-    .map((point: any) => ({
-      ...point,
-      yaw: clamp(Number(point.yaw) || 0, -180, 180),
-      pitch: clamp(Number(point.pitch) || 0, -90, 90),
-      priority: clamp(Number(point.priority) || 5, 1, 10),
-    }))
-    .sort((a: any, b: any) => b.priority - a.priority);
-
-  if (!Array.isArray(data.highlights)) {
-    data.highlights = [];
-  }
-  data.highlights = data.highlights.slice(0, 5);
-
-  if (!data.client_value) {
-    data.client_value = { primary_value: '', secondary_values: [], lifestyle_benefit: '' };
-  } else if (!Array.isArray(data.client_value.secondary_values)) {
-    data.client_value.secondary_values = [];
-  }
-
-  return data;
-}
-
-/**
- * ============================================================
- * FETCH IMAGE
- * ============================================================
- */
 
 async function fetchPanorama(panoramaUrl: string) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
   try {
-    const response = await fetch(panoramaUrl, { signal: controller.signal });
-
+    const response = await fetch(panoramaUrl, { 
+      signal: controller.signal,
+      headers: { 'Accept': 'image/jpeg,image/webp' }
+    });
+    
     if (!response.ok) {
-      throw new Error(`Panorama download failed: HTTP ${response.status}`);
+      throw new Error(`HTTP greška ${response.status} pri preuzimanju slike.`);
     }
 
-    const contentType = response.headers.get('content-type') || 'image/jpeg';
-    if (!contentType.startsWith('image/')) {
-      throw new Error(`URL ne vraća sliku. Content-Type: ${contentType}`);
-    }
+    const inputBuffer = Buffer.from(await response.arrayBuffer());
 
-    const arrayBuffer = await response.arrayBuffer();
-    if (!arrayBuffer.byteLength) {
-      throw new Error('Panorama slika je prazna.');
-    }
+    // Optimizovana širina na 1024px radi brže obrade AI modela
+    const resizedBuffer = await sharp(inputBuffer)
+      .resize({
+        width: 1024,
+        withoutEnlargement: true,
+      })
+      .jpeg({ quality: 75 })
+      .toBuffer();
 
     return {
-      contentType,
-      base64: Buffer.from(arrayBuffer).toString('base64'),
+      contentType: 'image/jpeg',
+      base64: resizedBuffer.toString('base64'),
     };
   } finally {
     clearTimeout(timeout);
   }
 }
 
+async function generateWithStrictTimeout(aiClient: GoogleGenAI, model: string, contents: any[], config: any) {
+  return Promise.race([
+    aiClient.models.generateContent({ model, contents, config }),
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error(`Timeout od ${AI_TIMEOUT_MS}ms za model ${model}`)), AI_TIMEOUT_MS)
+    )
+  ]);
+}
+
+async function generateFast(aiClient: GoogleGenAI, contents: any[], config: any) {
+  try {
+    const response = await generateWithStrictTimeout(aiClient, PRIMARY_MODEL, contents, config);
+    return { response, usedModel: PRIMARY_MODEL };
+  } catch (err) {
+    console.warn(`[AI] ${PRIMARY_MODEL} nije uspeo u roku. Prebacujem odmah na ${FALLBACK_MODEL}...`);
+    const response = await generateWithStrictTimeout(aiClient, FALLBACK_MODEL, contents, config);
+    return { response, usedModel: FALLBACK_MODEL };
+  }
+}
+
+function parseAIResponse(response: any): any {
+  let text = '';
+  if (typeof response?.text === 'function') text = response.text();
+  else if (typeof response?.text === 'string') text = response.text;
+  else if (response?.candidates?.[0]?.content?.parts?.[0]?.text) {
+    text = response.candidates[0].content.parts[0].text;
+  }
+
+  if (!text) throw new Error('Gemini nije vratio tekstualni sadržaj.');
+
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    throw new Error('Model je vratio tekst koji nije validan JSON.');
+  }
+}
+
+function validateAndSanitize(data: any): any {
+  if (!data?.room || !data?.visual_facts || !data?.listing_copy || !data?.camera) {
+    throw new Error('Generisani podaci ne sadrže sve obavezne sekcije.');
+  }
+
+  data.camera.yaw = clamp(Number(data.camera.yaw) || 0, -180, 180);
+  data.camera.pitch = clamp(Number(data.camera.pitch) || 0, -90, 90);
+
+  // Sanitizacija room sekcije
+  if (data.room?.title_i18n) {
+    data.room.title_i18n = sanitizeI18n(data.room.title_i18n, ['sr']);
+  }
+
+  // Sanitizacija listing_copy sekcije
+  if (data.listing_copy) {
+    data.listing_copy.headline_i18n = sanitizeI18n(data.listing_copy.headline_i18n, ['sr']);
+    data.listing_copy.short_description_i18n = sanitizeI18n(data.listing_copy.short_description_i18n, ['sr']);
+    data.listing_copy.full_description_i18n = sanitizeI18n(data.listing_copy.full_description_i18n, ['sr']);
+  }
+
+  // Sanitizacija highlights niza
+  if (Array.isArray(data.highlights)) {
+    data.highlights = data.highlights.map((h: any) => ({
+      ...h,
+      title_i18n: sanitizeI18n(h.title_i18n, ['sr']),
+      text_i18n: sanitizeI18n(h.text_i18n, ['sr']),
+    }));
+  }
+
+  if (!Array.isArray(data.waypoints)) data.waypoints = [];
+
+  // Sanitizacija waypoints niza
+  data.waypoints = data.waypoints
+    .map((point: any) => ({
+      ...point,
+      type: 'info',
+      yaw: clamp(Number(point.yaw) || 0, -180, 180),
+      pitch: clamp(Number(point.pitch) || 0, -90, 90),
+      priority: clamp(Number(point.priority) || 5, 1, 10),
+      title_i18n: sanitizeI18n(point.title_i18n, ['sr']),
+      text_i18n: sanitizeI18n(point.text_i18n, ['sr']),
+    }))
+    .slice(0, MAX_WAYPOINTS)
+    .sort((a: any, b: any) => b.priority - a.priority);
+
+  return data;
+}
+
 /**
  * ============================================================
- * MAIN POST HANDLER
+ * POST HANDLER
  * ============================================================
  */
 
@@ -569,79 +344,34 @@ export async function POST(req: Request) {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json(
-        { success: false, error: 'GEMINI_API_KEY nije podešen u .env fajlu.' },
-        { status: 500 }
-      );
+      return NextResponse.json({ success: false, error: 'GEMINI_API_KEY fali.' }, { status: 500 });
     }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     const ai = new GoogleGenAI({ apiKey });
-
     const body = await req.json();
-    const { roomId, tourId, panoramaUrl, listingType = 'rent', targetLanguages: bodyLanguages } = body;
 
-    if (!roomId) {
-      return NextResponse.json({ success: false, error: 'roomId je obavezan.' }, { status: 400 });
+    const roomId = body.roomId || body.room_id || body.id;
+    const panoramaUrl = body.panoramaUrl || body.panorama_url;
+    const listingType: ListingType = body.listingType || body.listing_type || 'rent';
+
+    if (!roomId || !panoramaUrl) {
+      return NextResponse.json({ success: false, error: 'Nedostaju roomId ili panoramaUrl.' }, { status: 400 });
     }
 
-    if (!panoramaUrl) {
-      return NextResponse.json({ success: false, error: 'panoramaUrl je obavezan.' }, { status: 400 });
-    }
-
-    // 1. Provera jezika prosleđenih direktno iz zahteva
-    let targetLanguages: string[] = Array.isArray(bodyLanguages) && bodyLanguages.length > 0 ? bodyLanguages : [];
-
-    // 2. Ako nisu prosleđeni iz zahteva, dohvati ih iz baze
-    if (targetLanguages.length === 0) {
-      let effectiveTourId = tourId;
-
-      if (!effectiveTourId && roomId) {
-        const { data: roomData } = await supabase
-          .from('rooms')
-          .select('tour_id')
-          .eq('id', roomId)
-          .single();
-        effectiveTourId = roomData?.tour_id;
-      }
-
-      if (effectiveTourId) {
-        const { data: tourData } = await supabase
-          .from('tours')
-          .select('target_languages')
-          .eq('id', effectiveTourId)
-          .single();
-
-        if (tourData?.target_languages && Array.isArray(tourData.target_languages) && tourData.target_languages.length > 0) {
-          targetLanguages = tourData.target_languages;
-        }
-      }
-    }
-
-    // Fallback ako baza ili request i dalje nemaju jezike
-    if (targetLanguages.length === 0) {
-      targetLanguages = ['sr', 'de'];
-    }
-
-    console.log('Final target languages for AI prompt:', targetLanguages);
-
-    const safeListingType: ListingType = LISTING_TYPES.includes(listingType)
-      ? listingType
-      : 'rent';
+    const safeListingType: ListingType = LISTING_TYPES.includes(listingType) ? listingType : 'rent';
 
     const image = await fetchPanorama(panoramaUrl);
-    const prompt = buildPrompt(safeListingType, targetLanguages);
-    const dynamicSchema = buildRoomAnalysisSchema(targetLanguages);
+    const prompt = buildPrompt(safeListingType);
+    const dynamicSchema = buildRoomAnalysisSchema();
 
-    // Poziv ka Gemini uz odgovarajući config sa dinamičkom responseSchema
-    const response = await generateWithRetry(
+    const { response, usedModel } = await generateFast(
       ai,
       [
-        {
-          inlineData: {
-            mimeType: image.contentType,
-            data: image.base64,
-          },
-        },
+        { inlineData: { mimeType: image.contentType, data: image.base64 } },
         { text: prompt },
       ],
       {
@@ -653,47 +383,34 @@ export async function POST(req: Request) {
     let data = parseAIResponse(response);
     data = validateAndSanitize(data);
 
-    // Upis u bazu
     const { error: updateError } = await supabase
       .from('rooms')
       .update({
-        title_i18n: data.room.title_i18n,
-        establish_i18n: {
-          fromYaw: data.camera.yaw,
-          pitch: data.camera.pitch,
-          text_i18n: data.listing_copy.short_description_i18n,
-        },
-        waypoints_i18n: data.waypoints,
-        visual_analysis: data.visual_facts,
-        highlights_i18n: data.highlights,
-        listing_copy_i18n: data.listing_copy,
-        client_value: data.client_value,
-        ai_model: MODEL,
+        draft_data: data,
+        status: 'draft_generated',
+        ai_model: usedModel,
         ai_listing_type: safeListingType,
+        target_languages: ['sr'],
       })
       .eq('id', roomId);
 
     if (updateError) {
-      throw updateError;
+      throw new Error(`Supabase upis greška: ${updateError.message}`);
     }
 
     return NextResponse.json({
       success: true,
-      model: MODEL,
+      model: usedModel,
       listingType: safeListingType,
-      targetLanguages,
-      data,
+      roomId,
+      status: 'draft_generated',
+      draft: data,
     });
   } catch (error: any) {
     console.error('REAL ESTATE AI ERROR:', error);
-
-    const status = error?.status === 429 ? 429 : 500;
     return NextResponse.json(
-      {
-        success: false,
-        error: error?.message || 'Došlo je do greške prilikom AI analize.',
-      },
-      { status }
+      { success: false, error: error?.message || 'Greška tokom AI obrade.' },
+      { status: 500 }
     );
   }
 }
