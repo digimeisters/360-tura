@@ -12,8 +12,8 @@ export const dynamic = 'force-dynamic';
  * ============================================================
  */
 
-const PRIMARY_MODEL = "gemini-2.5-flash";
-const FALLBACK_MODEL = "gemini-2.5-flash";
+const PRIMARY_MODEL = "gemini-3.1-flash-lite";
+const FALLBACK_MODEL = "gemini-3.1-flash-lite";
 
 const MAX_WAYPOINTS = 5;
 const MIN_WAYPOINTS = 4;
