@@ -15,8 +15,8 @@ export const dynamic = 'force-dynamic';
 const PRIMARY_MODEL = 'gemini-2.0-flash';
 const FALLBACK_MODEL = 'gemini-1.5-flash';
 
-const MAX_WAYPOINTS = 4;
-const MIN_WAYPOINTS = 3;
+const MAX_WAYPOINTS = 5;
+const MIN_WAYPOINTS = 4;
 
 // Povećani tajmeri kako ne bi ulazio u timeout pre Vercel granice
 const FETCH_TIMEOUT_MS = 5_000;
