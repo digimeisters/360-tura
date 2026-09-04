@@ -12,7 +12,8 @@ export const dynamic = 'force-dynamic';
  * ============================================================
  */
 
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+const PRIMARY_MODEL = "gemini-2.5-flash";
+const FALLBACK_MODEL = "gemini-2.5-flash";
 
 const MAX_WAYPOINTS = 5;
 const MIN_WAYPOINTS = 4;
