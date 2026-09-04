@@ -6,7 +6,7 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
 });
 
-const MODEL_NAME = 'gemini-3.6-flash';
+const MODEL_NAME = 'gemini-2.5-flash';
 
 async function callGeminiWithRetry(prompt: string, config: any, retries = 3, delayMs = 2000) {
   for (let i = 0; i < retries; i++) {

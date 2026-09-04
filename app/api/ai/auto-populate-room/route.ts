@@ -12,15 +12,15 @@ export const dynamic = 'force-dynamic';
  * ============================================================
  */
 
-const PRIMARY_MODEL = "gemini-3.6-flash";
-const FALLBACK_MODEL = "gemini-3.6-flash";
+const PRIMARY_MODEL = "gemini-2.5-flash";
+const FALLBACK_MODEL = "gemini-2.5-flash";
 
 const MAX_WAYPOINTS = 5;
 const MIN_WAYPOINTS = 4;
 
 // Povećani tajmeri kako ne bi ulazio u timeout pre Vercel granice
 const FETCH_TIMEOUT_MS = 5_000;
-const AI_TIMEOUT_MS = 7_500;
+const AI_TIMEOUT_MS = 25000;
 
 type ListingType = 'sale' | 'rent' | 'booking';
 const LISTING_TYPES: ListingType[] = ['sale', 'rent', 'booking'];
