@@ -735,62 +735,73 @@ export default function TourPage() {
   };
 
   const handleSaveHotspot = async () => {
-    const currentRoom = rooms[roomIdx];
-    if (!currentRoom || !pendingCoords) return;
+  const currentRoom = rooms[roomIdx];
+  if (!currentRoom || !pendingCoords) return;
 
-    let updatedWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
-    let updatedEstablish = parseEstablish(currentRoom.establish_i18n);
+  let updatedWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
+  let updatedEstablish = parseEstablish(currentRoom.establish_i18n);
 
-    if (hotspotType === 'establish') {
-      updatedEstablish = {
-        ...updatedEstablish,
-        fromYaw: pendingCoords.yaw,
-        pitch: pendingCoords.pitch,
-        audio_url: hotspotAudioUrl || updatedEstablish.audio_url,
-        text_i18n: buildI18nObject(hotspotText, updatedEstablish.text_i18n, langRef.current)
-      };
+  if (hotspotType === 'establish') {
+    updatedEstablish = {
+      ...updatedEstablish,
+      fromYaw: pendingCoords.yaw,
+      pitch: pendingCoords.pitch,
+      audio_url: hotspotAudioUrl || updatedEstablish.audio_url,
+      text_i18n: buildI18nObject(hotspotText, updatedEstablish.text_i18n, langRef.current)
+    };
+  } else {
+    const existingWp = editingIndex !== null ? updatedWaypoints[editingIndex] : undefined;
+    
+    // VAŽNO: Dodat ...existingWp da se ne izgube prevođeni jezici!
+    const newWaypoint: Waypoint = {
+      ...existingWp, 
+      yaw: pendingCoords.yaw,
+      pitch: pendingCoords.pitch,
+      type: hotspotType,
+      targetRoomId: hotspotType === 'navigation' ? targetRoomId : undefined,
+      audio_url: hotspotAudioUrl || existingWp?.audio_url,
+      title_i18n: buildI18nObject(hotspotTitle, existingWp?.title_i18n, langRef.current),
+      text_i18n: buildI18nObject(hotspotText, existingWp?.text_i18n, langRef.current)
+    };
+
+    if (editingIndex !== null) {
+      updatedWaypoints[editingIndex] = newWaypoint;
     } else {
-      const existingWp = editingIndex !== null ? updatedWaypoints[editingIndex] : undefined;
-      const newWaypoint: Waypoint = {
-        yaw: pendingCoords.yaw,
-        pitch: pendingCoords.pitch,
-        type: hotspotType,
-        targetRoomId: hotspotType === 'navigation' ? targetRoomId : undefined,
-        audio_url: hotspotAudioUrl,
-        title_i18n: buildI18nObject(hotspotTitle, existingWp?.title_i18n, langRef.current),
-        text_i18n: buildI18nObject(hotspotText, existingWp?.text_i18n, langRef.current)
-      };
-
-      if (editingIndex !== null) {
-        updatedWaypoints[editingIndex] = newWaypoint;
-      } else {
-        updatedWaypoints.push(newWaypoint);
-      }
+      updatedWaypoints.push(newWaypoint);
     }
+  }
 
-    try {
-      const { error: dbErr } = await supabase
-        .from('rooms')
-        .update({
-          waypoints_i18n: updatedWaypoints,
-          establish_i18n: updatedEstablish
-        })
-        .eq('id', currentRoom.id);
-
-      if (dbErr) throw dbErr;
-
-      setRooms(prev => prev.map((r, i) => i === roomIdx ? {
-        ...r,
+  try {
+    const { error: dbErr } = await supabase
+      .from('rooms')
+      .update({
         waypoints_i18n: updatedWaypoints,
         establish_i18n: updatedEstablish
-      } : r));
+      })
+      .eq('id', currentRoom.id);
 
-      handleCancelEdit();
+    if (dbErr) throw dbErr;
+
+    // Ažuriramo React state
+    const newRooms = rooms.map((r, i) => i === roomIdx ? {
+      ...r,
+      waypoints_i18n: updatedWaypoints,
+      establish_i18n: updatedEstablish
+    } : r);
+    
+    setRooms(newRooms);
+
+    handleCancelEdit();
+    
+    // Ključno: Odmah osvežavamo prikaz tačaka u Pannellum-u sa novim koordinatama!
+    setTimeout(() => {
       changeLanguage(langRef.current);
-    } catch (err: any) {
-      alert('Greška pri čuvanju tačke: ' + err.message);
-    }
-  };
+    }, 50);
+
+  } catch (err: any) {
+    alert('Greška pri čuvanju tačke: ' + err.message);
+  }
+};
 
   const handleDeleteHotspot = async () => {
     if (editingIndex === null) return;
@@ -856,77 +867,85 @@ export default function TourPage() {
   };
 
   const changeLanguage = (newLang: Language) => {
-    setLang(newLang);
-    langRef.current = newLang;
+  setLang(newLang);
+  langRef.current = newLang;
 
-    if (viewerRef.current && rooms[roomIdx]) {
-      const currentYaw = viewerRef.current.getYaw();
-      const currentPitch = viewerRef.current.getPitch();
-      const currentHfov = viewerRef.current.getHfov();
+  if (viewerRef.current && rooms[roomIdx]) {
+    const currentYaw = viewerRef.current.getYaw();
+    const currentPitch = viewerRef.current.getPitch();
+    const currentHfov = viewerRef.current.getHfov();
 
-      const currentRoom = rooms[roomIdx];
-      const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
+    const currentRoom = rooms[roomIdx];
+    const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
 
-      waypointsList.forEach((wp, index) => {
-        try {
-          viewerRef.current.removeHotSpot(`hotspot-${index}`);
-        } catch {}
+    // Prvo uklanjamo sve postojeće tačke sa scene
+    waypointsList.forEach((_, index) => {
+      try {
+        viewerRef.current.removeHotSpot(`hotspot-${index}`);
+      } catch {}
+    });
 
-        const isNav = wp.type === 'navigation' || Boolean(wp.targetRoomId);
-        let tooltipText = getLocalizedText(wp.title_i18n, newLang);
-        if (!tooltipText && !isNav) {
-          tooltipText = getLocalizedText(wp.text_i18n, newLang);
-          if (tooltipText.length > 40) tooltipText = tooltipText.substring(0, 40) + '...';
-        }
-        if (isNav && !tooltipText && wp.targetRoomId) {
-          const targetRoomObj = rooms.find(r => r.id == wp.targetRoomId);
-          if (targetRoomObj) tooltipText = getLocalizedText(targetRoomObj.title_i18n, newLang);
-        }
+    // Zatim ih ponovo iscrtavamo sa prevođenim tekstovima
+    waypointsList.forEach((wp, index) => {
+      const isNav = wp.type === 'navigation' || Boolean(wp.targetRoomId);
+      
+      // Osiguravamo da je jezik u malim slovima radi usklađenosti sa i18n objektom
+      const langKey = String(newLang).toLowerCase() as Language;
+      
+      let tooltipText = getLocalizedText(wp.title_i18n, langKey) || getLocalizedText(wp.title_i18n, 'sr');
+      if (!tooltipText && !isNav) {
+        tooltipText = getLocalizedText(wp.text_i18n, langKey) || getLocalizedText(wp.text_i18n, 'sr');
+        if (tooltipText && tooltipText.length > 40) tooltipText = tooltipText.substring(0, 40) + '...';
+      }
+      if (isNav && !tooltipText && wp.targetRoomId) {
+        const targetRoomObj = rooms.find(r => r.id == wp.targetRoomId);
+        if (targetRoomObj) tooltipText = getLocalizedText(targetRoomObj.title_i18n, langKey);
+      }
 
-        viewerRef.current.addHotSpot({
-          id: `hotspot-${index}`,
-          pitch: wp.pitch || 0,
-          yaw: wp.yaw || 0,
-          createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
-            hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
-            hotSpotDiv.style.backgroundColor = isNav ? 'rgba(7, 9, 10, 0.68)' : 'rgba(4, 26, 37, 0.73)';
-            hotSpotDiv.style.border = '1.5px solid rgba(248, 244, 244, 0.9)';
-            hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
-            hotSpotDiv.style.color = '#fff';
-            hotSpotDiv.style.display = 'flex';
-            hotSpotDiv.style.alignItems = 'center';
-            hotSpotDiv.style.justifyContent = 'center';
-            hotSpotDiv.style.cursor = 'pointer';
-            hotSpotDiv.style.padding = isNav ? '3px 6px' : '0.5px';
-            hotSpotDiv.style.width = isNav ? 'auto' : '22px';
-            hotSpotDiv.style.height = isNav ? 'auto' : '22px';
-            hotSpotDiv.style.fontWeight = 'bold';
-            hotSpotDiv.style.fontSize = isNav ? '10px' : '15px';
-            hotSpotDiv.style.boxShadow = '8px 10px 20px rgba(0, 0, 0, 0.53)';
-            hotSpotDiv.innerHTML = isNav ? `${tooltipText}` : 'ℹ';
-          },
-          text: tooltipText,
-          clickHandlerFunc: () => {
-            if (adminModeRef.current) {
-              handleStartEditWaypoint(index);
-            } else if (isNav && wp.targetRoomId) {
-              changeRoomById(wp.targetRoomId);
-            } else if (!isNav) {
-              isInterruptedRef.current = true;
-              stopCurrentAnimation();
-              audioCurrentTimeRef.current = 0;
-              if (viewerRef.current) viewerRef.current.setHfov(45);
-              playAudioFileWithCompletion(wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
-            }
+      viewerRef.current.addHotSpot({
+        id: `hotspot-${index}`,
+        pitch: wp.pitch || 0,
+        yaw: wp.yaw || 0,
+        createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
+          hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
+          hotSpotDiv.style.backgroundColor = isNav ? 'rgba(7, 9, 10, 0.68)' : 'rgba(4, 26, 37, 0.73)';
+          hotSpotDiv.style.border = '1.5px solid rgba(248, 244, 244, 0.9)';
+          hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
+          hotSpotDiv.style.color = '#fff';
+          hotSpotDiv.style.display = 'flex';
+          hotSpotDiv.style.alignItems = 'center';
+          hotSpotDiv.style.justifyContent = 'center';
+          hotSpotDiv.style.cursor = 'pointer';
+          hotSpotDiv.style.padding = isNav ? '3px 6px' : '0.5px';
+          hotSpotDiv.style.width = isNav ? 'auto' : '22px';
+          hotSpotDiv.style.height = isNav ? 'auto' : '22px';
+          hotSpotDiv.style.fontWeight = 'bold';
+          hotSpotDiv.style.fontSize = isNav ? '10px' : '15px';
+          hotSpotDiv.style.boxShadow = '8px 10px 20px rgba(0, 0, 0, 0.53)';
+          hotSpotDiv.innerHTML = isNav ? `${tooltipText}` : 'ℹ';
+        },
+        text: tooltipText,
+        clickHandlerFunc: () => {
+          if (adminModeRef.current) {
+            handleStartEditWaypoint(index);
+          } else if (isNav && wp.targetRoomId) {
+            changeRoomById(wp.targetRoomId);
+          } else if (!isNav) {
+            isInterruptedRef.current = true;
+            stopCurrentAnimation();
+            audioCurrentTimeRef.current = 0;
+            if (viewerRef.current) viewerRef.current.setHfov(45);
+            playAudioFileWithCompletion(wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
           }
-        });
+        }
       });
+    });
 
-      viewerRef.current.setYaw(currentYaw);
-      viewerRef.current.setPitch(currentPitch);
-      viewerRef.current.setHfov(currentHfov);
-    }
-  };
+    viewerRef.current.setYaw(currentYaw);
+    viewerRef.current.setPitch(currentPitch);
+    viewerRef.current.setHfov(currentHfov);
+  }
+};
 
   // KORAK 2 & 3: Potvrda SR drafta, sekvencijalno prevođenje i upis u bazu
   const handleConfirmDraftAndProcess = async () => {
