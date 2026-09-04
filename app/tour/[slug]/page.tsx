@@ -113,27 +113,32 @@ const parseEstablish = (establishData: unknown): EstablishData => {
   return {};
 };
 
+// 1. Unapređena buildI18nObject funkcija
 const buildI18nObject = (
   textValue: string,
   existingData?: unknown,
   currentLang: Language = 'sr'
 ): Record<string, string> => {
   let result: Record<string, string> = { sr: '', en: '', de: '', ru: '' };
+
   if (existingData) {
-    if (typeof existingData === 'string') {
+    if (typeof existingData === 'object' && existingData !== null) {
+      result = { ...result, ...(existingData as Record<string, string>) };
+    } else if (typeof existingData === 'string') {
       try {
         const parsed = JSON.parse(existingData);
         if (parsed && typeof parsed === 'object') {
           result = { ...result, ...(parsed as Record<string, string>) };
+        } else {
+          result.sr = existingData;
         }
       } catch {
         result.sr = existingData;
       }
-    } else if (typeof existingData === 'object') {
-      result = { ...result, ...(existingData as Record<string, string>) };
     }
   }
-  result[currentLang] = textValue;
+
+  result[currentLang] = textValue || '';
   return result;
 };
 
@@ -516,6 +521,11 @@ export default function TourPage() {
   const scrollLeftRef = useRef(0);
   const autoScrollPausedRef = useRef(false);
 
+  const changeLanguage = (newLang: Language) => {
+    setLang(newLang);
+    langRef.current = newLang;
+  };
+
   const stopGyroscope = useCallback(() => {
     if (viewerRef.current && typeof viewerRef.current.stopOrientation === 'function') {
       viewerRef.current.stopOrientation();
@@ -734,74 +744,72 @@ export default function TourPage() {
     setTargetRoomId('');
   };
 
+  // 3. Popravljena handleSaveHotspot funkcija
   const handleSaveHotspot = async () => {
-  const currentRoom = rooms[roomIdx];
-  if (!currentRoom || !pendingCoords) return;
+    const currentRoom = rooms[roomIdx];
+    if (!currentRoom || !pendingCoords) return;
 
-  let updatedWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
-  let updatedEstablish = parseEstablish(currentRoom.establish_i18n);
+    let updatedWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
+    let updatedEstablish = parseEstablish(currentRoom.establish_i18n);
 
-  if (hotspotType === 'establish') {
-    updatedEstablish = {
-      ...updatedEstablish,
-      fromYaw: pendingCoords.yaw,
-      pitch: pendingCoords.pitch,
-      audio_url: hotspotAudioUrl || updatedEstablish.audio_url,
-      text_i18n: buildI18nObject(hotspotText, updatedEstablish.text_i18n, langRef.current)
-    };
-  } else {
-    const existingWp = editingIndex !== null ? updatedWaypoints[editingIndex] : undefined;
-    
-    // VAŽNO: Dodat ...existingWp da se ne izgube prevođeni jezici!
-    const newWaypoint: Waypoint = {
-      ...existingWp, 
-      yaw: pendingCoords.yaw,
-      pitch: pendingCoords.pitch,
-      type: hotspotType,
-      targetRoomId: hotspotType === 'navigation' ? targetRoomId : undefined,
-      audio_url: hotspotAudioUrl || existingWp?.audio_url,
-      title_i18n: buildI18nObject(hotspotTitle, existingWp?.title_i18n, langRef.current),
-      text_i18n: buildI18nObject(hotspotText, existingWp?.text_i18n, langRef.current)
-    };
-
-    if (editingIndex !== null) {
-      updatedWaypoints[editingIndex] = newWaypoint;
+    if (hotspotType === 'establish') {
+      updatedEstablish = {
+        ...updatedEstablish,
+        fromYaw: pendingCoords.yaw,
+        pitch: pendingCoords.pitch,
+        audio_url: hotspotAudioUrl || updatedEstablish.audio_url,
+        text_i18n: buildI18nObject(hotspotText, updatedEstablish.text_i18n, langRef.current)
+      };
     } else {
-      updatedWaypoints.push(newWaypoint);
-    }
-  }
+      const existingWp = editingIndex !== null ? updatedWaypoints[editingIndex] : undefined;
+      
+      const newWaypoint: Waypoint = {
+        ...existingWp, 
+        yaw: pendingCoords.yaw,
+        pitch: pendingCoords.pitch,
+        type: hotspotType,
+        targetRoomId: hotspotType === 'navigation' ? targetRoomId : undefined,
+        audio_url: hotspotAudioUrl || existingWp?.audio_url,
+        title_i18n: buildI18nObject(hotspotTitle, existingWp?.title_i18n, langRef.current),
+        text_i18n: buildI18nObject(hotspotText, existingWp?.text_i18n, langRef.current)
+      };
 
-  try {
-    const { error: dbErr } = await supabase
-      .from('rooms')
-      .update({
+      if (editingIndex !== null) {
+        updatedWaypoints[editingIndex] = newWaypoint;
+      } else {
+        updatedWaypoints.push(newWaypoint);
+      }
+    }
+
+    try {
+      const { error: dbErr } = await supabase
+        .from('rooms')
+        .update({
+          waypoints_i18n: updatedWaypoints,
+          establish_i18n: updatedEstablish
+        })
+        .eq('id', currentRoom.id);
+
+      if (dbErr) throw dbErr;
+
+      const newRooms = rooms.map((r, i) => i === roomIdx ? {
+        ...r,
         waypoints_i18n: updatedWaypoints,
         establish_i18n: updatedEstablish
-      })
-      .eq('id', currentRoom.id);
+      } : r);
+      
+      setRooms(newRooms);
+      handleCancelEdit();
 
-    if (dbErr) throw dbErr;
+      // Sinhrono osvežavanje Pannellum prikaza
+      setTimeout(() => {
+        changeLanguage(langRef.current);
+      }, 50);
 
-    // Ažuriramo React state
-    const newRooms = rooms.map((r, i) => i === roomIdx ? {
-      ...r,
-      waypoints_i18n: updatedWaypoints,
-      establish_i18n: updatedEstablish
-    } : r);
-    
-    setRooms(newRooms);
-
-    handleCancelEdit();
-    
-    // Ključno: Odmah osvežavamo prikaz tačaka u Pannellum-u sa novim koordinatama!
-    setTimeout(() => {
-      changeLanguage(langRef.current);
-    }, 50);
-
-  } catch (err: any) {
-    alert('Greška pri čuvanju tačke: ' + err.message);
-  }
-};
+    } catch (err: any) {
+      alert('Greška pri čuvanju tačke: ' + err.message);
+    }
+  };
 
   const handleDeleteHotspot = async () => {
     if (editingIndex === null) return;
@@ -866,88 +874,7 @@ export default function TourPage() {
     }
   };
 
-  const changeLanguage = (newLang: Language) => {
-  setLang(newLang);
-  langRef.current = newLang;
-
-  if (viewerRef.current && rooms[roomIdx]) {
-    const currentYaw = viewerRef.current.getYaw();
-    const currentPitch = viewerRef.current.getPitch();
-    const currentHfov = viewerRef.current.getHfov();
-
-    const currentRoom = rooms[roomIdx];
-    const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
-
-    // Prvo uklanjamo sve postojeće tačke sa scene
-    waypointsList.forEach((_, index) => {
-      try {
-        viewerRef.current.removeHotSpot(`hotspot-${index}`);
-      } catch {}
-    });
-
-    // Zatim ih ponovo iscrtavamo sa prevođenim tekstovima
-    waypointsList.forEach((wp, index) => {
-      const isNav = wp.type === 'navigation' || Boolean(wp.targetRoomId);
-      
-      // Osiguravamo da je jezik u malim slovima radi usklađenosti sa i18n objektom
-      const langKey = String(newLang).toLowerCase() as Language;
-      
-      let tooltipText = getLocalizedText(wp.title_i18n, langKey) || getLocalizedText(wp.title_i18n, 'sr');
-      if (!tooltipText && !isNav) {
-        tooltipText = getLocalizedText(wp.text_i18n, langKey) || getLocalizedText(wp.text_i18n, 'sr');
-        if (tooltipText && tooltipText.length > 40) tooltipText = tooltipText.substring(0, 40) + '...';
-      }
-      if (isNav && !tooltipText && wp.targetRoomId) {
-        const targetRoomObj = rooms.find(r => r.id == wp.targetRoomId);
-        if (targetRoomObj) tooltipText = getLocalizedText(targetRoomObj.title_i18n, langKey);
-      }
-
-      viewerRef.current.addHotSpot({
-        id: `hotspot-${index}`,
-        pitch: wp.pitch || 0,
-        yaw: wp.yaw || 0,
-        createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
-          hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
-          hotSpotDiv.style.backgroundColor = isNav ? 'rgba(7, 9, 10, 0.68)' : 'rgba(4, 26, 37, 0.73)';
-          hotSpotDiv.style.border = '1.5px solid rgba(248, 244, 244, 0.9)';
-          hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
-          hotSpotDiv.style.color = '#fff';
-          hotSpotDiv.style.display = 'flex';
-          hotSpotDiv.style.alignItems = 'center';
-          hotSpotDiv.style.justifyContent = 'center';
-          hotSpotDiv.style.cursor = 'pointer';
-          hotSpotDiv.style.padding = isNav ? '3px 6px' : '0.5px';
-          hotSpotDiv.style.width = isNav ? 'auto' : '22px';
-          hotSpotDiv.style.height = isNav ? 'auto' : '22px';
-          hotSpotDiv.style.fontWeight = 'bold';
-          hotSpotDiv.style.fontSize = isNav ? '10px' : '15px';
-          hotSpotDiv.style.boxShadow = '8px 10px 20px rgba(0, 0, 0, 0.53)';
-          hotSpotDiv.innerHTML = isNav ? `${tooltipText}` : 'ℹ';
-        },
-        text: tooltipText,
-        clickHandlerFunc: () => {
-          if (adminModeRef.current) {
-            handleStartEditWaypoint(index);
-          } else if (isNav && wp.targetRoomId) {
-            changeRoomById(wp.targetRoomId);
-          } else if (!isNav) {
-            isInterruptedRef.current = true;
-            stopCurrentAnimation();
-            audioCurrentTimeRef.current = 0;
-            if (viewerRef.current) viewerRef.current.setHfov(45);
-            playAudioFileWithCompletion(wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
-          }
-        }
-      });
-    });
-
-    viewerRef.current.setYaw(currentYaw);
-    viewerRef.current.setPitch(currentPitch);
-    viewerRef.current.setHfov(currentHfov);
-  }
-};
-
-  // KORAK 2 & 3: Potvrda SR drafta, sekvencijalno prevođenje i upis u bazu
+  // 2. Popravljena handleConfirmDraftAndProcess funkcija
   const handleConfirmDraftAndProcess = async () => {
     if (!aiDraft || !rooms[roomIdx]) return;
     
@@ -961,11 +888,11 @@ export default function TourPage() {
     const currentRoom = rooms[roomIdx];
     const otherLangs = targetLanguages.filter((l) => l !== 'sr');
 
+    // 1. Inicijalizacija sa osiguravanjem postojećih jezika
     let currentTitleI18n: Record<string, string> = buildI18nObject(aiDraft.title, currentRoom.title_i18n, 'sr');
-    let currentEstablishI18n: EstablishData = {
-      ...parseEstablish(currentRoom.establish_i18n),
-      text_i18n: buildI18nObject(aiDraft.narration, parseEstablish(currentRoom.establish_i18n).text_i18n, 'sr')
-    };
+    
+    let existingEstablish = parseEstablish(currentRoom.establish_i18n);
+    let currentEstablishTextI18n: Record<string, string> = buildI18nObject(aiDraft.narration, existingEstablish.text_i18n, 'sr');
 
     let currentWaypoints: Waypoint[] = aiDraft.waypoints.map((wp) => ({
       ...wp,
@@ -995,29 +922,33 @@ export default function TourPage() {
 
         const result = await res.json();
         if (result.success && result.translated) {
-          currentTitleI18n[targetLang] = result.translated.title;
-          currentEstablishI18n.text_i18n = {
-            ...(typeof currentEstablishI18n.text_i18n === 'object' ? currentEstablishI18n.text_i18n : {}),
-            [targetLang]: result.translated.narration
-          };
+          // Ažuriranje naslova sobe
+          currentTitleI18n = buildI18nObject(result.translated.title, currentTitleI18n, targetLang);
 
+          // Ažuriranje uvodne naracije
+          currentEstablishTextI18n = buildI18nObject(result.translated.narration, currentEstablishTextI18n, targetLang);
+
+          // Ažuriranje tačaka
           if (Array.isArray(result.translated.waypoints)) {
-            currentWaypoints = currentWaypoints.map((wp, idx) => ({
-              ...wp,
-              text_i18n: buildI18nObject(
-                getLocalizedText(result.translated.waypoints[idx]?.text_i18n, targetLang),
-                wp.text_i18n,
-                targetLang
-              ),
-              title_i18n: buildI18nObject(
-                getLocalizedText(result.translated.waypoints[idx]?.title_i18n, targetLang),
-                wp.title_i18n,
-                targetLang
-              )
-            }));
+            currentWaypoints = currentWaypoints.map((wp, idx) => {
+              const transWp = result.translated.waypoints[idx];
+              const translatedTitle = transWp ? getLocalizedText(transWp.title_i18n, targetLang) : '';
+              const translatedText = transWp ? getLocalizedText(transWp.text_i18n, targetLang) : '';
+
+              return {
+                ...wp,
+                title_i18n: buildI18nObject(translatedTitle, wp.title_i18n, targetLang),
+                text_i18n: buildI18nObject(translatedText, wp.text_i18n, targetLang)
+              };
+            });
           }
         }
       }
+
+      const finalEstablish: EstablishData = {
+        ...existingEstablish,
+        text_i18n: currentEstablishTextI18n
+      };
 
       setTranslationProgress('Upisivanje u bazu podataka...');
 
@@ -1025,31 +956,35 @@ export default function TourPage() {
         .from('rooms')
         .update({
           title_i18n: currentTitleI18n,
-          establish_i18n: currentEstablishI18n,
+          establish_i18n: finalEstablish,
           waypoints_i18n: currentWaypoints
         })
         .eq('id', currentRoom.id);
 
-      if (dbErr) {
-        throw dbErr;
-      }
+      if (dbErr) throw dbErr;
 
-      setRooms((prevRooms: any[]) =>
-        prevRooms.map((r, idx) =>
-          idx === roomIdx
-            ? {
-                ...r,
-                title_i18n: currentTitleI18n,
-                establish_i18n: currentEstablishI18n,
-                waypoints_i18n: currentWaypoints
-              }
-            : r
-        )
+      // 2. Osvežavamo lokalno stanje
+      const updatedRooms = rooms.map((r, idx) =>
+        idx === roomIdx
+          ? {
+              ...r,
+              title_i18n: currentTitleI18n,
+              establish_i18n: finalEstablish,
+              waypoints_i18n: currentWaypoints
+            }
+          : r
       );
 
-      changeLanguage(langRef.current);
+      setRooms(updatedRooms);
 
-      alert('Soba je uspešno popunjena i prevedena!');
+      // 3. Forsirano rendersko osvežavanje tačaka u sceni
+      setTimeout(() => {
+        if (viewerRef.current) {
+          changeLanguage(langRef.current);
+        }
+      }, 100);
+
+      alert('Soba je uspešno popunjena, prevedena i sačuvana!');
     } catch (err: any) {
       console.error('Translation & Saving Error:', err);
       alert('Greška tokom prevođenja i upisa: ' + (err.message || 'Nepoznata greška'));
