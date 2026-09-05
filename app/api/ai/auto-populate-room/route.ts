@@ -622,7 +622,7 @@ export async function POST(req: Request) {
 
     const safeListingType: ListingType = LISTING_TYPES.includes(listingType) ? listingType : 'rent';
 
-    return await handleGenerateDraft(ai, supabase, roomId, panoramaUrl, safeListingType);
+    return await handleGenerateDraft(ai, supabase as any, roomId, panoramaUrl, safeListingType);
   } catch (error: any) {
     console.error('REAL ESTATE AI ERROR:', error);
     return NextResponse.json(
