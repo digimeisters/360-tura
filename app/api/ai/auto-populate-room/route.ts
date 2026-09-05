@@ -467,8 +467,8 @@ async function handleGenerateDraft(
   let data = parseAIResponse(response);
   data = validateAndSanitize(data);
 
-  const { error: updateError } = await supabase
-    .from('rooms')
+  const { error: updateError } = await (supabase
+    .from('rooms') as any)
     .update({
       draft_data: data,
       status: 'draft_generated',
