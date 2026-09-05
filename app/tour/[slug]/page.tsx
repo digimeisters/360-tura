@@ -726,14 +726,11 @@ export default function TourPage() {
     }
   }, [rooms, stopAudio, stopCurrentAnimation]);
 
-  const changeLanguage = useCallback((l: Language) => {
-    setLang(l);
-    langRef.current = l;
-
-    const currentRoom = rooms[roomIdx];
-    if (!viewerRef.current || !currentRoom) return;
-
-    const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
+  // Iscrtava hotspot-ove na vieweru koristeći TAČNO prosleđen niz tačaka.
+  // Namerno NE čita rooms[roomIdx] iz state-a, jer bi to moglo biti zastarelo
+  // (stale) odmah posle setRooms(...), pošto React state update nije sinhron.
+  const refreshViewerHotspots = useCallback((waypointsList: Waypoint[], l: Language) => {
+    if (!viewerRef.current) return;
 
     // Ukloni postojeće hotspot-ove sa viewer-a
     const existingHotspots = viewerRef.current.getConfig()?.hotSpots || [];
@@ -741,7 +738,7 @@ export default function TourPage() {
       try { viewerRef.current.removeHotSpot(hs.id); } catch {}
     });
 
-    // Ponovo ih dodaj sa tekstom na novom jeziku
+    // Ponovo ih dodaj sa prosleđenim (svežim) podacima
     waypointsList.forEach((wp, index) => {
       const isNav = wp.type === 'navigation' || Boolean(wp.targetRoomId);
 
@@ -793,7 +790,18 @@ export default function TourPage() {
         }
       });
     });
-  }, [rooms, roomIdx, handleStartEditWaypoint, changeRoomById, playAudioFileWithCompletion, stopCurrentAnimation]);
+  }, [rooms, handleStartEditWaypoint, changeRoomById, playAudioFileWithCompletion, stopCurrentAnimation]);
+
+  const changeLanguage = useCallback((l: Language) => {
+    setLang(l);
+    langRef.current = l;
+
+    const currentRoom = rooms[roomIdx];
+    if (!currentRoom) return;
+
+    const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
+    refreshViewerHotspots(waypointsList, l);
+  }, [rooms, roomIdx, refreshViewerHotspots]);
 
   // CANCEL & DELETE & SAVE HOTSPOTS (ADMIN REŽIM)
   const handleCancelEdit = () => {
@@ -850,7 +858,7 @@ export default function TourPage() {
         waypoints_i18n: updatedWaypoints,
         establish_i18n: updatedEstablish
       })
-      .eq('id', currentRoom.id as any);
+      .eq('id', currentRoom.id);
 
     if (dbErr) throw dbErr;
 
@@ -864,11 +872,10 @@ export default function TourPage() {
     setRooms(newRooms);
 
     handleCancelEdit();
-    
-    // Ključno: Odmah osvežavamo prikaz tačaka u Pannellum-u sa novim koordinatama!
-    setTimeout(() => {
-      changeLanguage(langRef.current);
-    }, 50);
+
+    // Ključno: Odmah osvežavamo prikaz tačaka u Pannellum-u koristeći SVEŽ niz
+    // (updatedWaypoints), a ne rooms state koji React još nije stigao da ažurira.
+    refreshViewerHotspots(updatedWaypoints, langRef.current);
 
   } catch (err: any) {
     alert('Greška pri čuvanju tačke: ' + err.message);
@@ -887,7 +894,7 @@ export default function TourPage() {
       const { error: dbErr } = await supabase
         .from('rooms')
         .update({ waypoints_i18n: updatedWaypoints })
-        .eq('id', currentRoom.id as any);
+        .eq('id', currentRoom.id);
 
       if (dbErr) throw dbErr;
 
@@ -897,7 +904,7 @@ export default function TourPage() {
       } : r));
 
       handleCancelEdit();
-      changeLanguage(langRef.current);
+      refreshViewerHotspots(updatedWaypoints, langRef.current);
     } catch (err: any) {
       alert('Greška pri brisanju tačke: ' + err.message);
     }
@@ -1021,7 +1028,7 @@ export default function TourPage() {
           establish_i18n: currentEstablishI18n,
           waypoints_i18n: currentWaypoints
         })
-        .eq('id', currentRoom.id as any);
+        .eq('id', currentRoom.id);
 
       if (dbErr) {
         throw dbErr;
@@ -1040,7 +1047,7 @@ export default function TourPage() {
         )
       );
 
-      changeLanguage(langRef.current);
+      refreshViewerHotspots(currentWaypoints, langRef.current);
 
       alert('Soba je uspešno popunjena i prevedena!');
     } catch (err: any) {
