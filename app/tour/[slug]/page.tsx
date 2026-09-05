@@ -498,6 +498,7 @@ export default function TourPage() {
 
   const [pendingCoords, setPendingCoords] = useState<{ yaw: number; pitch: number } | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const editingIndexRef = useRef<number | null>(null);
   const [hotspotType, setHotspotType] = useState<'navigation' | 'info' | 'establish'>('navigation');
   const [targetRoomId, setTargetRoomId] = useState<string | number>('');
 
@@ -608,6 +609,7 @@ export default function TourPage() {
     if (!targetWp) return;
 
     setEditingIndex(index);
+    editingIndexRef.current = index;
     setPendingCoords({ pitch: targetWp.pitch || 0, yaw: targetWp.yaw || 0 });
 
     if (viewerRef.current) {
@@ -797,6 +799,7 @@ export default function TourPage() {
   const handleCancelEdit = () => {
     setPendingCoords(null);
     setEditingIndex(null);
+    editingIndexRef.current = null;
     setHotspotText('');
     setHotspotTitle('');
     setHotspotAudioUrl('');
@@ -847,7 +850,7 @@ export default function TourPage() {
         waypoints_i18n: updatedWaypoints,
         establish_i18n: updatedEstablish
       })
-      .eq('id', currentRoom.id as any);
+      .eq('id', currentRoom.id);
 
     if (dbErr) throw dbErr;
 
@@ -884,7 +887,7 @@ export default function TourPage() {
       const { error: dbErr } = await supabase
         .from('rooms')
         .update({ waypoints_i18n: updatedWaypoints })
-        .eq('id', currentRoom.id as any);
+        .eq('id', currentRoom.id);
 
       if (dbErr) throw dbErr;
 
@@ -1018,7 +1021,7 @@ export default function TourPage() {
           establish_i18n: currentEstablishI18n,
           waypoints_i18n: currentWaypoints
         })
-        .eq('id', currentRoom.id as any);
+        .eq('id', currentRoom.id);
 
       if (dbErr) {
         throw dbErr;
@@ -1287,17 +1290,24 @@ export default function TourPage() {
     });
     viewerRef.current = v;
 
-    // ADMIN MODE CLICK TO ADD WAYPOINT
+    // ADMIN MODE: KLIK ZA DODAVANJE NOVE TAČKE ILI POMERANJE POSTOJEĆE
     v.on('mouseup', (e: MouseEvent) => {
       if (adminModeRef.current && e.button === 0) {
         const coords = v.mouseEventToCoords(e);
         if (coords) {
-          setEditingIndex(null);
-          setPendingCoords({ yaw: coords[0], pitch: coords[1] });
-          setHotspotText('');
-          setHotspotTitle('');
-          setHotspotAudioUrl('');
-          setTargetRoomId('');
+          if (editingIndexRef.current !== null) {
+            // Već postoji tačka u režimu izmene -> ovaj klik je SAMO pomeranje
+            // na novu poziciju. Ne diramo editingIndex ni već unet naslov/tekst/audio,
+            // da se ne izgube podaci koje je korisnik već uneo.
+            setPendingCoords({ yaw: coords[0], pitch: coords[1] });
+          } else {
+            // Nije aktivno editovanje - ovo je klik za kreiranje potpuno nove tačke
+            setPendingCoords({ yaw: coords[0], pitch: coords[1] });
+            setHotspotText('');
+            setHotspotTitle('');
+            setHotspotAudioUrl('');
+            setTargetRoomId('');
+          }
         }
       }
     });
