@@ -858,7 +858,7 @@ export default function TourPage() {
         waypoints_i18n: updatedWaypoints,
         establish_i18n: updatedEstablish
       })
-      .eq('id', currentRoom.id);
+      .eq('id', currentRoom.id as any);
 
     if (dbErr) throw dbErr;
 
@@ -894,7 +894,7 @@ export default function TourPage() {
       const { error: dbErr } = await supabase
         .from('rooms')
         .update({ waypoints_i18n: updatedWaypoints })
-        .eq('id', currentRoom.id);
+        .eq('id', currentRoom.id as any);
 
       if (dbErr) throw dbErr;
 
@@ -1028,7 +1028,7 @@ export default function TourPage() {
           establish_i18n: currentEstablishI18n,
           waypoints_i18n: currentWaypoints
         })
-        .eq('id', currentRoom.id);
+        .eq('id', currentRoom.id as any);
 
       if (dbErr) {
         throw dbErr;
