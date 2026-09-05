@@ -516,13 +516,6 @@ export default function TourPage() {
   const scrollLeftRef = useRef(0);
   const autoScrollPausedRef = useRef(false);
 
-  // ZAMENA/DEFINICIJA FUNKCIJE ZA PROMENU JEZIKA
-  const changeLanguage = useCallback((newLang: Language) => {
-    setLang(newLang);
-    langRef.current = newLang;
-    setRoomIdx(prev => prev); // Triggers re-evaluation of view text
-  }, []);
-
   const stopGyroscope = useCallback(() => {
     if (viewerRef.current && typeof viewerRef.current.stopOrientation === 'function') {
       viewerRef.current.stopOrientation();
@@ -731,6 +724,76 @@ export default function TourPage() {
     }
   }, [rooms, stopAudio, stopCurrentAnimation]);
 
+  const changeLanguage = useCallback((l: Language) => {
+    setLang(l);
+    langRef.current = l;
+
+    const currentRoom = rooms[roomIdx];
+    if (!viewerRef.current || !currentRoom) return;
+
+    const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
+
+    // Ukloni postojeće hotspot-ove sa viewer-a
+    const existingHotspots = viewerRef.current.getConfig()?.hotSpots || [];
+    existingHotspots.forEach((hs: any) => {
+      try { viewerRef.current.removeHotSpot(hs.id); } catch {}
+    });
+
+    // Ponovo ih dodaj sa tekstom na novom jeziku
+    waypointsList.forEach((wp, index) => {
+      const isNav = wp.type === 'navigation' || Boolean(wp.targetRoomId);
+
+      let tooltipText = getLocalizedText(wp.title_i18n, l);
+      if (!tooltipText && !isNav) {
+        tooltipText = getLocalizedText(wp.text_i18n, l);
+        if (tooltipText.length > 40) tooltipText = tooltipText.substring(0, 40) + '...';
+      }
+      if (isNav && !tooltipText && wp.targetRoomId) {
+        const targetRoomObj = rooms.find(r => r.id == wp.targetRoomId);
+        if (targetRoomObj) tooltipText = getLocalizedText(targetRoomObj.title_i18n, l);
+      }
+
+      viewerRef.current.addHotSpot({
+        id: `hotspot-${index}`,
+        pitch: wp.pitch || 0,
+        yaw: wp.yaw || 0,
+        createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
+          hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
+          hotSpotDiv.style.backgroundColor = isNav ? 'rgba(7, 9, 10, 0.68)' : 'rgba(4, 26, 37, 0.73)';
+          hotSpotDiv.style.border = '1.5px solid rgba(248, 244, 244, 0.9)';
+          hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
+          hotSpotDiv.style.color = '#fff';
+          hotSpotDiv.style.display = 'flex';
+          hotSpotDiv.style.alignItems = 'center';
+          hotSpotDiv.style.justifyContent = 'center';
+          hotSpotDiv.style.cursor = 'pointer';
+          hotSpotDiv.style.padding = isNav ? '3px 6px' : '0.5px';
+          hotSpotDiv.style.width = isNav ? 'auto' : '22px';
+          hotSpotDiv.style.height = isNav ? 'auto' : '22px';
+          hotSpotDiv.style.fontWeight = 'bold';
+          hotSpotDiv.style.fontSize = isNav ? '10px' : '15px';
+          hotSpotDiv.style.boxShadow = '2px 4px 12px rgba(0, 0, 0, 0.53)';
+          hotSpotDiv.innerHTML = isNav ? `${tooltipText}` : 'ℹ';
+        },
+        text: tooltipText,
+        clickHandlerFunc: () => {
+          if (adminModeRef.current) {
+            handleStartEditWaypoint(index);
+          } else if (isNav && wp.targetRoomId) {
+            changeRoomById(wp.targetRoomId);
+          } else if (!isNav) {
+            isInterruptedRef.current = true;
+            stopCurrentAnimation();
+            audioCurrentTimeRef.current = 0;
+            if (viewerRef.current) viewerRef.current.setHfov(48);
+            playAudioFileWithCompletion(wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
+          }
+        }
+      });
+    });
+  }, [rooms, roomIdx, handleStartEditWaypoint, changeRoomById, playAudioFileWithCompletion, stopCurrentAnimation]);
+
+  // CANCEL & DELETE & SAVE HOTSPOTS (ADMIN REŽIM)
   const handleCancelEdit = () => {
     setPendingCoords(null);
     setEditingIndex(null);
@@ -741,70 +804,73 @@ export default function TourPage() {
   };
 
   const handleSaveHotspot = async () => {
-    const currentRoom = rooms[roomIdx];
-    if (!currentRoom || !pendingCoords) return;
+  const currentRoom = rooms[roomIdx];
+  if (!currentRoom || !pendingCoords) return;
 
-    let updatedWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
-    let updatedEstablish = parseEstablish(currentRoom.establish_i18n);
+  let updatedWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
+  let updatedEstablish = parseEstablish(currentRoom.establish_i18n);
 
-    if (hotspotType === 'establish') {
-      updatedEstablish = {
-        ...updatedEstablish,
-        fromYaw: pendingCoords.yaw,
-        pitch: pendingCoords.pitch,
-        audio_url: hotspotAudioUrl || updatedEstablish.audio_url,
-        text_i18n: buildI18nObject(hotspotText, updatedEstablish.text_i18n, langRef.current)
-      };
+  if (hotspotType === 'establish') {
+    updatedEstablish = {
+      ...updatedEstablish,
+      fromYaw: pendingCoords.yaw,
+      pitch: pendingCoords.pitch,
+      audio_url: hotspotAudioUrl || updatedEstablish.audio_url,
+      text_i18n: buildI18nObject(hotspotText, updatedEstablish.text_i18n, langRef.current)
+    };
+  } else {
+    const existingWp = editingIndex !== null ? updatedWaypoints[editingIndex] : undefined;
+    
+    // VAŽNO: Dodat ...existingWp da se ne izgube prevođeni jezici!
+    const newWaypoint: Waypoint = {
+      ...existingWp, 
+      yaw: pendingCoords.yaw,
+      pitch: pendingCoords.pitch,
+      type: hotspotType,
+      targetRoomId: hotspotType === 'navigation' ? targetRoomId : undefined,
+      audio_url: hotspotAudioUrl || existingWp?.audio_url,
+      title_i18n: buildI18nObject(hotspotTitle, existingWp?.title_i18n, langRef.current),
+      text_i18n: buildI18nObject(hotspotText, existingWp?.text_i18n, langRef.current)
+    };
+
+    if (editingIndex !== null) {
+      updatedWaypoints[editingIndex] = newWaypoint;
     } else {
-      const existingWp = editingIndex !== null ? updatedWaypoints[editingIndex] : undefined;
-      
-      const newWaypoint: Waypoint = {
-        ...existingWp, 
-        yaw: pendingCoords.yaw,
-        pitch: pendingCoords.pitch,
-        type: hotspotType,
-        targetRoomId: hotspotType === 'navigation' ? targetRoomId : undefined,
-        audio_url: hotspotAudioUrl || existingWp?.audio_url,
-        title_i18n: buildI18nObject(hotspotTitle, existingWp?.title_i18n, langRef.current),
-        text_i18n: buildI18nObject(hotspotText, existingWp?.text_i18n, langRef.current)
-      };
-
-      if (editingIndex !== null) {
-        updatedWaypoints[editingIndex] = newWaypoint;
-      } else {
-        updatedWaypoints.push(newWaypoint);
-      }
+      updatedWaypoints.push(newWaypoint);
     }
+  }
 
-    try {
-      const { error: dbErr } = await supabase
-        .from('rooms')
-        .update({
-          waypoints_i18n: updatedWaypoints,
-          establish_i18n: updatedEstablish
-        })
-        .eq('id', currentRoom.id);
-
-      if (dbErr) throw dbErr;
-
-      const newRooms = rooms.map((r, i) => i === roomIdx ? {
-        ...r,
+  try {
+    const { error: dbErr } = await supabase
+      .from('rooms')
+      .update({
         waypoints_i18n: updatedWaypoints,
         establish_i18n: updatedEstablish
-      } : r);
-      
-      setRooms(newRooms);
+      })
+      .eq('id', currentRoom.id);
 
-      handleCancelEdit();
-      
-      setTimeout(() => {
-        changeLanguage(langRef.current);
-      }, 50);
+    if (dbErr) throw dbErr;
 
-    } catch (err: any) {
-      alert('Greška pri čuvanju tačke: ' + err.message);
-    }
-  };
+    // Ažuriramo React state
+    const newRooms = rooms.map((r, i) => i === roomIdx ? {
+      ...r,
+      waypoints_i18n: updatedWaypoints,
+      establish_i18n: updatedEstablish
+    } : r);
+    
+    setRooms(newRooms);
+
+    handleCancelEdit();
+    
+    // Ključno: Odmah osvežavamo prikaz tačaka u Pannellum-u sa novim koordinatama!
+    setTimeout(() => {
+      changeLanguage(langRef.current);
+    }, 50);
+
+  } catch (err: any) {
+    alert('Greška pri čuvanju tačke: ' + err.message);
+  }
+};
 
   const handleDeleteHotspot = async () => {
     if (editingIndex === null) return;
@@ -834,6 +900,7 @@ export default function TourPage() {
     }
   };
 
+  // KORAK 1: Generisanje SR drafta
   const handleAutoPopulateRoom = async () => {
     const currentRoom = rooms[roomIdx];
     if (!currentRoom || !currentRoom.panorama_url) {
@@ -868,6 +935,9 @@ export default function TourPage() {
     }
   };
 
+  
+
+  // KORAK 2 & 3: Potvrda SR drafta, sekvencijalno prevođenje i upis u bazu
   const handleConfirmDraftAndProcess = async () => {
     if (!aiDraft || !rooms[roomIdx]) return;
     
@@ -916,12 +986,10 @@ export default function TourPage() {
         const result = await res.json();
         if (result.success && result.translated) {
           currentTitleI18n[targetLang] = result.translated.title;
-          
-          currentEstablishI18n.text_i18n = buildI18nObject(
-            result.translated.narration,
-            currentEstablishI18n.text_i18n,
-            targetLang
-          );
+          currentEstablishI18n.text_i18n = {
+            ...(typeof currentEstablishI18n.text_i18n === 'object' ? currentEstablishI18n.text_i18n : {}),
+            [targetLang]: result.translated.narration
+          };
 
           if (Array.isArray(result.translated.waypoints)) {
             currentWaypoints = currentWaypoints.map((wp, idx) => ({
@@ -1219,6 +1287,7 @@ export default function TourPage() {
     });
     viewerRef.current = v;
 
+    // ADMIN MODE CLICK TO ADD WAYPOINT
     v.on('mouseup', (e: MouseEvent) => {
       if (adminModeRef.current && e.button === 0) {
         const coords = v.mouseEventToCoords(e);
@@ -1384,7 +1453,7 @@ export default function TourPage() {
         viewerRef.current = null;
       }
     };
-  }, [tourStarted, roomIdx, pannellumReady, hasMounted, changeRoomById, stopCurrentAnimation, stopAudio, handleStartEditWaypoint, playAudioFileWithCompletion, lang]);
+  }, [tourStarted, roomIdx, pannellumReady, hasMounted, changeRoomById, stopCurrentAnimation, stopAudio, handleStartEditWaypoint, playAudioFileWithCompletion]);
 
   if (!hasMounted || loading) return <Centered>{t.loading}</Centered>;
   if (error) return <Centered>{error}</Centered>;
@@ -1764,6 +1833,7 @@ export default function TourPage() {
         </div>
       )}
 
+      {/* ADMIN EDIT / ADD HOTSPOT FORMA */}
       {pendingCoords && adminMode && (
         <div style={{
           position: 'absolute',
@@ -1968,6 +2038,7 @@ export default function TourPage() {
         </div>
       )}
 
+      {/* MODAL: PREGLED I IZMENA SRPSKO DRAFTA + ODABIR JEZIKA */}
       {showDraftModal && aiDraft && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ backgroundColor: '#0f172a', border: '1px solid #38bdf8', borderRadius: '20px', width: '100%', maxWidth: '650px', maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.9)' }}>
@@ -2036,6 +2107,7 @@ export default function TourPage() {
                 </div>
               </div>
 
+              {/* SELEKCIJA CILJNIH JEZIKA DIREKTNO U MODALU */}
               <div style={{ backgroundColor: '#1e293b', padding: '12px 14px', borderRadius: '10px', border: '1px solid #334155' }}>
                 <label style={{ fontSize: '12px', color: '#38bdf8', display: 'block', marginBottom: '6px', fontWeight: 700 }}>
                   Prevedi i ubaci u scenu na sledeće jezike:
@@ -2068,6 +2140,7 @@ export default function TourPage() {
         </div>
       )}
 
+      {/* MODAL: PROGRESS PREVOĐENJA */}
       {translationProgress && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 110, backgroundColor: 'rgba(0, 0, 0, 0.9)', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
           <div style={{ width: '16px', height: '16px', backgroundColor: '#c084fc', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both' }} />
