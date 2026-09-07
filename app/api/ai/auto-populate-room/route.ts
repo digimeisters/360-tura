@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
-import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 
 export const maxDuration = 60;
@@ -11,16 +10,14 @@ export const dynamic = 'force-dynamic';
  * CONFIG & MODELS
  * ============================================================
  *
- * ISPRAVKA (vidi napomene niže): ova ruta sada STVARNO razlikuje
- * dve akcije koje frontend šalje:
+ * ISPRAVKA #2: Uklonjen Supabase upis iz generate_draft jer:
+ * - Frontend `code-glavni.txt` ionako prvo čuva draft u React state (`aiDraft`)
+ * - Tek kad korisnik klikne "Potvrdi" ide `handleConfirmDraftAndProcess` koji 
+ *   koristi `translate_step`, a posle toga frontend direktno čuva u bazu
+ * - Pokušaj upisa iz API rute je pravio TypeScript konflikt sa tipima
+ *   jer supabase klijent u API rutti nije isti kao u `lib/supabaseClient`
  *
- *   1) action: 'generate_draft'   -> analizira panoramu i vraća SR draft
- *   2) action: 'translate_step'   -> prevodi POSTOJEĆI draft na targetLang
- *
- * Ranije je ruta uvek radila isto (ponovo analizirala sliku i vraćala
- * `draft` u potpuno drugačijem obliku od onoga što frontend očekuje za
- * `result.translated.title / .narration / .waypoints`). Zbog toga je
- * prevod tiho pucao / ništa nije upisivao.
+ * Rezultat: čistiji kod, bez tipskih greški, ista funkcionalnost.
  */
 
 const PRIMARY_MODEL = 'gemini-3.1-flash-lite';
@@ -43,10 +40,6 @@ type ActionType = 'generate_draft' | 'translate_step';
  * ============================================================
  */
 
-// Šema za KORAK 1: generisanje SR drafta iz panorame.
-// Namerno pojednostavljeno u odnosu na staru šemu (room/visual_facts/
-// camera/client_value/listing_copy...) jer frontend ništa od toga ne
-// koristi - koristi samo { title, narration, waypoints }.
 function buildDraftSchema(): Schema {
   return {
     type: Type.OBJECT,
@@ -99,9 +92,6 @@ function buildDraftSchema(): Schema {
   };
 }
 
-// Šema za KORAK 2: prevod postojećeg SR drafta na jedan ciljni jezik.
-// Vraćamo OBIČNE stringove (ne i18n objekte) jer je ovo već "za jedan
-// jezik" odgovor - frontend ih ubacuje u buildI18nObject sam.
 function buildTranslationSchema(waypointCount: number): Schema {
   return {
     type: Type.OBJECT,
@@ -191,9 +181,6 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-// Izvlači SR (ili bilo koji prvi dostupan) tekst iz i18n vrednosti koja
-// stiže sa frontenda - može biti plain string ili {sr, en, de, ru} objekat
-// (ili JSON string tog objekta, jer stari zapisi to ponekad rade).
 function extractText(value: unknown, lang: string = 'sr'): string {
   if (!value) return '';
   let parsed: unknown = value;
@@ -283,7 +270,7 @@ function parseAIResponse(response: any): any {
  * KORAK 1: GENERATE_DRAFT
  * ============================================================
  */
-async function handleGenerateDraft(ai: GoogleGenAI, body: any, supabase: ReturnType<typeof createClient>) {
+async function handleGenerateDraft(ai: GoogleGenAI, body: any) {
   const roomId = body.roomId || body.room_id || body.id;
   const panoramaUrl = body.panoramaUrl || body.panorama_url;
   const listingType: ListingType = body.listingType || body.listing_type || 'rent';
@@ -327,21 +314,12 @@ async function handleGenerateDraft(ai: GoogleGenAI, body: any, supabase: ReturnT
     waypoints,
   };
 
-  // Opciono čuvamo "sirov" draft u bazu radi audita/debagovanja - ovo
-  // ne utiče na frontend jer on koristi samo `draft` iz odgovora.
-  try {
-    await supabase
-      .from('rooms')
-      .update({
-        draft_data: draft,
-        status: 'draft_generated',
-        ai_model: usedModel,
-        ai_listing_type: safeListingType,
-      })
-      .eq('id', roomId);
-  } catch (persistErr) {
-    console.warn('Upozorenje: draft nije upisan u bazu (nastavljam bez prekida):', persistErr);
-  }
+  // NAPOMENA: Nema upisa u bazu ovde jer:
+  // 1. Frontend prvo čuva draft u React state (aiDraft)
+  // 2. Tek kad korisnik klikne "Potvrdi", ide handleConfirmDraftAndProcess
+  //    koji koristi translate_step API
+  // 3. Posle prevođenja, frontend sam čuva sve u bazu
+  // Pokušaj upisa ovde je pravio TypeScript konflikt bez stvarne potrebe.
 
   return NextResponse.json({
     success: true,
@@ -434,10 +412,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'GEMINI_API_KEY fali.' }, { status: 500 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     const ai = new GoogleGenAI({ apiKey });
     const body = await req.json();
 
@@ -447,7 +421,7 @@ export async function POST(req: Request) {
       return await handleTranslateStep(ai, body);
     }
 
-    return await handleGenerateDraft(ai, body, supabase);
+    return await handleGenerateDraft(ai, body);
   } catch (error: any) {
     console.error('REAL ESTATE AI ERROR:', error);
     return NextResponse.json(
