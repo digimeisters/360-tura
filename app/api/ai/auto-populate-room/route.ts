@@ -25,13 +25,25 @@ const AI_TIMEOUT_MS = 25000;
 type ListingType = 'sale' | 'rent' | 'booking';
 const LISTING_TYPES: ListingType[] = ['sale', 'rent', 'booking'];
 
-type ActionType = 'generate_draft' | 'translate_step';
+type ActionType = 'generate_draft' | 'translate_step' | 'generate_voice';
 
 const LANG_NAMES: Record<string, string> = {
   en: 'English',
   de: 'German',
   ru: 'Russian',
 };
+
+// ---- ELEVENLABS TTS KONFIGURACIJA ----
+// Koristimo eleven_v3, jer je to (za sada) jedini ElevenLabs model koji
+// eksplicitno podržava srpski jezik (Serbian - srp). Napomena: eleven_v3
+// je i dalje "alpha/experimental" kod ElevenLabs-a, pa rezultati mogu
+// povremeno da variraju u stabilnosti u odnosu na stariji multilingual_v2.
+const ELEVENLABS_MODEL_ID = 'eleven_v3';
+const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
+const SUPABASE_AUDIO_BUCKET = 'narrations';
+
+const VALID_VOICE_LANGS = ['sr', 'en', 'de', 'ru'] as const;
+type VoiceLang = typeof VALID_VOICE_LANGS[number];
 
 /**
  * ============================================================
@@ -342,6 +354,96 @@ async function generateFast(aiClient: GoogleGenAI, contents: any[], config: any)
   }
 }
 
+/**
+ * ============================================================
+ * ELEVENLABS TTS
+ * ============================================================
+ */
+
+// Zove ElevenLabs API i vraća sirov MP3 sadržaj kao Buffer.
+async function synthesizeSpeech(text: string, voiceId: string): Promise<Buffer> {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey) {
+    throw new Error('ELEVENLABS_API_KEY fali.');
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`${ELEVENLABS_API_URL}/${voiceId}`, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg',
+      },
+      body: JSON.stringify({
+        text,
+        model_id: ELEVENLABS_MODEL_ID,
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errBody = await response.text().catch(() => '');
+      throw new Error(`ElevenLabs greška ${response.status}: ${errBody.slice(0, 300)}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// Upload-uje MP3 buffer na Supabase Storage i vraća javni URL.
+async function uploadNarrationAudio(
+  supabase: ReturnType<typeof createClient>,
+  path: string,
+  audioBuffer: Buffer
+): Promise<string> {
+  const { error: uploadError } = await supabase.storage
+    .from(SUPABASE_AUDIO_BUCKET)
+    .upload(path, audioBuffer, {
+      contentType: 'audio/mpeg',
+      upsert: true,
+    });
+
+  if (uploadError) {
+    throw new Error(`Supabase Storage upload greška (${path}): ${uploadError.message}`);
+  }
+
+  const { data: publicUrlData } = supabase.storage
+    .from(SUPABASE_AUDIO_BUCKET)
+    .getPublicUrl(path);
+
+  if (!publicUrlData?.publicUrl) {
+    throw new Error(`Nije moguće dobiti javni URL za ${path}.`);
+  }
+
+  return publicUrlData.publicUrl;
+}
+
+// Generiše i upload-uje audio za JEDAN tekst na JEDNOM jeziku. Vraća URL ili
+// null ako je tekst prazan (nema šta da se izgovori).
+async function synthesizeAndUpload(
+  supabase: ReturnType<typeof createClient>,
+  text: string,
+  voiceId: string,
+  storagePath: string
+): Promise<string | null> {
+  const trimmed = (text || '').trim();
+  if (!trimmed) return null;
+
+  const audioBuffer = await synthesizeSpeech(trimmed, voiceId);
+  return uploadNarrationAudio(supabase, storagePath, audioBuffer);
+}
+
 function parseAIResponse(response: any): any {
   let text = '';
   if (typeof response?.text === 'function') text = response.text();
@@ -467,8 +569,8 @@ async function handleGenerateDraft(
   let data = parseAIResponse(response);
   data = validateAndSanitize(data);
 
-  const { error: updateError } = await (supabase
-    .from('rooms') as any)
+  const { error: updateError } = await supabase
+    .from('rooms')
     .update({
       draft_data: data,
       status: 'draft_generated',
@@ -550,6 +652,117 @@ async function handleTranslateStep(
   });
 }
 
+// Vraća ElevenLabs Voice ID za DATI jezik. Prvo gleda specifičnu env
+// varijablu za taj jezik (npr. ELEVENLABS_VOICE_ID_SR), a ako ona nije
+// podešena, pada nazad na opšti ELEVENLABS_VOICE_ID (ako postoji).
+function getVoiceIdForLang(lang: VoiceLang): string | undefined {
+  const perLangKey = `ELEVENLABS_VOICE_ID_${lang.toUpperCase()}`;
+  return process.env[perLangKey] || process.env.ELEVENLABS_VOICE_ID;
+}
+
+async function handleGenerateVoice(
+  supabase: ReturnType<typeof createClient>,
+  roomId: string | number,
+  voiceLanguages: string[],
+  content: {
+    establishText?: Record<string, string> | string;
+    waypoints?: { index: number; text: Record<string, string> | string }[];
+  }
+) {
+  const requestedLangs = (voiceLanguages || [])
+    .map((l) => String(l).toLowerCase())
+    .filter((l): l is VoiceLang => (VALID_VOICE_LANGS as readonly string[]).includes(l));
+
+  if (requestedLangs.length === 0) {
+    // Ništa nije traženo - vrati prazan rezultat, frontend ovo tretira kao "bez glasa"
+    return NextResponse.json({
+      success: true,
+      action: 'generate_voice',
+      roomId,
+      audio: { establish: {}, waypoints: [] },
+    });
+  }
+
+  // Proveri da SVAKI traženi jezik ima svoj (ili opšti fallback) Voice ID
+  // PRE nego što počnemo bilo kakve pozive - da ne potrošimo pola kredita
+  // pa tek onda otkrijemo da fali podešavanje za jedan jezik.
+  const missingVoiceLangs = requestedLangs.filter((lang) => !getVoiceIdForLang(lang));
+  if (missingVoiceLangs.length > 0) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          `Nedostaje Voice ID za jezik(e): ${missingVoiceLangs.join(', ').toUpperCase()}. ` +
+          `Podesi ELEVENLABS_VOICE_ID_${missingVoiceLangs[0].toUpperCase()} (ili opšti ELEVENLABS_VOICE_ID kao fallback) u env promenljivama.`,
+      },
+      { status: 500 }
+    );
+  }
+
+  const establishAudio: Record<string, string> = {};
+  const establishErrors: Record<string, string> = {};
+
+  const waypointsInput = content?.waypoints || [];
+  const waypointAudio: { index: number; audio_url_i18n: Record<string, string> }[] =
+    waypointsInput.map((wp) => ({ index: wp.index, audio_url_i18n: {} }));
+  const waypointErrors: Record<string, string> = {};
+
+  for (const lang of requestedLangs) {
+    const voiceId = getVoiceIdForLang(lang)!; // već proverili gore da postoji
+
+    // Uvodna naracija
+    try {
+      const rawText =
+        (content?.establishText && typeof content.establishText === 'object'
+          ? (content.establishText as Record<string, string>)[lang]
+          : undefined) ?? (typeof content?.establishText === 'string' ? content.establishText : '');
+      const url = await synthesizeAndUpload(
+        supabase,
+        String(rawText || ''),
+        voiceId,
+        `rooms/${roomId}/establish_${lang}.mp3`
+      );
+      if (url) establishAudio[lang] = url;
+    } catch (err: any) {
+      console.error(`[TTS] Greška za establish (${lang}):`, err);
+      establishErrors[lang] = err?.message || 'Nepoznata greška';
+    }
+
+    // Waypoint-ovi (paralelno unutar istog jezika radi brzine)
+    await Promise.all(
+      waypointsInput.map(async (wp, idx) => {
+        try {
+          const rawText = (wp.text as any)?.[lang] ?? (typeof wp.text === 'string' ? wp.text : '');
+          const url = await synthesizeAndUpload(
+            supabase,
+            String(rawText || ''),
+            voiceId,
+            `rooms/${roomId}/waypoint_${wp.index}_${lang}.mp3`
+          );
+          if (url) waypointAudio[idx].audio_url_i18n[lang] = url;
+        } catch (err: any) {
+          console.error(`[TTS] Greška za waypoint ${wp.index} (${lang}):`, err);
+          waypointErrors[`${wp.index}_${lang}`] = err?.message || 'Nepoznata greška';
+        }
+      })
+    );
+  }
+
+  return NextResponse.json({
+    success: true,
+    action: 'generate_voice',
+    roomId,
+    audio: {
+      establish: establishAudio,
+      waypoints: waypointAudio,
+    },
+    errors: {
+      establish: establishErrors,
+      waypoints: waypointErrors,
+    },
+  });
+}
+
 /**
  * ============================================================
  * POST HANDLER
@@ -558,24 +771,42 @@ async function handleTranslateStep(
 
 export async function POST(req: Request) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ success: false, error: 'GEMINI_API_KEY fali.' }, { status: 500 });
-    }
-
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const ai = new GoogleGenAI({ apiKey });
     const body = await req.json();
 
     const roomId = body.roomId || body.room_id || body.id;
-    const action: ActionType = body.action === 'translate_step' ? 'translate_step' : 'generate_draft';
+    const action: ActionType =
+      body.action === 'translate_step'
+        ? 'translate_step'
+        : body.action === 'generate_voice'
+        ? 'generate_voice'
+        : 'generate_draft';
 
     if (!roomId) {
       return NextResponse.json({ success: false, error: 'Nedostaje roomId.' }, { status: 400 });
     }
+
+    // ---- GENERATE VOICE (ElevenLabs, ne treba Gemini) ----
+    if (action === 'generate_voice') {
+      const { voiceLanguages, content } = body;
+      if (!Array.isArray(voiceLanguages)) {
+        return NextResponse.json(
+          { success: false, error: 'Nedostaje voiceLanguages (niz jezika).' },
+          { status: 400 }
+        );
+      }
+      return await handleGenerateVoice(supabase, roomId, voiceLanguages, content || {});
+    }
+
+    // ---- Za generate_draft i translate_step treba Gemini ----
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ success: false, error: 'GEMINI_API_KEY fali.' }, { status: 500 });
+    }
+    const ai = new GoogleGenAI({ apiKey });
 
     // ---- TRANSLATE STEP ----
     if (action === 'translate_step') {
@@ -622,7 +853,7 @@ export async function POST(req: Request) {
 
     const safeListingType: ListingType = LISTING_TYPES.includes(listingType) ? listingType : 'rent';
 
-    return await handleGenerateDraft(ai, supabase as any, roomId, panoramaUrl, safeListingType);
+    return await handleGenerateDraft(ai, supabase, roomId, panoramaUrl, safeListingType);
   } catch (error: any) {
     console.error('REAL ESTATE AI ERROR:', error);
     return NextResponse.json(

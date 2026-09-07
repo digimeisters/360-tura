@@ -13,7 +13,10 @@ type Waypoint = {
   title_i18n?: Record<string, string> | string;
   type?: 'navigation' | 'info';
   targetRoomId?: string | number;
+  // audio_url je stari, jednojezicni format (zadrzan radi kompatibilnosti sa
+  // vec postojecim podacima). Novi kod treba da koristi audio_url_i18n.
   audio_url?: string;
+  audio_url_i18n?: Record<string, string> | string;
 };
 
 type EstablishData = {
@@ -21,6 +24,7 @@ type EstablishData = {
   fromYaw?: number;
   pitch?: number;
   audio_url?: string;
+  audio_url_i18n?: Record<string, string> | string;
 };
 
 type Room = {
@@ -137,9 +141,37 @@ const buildI18nObject = (
   return result;
 };
 
+// Slično kao buildI18nObject, ali specijalno za audio linkove: ako je
+// newValue prazan (korisnik nije uneo/promenio ništa u tom polju), NE
+// briše postojeće audio linkove za druge jezike - samo ih prosledi dalje
+// nepromenjene. buildI18nObject bi u tom slučaju upisao prazan string i
+// obrisao već postojeći audio_url za trenutni jezik.
+const mergeAudioI18n = (
+  newValue: string,
+  existingData?: unknown,
+  currentLang: Language = 'sr'
+): Record<string, string> => {
+  if (!newValue) {
+    if (existingData && typeof existingData === 'object') {
+      return existingData as Record<string, string>;
+    }
+    if (typeof existingData === 'string' && existingData) {
+      try {
+        const parsed = JSON.parse(existingData);
+        if (parsed && typeof parsed === 'object') return parsed as Record<string, string>;
+      } catch {
+        return { sr: existingData, en: '', de: '', ru: '' };
+      }
+    }
+    return { sr: '', en: '', de: '', ru: '' };
+  }
+  return buildI18nObject(newValue, existingData, currentLang);
+};
+
 function Centered({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ color: 'white', background: '#0a0a0a', height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', gap: '20px' }}>
+
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
         <div style={{ width: '12px', height: '12px', backgroundColor: '#38bdf8', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.32s' }} />
         <div style={{ width: '12px', height: '12px', backgroundColor: '#38bdf8', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.16s' }} />
@@ -447,12 +479,17 @@ export default function TourPage() {
   const [tourStarted, setTourStarted] = useState(false);
   const [lang, setLang] = useState<Language>('sr');
   const [targetLanguages, setTargetLanguages] = useState<Language[]>(['sr', 'en', 'de', 'ru']);
+  // Podrazumevano PRAZAN niz = "ne generiši AI glas ni za jedan jezik" dok
+  // korisnik eksplicitno ne izabere jezike u draft modalu.
+  const [voiceLanguages, setVoiceLanguages] = useState<Language[]>([]);
 
   // AI Generation States
   const [aiLoading, setAiLoading] = useState(false);
   const [aiDraft, setAiDraft] = useState<{ title: string; narration: string; waypoints: Waypoint[] } | null>(null);
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [translationProgress, setTranslationProgress] = useState<string | null>(null);
+  const [voiceProgress, setVoiceProgress] = useState<string | null>(null);
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
 
   const langRef = useRef<Language>('sr');
 
@@ -485,16 +522,33 @@ export default function TourPage() {
   const [isInfoboxManuallyClosed, setIsInfoboxManuallyClosed] = useState(false);
 
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
-  const lastAudioUrlRef = useRef<string | undefined>(undefined);
+  // VAŽNO: lastAudioUrlRef sada čuva SIROV audio_url_i18n podatak (objekat ili
+  // string), NE već-razrešeni URL za jedan jezik - da bismo mogli ponovo da
+  // ga lokalizujemo kad se jezik promeni usred narracije.
+  const lastAudioUrlRef = useRef<unknown>(undefined);
   const lastAudioTextRef = useRef<unknown | undefined>(undefined);
   const lastAudioTitleRef = useRef<unknown | undefined>(undefined);
   const lastAudioIndexRef = useRef<number | undefined>(undefined);
   const audioCurrentTimeRef = useRef<number>(0);
 
+  // Čuva "resolve" funkciju TRENUTNO aktivnog Promise-a iz
+  // playAudioFileWithCompletion, da bismo mogli da završimo TAJ ISTI Promise
+  // čak i kad usred narracije ponovo učitamo audio (npr. zbog promene jezika
+  // ili unmute-a), umesto da pravimo potpuno nov, paralelan Promise koji bi
+  // ostavio prvobitni "obešen" (nikad rešen), čime bi cela sekvenca ture
+  // trajno zastala.
+  const activeResolveRef = useRef<(() => void) | null>(null);
+  const activePlaybackRawRef = useRef<{
+    audioUrlI18n: unknown;
+    textFallback: unknown;
+    title: unknown;
+    index?: number;
+  } | null>(null);
+
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const guideCompleteTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [infoBoxData, setInfoBoxData] = useState<{ titleRaw?: unknown; textRaw: unknown; index?: number; audio_url?: string } | null>(null);
+  const [infoBoxData, setInfoBoxData] = useState<{ titleRaw?: unknown; textRaw: unknown; index?: number; audio_url?: unknown } | null>(null);
 
   const [pendingCoords, setPendingCoords] = useState<{ yaw: number; pitch: number } | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -596,7 +650,19 @@ export default function TourPage() {
   }, [stopGyroscope]);
 
   const toggleTargetLanguage = (l: Language) => {
-    setTargetLanguages((prev) =>
+    setTargetLanguages((prev) => {
+      const next = prev.includes(l) ? prev.filter((langItem) => langItem !== l) : [...prev, l];
+      // Ako se jezik isključi iz prevoda, ukloni ga i iz izabranih jezika za glas
+      // (nema smisla generisati glas za jezik koji se ne prevodi)
+      if (!next.includes(l)) {
+        setVoiceLanguages((prevVoice) => prevVoice.filter((v) => v !== l));
+      }
+      return next;
+    });
+  };
+
+  const toggleVoiceLanguage = (l: Language) => {
+    setVoiceLanguages((prev) =>
       prev.includes(l) ? prev.filter((langItem) => langItem !== l) : [...prev, l]
     );
   };
@@ -621,7 +687,7 @@ export default function TourPage() {
 
     setHotspotText(getLocalizedText(targetWp.text_i18n, langRef.current));
     setHotspotTitle(getLocalizedText(targetWp.title_i18n, langRef.current));
-    setHotspotAudioUrl(targetWp.audio_url || '');
+    setHotspotAudioUrl(getLocalizedText(targetWp.audio_url_i18n ?? targetWp.audio_url, langRef.current));
     setTargetRoomId(targetWp.targetRoomId || '');
   }, [rooms, roomIdx]);
 
@@ -650,8 +716,67 @@ export default function TourPage() {
     }
   }, []);
 
+  // Učitava i pušta audio za TRENUTNI jezik (langRef.current), koristeći
+  // sirove i18n podatke sačuvane u activePlaybackRawRef. NE pravi nov
+  // Promise - završava (resolve) ISTI onaj Promise koji je napravljen kad je
+  // narracija prvi put pokrenuta (activeResolveRef). Ovo omogućava da se
+  // audio "presvuče" na drugi jezik usred narracije, ili da se nastavi posle
+  // unmute-a, a da sekvenca ture (koja čeka/await-uje taj Promise) nikad ne
+  // ostane zaglavljena.
+  const loadAndPlayLocalizedAudio = useCallback((startAt: number = 0) => {
+    const raw = activePlaybackRawRef.current;
+    if (!raw || !isMountedRef.current) return;
+
+    // Zaustavi trenutni <audio> element/tajmer, ali NE rešavaj Promise ovde
+    if (activeAudioRef.current) {
+      activeAudioRef.current.pause();
+      activeAudioRef.current.onended = null;
+      activeAudioRef.current.onerror = null;
+      activeAudioRef.current = null;
+    }
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+
+    const resolvedAudioUrl = getLocalizedText(raw.audioUrlI18n, langRef.current);
+    const resolvedText = getLocalizedText(raw.textFallback, langRef.current);
+
+    const finish = () => {
+      activeAudioRef.current = null;
+      audioCurrentTimeRef.current = 0;
+      const resolveFn = activeResolveRef.current;
+      activeResolveRef.current = null;
+      activePlaybackRawRef.current = null;
+      if (isMountedRef.current && resolveFn) resolveFn();
+    };
+
+    if (isMutedRef.current || !resolvedAudioUrl) {
+      const readTime = Math.max(3000, resolvedText.length * 50);
+      hideTimerRef.current = setTimeout(() => {
+        if (isMountedRef.current) finish();
+      }, readTime);
+      return;
+    }
+
+    const audio = new Audio(resolvedAudioUrl);
+    activeAudioRef.current = audio;
+
+    audio.onloadedmetadata = () => {
+      if (!isMountedRef.current) return;
+      if (startAt > 0 && startAt < audio.duration) {
+        audio.currentTime = startAt;
+      }
+    };
+
+    audio.onended = finish;
+    audio.onerror = finish;
+
+    audio.play().catch(finish);
+  }, []);
+
   const playAudioFileWithCompletion = useCallback((
-    audioUrl?: string,
+    audioUrlI18n?: unknown,
     textFallback?: unknown,
     title?: unknown,
     index?: number,
@@ -662,51 +787,19 @@ export default function TourPage() {
 
       if (!isMountedRef.current) return resolve();
 
-      lastAudioUrlRef.current = audioUrl;
+      activeResolveRef.current = resolve;
+      activePlaybackRawRef.current = { audioUrlI18n, textFallback, title, index };
+
+      lastAudioUrlRef.current = audioUrlI18n;
       lastAudioTextRef.current = textFallback;
       lastAudioTitleRef.current = title;
       lastAudioIndexRef.current = index;
 
-      setInfoBoxData({ titleRaw: title, textRaw: textFallback, index, audio_url: audioUrl });
+      setInfoBoxData({ titleRaw: title, textRaw: textFallback, index, audio_url: audioUrlI18n });
 
-      const resolvedText = getLocalizedText(textFallback, langRef.current);
-
-      if (isMutedRef.current || !audioUrl) {
-        const readTime = Math.max(3000, resolvedText.length * 50);
-        const timer = setTimeout(() => {
-          if (isMountedRef.current) resolve();
-        }, readTime);
-        hideTimerRef.current = timer;
-        return;
-      }
-
-      const audio = new Audio(audioUrl);
-      activeAudioRef.current = audio;
-
-      audio.onloadedmetadata = () => {
-        if (!isMountedRef.current) return;
-        if (startAt > 0 && startAt < audio.duration) {
-          audio.currentTime = startAt;
-        }
-      };
-
-      audio.onended = () => {
-        activeAudioRef.current = null;
-        audioCurrentTimeRef.current = 0;
-        if (isMountedRef.current) resolve();
-      };
-
-      audio.onerror = () => {
-        activeAudioRef.current = null;
-        if (isMountedRef.current) resolve();
-      };
-
-      audio.play().catch(() => {
-        activeAudioRef.current = null;
-        if (isMountedRef.current) resolve();
-      });
+      loadAndPlayLocalizedAudio(startAt);
     });
-  }, [stopAudio]);
+  }, [stopAudio, loadAndPlayLocalizedAudio]);
 
   const changeRoomById = useCallback((id: string | number) => {
     roomSessionRef.current += 1;
@@ -785,7 +878,7 @@ export default function TourPage() {
             stopCurrentAnimation();
             audioCurrentTimeRef.current = 0;
             if (viewerRef.current) viewerRef.current.setHfov(48);
-            playAudioFileWithCompletion(wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
+            playAudioFileWithCompletion(wp.audio_url_i18n ?? wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
           }
         }
       });
@@ -797,11 +890,39 @@ export default function TourPage() {
     langRef.current = l;
 
     const currentRoom = rooms[roomIdx];
+    if (currentRoom) {
+      const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
+      refreshViewerHotspots(waypointsList, l);
+    }
+
+    // Ako je trenutno u toku neka narracija (audio ili "reading" fallback),
+    // odmah je prebaci na NOVI jezik - od početka (dužine prevoda se
+    // razlikuju, pa nastavljanje od iste sekunde ne bi imalo smisla).
+    // Koristi loadAndPlayLocalizedAudio da NE napravi nov Promise, već
+    // završi isti onaj koji sekvenca ture već čeka.
+    if (activePlaybackRawRef.current) {
+      loadAndPlayLocalizedAudio(0);
+    }
+  }, [rooms, roomIdx, refreshViewerHotspots, loadAndPlayLocalizedAudio]);
+
+  // ŽIVI PREVIEW POMERANJA: čim se pendingCoords promeni dok se edituje POSTOJEĆA
+  // tačka (editingIndex !== null), odmah vizuelno pomeri marker na novu poziciju
+  // na vieweru, bez čekanja da se klikne "Sačuvaj". Ovo NE upisuje ništa u bazu -
+  // samo daje trenutni vizuelni fidbek dok pozicioniraš tačku.
+  useEffect(() => {
+    if (!pendingCoords || editingIndex === null) return;
+    const currentRoom = rooms[roomIdx];
     if (!currentRoom) return;
 
     const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
-    refreshViewerHotspots(waypointsList, l);
-  }, [rooms, roomIdx, refreshViewerHotspots]);
+    if (!waypointsList[editingIndex]) return;
+
+    const previewList = waypointsList.map((wp, idx) =>
+      idx === editingIndex ? { ...wp, yaw: pendingCoords.yaw, pitch: pendingCoords.pitch } : wp
+    );
+
+    refreshViewerHotspots(previewList, langRef.current);
+  }, [pendingCoords, editingIndex, rooms, roomIdx, refreshViewerHotspots]);
 
   // CANCEL & DELETE & SAVE HOTSPOTS (ADMIN REŽIM)
   const handleCancelEdit = () => {
@@ -826,7 +947,11 @@ export default function TourPage() {
       ...updatedEstablish,
       fromYaw: pendingCoords.yaw,
       pitch: pendingCoords.pitch,
-      audio_url: hotspotAudioUrl || updatedEstablish.audio_url,
+      audio_url_i18n: mergeAudioI18n(
+        hotspotAudioUrl,
+        updatedEstablish.audio_url_i18n ?? updatedEstablish.audio_url,
+        langRef.current
+      ),
       text_i18n: buildI18nObject(hotspotText, updatedEstablish.text_i18n, langRef.current)
     };
   } else {
@@ -839,7 +964,11 @@ export default function TourPage() {
       pitch: pendingCoords.pitch,
       type: hotspotType,
       targetRoomId: hotspotType === 'navigation' ? targetRoomId : undefined,
-      audio_url: hotspotAudioUrl || existingWp?.audio_url,
+      audio_url_i18n: mergeAudioI18n(
+        hotspotAudioUrl,
+        existingWp?.audio_url_i18n ?? existingWp?.audio_url,
+        langRef.current
+      ),
       title_i18n: buildI18nObject(hotspotTitle, existingWp?.title_i18n, langRef.current),
       text_i18n: buildI18nObject(hotspotText, existingWp?.text_i18n, langRef.current)
     };
@@ -858,7 +987,7 @@ export default function TourPage() {
         waypoints_i18n: updatedWaypoints,
         establish_i18n: updatedEstablish
       })
-      .eq('id', currentRoom.id as any);
+      .eq('id', currentRoom.id);
 
     if (dbErr) throw dbErr;
 
@@ -894,7 +1023,7 @@ export default function TourPage() {
       const { error: dbErr } = await supabase
         .from('rooms')
         .update({ waypoints_i18n: updatedWaypoints })
-        .eq('id', currentRoom.id as any);
+        .eq('id', currentRoom.id);
 
       if (dbErr) throw dbErr;
 
@@ -942,6 +1071,90 @@ export default function TourPage() {
       alert('Došlo je do greške prilikom generisanja SR drafta.');
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  // Naknadno/dodatno generisanje AI glasa za VEĆ POSTOJEĆI sadržaj sobe
+  // (bez pokretanja celog AI draft/prevod toka). Koristi trenutno sačuvan
+  // tekst (establish_i18n.text_i18n i waypoints_i18n[].text_i18n) kakav god
+  // da je - ručno unet ili prethodno AI generisan/preveden.
+  const handleGenerateVoiceForRoom = async () => {
+    const currentRoom = rooms[roomIdx];
+    if (!currentRoom) return;
+
+    if (voiceLanguages.length === 0) {
+      alert('Izaberite bar jedan jezik za generisanje glasa.');
+      return;
+    }
+
+    setShowVoiceModal(false);
+    setVoiceProgress('Generisanje AI glasovne naracije...');
+
+    try {
+      const establishData = parseEstablish(currentRoom.establish_i18n);
+      const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
+
+      const res = await fetch('/api/ai/auto-populate-room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: currentRoom.id,
+          action: 'generate_voice',
+          voiceLanguages,
+          content: {
+            establishText: establishData.text_i18n,
+            waypoints: waypointsList.map((wp, idx) => ({ index: idx, text: wp.text_i18n }))
+          }
+        })
+      });
+
+      const result = await res.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Nepoznata greška pri generisanju glasa.');
+      }
+
+      const existingEstablishAudio =
+        typeof establishData.audio_url_i18n === 'object' ? establishData.audio_url_i18n : {};
+      const updatedEstablish: EstablishData = {
+        ...establishData,
+        audio_url_i18n: { ...existingEstablishAudio, ...result.audio?.establish }
+      };
+
+      let updatedWaypoints = waypointsList;
+      if (Array.isArray(result.audio?.waypoints)) {
+        updatedWaypoints = waypointsList.map((wp, idx) => {
+          const wpAudio = result.audio.waypoints.find((a: any) => a.index === idx);
+          if (!wpAudio) return wp;
+          const existingWpAudio = typeof wp.audio_url_i18n === 'object' ? wp.audio_url_i18n : {};
+          return { ...wp, audio_url_i18n: { ...existingWpAudio, ...wpAudio.audio_url_i18n } };
+        });
+      }
+
+      const { error: dbErr } = await supabase
+        .from('rooms')
+        .update({
+          establish_i18n: updatedEstablish,
+          waypoints_i18n: updatedWaypoints
+        })
+        .eq('id', currentRoom.id);
+
+      if (dbErr) throw dbErr;
+
+      setRooms((prev) =>
+        prev.map((r, idx) =>
+          idx === roomIdx ? { ...r, establish_i18n: updatedEstablish, waypoints_i18n: updatedWaypoints } : r
+        )
+      );
+
+      refreshViewerHotspots(updatedWaypoints, langRef.current);
+
+      alert('AI glasovna naracija je uspešno generisana i sačuvana!');
+    } catch (err: any) {
+      console.error('[TTS] Greška pri generisanju glasa za sobu:', err);
+      alert('Greška pri generisanju glasa: ' + (err.message || 'Nepoznata greška'));
+    } finally {
+      setVoiceProgress(null);
     }
   };
 
@@ -1019,6 +1232,68 @@ export default function TourPage() {
         }
       }
 
+      // Generisanje AI glasovne naracije (opciono - samo ako je korisnik
+      // izabrao bar jedan jezik u draft modalu). Poziva se POSLE prevoda
+      // teksta, jer nam trebaju finalni, prevedeni tekstovi za sve jezike.
+      if (voiceLanguages.length > 0) {
+        setVoiceProgress('Generisanje AI glasovne naracije...');
+
+        try {
+          const voiceRes = await fetch('/api/ai/auto-populate-room', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              roomId: currentRoom.id,
+              action: 'generate_voice',
+              voiceLanguages,
+              content: {
+                establishText: currentEstablishI18n.text_i18n,
+                waypoints: currentWaypoints.map((wp, idx) => ({ index: idx, text: wp.text_i18n }))
+              }
+            })
+          });
+
+          const voiceResult = await voiceRes.json();
+
+          if (voiceResult.success && voiceResult.audio) {
+            const existingEstablishAudio =
+              typeof currentEstablishI18n.audio_url_i18n === 'object' ? currentEstablishI18n.audio_url_i18n : {};
+            currentEstablishI18n.audio_url_i18n = {
+              ...existingEstablishAudio,
+              ...voiceResult.audio.establish
+            };
+
+            if (Array.isArray(voiceResult.audio.waypoints)) {
+              currentWaypoints = currentWaypoints.map((wp, idx) => {
+                const wpAudio = voiceResult.audio.waypoints.find((a: any) => a.index === idx);
+                if (!wpAudio) return wp;
+                const existingWpAudio = typeof wp.audio_url_i18n === 'object' ? wp.audio_url_i18n : {};
+                return {
+                  ...wp,
+                  audio_url_i18n: { ...existingWpAudio, ...wpAudio.audio_url_i18n }
+                };
+              });
+            }
+
+            const establishErrs = voiceResult.errors?.establish || {};
+            const waypointErrs = voiceResult.errors?.waypoints || {};
+            if (Object.keys(establishErrs).length > 0 || Object.keys(waypointErrs).length > 0) {
+              console.warn('[TTS] Delimične greške pri generisanju glasa:', voiceResult.errors);
+            }
+          } else {
+            console.error('[TTS] Generisanje glasa nije uspelo:', voiceResult.error);
+            alert(
+              'Upozorenje: generisanje AI glasa nije uspelo (' +
+                (voiceResult.error || 'nepoznata greška') +
+                '), ali tekst je ipak preveden i biće sačuvan.'
+            );
+          }
+        } catch (voiceErr: any) {
+          console.error('[TTS] Greška pri pozivu generate_voice:', voiceErr);
+          alert('Upozorenje: generisanje AI glasa nije uspelo, ali tekst je ipak preveden i biće sačuvan.');
+        }
+      }
+
       setTranslationProgress('Upisivanje u bazu podataka...');
 
       const { error: dbErr } = await supabase
@@ -1028,7 +1303,7 @@ export default function TourPage() {
           establish_i18n: currentEstablishI18n,
           waypoints_i18n: currentWaypoints
         })
-        .eq('id', currentRoom.id as any);
+        .eq('id', currentRoom.id);
 
       if (dbErr) {
         throw dbErr;
@@ -1055,6 +1330,7 @@ export default function TourPage() {
       alert('Greška tokom prevođenja i upisa: ' + (err.message || 'Nepoznata greška'));
     } finally {
       setTranslationProgress(null);
+      setVoiceProgress(null);
     }
   };
 
@@ -1151,15 +1427,22 @@ export default function TourPage() {
     setIsMuted(nextMuteState);
 
     if (nextMuteState) {
-      stopAudio();
-    } else if (lastAudioUrlRef.current) {
-      playAudioFileWithCompletion(
-        lastAudioUrlRef.current,
-        lastAudioTextRef.current,
-        lastAudioTitleRef.current,
-        lastAudioIndexRef.current,
-        audioCurrentTimeRef.current
-      );
+      // Samo pauziraj - NE diramo activeResolveRef/activePlaybackRawRef,
+      // da bi se sekvenca mogla nastaviti kad se zvuk vrati.
+      if (activeAudioRef.current) {
+        audioCurrentTimeRef.current = activeAudioRef.current.currentTime;
+        activeAudioRef.current.pause();
+        activeAudioRef.current.onended = null;
+        activeAudioRef.current.onerror = null;
+        activeAudioRef.current = null;
+      }
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+    } else if (activePlaybackRawRef.current) {
+      // Nastavi ISTU narraciju (isti Promise) od tamo gde je stala
+      loadAndPlayLocalizedAudio(audioCurrentTimeRef.current);
     }
   };
 
@@ -1272,7 +1555,7 @@ export default function TourPage() {
             stopCurrentAnimation();
             audioCurrentTimeRef.current = 0;
             if (viewerRef.current) viewerRef.current.setHfov(48);
-            playAudioFileWithCompletion(wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
+            playAudioFileWithCompletion(wp.audio_url_i18n ?? wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
           }
         }
       };
@@ -1300,16 +1583,20 @@ export default function TourPage() {
     // ADMIN MODE: KLIK ZA DODAVANJE NOVE TAČKE ILI POMERANJE POSTOJEĆE
     v.on('mouseup', (e: MouseEvent) => {
       if (adminModeRef.current && e.button === 0) {
+        // VAŽNO: Pannellum vraća [pitch, yaw] (ne [yaw, pitch])!
         const coords = v.mouseEventToCoords(e);
         if (coords) {
+          const clickedPitch = coords[0];
+          const clickedYaw = coords[1];
+
           if (editingIndexRef.current !== null) {
             // Već postoji tačka u režimu izmene -> ovaj klik je SAMO pomeranje
             // na novu poziciju. Ne diramo editingIndex ni već unet naslov/tekst/audio,
             // da se ne izgube podaci koje je korisnik već uneo.
-            setPendingCoords({ yaw: coords[0], pitch: coords[1] });
+            setPendingCoords({ yaw: clickedYaw, pitch: clickedPitch });
           } else {
             // Nije aktivno editovanje - ovo je klik za kreiranje potpuno nove tačke
-            setPendingCoords({ yaw: coords[0], pitch: coords[1] });
+            setPendingCoords({ yaw: clickedYaw, pitch: clickedPitch });
             setHotspotText('');
             setHotspotTitle('');
             setHotspotAudioUrl('');
@@ -1378,7 +1665,7 @@ export default function TourPage() {
 
       const introTextRaw = establishData.text_i18n ||
 `${translations[langRef.current].welcomePrefix}${getLocalizedText(currentRoom.title_i18n, langRef.current)}`;
-      const introAudioUrl = establishData.audio_url;
+      const introAudioUrl = establishData.audio_url_i18n ?? establishData.audio_url;
 
       const rotatePromise = new Promise<void>((resolve) => {
         const durationPhase1 = 15000;
@@ -1443,7 +1730,7 @@ export default function TourPage() {
         if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
-        await playAudioFileWithCompletion(item.wp.audio_url, item.wp.text_i18n, item.wp.title_i18n, item.i, 0);
+        await playAudioFileWithCompletion(item.wp.audio_url_i18n ?? item.wp.audio_url, item.wp.text_i18n, item.wp.title_i18n, item.i, 0);
         if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
@@ -1626,6 +1913,27 @@ export default function TourPage() {
                     }}
                   >
                     {aiLoading ? '🤖 Generisanje...' : '🤖 AI Popuni Sobu'}
+                  </button>
+                )}
+
+                {adminMode && (
+                  <button
+                    onClick={() => setShowVoiceModal(true)}
+                    disabled={!!voiceProgress}
+                    title="Generiši ili osveži AI glasovnu naraciju za postojeći tekst ove sobe"
+                    style={{
+                      background: '#c084fc',
+                      color: '#1e1b2e',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '4px 8px',
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      marginRight: '6px'
+                    }}
+                  >
+                    🎙️ Glas
                   </button>
                 )}
 
@@ -1958,6 +2266,9 @@ export default function TourPage() {
             onChange={(e) => setHotspotAudioUrl(e.target.value)}
             style={{ padding: '8px', borderRadius: '6px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '13px' }}
           />
+          <span style={{ fontSize: '11px', color: '#64748b', marginTop: '-6px' }}>
+            🌐 Ovaj link važi samo za jezik: <b style={{ color: '#94a3b8' }}>{lang.toUpperCase()}</b> (ostali jezici ostaju netaknuti ako ostaviš prazno)
+          </span>
 
           <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
             <button onClick={handleSaveHotspot} style={{ ...btnStyle, flex: 1, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8' }}>
@@ -2143,6 +2454,33 @@ export default function TourPage() {
                   ))}
                 </div>
               </div>
+
+              {/* SELEKCIJA JEZIKA ZA AI GLASOVNU NARACIJU (OPCIONO) */}
+              <div style={{ backgroundColor: '#1e293b', padding: '12px 14px', borderRadius: '10px', border: '1px solid #334155' }}>
+                <label style={{ fontSize: '12px', color: '#c084fc', display: 'block', marginBottom: '6px', fontWeight: 700 }}>
+                  🎙️ Generiši AI glasovnu naraciju (MP3) za sledeće jezike (opciono):
+                </label>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  {availableLanguages
+                    .filter((l) => targetLanguages.includes(l))
+                    .map((l) => (
+                      <label key={l} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: '#fff' }}>
+                        <input
+                          type="checkbox"
+                          checked={voiceLanguages.includes(l)}
+                          onChange={() => toggleVoiceLanguage(l)}
+                          style={{ accentColor: '#c084fc', width: '16px', height: '16px' }}
+                        />
+                        {l.toUpperCase()}
+                      </label>
+                    ))}
+                </div>
+                <p style={{ fontSize: '11px', color: '#64748b', margin: '8px 0 0 0' }}>
+                  {voiceLanguages.length === 0
+                    ? 'Nijedan jezik nije izabran - glas se neće generisati (biće samo tekst).'
+                    : `Glas će biti generisan za: ${voiceLanguages.map((l) => l.toUpperCase()).join(', ')}. Ovo može potrajati.`}
+                </p>
+              </div>
             </div>
 
             <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', gap: '10px' }}>
@@ -2157,12 +2495,75 @@ export default function TourPage() {
         </div>
       )}
 
-      {/* MODAL: PROGRESS PREVOĐENJA */}
-      {translationProgress && (
+      {/* MODAL: SAMOSTALNO GENERISANJE/OSVEŽAVANJE AI GLASA ZA POSTOJEĆI SADRŽAJ */}
+      {showVoiceModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ backgroundColor: '#0f172a', border: '1px solid #c084fc', borderRadius: '20px', width: '100%', maxWidth: '420px', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.9)' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ color: '#c084fc', fontSize: '17px', margin: 0, fontWeight: 700 }}>🎙️ AI Glasovna Naracija</h2>
+              <button onClick={() => setShowVoiceModal(false)} style={{ ...btnStyle, backgroundColor: '#475569', color: '#fff', padding: '6px 12px' }}>
+                {t.cancel}
+              </button>
+            </div>
+
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8', lineHeight: '1.5' }}>
+                Generiše (ili osvežava) AI glas na osnovu <b>trenutno sačuvanog</b> teksta u ovoj sobi
+                (uvodna naracija + info-tačke), za jezike koje izabereš. Postojeći MP3 za taj jezik biće
+                zamenjen novim.
+              </p>
+
+              <div>
+                <label style={{ fontSize: '12px', color: '#c084fc', display: 'block', marginBottom: '8px', fontWeight: 700 }}>
+                  Za koje jezike da generišem glas:
+                </label>
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                  {availableLanguages.map((l) => (
+                    <label key={l} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: '#fff' }}>
+                      <input
+                        type="checkbox"
+                        checked={voiceLanguages.includes(l)}
+                        onChange={() => toggleVoiceLanguage(l)}
+                        style={{ accentColor: '#c084fc', width: '16px', height: '16px' }}
+                      />
+                      {l.toUpperCase()}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <button
+                onClick={handleGenerateVoiceForRoom}
+                disabled={voiceLanguages.length === 0}
+                style={{
+                  ...btnStyle,
+                  width: '100%',
+                  backgroundColor: voiceLanguages.length === 0 ? '#475569' : '#c084fc',
+                  color: voiceLanguages.length === 0 ? '#94a3b8' : '#1e1b2e',
+                  borderColor: '#c084fc',
+                  padding: '12px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  cursor: voiceLanguages.length === 0 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                🎙️ Generiši Glas
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: PROGRESS PREVOĐENJA / GENERISANJA GLASA */}
+      {(translationProgress || voiceProgress) && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 110, backgroundColor: 'rgba(0, 0, 0, 0.9)', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
           <div style={{ width: '16px', height: '16px', backgroundColor: '#c084fc', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both' }} />
-          <div style={{ color: '#c084fc', fontSize: '18px', fontWeight: 'bold' }}>{translationProgress}</div>
-          <p style={{ color: '#94a3b8', fontSize: '13px' }}>Molimo vas sačekajte, prevođenje i upis u bazu su u toku...</p>
+          <div style={{ color: '#c084fc', fontSize: '18px', fontWeight: 'bold' }}>{voiceProgress || translationProgress}</div>
+          <p style={{ color: '#94a3b8', fontSize: '13px' }}>
+            {voiceProgress ? 'Molimo vas sačekajte, generisanje AI glasa je u toku...' : 'Molimo vas sačekajte, prevođenje i upis u bazu su u toku...'}
+          </p>
         </div>
       )}
 
