@@ -403,7 +403,7 @@ async function synthesizeSpeech(text: string, voiceId: string): Promise<Buffer> 
 
 // Upload-uje MP3 buffer na Supabase Storage i vraća javni URL.
 async function uploadNarrationAudio(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   path: string,
   audioBuffer: Buffer
 ): Promise<string> {
@@ -432,7 +432,7 @@ async function uploadNarrationAudio(
 // Generiše i upload-uje audio za JEDAN tekst na JEDNOM jeziku. Vraća URL ili
 // null ako je tekst prazan (nema šta da se izgovori).
 async function synthesizeAndUpload(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   text: string,
   voiceId: string,
   storagePath: string
@@ -545,7 +545,7 @@ function toSimplifiedDraft(data: any): { title: string; narration: string; waypo
 
 async function handleGenerateDraft(
   ai: GoogleGenAI,
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   roomId: string | number,
   panoramaUrl: string,
   listingType: ListingType
@@ -661,7 +661,7 @@ function getVoiceIdForLang(lang: VoiceLang): string | undefined {
 }
 
 async function handleGenerateVoice(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   roomId: string | number,
   voiceLanguages: string[],
   content: {
