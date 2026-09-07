@@ -168,6 +168,28 @@ const mergeAudioI18n = (
   return buildI18nObject(newValue, existingData, currentLang);
 };
 
+// Za razliku od getLocalizedText (koja pada nazad na 'sr' ako traženi jezik
+// fali - dobro za PRIKAZ), ova funkcija proverava da li TAČNO taj jezik ima
+// nepraznu vrednost. Koristi se pre slanja teksta na TTS, jer backend ne radi
+// fallback - ako je 'en' ključ prazan/nedostaje, ništa se neće izgovoriti za
+// engleski čak i ako 'sr' tekst postoji.
+const hasExactLangText = (i18nData: unknown, lang: Language): boolean => {
+  if (!i18nData) return false;
+  let parsed: unknown = i18nData;
+  if (typeof i18nData === 'string') {
+    try {
+      parsed = JSON.parse(i18nData);
+    } catch {
+      return lang === 'sr' && i18nData.trim().length > 0;
+    }
+  }
+  if (parsed && typeof parsed === 'object') {
+    const value = (parsed as Record<string, string>)[lang];
+    return typeof value === 'string' && value.trim().length > 0;
+  }
+  return false;
+};
+
 function Centered({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ color: 'white', background: '#0a0a0a', height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', gap: '20px' }}>
@@ -1087,13 +1109,32 @@ export default function TourPage() {
       return;
     }
 
+    const establishData = parseEstablish(currentRoom.establish_i18n);
+    const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
+
+    // Provera PRE poziva ka TTS-u: da li BAR JEDAN izabrani jezik ima
+    // stvaran tekst za izgovaranje (bez SR fallback-a, jer backend ne radi
+    // fallback - prazan 'en' ostaje prazan, ne uzima se SR tekst).
+    const hasAnyText = voiceLanguages.some(
+      (l) =>
+        hasExactLangText(establishData.text_i18n, l) ||
+        waypointsList.some((wp) => hasExactLangText(wp.text_i18n, l))
+    );
+
+    if (!hasAnyText) {
+      alert(
+        'Nijedan izabrani jezik (' +
+          voiceLanguages.map((l) => l.toUpperCase()).join(', ') +
+          ') nema uneti/preveden tekst - ni uvodnu naraciju ni info-tačke. ' +
+          'Prvo unesi tekst ili prevedi sobu na taj jezik, pa tek onda generiši glas.'
+      );
+      return;
+    }
+
     setShowVoiceModal(false);
     setVoiceProgress('Generisanje AI glasovne naracije...');
 
     try {
-      const establishData = parseEstablish(currentRoom.establish_i18n);
-      const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
-
       const res = await fetch('/api/ai/auto-populate-room', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1112,6 +1153,31 @@ export default function TourPage() {
 
       if (!result.success) {
         throw new Error(result.error || 'Nepoznata greška pri generisanju glasa.');
+      }
+
+      const establishCount = Object.keys(result.audio?.establish || {}).length;
+      const waypointCount = (result.audio?.waypoints || []).reduce(
+        (acc: number, w: any) => acc + Object.keys(w.audio_url_i18n || {}).length,
+        0
+      );
+      const totalGenerated = establishCount + waypointCount;
+
+      const errorLines = [
+        ...Object.entries(result.errors?.establish || {}).map(([l, e]) => `Uvod (${String(l).toUpperCase()}): ${e}`),
+        ...Object.entries(result.errors?.waypoints || {}).map(([k, e]) => `Tačka ${k}: ${e}`)
+      ];
+      const skippedCount =
+        (result.skipped?.establish?.length || 0) + (result.skipped?.waypoints?.length || 0);
+
+      if (totalGenerated === 0) {
+        // Ništa nije generisano - NE piši u bazu, jasno obavesti šta se desilo
+        alert(
+          'Glas NIJE generisan ni za jedan segment.\n' +
+            (errorLines.length > 0
+              ? 'Greške:\n' + errorLines.join('\n')
+              : 'Razlog: tekst za izabrane jezike je prazan (' + skippedCount + ' segmenata preskočeno).')
+        );
+        return;
       }
 
       const existingEstablishAudio =
@@ -1149,7 +1215,10 @@ export default function TourPage() {
 
       refreshViewerHotspots(updatedWaypoints, langRef.current);
 
-      alert('AI glasovna naracija je uspešno generisana i sačuvana!');
+      alert(
+        `Generisano ${totalGenerated} audio segmenata i sačuvano.` +
+          (errorLines.length > 0 ? '\n\nDeo segmenata NIJE uspeo:\n' + errorLines.join('\n') : '')
+      );
     } catch (err: any) {
       console.error('[TTS] Greška pri generisanju glasa za sobu:', err);
       alert('Greška pri generisanju glasa: ' + (err.message || 'Nepoznata greška'));
@@ -1235,6 +1304,8 @@ export default function TourPage() {
       // Generisanje AI glasovne naracije (opciono - samo ako je korisnik
       // izabrao bar jedan jezik u draft modalu). Poziva se POSLE prevoda
       // teksta, jer nam trebaju finalni, prevedeni tekstovi za sve jezike.
+      let voiceSummaryMessage = '';
+
       if (voiceLanguages.length > 0) {
         setVoiceProgress('Generisanje AI glasovne naracije...');
 
@@ -1275,22 +1346,41 @@ export default function TourPage() {
               });
             }
 
-            const establishErrs = voiceResult.errors?.establish || {};
-            const waypointErrs = voiceResult.errors?.waypoints || {};
-            if (Object.keys(establishErrs).length > 0 || Object.keys(waypointErrs).length > 0) {
+            const establishCount = Object.keys(voiceResult.audio.establish || {}).length;
+            const waypointCount = (voiceResult.audio.waypoints || []).reduce(
+              (acc: number, w: any) => acc + Object.keys(w.audio_url_i18n || {}).length,
+              0
+            );
+            const totalGenerated = establishCount + waypointCount;
+
+            const errorLines = [
+              ...Object.entries(voiceResult.errors?.establish || {}).map(
+                ([l, e]) => `Uvod (${String(l).toUpperCase()}): ${e}`
+              ),
+              ...Object.entries(voiceResult.errors?.waypoints || {}).map(([k, e]) => `Tačka ${k}: ${e}`)
+            ];
+
+            if (totalGenerated === 0) {
+              voiceSummaryMessage =
+                '\n\n⚠️ AI glas NIJE generisan ni za jedan segment' +
+                (errorLines.length > 0 ? ' - greške:\n' + errorLines.join('\n') : ' (tekst je prazan?).');
+            } else {
+              voiceSummaryMessage =
+                `\n\n🎙️ Generisano ${totalGenerated} audio segmenata.` +
+                (errorLines.length > 0 ? ' Deo NIJE uspeo:\n' + errorLines.join('\n') : '');
+            }
+
+            if (errorLines.length > 0) {
               console.warn('[TTS] Delimične greške pri generisanju glasa:', voiceResult.errors);
             }
           } else {
             console.error('[TTS] Generisanje glasa nije uspelo:', voiceResult.error);
-            alert(
-              'Upozorenje: generisanje AI glasa nije uspelo (' +
-                (voiceResult.error || 'nepoznata greška') +
-                '), ali tekst je ipak preveden i biće sačuvan.'
-            );
+            voiceSummaryMessage =
+              '\n\n⚠️ Generisanje AI glasa nije uspelo (' + (voiceResult.error || 'nepoznata greška') + ').';
           }
         } catch (voiceErr: any) {
           console.error('[TTS] Greška pri pozivu generate_voice:', voiceErr);
-          alert('Upozorenje: generisanje AI glasa nije uspelo, ali tekst je ipak preveden i biće sačuvan.');
+          voiceSummaryMessage = '\n\n⚠️ Generisanje AI glasa nije uspelo (mrežna greška).';
         }
       }
 
@@ -1324,7 +1414,7 @@ export default function TourPage() {
 
       refreshViewerHotspots(currentWaypoints, langRef.current);
 
-      alert('Soba je uspešno popunjena i prevedena!');
+      alert('Soba je uspešno popunjena i prevedena!' + voiceSummaryMessage);
     } catch (err: any) {
       console.error('Translation & Saving Error:', err);
       alert('Greška tokom prevođenja i upisa: ' + (err.message || 'Nepoznata greška'));
