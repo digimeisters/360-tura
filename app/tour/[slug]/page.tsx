@@ -35,6 +35,7 @@ type Room = {
   waypoints_i18n?: Waypoint[] | string;
   establish_i18n?: EstablishData | string;
   panorama_url?: string;
+  panorama_url_cf?: string;
 };
 
 type Tour = {
@@ -1064,7 +1065,8 @@ export default function TourPage() {
   // KORAK 1: Generisanje SR drafta
   const handleAutoPopulateRoom = async () => {
     const currentRoom = rooms[roomIdx];
-    if (!currentRoom || !currentRoom.panorama_url) {
+    const currentPanoramaUrl = currentRoom?.panorama_url_cf || currentRoom?.panorama_url;
+    if (!currentRoom || !currentPanoramaUrl) {
       alert('Nema dostupne panorame za ovu sobu.');
       return;
     }
@@ -1076,7 +1078,7 @@ export default function TourPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           roomId: currentRoom.id,
-          panoramaUrl: currentRoom.panorama_url,
+          panoramaUrl: currentPanoramaUrl,
           action: 'generate_draft'
         })
       });
@@ -1560,16 +1562,23 @@ export default function TourPage() {
     if (!slug || !hasMounted) return;
     async function load() {
       setLoading(true);
-      const { data: tourData } = await supabase.from('tours').select('*').eq('slug', slug).single();
-      const { data: roomRows } = await supabase.from('rooms').select('*').eq('tour_slug', slug).order('order_index', { ascending: true });
+      const { data: tourData, error: tourErr } = await supabase.from('tours').select('*').eq('slug', slug).single();
+      const { data: roomRows, error: roomsErr } = await supabase.from('rooms').select('*').eq('tour_slug', slug).order('order_index', { ascending: true });
+
+      if (tourErr) console.error('[TOUR LOAD ERROR]', tourErr);
+      if (roomsErr) console.error('[ROOMS LOAD ERROR]', roomsErr);
 
       if (!isMountedRef.current) return;
 
-      if (!tourData) setError(translations[langRef.current].tourNotFound);
-      else setTour(tourData as Tour);
-
-      if (!roomRows || roomRows.length === 0) setError(translations[langRef.current].noRooms);
-      else setRooms(roomRows as Room[]);
+      if (!tourData) {
+        // VAŽNO: ako tura nije nađena, ne dozvoljavamo da rooms-provera dole prepiše ovu poruku
+        setError(tourErr ? `Greška (tours): ${tourErr.message}` : translations[langRef.current].tourNotFound);
+      } else {
+        setTour(tourData as Tour);
+        if (roomsErr) setError(`Greška (rooms): ${roomsErr.message}`);
+        else if (!roomRows || roomRows.length === 0) setError(translations[langRef.current].noRooms);
+        else setRooms(roomRows as Room[]);
+      }
 
       setLoading(false);
     }
@@ -1581,7 +1590,8 @@ export default function TourPage() {
 
     const currentSession = ++roomSessionRef.current;
     const currentRoom = rooms[roomIdx];
-    if (!currentRoom?.panorama_url) return;
+    const resolvedPanoramaUrl = currentRoom?.panorama_url_cf || currentRoom?.panorama_url;
+    if (!resolvedPanoramaUrl) return;
 
     setRoomLoading(true);
     sequenceActiveRef.current = true;
@@ -1656,7 +1666,7 @@ export default function TourPage() {
 
     const v = (window as any).pannellum.viewer('panorama', {
       type: 'equirectangular',
-      panorama: currentRoom.panorama_url,
+      panorama: resolvedPanoramaUrl,
       autoLoad: true,
       showControls: false,
       hfov: 65,
