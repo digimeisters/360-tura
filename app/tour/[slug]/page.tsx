@@ -532,6 +532,12 @@ export default function TourPage() {
   const [adminMode, setAdminMode] = useState(false);
   const adminModeRef = useRef(false);
 
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+
   const [isMuted, setIsMuted] = useState(false);
   const isMutedRef = useRef(false);
 
@@ -1468,23 +1474,62 @@ export default function TourPage() {
     return false;
   };
 
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setLoginLoading(true);
+
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: loginEmail.trim(),
+      password: loginPassword,
+    });
+
+    setLoginLoading(false);
+
+    if (authError) {
+      setLoginError('Pogrešan email ili lozinka.');
+      return;
+    }
+
+    // adminMode i showAdminLogin se ažuriraju automatski preko
+    // supabase.auth.onAuthStateChange listener-a gore.
+    setLoginPassword('');
+  };
+
+  const handleAdminLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
   useEffect(() => {
     isMountedRef.current = true;
     setHasMounted(true);
     const urlParams = new URLSearchParams(window.location.search);
+    const adminRequested = urlParams.get('admin') === '1';
 
-    const isAdmin = urlParams.get('admin') === 'mojtajnikljuc';
-    setAdminMode(isAdmin);
-    adminModeRef.current = isAdmin;
+    // Admin pristup ide isključivo preko Supabase Auth sesije - nema više
+    // hardkodirane lozinke u URL-u. Ako je admin već ulogovan (na BILO
+    // kojoj turi, ranije), sesija se automatski prepoznaje i ovde.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMountedRef.current) return;
+      const loggedIn = Boolean(session);
+      setAdminMode(loggedIn);
+      adminModeRef.current = loggedIn;
+      if (!loggedIn && adminRequested) {
+        setShowAdminLogin(true);
+      }
+    });
 
-    if (isAdmin) {
-      localStorage.setItem('tour_admin', 'true');
-    } else {
-      localStorage.removeItem('tour_admin');
-    }
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMountedRef.current) return;
+      const loggedIn = Boolean(session);
+      setAdminMode(loggedIn);
+      adminModeRef.current = loggedIn;
+      if (loggedIn) setShowAdminLogin(false);
+    });
 
     return () => {
       isMountedRef.current = false;
+      authListener.subscription.unsubscribe();
       stopAudio();
       stopCurrentAnimation();
       if (viewerRef.current) {
@@ -2037,6 +2082,26 @@ export default function TourPage() {
                   </button>
                 )}
 
+                {adminMode && (
+                  <button
+                    onClick={handleAdminLogout}
+                    title="Odjavi se iz admin režima"
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid rgba(255,255,255,0.25)',
+                      color: '#fca5a5',
+                      borderRadius: '8px',
+                      padding: '4px 8px',
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      marginRight: '6px'
+                    }}
+                  >
+                    🔒 Odjava
+                  </button>
+                )}
+
                 <button
                   onClick={toggleMute}
                   style={{
@@ -2078,6 +2143,7 @@ export default function TourPage() {
               </div>
             </div>
 
+            <div style={{ position: 'relative' }}>
             <div
               ref={tickerRef}
               onMouseEnter={() => { autoScrollPausedRef.current = true; }}
@@ -2144,6 +2210,27 @@ export default function TourPage() {
                   🚪 {getLocalizedText(room.title_i18n, lang) || `Soba ${idx + 1}`}
                 </button>
               ))}
+            </div>
+
+            {/* Fade efekat na ivicama trake sa sobama - signalizira da se može skrolovati */}
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              left: 0,
+              width: '24px',
+              background: 'linear-gradient(to right, rgba(10, 10, 10, 0.55), rgba(10, 10, 10, 0))',
+              pointerEvents: 'none'
+            }} />
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              right: 0,
+              width: '24px',
+              background: 'linear-gradient(to left, rgba(10, 10, 10, 0.55), rgba(10, 10, 10, 0))',
+              pointerEvents: 'none'
+            }} />
             </div>
           </div>
 
@@ -2463,6 +2550,59 @@ export default function TourPage() {
           <p style={{ margin: 0, fontSize: '13px', lineHeight: '1.5', color: '#f1f5f9', paddingRight: '12px' }}>
             {displayedInfoText}
           </p>
+        </div>
+      )}
+
+      {/* MODAL: ADMIN LOGIN (Supabase Auth - zamena za staru ?admin=... lozinku) */}
+      {showAdminLogin && !adminMode && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <form
+            onSubmit={handleAdminLogin}
+            style={{ backgroundColor: '#0f172a', border: '1px solid #38bdf8', borderRadius: '20px', width: '100%', maxWidth: '380px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px', boxShadow: '0 20px 50px rgba(0,0,0,0.9)' }}
+          >
+            <h2 style={{ color: '#38bdf8', fontSize: '18px', margin: 0, fontWeight: 700 }}>🔒 Admin prijava</h2>
+
+            <input
+              type="email"
+              placeholder="Email"
+              value={loginEmail}
+              onChange={(e) => setLoginEmail(e.target.value)}
+              autoComplete="username"
+              required
+              style={{ padding: '10px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '14px', boxSizing: 'border-box' }}
+            />
+
+            <input
+              type="password"
+              placeholder="Lozinka"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+              style={{ padding: '10px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '14px', boxSizing: 'border-box' }}
+            />
+
+            {loginError && (
+              <p style={{ color: '#f87171', fontSize: '13px', margin: 0 }}>{loginError}</p>
+            )}
+
+            <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+              <button
+                type="submit"
+                disabled={loginLoading}
+                style={{ ...btnStyle, flex: 1, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', padding: '10px' }}
+              >
+                {loginLoading ? 'Prijava...' : 'Prijavi se'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAdminLogin(false)}
+                style={{ ...btnStyle, backgroundColor: '#475569', color: '#fff', borderColor: '#64748b' }}
+              >
+                {t.cancel}
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
