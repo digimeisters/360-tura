@@ -1784,10 +1784,6 @@ export default function TourPage() {
             <Logo />
           </div>
 
-          {tour?.agency_name && (
-            <div style={{ color: THEME.textMuted, fontSize: '13px', marginBottom: '18px', fontStyle: 'italic' }}>( {tour.agency_name} )</div>
-          )}
-
           <div style={{
             display: 'flex',
             gap: '4px',
@@ -1795,7 +1791,7 @@ export default function TourPage() {
             border: '1px solid ' + THEME.border,
             borderRadius: '999px',
             padding: '4px',
-            marginBottom: '20px',
+            marginBottom: '10px',
             boxShadow: THEME.shadow
           }}>
             {availableLanguages
@@ -1821,17 +1817,14 @@ export default function TourPage() {
               ))}
           </div>
 
+          {tour?.agency_name && (
+            <div style={{ color: THEME.textMuted, fontSize: '13px', marginBottom: '18px', fontStyle: 'italic' }}>( {tour.agency_name} )</div>
+          )}
+
           <h1 style={{ color: THEME.textPrimary, fontSize: '26px', marginBottom: '12px', fontWeight: 700 }}>{fullTourTitle}</h1>
           <p style={{ color: THEME.textSecondary, fontSize: '16px', maxWidth: '440px', marginBottom: '32px', lineHeight: '1.5' }}>{t.welcome}</p>
           <button onClick={() => setTourStarted(true)} style={{ padding: '14px 32px', fontSize: '17px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: 'none', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)' }}>
             {t.startTour}
-          </button>
-
-          <button
-            onClick={handleShareTour}
-            style={{ marginTop: '18px', background: 'none', border: 'none', color: shareCopied ? THEME.success : THEME.textSecondary, fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-          >
-            {shareCopied ? '✅ Link kopiran!' : '🔗 Podeli turu'}
           </button>
         </div>
       )}
@@ -2158,10 +2151,6 @@ export default function TourPage() {
               </button>
             )}
 
-            <button onClick={handleShareTour} style={{ ...overlayIconStyle, color: shareCopied ? THEME.success : '#fff' }} title={shareCopied ? 'Link kopiran!' : 'Podeli turu'}>
-              {shareCopied ? '✅' : '🔗'}
-            </button>
-
             <button onClick={toggleMute} style={overlayIconStyle} title={isMuted ? 'Uključi zvuk' : 'Isključi zvuk'}>
               {isMuted ? '🔇' : '🔊'}
             </button>
@@ -2182,6 +2171,39 @@ export default function TourPage() {
           isActive ? { ...navBase, color: THEME.accent } : navBase;
 
         return (
+        <>
+        {/* Plutajuće dugme za deljenje, centrirano iznad reda ispod (samim
+            tim tačno iznad "Info", srednjeg od 5 dugmića) - namerno malo
+            upadljivije (puna boja, blur, senka) od providnih ikonica oko
+            njega, da privuče pažnju i podstakne deljenje ture. */}
+        <button
+          onClick={handleShareTour}
+          style={{
+            position: 'absolute',
+            bottom: '76px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 56,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '7px',
+            padding: '9px 18px',
+            borderRadius: '999px',
+            background: shareCopied ? THEME.success : 'rgba(37, 99, 235, 0.92)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            border: '1px solid rgba(255, 255, 255, 0.25)',
+            color: '#fff',
+            fontSize: '13px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 6px 18px rgba(37, 99, 235, 0.45)',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {shareCopied ? '✅' : '🔗'} {shareCopied ? 'Link kopiran!' : 'Podeli turu'}
+        </button>
+
         <div style={{
           position: 'absolute',
           bottom: '12px',
@@ -2215,6 +2237,7 @@ export default function TourPage() {
             {t.btnContact.replace(/^[^\s]+\s*/, '')}
           </button>
         </div>
+        </>
         );
       })()}
 
@@ -2931,6 +2954,24 @@ export default function TourPage() {
                       <p style={{ margin: 0, fontSize: '17px', fontWeight: 'bold', color: THEME.textPrimary }}>{tour.agency_name}</p>
                     </div>
                   )}
+
+                  <button
+                    onClick={handleShareTour}
+                    style={{
+                      ...btnStyle,
+                      backgroundColor: shareCopied ? THEME.success : THEME.surface,
+                      color: shareCopied ? '#fff' : THEME.textPrimary,
+                      borderColor: shareCopied ? THEME.success : THEME.border,
+                      padding: '12px',
+                      fontSize: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    {shareCopied ? '✅' : '🔗'} {shareCopied ? 'Link kopiran!' : 'Podeli turu'}
+                  </button>
                 </div>
               )}
             </div>
