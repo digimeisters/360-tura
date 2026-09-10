@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { requireAdmin } from '@/app/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,32 +18,14 @@ type EventRow = {
 type RoomStat = { roomId: string; views: number; totalMs: number };
 
 export async function GET(req: Request) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || anonKey;
-
-  if (!supabaseUrl || !anonKey || !serviceKey) {
-    return NextResponse.json({ success: false, error: 'Nedostaje konfiguracija.' }, { status: 500 });
-  }
-
-  // Analitika je admin podatak - traži se važeća Supabase sesija, koju
-  // klijent šalje kao Bearer token.
-  const token = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!token) {
-    return NextResponse.json({ success: false, error: 'Niste prijavljeni.' }, { status: 401 });
-  }
-
-  const auth = createClient(supabaseUrl, anonKey);
-  const { data: userData, error: userErr } = await auth.auth.getUser(token);
-  if (userErr || !userData?.user) {
-    return NextResponse.json({ success: false, error: 'Sesija nije važeća.' }, { status: 401 });
-  }
+  const ctx = await requireAdmin(req);
+  if (!ctx.ok) return NextResponse.json({ success: false, error: ctx.error }, { status: ctx.status });
 
   const url = new URL(req.url);
   const days = Math.min(Math.max(Number(url.searchParams.get('days')) || 30, 1), 365);
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-  const supabase = createClient(supabaseUrl, serviceKey);
+  const supabase = ctx.supabase;
 
   const [{ data: events, error: evErr }, { data: tours }, { data: rooms }] = await Promise.all([
     supabase
