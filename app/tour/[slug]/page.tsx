@@ -2151,15 +2151,14 @@ export default function TourPage() {
             padding: '6px 4px',
             background: 'transparent',
             border: 'none',
-            color: shareCopied ? THEME.success : '#fff',
-            textShadow: '0 1px 3px rgba(0, 0, 0, 0.55)',
+            ...(shareCopied ? { color: THEME.success } : navBase),
             fontSize: '13px',
             fontWeight: 700,
             cursor: 'pointer',
             whiteSpace: 'nowrap'
           }}
         >
-          {shareCopied ? '✅' : '🔗'} {shareCopied ? 'Link kopiran!' : 'Podeli turu'}
+          {shareCopied ? t.linkCopied : t.shareTour}
         </button>
 
         <div style={{
@@ -2928,7 +2927,7 @@ export default function TourPage() {
                       gap: '8px'
                     }}
                   >
-                    {shareCopied ? '✅' : '🔗'} {shareCopied ? 'Link kopiran!' : 'Podeli turu'}
+                    {shareCopied ? t.linkCopied : t.shareTour}
                   </button>
                 </div>
               )}

@@ -134,7 +134,9 @@ export const translations: Record<Language, Record<string, string>> = {
     callBtn: 'Pozovi',
     emailBtn: 'Pošalji Email',
     close: 'Zatvori',
-    comingSoon: 'Odgovor uskoro...'
+    comingSoon: 'Odgovor uskoro...',
+    shareTour: '🔗 Podeli turu',
+    linkCopied: '✅ Link kopiran!'
   },
   en: {
     startTour: '▶ Start Tour',
@@ -176,7 +178,9 @@ export const translations: Record<Language, Record<string, string>> = {
     callBtn: 'Call',
     emailBtn: 'Send Email',
     close: 'Close',
-    comingSoon: 'Answer coming soon...'
+    comingSoon: 'Answer coming soon...',
+    shareTour: '🔗 Share Tour',
+    linkCopied: '✅ Link copied!'
   },
   de: {
     startTour: '▶ Tour Starten',
@@ -218,7 +222,9 @@ export const translations: Record<Language, Record<string, string>> = {
     callBtn: 'Anrufen',
     emailBtn: 'E-Mail senden',
     close: 'Schließen',
-    comingSoon: 'Antwort folgt...'
+    comingSoon: 'Antwort folgt...',
+    shareTour: '🔗 Tour teilen',
+    linkCopied: '✅ Link kopiert!'
   },
   ru: {
     startTour: '▶ Начать тур',
@@ -260,6 +266,8 @@ export const translations: Record<Language, Record<string, string>> = {
     callBtn: 'Позвонить',
     emailBtn: 'Написать Email',
     close: 'Закрыть',
-    comingSoon: 'Ответ скоро появится...'
+    comingSoon: 'Ответ скоро появится...',
+    shareTour: '🔗 Поделиться туром',
+    linkCopied: '✅ Ссылка скопирована!'
   }
 };
