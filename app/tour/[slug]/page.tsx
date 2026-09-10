@@ -7,6 +7,7 @@ import { Language, Waypoint, EstablishData, Room, Tour, ActiveModal } from './ty
 import { translations, categoryQuestions } from './translations';
 import { THEME, btnStyle, overlayIconStyle, overlayNavButtonStyle, applyGlassHotspotStyle } from './theme';
 import { SITE_URL } from '../../lib/site';
+import { trackEvent } from '../../lib/track';
 import { Logo } from './Logo';
 import {
   normalizeYaw,
@@ -75,6 +76,10 @@ export default function TourPage() {
   const [pannellumReady, setPannellumReady] = useState(false);
   const [adminMode, setAdminMode] = useState(false);
   const adminModeRef = useRef(false);
+
+  // Otvaranje se beleži samo jednom po učitavanju, i kad se tour objekat
+  // kasnije osveži (npr. posle admin izmene).
+  const openTrackedRef = useRef(false);
 
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
@@ -1304,6 +1309,64 @@ export default function TourPage() {
     return () => cancelAnimationFrame(tickerAnimationId);
   }, [tourStarted]);
 
+  // ---- Analitika ---------------------------------------------------------
+  // Događaji se šalju iz efekata, a ne iz pojedinačnih onClick-ova, jer se
+  // isto stanje menja sa više mesta (npr. tura se pokreće i dugmetom i
+  // automatski) - ovako nijedan put ne ostane nezabeležen.
+
+  useEffect(() => {
+    if (!slug || !tour || adminMode) return;
+    if (openTrackedRef.current) return;
+    openTrackedRef.current = true;
+    trackEvent({ eventType: 'open', tourSlug: slug, lang });
+    // lang namerno nije zavisnost: otvaranje se beleži jednom, sa jezikom
+    // koji je tada bio aktivan.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, tour, adminMode]);
+
+  useEffect(() => {
+    if (!tourStarted || !slug || adminMode) return;
+    trackEvent({ eventType: 'start', tourSlug: slug, lang });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourStarted, slug, adminMode]);
+
+  useEffect(() => {
+    if (!tourStarted || !slug || adminMode) return;
+    const rawRoomId = rooms[roomIdx]?.id;
+    if (!rawRoomId) return;
+    const roomId = String(rawRoomId);
+
+    const enteredAt = Date.now();
+    let flushed = false;
+
+    const flush = () => {
+      if (flushed) return;
+      flushed = true;
+      trackEvent({
+        eventType: 'room_view',
+        tourSlug: slug,
+        roomId,
+        durationMs: Date.now() - enteredAt,
+        lang
+      });
+    };
+
+    // pagehide hvata zatvaranje taba i prelazak na drugu stranicu, gde se
+    // cleanup efekta ne izvrši pouzdano.
+    window.addEventListener('pagehide', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      flush();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourStarted, slug, roomIdx, rooms, adminMode]);
+
+  useEffect(() => {
+    if (activeModal !== 'contact' || !slug || adminMode) return;
+    trackEvent({ eventType: 'contact', tourSlug: slug, lang });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeModal, slug, adminMode]);
+
   // Deljenje linka trenutne ture: na mobilnom otvara native share meni
   // (WhatsApp, Viber, SMS, mejl...) preko Web Share API-ja; na desktopu (ili
   // ako share API nije dostupan) kopira link u clipboard i prikazuje kratku
@@ -1314,6 +1377,8 @@ export default function TourPage() {
     // umesto brendiranog. Query se odbacuje da ?admin=1 ne ode klijentu.
     const url = `${SITE_URL}${window.location.pathname}`;
     const shareTitle = getLocalizedText(tour?.title_i18n, lang) || 'Kvadrat360';
+
+    if (slug && !adminMode) trackEvent({ eventType: 'share', tourSlug: slug, lang });
 
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
