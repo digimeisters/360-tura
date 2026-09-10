@@ -435,6 +435,11 @@ export default function TourPage() {
         yaw: wp.yaw || 0,
         createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
           hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
+          // Pannellum dodaje svoj default sprite (background-image, npr. crni
+          // "+") na ovaj div preko svojih pnlm-* klasa - backgroundColor ga
+          // NE prekriva jer je background-image odvojen sloj iznad boje, pa
+          // ga eksplicitno gasimo da se ne vidi ispod/oko našeg pill dizajna.
+          hotSpotDiv.style.backgroundImage = 'none';
           hotSpotDiv.style.backgroundColor = THEME.surface;
           hotSpotDiv.style.border = '1.5px solid ' + THEME.border;
           hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
@@ -654,6 +659,35 @@ export default function TourPage() {
     } finally {
       setCreatingRoom(false);
     }
+  };
+
+  // Admin klikne na tlocrt (Skica modal) da postavi/pomeri oznaku TRENUTNE
+  // sobe (rooms[roomIdx]) na tu poziciju - procenat širine/visine slike, ne
+  // pikseli, da oznaka ostane tačna bez obzira na veličinu ekrana.
+  const handleSetFloorplanMarker = async (e: React.MouseEvent<HTMLImageElement>) => {
+    const currentRoom = rooms[roomIdx];
+    if (!currentRoom) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
+    const yPct = ((e.clientY - rect.top) / rect.height) * 100;
+
+    const { error: updateErr } = await supabase
+      .from('rooms')
+      // floorplan_x/floorplan_y nisu (još) u generisanim Supabase tipovima
+      // (types/supabase.ts) - as any dok se ne pokrene migracija i types ne
+      // regenerišu.
+      .update({ floorplan_x: xPct, floorplan_y: yPct } as any)
+      .eq('id', currentRoom.id as any);
+
+    if (updateErr) {
+      alert('Greška pri čuvanju pozicije na tlocrtu: ' + updateErr.message);
+      return;
+    }
+
+    setRooms((prev) =>
+      prev.map((r, idx) => (idx === roomIdx ? { ...r, floorplan_x: xPct, floorplan_y: yPct } : r))
+    );
   };
 
   // KORAK 1: Generisanje SR drafta
@@ -1399,6 +1433,11 @@ export default function TourPage() {
         yaw: wp.yaw || 0,
         createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
           hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
+          // Pannellum dodaje svoj default sprite (background-image, npr. crni
+          // "+") na ovaj div preko svojih pnlm-* klasa - backgroundColor ga
+          // NE prekriva jer je background-image odvojen sloj iznad boje, pa
+          // ga eksplicitno gasimo da se ne vidi ispod/oko našeg pill dizajna.
+          hotSpotDiv.style.backgroundImage = 'none';
           hotSpotDiv.style.backgroundColor = THEME.surface;
           hotSpotDiv.style.border = '1.5px solid ' + THEME.border;
           hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
@@ -2739,8 +2778,50 @@ export default function TourPage() {
             <div style={{ padding: '20px', overflowY: 'auto', flex: 1, color: THEME.textPrimary, fontSize: '16px' }}>
               {activeModal === 'plan' && (
                 tour?.floorplan_url ? (
-                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                    <img src={tour.floorplan_url} alt="Floorplan" style={{ maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain', borderRadius: '12px' }} />
+                  <div>
+                    {adminMode && (
+                      <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: THEME.accent, fontWeight: 600, textAlign: 'center' }}>
+                        🖊️ Klikni na skicu da postaviš oznaku za trenutnu sobu: <b>{currentRoomTitle}</b>
+                      </p>
+                    )}
+                    <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      <img
+                        src={tour.floorplan_url}
+                        alt="Floorplan"
+                        onClick={adminMode ? handleSetFloorplanMarker : undefined}
+                        style={{ maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain', borderRadius: '12px', cursor: adminMode ? 'crosshair' : 'default', display: 'block' }}
+                      />
+                      {rooms
+                        .filter((r) => typeof r.floorplan_x === 'number' && typeof r.floorplan_y === 'number')
+                        .map((r) => {
+                          const isCurrent = r.id === currentRoom?.id;
+                          return (
+                            <button
+                              key={r.id}
+                              title={getLocalizedText(r.title_i18n, lang)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                changeRoomById(r.id);
+                                setActiveModal(null);
+                              }}
+                              style={{
+                                position: 'absolute',
+                                left: `${r.floorplan_x}%`,
+                                top: `${r.floorplan_y}%`,
+                                transform: 'translate(-50%, -50%)',
+                                width: isCurrent ? '18px' : '14px',
+                                height: isCurrent ? '18px' : '14px',
+                                borderRadius: '50%',
+                                backgroundColor: isCurrent ? THEME.accent : THEME.surface,
+                                border: '2px solid ' + (isCurrent ? '#fff' : THEME.accent),
+                                boxShadow: THEME.shadowLg,
+                                cursor: 'pointer',
+                                padding: 0
+                              }}
+                            />
+                          );
+                        })}
+                    </div>
                   </div>
                 ) : (
                   <p style={{ textAlign: 'center', color: THEME.textMuted, fontSize: '16px' }}>{t.noPlan}</p>

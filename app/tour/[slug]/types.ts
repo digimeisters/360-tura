@@ -30,6 +30,11 @@ export type Room = {
   establish_i18n?: EstablishData | string;
   panorama_url?: string;
   panorama_url_cf?: string;
+  // Pozicija ove sobe na tlocrtu ture (tour.floorplan_url), kao procenat
+  // širine/visine slike (0-100). Null/undefined = soba još nema oznaku na
+  // tlocrtu. Postavlja se klikom na skicu u admin modu.
+  floorplan_x?: number | null;
+  floorplan_y?: number | null;
 };
 
 export type Tour = {
