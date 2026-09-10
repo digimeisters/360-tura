@@ -17,8 +17,8 @@ const styles = `
     --ink-soft:#5B5D63;
     --ink-faint:#8C8E93;
     --line:#E4E4DE;
-    --accent:#1F5F5B;
-    --accent-strong:#174744;
+    --accent:#20647A;
+    --accent-strong:#184B5C;
     --on-accent:#FFFFFF;
     --dark-bg:#0E0E10;
     --dark-surface:#1A1A1E;
@@ -36,8 +36,8 @@ const styles = `
       --ink-soft:#AEB0B6;
       --ink-faint:#797B81;
       --line:#2A2A2E;
-      --accent:#4FA39D;
-      --accent-strong:#6BBDB6;
+      --accent:#4A93A8;
+      --accent-strong:#6FB6C9;
       --on-accent:#0B0E1A;
       --shadow: 0 24px 50px -22px rgba(0,0,0,0.6);
     }
@@ -50,8 +50,8 @@ const styles = `
     --ink-soft:#AEB0B6;
     --ink-faint:#797B81;
     --line:#2A2A2E;
-    --accent:#4FA39D;
-    --accent-strong:#6BBDB6;
+    --accent:#4A93A8;
+    --accent-strong:#6FB6C9;
     --on-accent:#0B0E1A;
     --shadow: 0 24px 50px -22px rgba(0,0,0,0.6);
   }
