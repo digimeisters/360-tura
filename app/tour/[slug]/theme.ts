@@ -1,21 +1,26 @@
+// Paleta usklađena sa landing stranicom (app/page.tsx) da tura i sajt dele
+// isti vizuelni identitet - topao off-white umesto hladnog slate, i
+// indigo-plava (#3457FF) kao brend akcenat umesto generičke Tailwind plave.
 export const THEME = {
-  bg: '#f1f5f9',
-  surface: '#ffffff',
-  surfaceAlt: '#f8fafc',
-  border: '#e2e8f0',
-  borderStrong: '#cbd5e1',
-  textPrimary: '#0f172a',
-  textSecondary: '#64748b',
-  textMuted: '#94a3b8',
-  accent: '#2563eb',
-  accentHover: '#1d4ed8',
-  accentSoft: '#eff6ff',
+  bg: '#FAFAF7',
+  surface: '#FFFFFF',
+  surfaceAlt: '#F1F1EC',
+  border: '#E4E4DE',
+  borderStrong: '#D3D3CB',
+  textPrimary: '#111113',
+  textSecondary: '#5B5D63',
+  textMuted: '#8C8E93',
+  accent: '#1F5F5B',
+  accentHover: '#174744',
+  accentSoft: '#E8F1F0',
   danger: '#dc2626',
   dangerSoft: '#fef2f2',
   success: '#16a34a',
-  overlay: 'rgba(15, 23, 42, 0.45)',
-  shadow: '0 2px 8px rgba(15, 23, 42, 0.08)',
-  shadowLg: '0 10px 30px rgba(15, 23, 42, 0.15)'
+  overlay: 'rgba(17, 17, 19, 0.45)',
+  shadow: '0 2px 8px rgba(17, 17, 19, 0.08)',
+  shadowLg: '0 10px 30px rgba(17, 17, 19, 0.15)',
+  fontBody: "'Inter', system-ui, -apple-system, sans-serif",
+  fontDisplay: "'Plus Jakarta Sans', system-ui, sans-serif"
 };
 
 // Providna ikonica preko panorame (fullscreen, žiroskop, zvuk, deljenje) -
@@ -84,7 +89,7 @@ export function applyGlassHotspotStyle(hotSpotDiv: HTMLDivElement, isNav: boolea
   hotSpotDiv.style.whiteSpace = 'nowrap';
 
   if (isNav) {
-    const dot = '<span style="width:5px;height:5px;border-radius:50%;background:#5b8cff;box-shadow:0 0 0 2px rgba(255,255,255,0.25);flex:none;"></span>';
+    const dot = '<span style="width:5px;height:5px;border-radius:50%;background:#4FA39D;box-shadow:0 0 0 2px rgba(255,255,255,0.25);flex:none;"></span>';
     hotSpotDiv.innerHTML = `${dot}<span>${label}</span>`;
   } else {
     hotSpotDiv.style.color = '#fde68a';

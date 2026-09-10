@@ -17,8 +17,8 @@ const styles = `
     --ink-soft:#5B5D63;
     --ink-faint:#8C8E93;
     --line:#E4E4DE;
-    --accent:#3457FF;
-    --accent-strong:#2743D6;
+    --accent:#1F5F5B;
+    --accent-strong:#174744;
     --on-accent:#FFFFFF;
     --dark-bg:#0E0E10;
     --dark-surface:#1A1A1E;
@@ -36,8 +36,8 @@ const styles = `
       --ink-soft:#AEB0B6;
       --ink-faint:#797B81;
       --line:#2A2A2E;
-      --accent:#6C87FF;
-      --accent-strong:#8CA0FF;
+      --accent:#4FA39D;
+      --accent-strong:#6BBDB6;
       --on-accent:#0B0E1A;
       --shadow: 0 24px 50px -22px rgba(0,0,0,0.6);
     }
@@ -50,8 +50,8 @@ const styles = `
     --ink-soft:#AEB0B6;
     --ink-faint:#797B81;
     --line:#2A2A2E;
-    --accent:#6C87FF;
-    --accent-strong:#8CA0FF;
+    --accent:#4FA39D;
+    --accent-strong:#6BBDB6;
     --on-accent:#0B0E1A;
     --shadow: 0 24px 50px -22px rgba(0,0,0,0.6);
   }
@@ -262,11 +262,6 @@ const styles = `
 export default function Home() {
   return (
     <>
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap"
-      />
       <style dangerouslySetInnerHTML={{ __html: styles }} />
 
       <header className="nav">

@@ -1684,7 +1684,7 @@ export default function TourPage() {
           <button
             onClick={handleAddRoom}
             disabled={creatingRoom}
-            style={{ padding: '12px 28px', fontSize: '15px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: 'none', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)' }}
+            style={{ padding: '12px 28px', fontSize: '15px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: 'none', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(31, 95, 91, 0.35)' }}
           >
             {creatingRoom ? 'Kreiranje...' : '➕ Kreiraj prvu sobu'}
           </button>
@@ -1733,7 +1733,7 @@ export default function TourPage() {
   const isModalToolbarVisible = !infoBoxData && (!tourStarted || isRoomTourFullyCompleted || isInfoboxManuallyClosed);
 
   return (
-    <main style={{ position: 'relative', width: '100vw', height: '100dvh', backgroundColor: THEME.bg, overflow: 'hidden' }}>
+    <main style={{ position: 'relative', width: '100vw', height: '100dvh', backgroundColor: THEME.bg, overflow: 'hidden', fontFamily: THEME.fontBody }}>
       <style>{`
         .pnlm-load-box {
           display: none !important;
@@ -1783,9 +1783,9 @@ export default function TourPage() {
             <div style={{ color: THEME.textMuted, fontSize: '13px', marginBottom: '18px', fontStyle: 'italic' }}>( {tour.agency_name} )</div>
           )}
 
-          <h1 style={{ color: THEME.textPrimary, fontSize: '26px', marginBottom: '12px', fontWeight: 700 }}>{fullTourTitle}</h1>
+          <h1 style={{ color: THEME.textPrimary, fontSize: '26px', marginBottom: '12px', fontWeight: 700, fontFamily: THEME.fontDisplay }}>{fullTourTitle}</h1>
           <p style={{ color: THEME.textSecondary, fontSize: '16px', maxWidth: '440px', marginBottom: '32px', lineHeight: '1.5' }}>{t.welcome}</p>
-          <button onClick={() => setTourStarted(true)} style={{ padding: '14px 32px', fontSize: '17px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: 'none', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)' }}>
+          <button onClick={() => setTourStarted(true)} style={{ padding: '14px 32px', fontSize: '17px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: 'none', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(31, 95, 91, 0.35)' }}>
             {t.startTour}
           </button>
         </div>
@@ -2487,7 +2487,13 @@ export default function TourPage() {
           <div style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', width: '100%', maxWidth: '650px', maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid ' + THEME.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ color: THEME.textPrimary, fontSize: '18px', margin: 0, fontWeight: 700 }}>✏️ Pregled i Izmena AI Drafta (SR)</h2>
-              <button onClick={() => setShowDraftModal(false)} style={{ ...btnStyle, backgroundColor: THEME.danger, color: '#fff', borderColor: THEME.danger, padding: '6px 12px' }}>Zatvori</button>
+              <button
+                onClick={() => setShowDraftModal(false)}
+                title="Zatvori"
+                style={{ background: 'transparent', border: 'none', color: THEME.textMuted, fontSize: '24px', fontWeight: 'bold', cursor: 'pointer', padding: '0 4px', lineHeight: '1', flexShrink: 0 }}
+              >
+                ×
+              </button>
             </div>
 
             <div style={{ padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
@@ -2766,8 +2772,12 @@ export default function TourPage() {
                 {activeModal === 'faq' && t.btnFaq}
                 {activeModal === 'contact' && t.btnContact}
               </h2>
-              <button onClick={() => { setActiveModal(null); setSelectedFaq(null); }} style={{ ...btnStyle, backgroundColor: THEME.danger, color: '#fff', borderColor: THEME.danger, padding: '8px 16px', fontSize: '14px' }}>
-                {t.close}
+              <button
+                onClick={() => { setActiveModal(null); setSelectedFaq(null); }}
+                title={t.close}
+                style={{ background: 'transparent', border: 'none', color: THEME.textMuted, fontSize: '24px', fontWeight: 'bold', cursor: 'pointer', padding: '0 4px', lineHeight: '1', flexShrink: 0 }}
+              >
+                ×
               </button>
             </div>
 
@@ -2943,8 +2953,12 @@ export default function TourPage() {
               <h3 style={{ color: THEME.textPrimary, fontSize: '17px', margin: 0, paddingRight: '12px', fontWeight: 600 }}>
                 {faqList[selectedFaq].question}
               </h3>
-              <button onClick={() => setSelectedFaq(null)} style={{ ...btnStyle, backgroundColor: THEME.danger, color: '#fff', borderColor: THEME.danger, flexShrink: 0, padding: '8px 14px', fontSize: '13px' }}>
-                {t.close}
+              <button
+                onClick={() => setSelectedFaq(null)}
+                title={t.close}
+                style={{ background: 'transparent', border: 'none', color: THEME.textMuted, fontSize: '24px', fontWeight: 'bold', cursor: 'pointer', padding: '0 4px', lineHeight: '1', flexShrink: 0 }}
+              >
+                ×
               </button>
             </div>
             <div style={{ padding: '20px', overflowY: 'auto', flex: 1, color: THEME.textPrimary, fontSize: '16px' }}>
