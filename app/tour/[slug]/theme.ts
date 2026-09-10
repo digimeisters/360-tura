@@ -55,6 +55,43 @@ export const overlayNavButtonStyle: React.CSSProperties = {
   gap: '3px'
 };
 
+// Staklen (glassmorphism) hotspot preko panorame - providna pozadina + blur,
+// tanak beli okvir, tačka u boji nosi razliku (plava = navigacija/soba,
+// žuta = info), isti tretman kao donji toolbar. Radi direktno sa raw DOM
+// stilom jer Pannellum-ov createTooltipFunc dobija HTMLDivElement, ne JSX.
+export function applyGlassHotspotStyle(hotSpotDiv: HTMLDivElement, isNav: boolean, label: string) {
+  hotSpotDiv.style.backgroundImage = 'none';
+  hotSpotDiv.style.backgroundColor = 'rgba(15, 23, 42, 0.32)';
+  // @ts-ignore - backdropFilter nije u starijim CSSProperties tipovima za sve DOM lib verzije
+  hotSpotDiv.style.backdropFilter = 'blur(6px)';
+  // @ts-ignore
+  hotSpotDiv.style.webkitBackdropFilter = 'blur(6px)';
+  hotSpotDiv.style.border = '1.5px solid rgba(255, 255, 255, 0.75)';
+  hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
+  hotSpotDiv.style.color = '#fff';
+  hotSpotDiv.style.textShadow = '0 1px 2px rgba(0, 0, 0, 0.45)';
+  hotSpotDiv.style.display = 'flex';
+  hotSpotDiv.style.alignItems = 'center';
+  hotSpotDiv.style.justifyContent = 'center';
+  hotSpotDiv.style.gap = '6px';
+  hotSpotDiv.style.cursor = 'pointer';
+  hotSpotDiv.style.padding = isNav ? '8px 14px' : '0.5px';
+  hotSpotDiv.style.width = isNav ? 'auto' : '26px';
+  hotSpotDiv.style.height = isNav ? 'auto' : '26px';
+  hotSpotDiv.style.fontWeight = '700';
+  hotSpotDiv.style.fontSize = isNav ? '12.5px' : '13px';
+  hotSpotDiv.style.boxShadow = '0 4px 14px rgba(0, 0, 0, 0.25)';
+  hotSpotDiv.style.whiteSpace = 'nowrap';
+
+  if (isNav) {
+    const dot = '<span style="width:6px;height:6px;border-radius:50%;background:#5b8cff;box-shadow:0 0 0 3px rgba(255,255,255,0.25);flex:none;"></span>';
+    hotSpotDiv.innerHTML = `${dot}<span>${label}</span>`;
+  } else {
+    hotSpotDiv.style.color = '#fde68a';
+    hotSpotDiv.innerHTML = 'ℹ';
+  }
+}
+
 export const btnStyle: React.CSSProperties = {
   backgroundColor: THEME.surface,
   color: THEME.textPrimary,

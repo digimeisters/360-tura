@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 import { Language, Waypoint, EstablishData, Room, Tour, ActiveModal } from './types';
 import { translations, categoryQuestions } from './translations';
-import { THEME, btnStyle, overlayIconStyle, overlayNavButtonStyle } from './theme';
+import { THEME, btnStyle, overlayIconStyle, overlayNavButtonStyle, applyGlassHotspotStyle } from './theme';
 import { Logo } from './Logo';
 import {
   normalizeYaw,
@@ -439,26 +439,7 @@ export default function TourPage() {
         yaw: wp.yaw || 0,
         createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
           hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
-          // Pannellum dodaje svoj default sprite (background-image, npr. crni
-          // "+") na ovaj div preko svojih pnlm-* klasa - backgroundColor ga
-          // NE prekriva jer je background-image odvojen sloj iznad boje, pa
-          // ga eksplicitno gasimo da se ne vidi ispod/oko našeg pill dizajna.
-          hotSpotDiv.style.backgroundImage = 'none';
-          hotSpotDiv.style.backgroundColor = THEME.surface;
-          hotSpotDiv.style.border = '1.5px solid ' + THEME.border;
-          hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
-          hotSpotDiv.style.color = THEME.textPrimary;
-          hotSpotDiv.style.display = 'flex';
-          hotSpotDiv.style.alignItems = 'center';
-          hotSpotDiv.style.justifyContent = 'center';
-          hotSpotDiv.style.cursor = 'pointer';
-          hotSpotDiv.style.padding = isNav ? '3px 6px' : '0.5px';
-          hotSpotDiv.style.width = isNav ? 'auto' : '22px';
-          hotSpotDiv.style.height = isNav ? 'auto' : '22px';
-          hotSpotDiv.style.fontWeight = 'bold';
-          hotSpotDiv.style.fontSize = isNav ? '10px' : '15px';
-          hotSpotDiv.style.boxShadow = THEME.shadowLg;
-          hotSpotDiv.innerHTML = isNav ? `${tooltipText}` : 'ℹ';
+          applyGlassHotspotStyle(hotSpotDiv, isNav, tooltipText);
         },
         text: tooltipText,
         clickHandlerFunc: () => {
@@ -1463,26 +1444,7 @@ export default function TourPage() {
         yaw: wp.yaw || 0,
         createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
           hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
-          // Pannellum dodaje svoj default sprite (background-image, npr. crni
-          // "+") na ovaj div preko svojih pnlm-* klasa - backgroundColor ga
-          // NE prekriva jer je background-image odvojen sloj iznad boje, pa
-          // ga eksplicitno gasimo da se ne vidi ispod/oko našeg pill dizajna.
-          hotSpotDiv.style.backgroundImage = 'none';
-          hotSpotDiv.style.backgroundColor = THEME.surface;
-          hotSpotDiv.style.border = '1.5px solid ' + THEME.border;
-          hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
-          hotSpotDiv.style.color = THEME.textPrimary;
-          hotSpotDiv.style.display = 'flex';
-          hotSpotDiv.style.alignItems = 'center';
-          hotSpotDiv.style.justifyContent = 'center';
-          hotSpotDiv.style.cursor = 'pointer';
-          hotSpotDiv.style.padding = isNav ? '3px 6px' : '0.5px';
-          hotSpotDiv.style.width = isNav ? 'auto' : '22px';
-          hotSpotDiv.style.height = isNav ? 'auto' : '22px';
-          hotSpotDiv.style.fontWeight = 'bold';
-          hotSpotDiv.style.fontSize = isNav ? '10px' : '15px';
-          hotSpotDiv.style.boxShadow = THEME.shadowLg;
-          hotSpotDiv.innerHTML = isNav ? `${tooltipText}` : 'ℹ';
+          applyGlassHotspotStyle(hotSpotDiv, isNav, tooltipText);
         },
         text: tooltipText,
         clickHandlerFunc: () => {
@@ -2173,9 +2135,8 @@ export default function TourPage() {
         return (
         <>
         {/* Plutajuće dugme za deljenje, centrirano iznad reda ispod (samim
-            tim tačno iznad "Info", srednjeg od 5 dugmića) - namerno malo
-            upadljivije (puna boja, blur, senka) od providnih ikonica oko
-            njega, da privuče pažnju i podstakne deljenje ture. */}
+            tim tačno iznad "Info", srednjeg od 5 dugmića) - bez okvira/
+            pozadine, isti providni tretman kao ostali dugmići u toolbaru. */}
         <button
           onClick={handleShareTour}
           style={{
@@ -2187,17 +2148,14 @@ export default function TourPage() {
             display: 'flex',
             alignItems: 'center',
             gap: '7px',
-            padding: '9px 18px',
-            borderRadius: '999px',
-            background: shareCopied ? THEME.success : 'rgba(37, 99, 235, 0.92)',
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
-            border: '1px solid rgba(255, 255, 255, 0.25)',
-            color: '#fff',
+            padding: '6px 4px',
+            background: 'transparent',
+            border: 'none',
+            color: shareCopied ? THEME.success : '#fff',
+            textShadow: '0 1px 3px rgba(0, 0, 0, 0.55)',
             fontSize: '13px',
             fontWeight: 700,
             cursor: 'pointer',
-            boxShadow: '0 6px 18px rgba(37, 99, 235, 0.45)',
             whiteSpace: 'nowrap'
           }}
         >
