@@ -10,9 +10,9 @@ export const THEME = {
   textPrimary: '#111113',
   textSecondary: '#5B5D63',
   textMuted: '#8C8E93',
-  accent: '#20647A',
-  accentHover: '#184B5C',
-  accentSoft: '#E9F0F2',
+  accent: '#1E5AA8',
+  accentHover: '#17447E',
+  accentSoft: '#E9EFF6',
   danger: '#dc2626',
   dangerSoft: '#fef2f2',
   success: '#16a34a',
@@ -89,7 +89,7 @@ export function applyGlassHotspotStyle(hotSpotDiv: HTMLDivElement, isNav: boolea
   hotSpotDiv.style.whiteSpace = 'nowrap';
 
   if (isNav) {
-    const dot = '<span style="width:5px;height:5px;border-radius:50%;background:#4A93A8;box-shadow:0 0 0 2px rgba(255,255,255,0.25);flex:none;"></span>';
+    const dot = '<span style="width:5px;height:5px;border-radius:50%;background:#5B92D6;box-shadow:0 0 0 2px rgba(255,255,255,0.25);flex:none;"></span>';
     hotSpotDiv.innerHTML = `${dot}<span>${label}</span>`;
   } else {
     hotSpotDiv.style.color = '#fde68a';
