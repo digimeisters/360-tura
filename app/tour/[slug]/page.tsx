@@ -263,14 +263,48 @@ const hasExactLangText = (i18nData: unknown, lang: Language): boolean => {
   return false;
 };
 
+const THEME = {
+  bg: '#f1f5f9',
+  surface: '#ffffff',
+  surfaceAlt: '#f8fafc',
+  border: '#e2e8f0',
+  borderStrong: '#cbd5e1',
+  textPrimary: '#0f172a',
+  textSecondary: '#64748b',
+  textMuted: '#94a3b8',
+  accent: '#2563eb',
+  accentHover: '#1d4ed8',
+  accentSoft: '#eff6ff',
+  danger: '#dc2626',
+  dangerSoft: '#fef2f2',
+  success: '#16a34a',
+  overlay: 'rgba(15, 23, 42, 0.45)',
+  shadow: '0 2px 8px rgba(15, 23, 42, 0.08)',
+  shadowLg: '0 10px 30px rgba(15, 23, 42, 0.15)'
+};
+
+function Logo() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ width: '32px', height: '32px', borderRadius: '9px', backgroundColor: THEME.accent, color: '#fff', fontWeight: 800, fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        K
+      </div>
+      <div style={{ fontSize: '16px', fontWeight: 800, letterSpacing: '0.2px' }}>
+        <b style={{ color: THEME.textPrimary }}>Kvadrat</b>
+        <b style={{ color: THEME.accent }}>360</b>
+      </div>
+    </div>
+  );
+}
+
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ color: 'white', background: '#0a0a0a', height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', gap: '20px' }}>
+    <div style={{ color: THEME.textPrimary, background: THEME.bg, height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', gap: '20px' }}>
 
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-        <div style={{ width: '12px', height: '12px', backgroundColor: '#38bdf8', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.32s' }} />
-        <div style={{ width: '12px', height: '12px', backgroundColor: '#38bdf8', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.16s' }} />
-        <div style={{ width: '12px', height: '12px', backgroundColor: '#38bdf8', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both' }} />
+        <div style={{ width: '12px', height: '12px', backgroundColor: THEME.accent, borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.32s' }} />
+        <div style={{ width: '12px', height: '12px', backgroundColor: THEME.accent, borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.16s' }} />
+        <div style={{ width: '12px', height: '12px', backgroundColor: THEME.accent, borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both' }} />
       </div>
       <style>{`
         @keyframes pulseDot {
@@ -281,25 +315,24 @@ function Centered({ children }: { children: React.ReactNode }) {
           display: none !important;
         }
       `}</style>
-      <div style={{ color: '#38bdf8', fontSize: '16px', letterSpacing: '1px', fontWeight: 500 }}>{children}</div>
+      <div style={{ color: THEME.accent, fontSize: '16px', letterSpacing: '1px', fontWeight: 500 }}>{children}</div>
     </div>
   );
 }
 
 const btnStyle: React.CSSProperties = {
-  backgroundColor: 'rgba(255, 255, 255, 0.75)',
-  color: '#000000',
-  border: '1px solid rgba(255, 255, 255, 0.4)',
+  backgroundColor: THEME.surface,
+  color: THEME.textPrimary,
+  border: '1px solid ' + THEME.border,
   borderRadius: '16px',
   padding: '8px 14px',
   fontSize: '13px',
   cursor: 'pointer',
-  backdropFilter: 'blur(8px)',
   transition: 'all 0.2s ease',
   flexShrink: 0,
   userSelect: 'none',
   fontWeight: 650,
-  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+  boxShadow: THEME.shadow
 };
 
 const categoryQuestions: Record<string, Record<Language, string[]>> = {
@@ -981,10 +1014,10 @@ export default function TourPage() {
         yaw: wp.yaw || 0,
         createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
           hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
-          hotSpotDiv.style.backgroundColor = isNav ? 'rgba(7, 9, 10, 0.68)' : 'rgba(4, 26, 37, 0.73)';
-          hotSpotDiv.style.border = '1.5px solid rgba(248, 244, 244, 0.9)';
+          hotSpotDiv.style.backgroundColor = THEME.surface;
+          hotSpotDiv.style.border = '1.5px solid ' + THEME.border;
           hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
-          hotSpotDiv.style.color = '#fff';
+          hotSpotDiv.style.color = THEME.textPrimary;
           hotSpotDiv.style.display = 'flex';
           hotSpotDiv.style.alignItems = 'center';
           hotSpotDiv.style.justifyContent = 'center';
@@ -994,7 +1027,7 @@ export default function TourPage() {
           hotSpotDiv.style.height = isNav ? 'auto' : '22px';
           hotSpotDiv.style.fontWeight = 'bold';
           hotSpotDiv.style.fontSize = isNav ? '10px' : '15px';
-          hotSpotDiv.style.boxShadow = '2px 4px 12px rgba(0, 0, 0, 0.53)';
+          hotSpotDiv.style.boxShadow = THEME.shadowLg;
           hotSpotDiv.innerHTML = isNav ? `${tooltipText}` : 'ℹ';
         },
         text: tooltipText,
@@ -1945,10 +1978,10 @@ export default function TourPage() {
         yaw: wp.yaw || 0,
         createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
           hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
-          hotSpotDiv.style.backgroundColor = isNav ? 'rgba(7, 9, 10, 0.68)' : 'rgba(4, 26, 37, 0.73)';
-          hotSpotDiv.style.border = '1.5px solid rgba(248, 244, 244, 0.9)';
+          hotSpotDiv.style.backgroundColor = THEME.surface;
+          hotSpotDiv.style.border = '1.5px solid ' + THEME.border;
           hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
-          hotSpotDiv.style.color = '#fff';
+          hotSpotDiv.style.color = THEME.textPrimary;
           hotSpotDiv.style.display = 'flex';
           hotSpotDiv.style.alignItems = 'center';
           hotSpotDiv.style.justifyContent = 'center';
@@ -1958,7 +1991,7 @@ export default function TourPage() {
           hotSpotDiv.style.height = isNav ? 'auto' : '22px';
           hotSpotDiv.style.fontWeight = 'bold';
           hotSpotDiv.style.fontSize = isNav ? '10px' : '15px';
-          hotSpotDiv.style.boxShadow = '2px 4px 12px rgba(0, 0, 0, 0.53)';
+          hotSpotDiv.style.boxShadow = THEME.shadowLg;
           hotSpotDiv.innerHTML = isNav ? `${tooltipText}` : 'ℹ';
         },
         text: tooltipText,
@@ -2192,13 +2225,14 @@ export default function TourPage() {
   // rade NAD postojećom sobom, pa moraju da imaju sa čim da rade).
   if (tour && rooms.length === 0 && !error.includes('Greška')) {
     return (
-      <div style={{ color: 'white', background: '#0a0a0a', height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', gap: '16px', padding: '20px', textAlign: 'center' }}>
-        <p style={{ color: '#cbd5e1', fontSize: '16px' }}>{t.noRooms}</p>
+      <div style={{ color: THEME.textPrimary, background: THEME.bg, height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', gap: '16px', padding: '20px', textAlign: 'center' }}>
+        <Logo />
+        <p style={{ color: THEME.textSecondary, fontSize: '16px' }}>{t.noRooms}</p>
         {adminMode && (
           <button
             onClick={handleAddRoom}
             disabled={creatingRoom}
-            style={{ padding: '12px 28px', fontSize: '15px', fontWeight: 'bold', backgroundColor: '#0284c7', color: '#fff', border: 'none', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)' }}
+            style={{ padding: '12px 28px', fontSize: '15px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: 'none', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)' }}
           >
             {creatingRoom ? 'Kreiranje...' : '➕ Kreiraj prvu sobu'}
           </button>
@@ -2247,33 +2281,32 @@ export default function TourPage() {
   const isModalToolbarVisible = !infoBoxData && (!tourStarted || isRoomTourFullyCompleted || isInfoboxManuallyClosed);
 
   return (
-    <main style={{ position: 'relative', width: '100vw', height: '100dvh', backgroundColor: '#000', overflow: 'hidden' }}>
+    <main style={{ position: 'relative', width: '100vw', height: '100dvh', backgroundColor: THEME.bg, overflow: 'hidden' }}>
       <style>{`
         .pnlm-load-box {
-          display: none !important;   
+          display: none !important;
         }
       `}</style>
 
       {!tourStarted && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 50, backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', textAlign: 'center' }}>
-          <div style={{ position: 'absolute', top: '16px', left: 0, right: 0, textAlign: 'center', color: '#38bdf8', fontSize: '16px', fontWeight: 800, letterSpacing: '1px' }}>
-            KVADRAT360
+        <div style={{ position: 'absolute', inset: 0, zIndex: 50, backgroundColor: THEME.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', textAlign: 'center' }}>
+          <div style={{ position: 'absolute', top: '16px', left: 0, right: 0, display: 'flex', justifyContent: 'center' }}>
+            <Logo />
           </div>
 
           {tour?.agency_name && (
-            <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '18px' }}>{tour.agency_name}</div>
+            <div style={{ color: THEME.textMuted, fontSize: '13px', marginBottom: '18px', fontStyle: 'italic' }}>( {tour.agency_name} )</div>
           )}
 
           <div style={{
             display: 'flex',
-            gap: '6px',
-            backgroundColor: 'rgba(15, 23, 42, 0.8)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            borderRadius: '12px',
-            padding: '4px 8px',
+            gap: '4px',
+            backgroundColor: THEME.surfaceAlt,
+            border: '1px solid ' + THEME.border,
+            borderRadius: '999px',
+            padding: '4px',
             marginBottom: '20px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+            boxShadow: THEME.shadow
           }}>
             {availableLanguages
               .filter((l) => adminMode || isLanguageAvailable(l))
@@ -2282,11 +2315,11 @@ export default function TourPage() {
                   key={l}
                   onClick={() => changeLanguage(l)}
                   style={{
-                    background: lang === l ? '#0284c7' : 'transparent',
-                    color: '#fff',
+                    background: lang === l ? THEME.accent : 'transparent',
+                    color: lang === l ? '#fff' : THEME.textSecondary,
                     border: 'none',
-                    borderRadius: '8px',
-                    padding: '6px 12px',
+                    borderRadius: '999px',
+                    padding: '6px 14px',
                     fontSize: '13px',
                     fontWeight: lang === l ? 'bold' : 'normal',
                     cursor: 'pointer',
@@ -2298,9 +2331,9 @@ export default function TourPage() {
               ))}
           </div>
 
-          <h1 style={{ color: '#fff', fontSize: '26px', marginBottom: '12px', fontWeight: 700 }}>{fullTourTitle}</h1>
-          <p style={{ color: '#cbd5e1', fontSize: '16px', maxWidth: '440px', marginBottom: '32px', lineHeight: '1.5' }}>{t.welcome}</p>
-          <button onClick={() => setTourStarted(true)} style={{ padding: '14px 32px', fontSize: '17px', fontWeight: 'bold', backgroundColor: '#0284c7', color: '#fff', border: 'none', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)' }}>
+          <h1 style={{ color: THEME.textPrimary, fontSize: '26px', marginBottom: '12px', fontWeight: 700 }}>{fullTourTitle}</h1>
+          <p style={{ color: THEME.textSecondary, fontSize: '16px', maxWidth: '440px', marginBottom: '32px', lineHeight: '1.5' }}>{t.welcome}</p>
+          <button onClick={() => setTourStarted(true)} style={{ padding: '14px 32px', fontSize: '17px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: 'none', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)' }}>
             {t.startTour}
           </button>
         </div>
@@ -2321,21 +2354,20 @@ export default function TourPage() {
           }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', rowGap: '4px', width: '100%' }}>
               <div style={{
-                backgroundColor: 'rgba(15, 23, 42, 0.8)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
+                backgroundColor: THEME.surface,
+                border: '1px solid ' + THEME.border,
                 borderRadius: '12px',
                 padding: '5px 12px',
                 pointerEvents: 'auto',
                 maxWidth: '55%',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+                boxShadow: THEME.shadow
               }}>
                 {tour?.agency_name && (
-                  <div style={{ color: '#38bdf8', fontSize: '10px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ color: THEME.accent, fontSize: '10px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {tour.agency_name}
                   </div>
                 )}
-                <div style={{ color: '#fff', fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ color: THEME.textPrimary, fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {fullTourTitle}
                 </div>
               </div>
@@ -2348,13 +2380,12 @@ export default function TourPage() {
                 rowGap: '4px',
                 gap: '4px',
                 maxWidth: '55%',
-                backgroundColor: 'rgba(15, 23, 42, 0.8)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
+                backgroundColor: THEME.surface,
+                border: '1px solid ' + THEME.border,
                 borderRadius: '12px',
                 padding: '3px 6px',
                 pointerEvents: 'auto',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+                boxShadow: THEME.shadow
               }}>
                 {adminMode && (
                   <button
@@ -2362,7 +2393,7 @@ export default function TourPage() {
                     disabled={creatingRoom}
                     title="Dodaj novu (praznu) sobu u ovu turu"
                     style={{
-                      background: '#16a34a',
+                      background: THEME.success,
                       color: '#fff',
                       border: 'none',
                       borderRadius: '8px',
@@ -2474,9 +2505,9 @@ export default function TourPage() {
                     onClick={handleAdminLogout}
                     title="Odjavi se iz admin režima"
                     style={{
-                      background: 'transparent',
-                      border: '1px solid rgba(255,255,255,0.25)',
-                      color: '#fca5a5',
+                      background: THEME.dangerSoft,
+                      border: '1px solid ' + THEME.border,
+                      color: THEME.danger,
                       borderRadius: '8px',
                       padding: '4px 8px',
                       fontSize: '11px',
@@ -2494,7 +2525,7 @@ export default function TourPage() {
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: '#fff',
+                    color: THEME.textPrimary,
                     cursor: 'pointer',
                     fontSize: '14px',
                     padding: '3px 4px'
@@ -2504,7 +2535,7 @@ export default function TourPage() {
                   {isMuted ? '🔇' : '🔊'}
                 </button>
 
-                <div style={{ width: '1px', height: '14px', backgroundColor: 'rgba(255,255,255,0.2)', margin: '0 2px' }} />
+                <div style={{ width: '1px', height: '14px', backgroundColor: THEME.border, margin: '0 2px' }} />
 
                 {availableLanguages
                   .filter((l) => adminMode || isLanguageAvailable(l))
@@ -2513,8 +2544,8 @@ export default function TourPage() {
                       key={l}
                       onClick={() => changeLanguage(l)}
                       style={{
-                        background: lang === l ? '#0284c7' : 'transparent',
-                        color: '#fff',
+                        background: lang === l ? THEME.accent : 'transparent',
+                        color: lang === l ? '#fff' : THEME.textSecondary,
                         border: 'none',
                         borderRadius: '8px',
                         padding: '3px 6px',
@@ -2579,16 +2610,15 @@ export default function TourPage() {
                   key={room.id}
                   onClick={() => changeRoomById(room.id)}
                   style={{
-                    backgroundColor: idx === roomIdx ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 23, 42, 0.75)',
-                    backdropFilter: 'blur(8px)',
-                    color: idx === roomIdx ? '#000000' : '#ffffff',
-                    border: idx === roomIdx ? '1px solid rgba(0, 0, 0, 0.3)' : '1px solid rgba(255, 255, 255, 0.2)',
+                    backgroundColor: idx === roomIdx ? THEME.accent : THEME.surface,
+                    color: idx === roomIdx ? '#ffffff' : THEME.textPrimary,
+                    border: idx === roomIdx ? '1px solid ' + THEME.accent : '1px solid ' + THEME.border,
                     borderRadius: '16px',
                     padding: '5px 12px',
                     fontSize: '12px',
                     cursor: 'pointer',
                     fontWeight: idx === roomIdx ? 600 : 400,
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                    boxShadow: THEME.shadow,
                     flexShrink: 0,
                     userSelect: 'none',
                     whiteSpace: 'nowrap'
@@ -2606,7 +2636,7 @@ export default function TourPage() {
               bottom: 0,
               left: 0,
               width: '24px',
-              background: 'linear-gradient(to right, rgba(10, 10, 10, 0.55), rgba(10, 10, 10, 0))',
+              background: 'linear-gradient(to right, ' + THEME.bg + ', rgba(241, 245, 249, 0))',
               pointerEvents: 'none'
             }} />
             <div style={{
@@ -2615,7 +2645,7 @@ export default function TourPage() {
               bottom: 0,
               right: 0,
               width: '24px',
-              background: 'linear-gradient(to left, rgba(10, 10, 10, 0.55), rgba(10, 10, 10, 0))',
+              background: 'linear-gradient(to left, ' + THEME.bg + ', rgba(241, 245, 249, 0))',
               pointerEvents: 'none'
             }} />
             </div>
@@ -2633,10 +2663,9 @@ export default function TourPage() {
             <button
               onClick={toggleFullscreen}
               style={{
-                backgroundColor: 'rgba(15, 23, 42, 0.85)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: '#fff',
+                backgroundColor: THEME.surface,
+                border: '1px solid ' + THEME.border,
+                color: THEME.textPrimary,
                 borderRadius: '50%',
                 width: '38px',
                 height: '38px',
@@ -2645,7 +2674,7 @@ export default function TourPage() {
                 justifyContent: 'center',
                 cursor: 'pointer',
                 fontSize: '16px',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                boxShadow: THEME.shadow,
                 transition: 'transform 0.2s ease'
               }}
               title={isFullscreen ? 'Napusti ceo ekran' : 'Ceo ekran'}
@@ -2657,10 +2686,9 @@ export default function TourPage() {
               <button
                 onClick={toggleGyroscope}
                 style={{
-                  backgroundColor: isGyroActive ? '#0284c7' : 'rgba(15, 23, 42, 0.85)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  color: '#fff',
+                  backgroundColor: isGyroActive ? THEME.accent : THEME.surface,
+                  border: '1px solid ' + THEME.border,
+                  color: isGyroActive ? '#fff' : THEME.textPrimary,
                   borderRadius: '50%',
                   width: '38px',
                   height: '38px',
@@ -2669,7 +2697,7 @@ export default function TourPage() {
                   justifyContent: 'center',
                   cursor: 'pointer',
                   fontSize: '16px',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                  boxShadow: THEME.shadow,
                   transition: 'background 0.2s'
                 }}
                 title={isGyroActive ? 'Ugasi giroskop' : 'Upali giroskop'}
@@ -2696,19 +2724,19 @@ export default function TourPage() {
           maxWidth: '560px',
           justifyContent: 'center'
         }}>
-          <button onClick={() => setActiveModal('faq')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'faq' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '12px 4px', fontSize: '15px' }}>
+          <button onClick={() => setActiveModal('faq')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'faq' ? THEME.accent : THEME.surface, color: activeModal === 'faq' ? '#fff' : THEME.textPrimary, padding: '12px 4px', fontSize: '15px' }}>
             ❓ {t.btnFaq.replace(/^[^\s]+\s*/, '')}
           </button>
-          <button onClick={() => setActiveModal('location')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'location' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '12px 4px', fontSize: '15px' }}>
+          <button onClick={() => setActiveModal('location')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'location' ? THEME.accent : THEME.surface, color: activeModal === 'location' ? '#fff' : THEME.textPrimary, padding: '12px 4px', fontSize: '15px' }}>
             📍 {t.btnLocation.replace(/^[^\s]+\s*/, '')}
           </button>
-          <button onClick={() => setActiveModal('about')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'about' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '12px 4px', fontSize: '15px' }}>
+          <button onClick={() => setActiveModal('about')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'about' ? THEME.accent : THEME.surface, color: activeModal === 'about' ? '#fff' : THEME.textPrimary, padding: '12px 4px', fontSize: '15px' }}>
             ℹ️ {t.btnAbout.replace(/^[^\s]+\s*/, '')}
           </button>
-          <button onClick={() => setActiveModal('plan')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'plan' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '12px 4px', fontSize: '15px' }}>
+          <button onClick={() => setActiveModal('plan')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'plan' ? THEME.accent : THEME.surface, color: activeModal === 'plan' ? '#fff' : THEME.textPrimary, padding: '12px 4px', fontSize: '15px' }}>
             🗺️ {t.btnPlan.replace(/^[^\s]+\s*/, '')}
           </button>
-          <button onClick={() => setActiveModal('contact')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'contact' ? '#0284c7' : 'rgba(15, 23, 42, 0.9)', color: '#fff', padding: '12px 4px', fontSize: '15px' }}>
+          <button onClick={() => setActiveModal('contact')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'contact' ? THEME.accent : THEME.surface, color: activeModal === 'contact' ? '#fff' : THEME.textPrimary, padding: '12px 4px', fontSize: '15px' }}>
             📞 {t.btnContact.replace(/^[^\s]+\s*/, '')}
           </button>
         </div>
@@ -2726,9 +2754,9 @@ export default function TourPage() {
           alignItems: 'center',
           justifyContent: 'center'
         }}>
-          <div style={{ position: 'absolute', width: '28px', height: '2px', backgroundColor: '#38bdf8', boxShadow: '0 0 4px rgba(0,0,0,0.8)' }} />
-          <div style={{ position: 'absolute', width: '2px', height: '28px', backgroundColor: '#38bdf8', boxShadow: '0 0 4px rgba(0,0,0,0.8)' }} />
-          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ffffff', border: '2px solid #38bdf8' }} />
+          <div style={{ position: 'absolute', width: '28px', height: '2px', backgroundColor: THEME.accent, boxShadow: '0 0 4px rgba(0,0,0,0.8)' }} />
+          <div style={{ position: 'absolute', width: '2px', height: '28px', backgroundColor: THEME.accent, boxShadow: '0 0 4px rgba(0,0,0,0.8)' }} />
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ffffff', border: '2px solid ' + THEME.accent }} />
         </div>
       )}
 
@@ -2742,17 +2770,17 @@ export default function TourPage() {
           zIndex: 60,
           width: '92%',
           maxWidth: '480px',
-          backgroundColor: '#0f172a',
-          border: '1px solid #38bdf8',
+          backgroundColor: THEME.surface,
+          border: '1px solid ' + THEME.border,
           borderRadius: '16px',
           padding: '16px',
-          color: '#fff',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
+          color: THEME.textPrimary,
+          boxShadow: THEME.shadowLg,
           display: 'flex',
           flexDirection: 'column',
           gap: '10px'
         }}>
-          <h4 style={{ margin: 0, color: '#38bdf8', fontSize: '15px' }}>
+          <h4 style={{ margin: 0, color: THEME.accent, fontSize: '15px' }}>
             {editingIndex !== null ? t.editPoint : t.addPoint} (Yaw: {pendingCoords.yaw.toFixed(1)}, Pitch: {pendingCoords.pitch.toFixed(1)})
           </h4>
 
@@ -2764,8 +2792,8 @@ export default function TourPage() {
                 padding: '6px',
                 borderRadius: '8px',
                 border: 'none',
-                background: hotspotType === 'navigation' ? '#0284c7' : '#1e293b',
-                color: '#fff',
+                background: hotspotType === 'navigation' ? THEME.accent : THEME.surfaceAlt,
+                color: hotspotType === 'navigation' ? '#fff' : THEME.textPrimary,
                 fontSize: '12px',
                 cursor: 'pointer'
               }}
@@ -2779,8 +2807,8 @@ export default function TourPage() {
                 padding: '6px',
                 borderRadius: '8px',
                 border: 'none',
-                background: hotspotType === 'info' ? '#0284c7' : '#1e293b',
-                color: '#fff',
+                background: hotspotType === 'info' ? THEME.accent : THEME.surfaceAlt,
+                color: hotspotType === 'info' ? '#fff' : THEME.textPrimary,
                 fontSize: '12px',
                 cursor: 'pointer'
               }}
@@ -2794,8 +2822,8 @@ export default function TourPage() {
                 padding: '6px',
                 borderRadius: '8px',
                 border: 'none',
-                background: hotspotType === 'establish' ? '#0284c7' : '#1e293b',
-                color: '#fff',
+                background: hotspotType === 'establish' ? THEME.accent : THEME.surfaceAlt,
+                color: hotspotType === 'establish' ? '#fff' : THEME.textPrimary,
                 fontSize: '12px',
                 cursor: 'pointer'
               }}
@@ -2808,7 +2836,7 @@ export default function TourPage() {
             <select
               value={targetRoomId}
               onChange={(e) => setTargetRoomId(e.target.value)}
-              style={{ padding: '8px', borderRadius: '6px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '13px' }}
+              style={{ padding: '8px', borderRadius: '6px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '13px' }}
             >
               <option value="">{t.targetRoom}</option>
               {rooms.map(r => (
@@ -2822,7 +2850,7 @@ export default function TourPage() {
             placeholder={t.titlePlaceholder}
             value={hotspotTitle}
             onChange={(e) => setHotspotTitle(e.target.value)}
-            style={{ padding: '8px', borderRadius: '6px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '13px' }}
+            style={{ padding: '8px', borderRadius: '6px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '13px' }}
           />
 
           <textarea
@@ -2830,7 +2858,7 @@ export default function TourPage() {
             value={hotspotText}
             onChange={(e) => setHotspotText(e.target.value)}
             rows={2}
-            style={{ padding: '8px', borderRadius: '6px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '13px', resize: 'none' }}
+            style={{ padding: '8px', borderRadius: '6px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '13px', resize: 'none' }}
           />
 
           <input
@@ -2838,22 +2866,22 @@ export default function TourPage() {
             placeholder={t.audioUrlPlaceholder}
             value={hotspotAudioUrl}
             onChange={(e) => setHotspotAudioUrl(e.target.value)}
-            style={{ padding: '8px', borderRadius: '6px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '13px' }}
+            style={{ padding: '8px', borderRadius: '6px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '13px' }}
           />
-          <span style={{ fontSize: '11px', color: '#64748b', marginTop: '-6px' }}>
-            🌐 Ovaj link važi samo za jezik: <b style={{ color: '#94a3b8' }}>{lang.toUpperCase()}</b> (ostali jezici ostaju netaknuti ako ostaviš prazno)
+          <span style={{ fontSize: '11px', color: THEME.textSecondary, marginTop: '-6px' }}>
+            🌐 Ovaj link važi samo za jezik: <b style={{ color: THEME.textPrimary }}>{lang.toUpperCase()}</b> (ostali jezici ostaju netaknuti ako ostaviš prazno)
           </span>
 
           <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-            <button onClick={handleSaveHotspot} style={{ ...btnStyle, flex: 1, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8' }}>
+            <button onClick={handleSaveHotspot} style={{ ...btnStyle, flex: 1, backgroundColor: THEME.accent, color: '#fff', borderColor: THEME.accent }}>
               {t.save}
             </button>
             {editingIndex !== null && (
-              <button onClick={handleDeleteHotspot} style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#ef4444' }}>
+              <button onClick={handleDeleteHotspot} style={{ ...btnStyle, backgroundColor: THEME.danger, color: '#fff', borderColor: THEME.danger }}>
                 {t.delete}
               </button>
             )}
-            <button onClick={handleCancelEdit} style={{ ...btnStyle, backgroundColor: '#475569', color: '#fff', borderColor: '#64748b' }}>
+            <button onClick={handleCancelEdit} style={{ ...btnStyle, backgroundColor: THEME.surfaceAlt, color: THEME.textPrimary, borderColor: THEME.border }}>
               {t.cancel}
             </button>
           </div>
@@ -2861,11 +2889,11 @@ export default function TourPage() {
       )}
 
       {roomLoading && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 20, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '15px', padding: '20px', textAlign: 'center' }}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 20, backgroundColor: THEME.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '15px', padding: '20px', textAlign: 'center' }}>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <div style={{ width: '12px', height: '12px', backgroundColor: '#38bdf8', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.32s' }} />
-            <div style={{ width: '12px', height: '12px', backgroundColor: '#38bdf8', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.16s' }} />
-            <div style={{ width: '12px', height: '12px', backgroundColor: '#38bdf8', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both' }} />
+            <div style={{ width: '12px', height: '12px', backgroundColor: THEME.accent, borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.32s' }} />
+            <div style={{ width: '12px', height: '12px', backgroundColor: THEME.accent, borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.16s' }} />
+            <div style={{ width: '12px', height: '12px', backgroundColor: THEME.accent, borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both' }} />
           </div>
           <style>{`
             @keyframes pulseDot {
@@ -2875,15 +2903,15 @@ export default function TourPage() {
           `}</style>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '450px' }}>
             {tour?.agency_name && (
-              <div style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+              <div style={{ color: THEME.accent, fontSize: '11px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
                 {tour.agency_name}
               </div>
             )}
-            <div style={{ color: '#fff', fontSize: '16px', fontWeight: 600, letterSpacing: '0.5px' }}>
+            <div style={{ color: THEME.textPrimary, fontSize: '16px', fontWeight: 600, letterSpacing: '0.5px' }}>
               {fullTourTitle}
             </div>
-            <div style={{ color: '#38bdf8', fontSize: '14px', letterSpacing: '0.5px' }}>
-              {t.roomLoadingPrefix}<b style={{ color: '#fff' }}>{currentRoomTitle}</b>
+            <div style={{ color: THEME.accent, fontSize: '14px', letterSpacing: '0.5px' }}>
+              {t.roomLoadingPrefix}<b style={{ color: THEME.textPrimary }}>{currentRoomTitle}</b>
             </div>
           </div>
         </div>
@@ -2898,13 +2926,12 @@ export default function TourPage() {
           zIndex: 30,
           width: '94%',
           maxWidth: '520px',
-          backgroundColor: 'rgba(15, 23, 42, 0.92)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255,255,255,0.18)',
+          backgroundColor: THEME.surface,
+          border: '1px solid ' + THEME.border,
           borderRadius: '18px',
           padding: '16px 18px',
-          color: '#fff',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.6)'
+          color: THEME.textPrimary,
+          boxShadow: THEME.shadowLg
         }}>
           <button
             onClick={() => {
@@ -2918,7 +2945,7 @@ export default function TourPage() {
               right: '12px',
               background: 'transparent',
               border: 'none',
-              color: '#94a3b8',
+              color: THEME.textMuted,
               fontSize: '18px',
               fontWeight: 'bold',
               cursor: 'pointer',
@@ -2927,19 +2954,19 @@ export default function TourPage() {
               borderRadius: '4px',
               transition: 'color 0.2s'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
+            onMouseEnter={(e) => (e.currentTarget.style.color = THEME.textPrimary)}
+            onMouseLeave={(e) => (e.currentTarget.style.color = THEME.textMuted)}
             title={t.close}
           >
             ×
           </button>
 
           {displayedInfoTitle && (
-            <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', color: '#38bdf8', paddingRight: '22px', fontWeight: 600 }}>
+            <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', color: THEME.accent, paddingRight: '22px', fontWeight: 600 }}>
               {displayedInfoTitle}
             </h3>
           )}
-          <p style={{ margin: 0, fontSize: '13px', lineHeight: '1.5', color: '#f1f5f9', paddingRight: '12px' }}>
+          <p style={{ margin: 0, fontSize: '13px', lineHeight: '1.5', color: THEME.textPrimary, paddingRight: '12px' }}>
             {displayedInfoText}
           </p>
         </div>
@@ -2947,12 +2974,12 @@ export default function TourPage() {
 
       {/* MODAL: ADMIN LOGIN (Supabase Auth - zamena za staru ?admin=... lozinku) */}
       {showAdminLogin && !adminMode && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <form
             onSubmit={handleAdminLogin}
-            style={{ backgroundColor: '#0f172a', border: '1px solid #38bdf8', borderRadius: '20px', width: '100%', maxWidth: '380px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px', boxShadow: '0 20px 50px rgba(0,0,0,0.9)' }}
+            style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', width: '100%', maxWidth: '380px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px', boxShadow: THEME.shadowLg }}
           >
-            <h2 style={{ color: '#38bdf8', fontSize: '18px', margin: 0, fontWeight: 700 }}>🔒 Admin prijava</h2>
+            <h2 style={{ color: THEME.textPrimary, fontSize: '18px', margin: 0, fontWeight: 700 }}>🔒 Admin prijava</h2>
 
             <input
               type="email"
@@ -2961,7 +2988,7 @@ export default function TourPage() {
               onChange={(e) => setLoginEmail(e.target.value)}
               autoComplete="username"
               required
-              style={{ padding: '10px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '14px', boxSizing: 'border-box' }}
+              style={{ padding: '10px', borderRadius: '8px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '14px', boxSizing: 'border-box' }}
             />
 
             <input
@@ -2971,25 +2998,25 @@ export default function TourPage() {
               onChange={(e) => setLoginPassword(e.target.value)}
               autoComplete="current-password"
               required
-              style={{ padding: '10px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '14px', boxSizing: 'border-box' }}
+              style={{ padding: '10px', borderRadius: '8px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '14px', boxSizing: 'border-box' }}
             />
 
             {loginError && (
-              <p style={{ color: '#f87171', fontSize: '13px', margin: 0 }}>{loginError}</p>
+              <p style={{ color: THEME.danger, fontSize: '13px', margin: 0 }}>{loginError}</p>
             )}
 
             <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
               <button
                 type="submit"
                 disabled={loginLoading}
-                style={{ ...btnStyle, flex: 1, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', padding: '10px' }}
+                style={{ ...btnStyle, flex: 1, backgroundColor: THEME.accent, color: '#fff', borderColor: THEME.accent, padding: '10px' }}
               >
                 {loginLoading ? 'Prijava...' : 'Prijavi se'}
               </button>
               <button
                 type="button"
                 onClick={() => setShowAdminLogin(false)}
-                style={{ ...btnStyle, backgroundColor: '#475569', color: '#fff', borderColor: '#64748b' }}
+                style={{ ...btnStyle, backgroundColor: THEME.surfaceAlt, color: THEME.textPrimary, borderColor: THEME.border }}
               >
                 {t.cancel}
               </button>
@@ -3000,40 +3027,40 @@ export default function TourPage() {
 
       {/* MODAL: PREGLED I IZMENA SRPSKO DRAFTA + ODABIR JEZIKA */}
       {showDraftModal && aiDraft && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ backgroundColor: '#0f172a', border: '1px solid #38bdf8', borderRadius: '20px', width: '100%', maxWidth: '650px', maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.9)' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ color: '#38bdf8', fontSize: '18px', margin: 0, fontWeight: 700 }}>✏️ Pregled i Izmena AI Drafta (SR)</h2>
-              <button onClick={() => setShowDraftModal(false)} style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', padding: '6px 12px' }}>Zatvori</button>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', width: '100%', maxWidth: '650px', maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid ' + THEME.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ color: THEME.textPrimary, fontSize: '18px', margin: 0, fontWeight: 700 }}>✏️ Pregled i Izmena AI Drafta (SR)</h2>
+              <button onClick={() => setShowDraftModal(false)} style={{ ...btnStyle, backgroundColor: THEME.danger, color: '#fff', borderColor: THEME.danger, padding: '6px 12px' }}>Zatvori</button>
             </div>
-            
+
             <div style={{ padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
               <div>
-                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px', fontWeight: 600 }}>Naziv sobe (SR):</label>
+                <label style={{ fontSize: '12px', color: THEME.textSecondary, display: 'block', marginBottom: '4px', fontWeight: 600 }}>Naziv sobe (SR):</label>
                 <input
                   type="text"
                   value={aiDraft.title}
                   onChange={(e) => setAiDraft({ ...aiDraft, title: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '14px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '14px', boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px', fontWeight: 600 }}>Uvodna naracija (SR):</label>
+                <label style={{ fontSize: '12px', color: THEME.textSecondary, display: 'block', marginBottom: '4px', fontWeight: 600 }}>Uvodna naracija (SR):</label>
                 <textarea
                   value={aiDraft.narration}
                   onChange={(e) => setAiDraft({ ...aiDraft, narration: e.target.value })}
                   rows={3}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid #475569', fontSize: '14px', resize: 'vertical', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '14px', resize: 'vertical', boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '8px', fontWeight: 600 }}>Generisane tačke ({aiDraft.waypoints.length}):</label>
+                <label style={{ fontSize: '12px', color: THEME.textSecondary, display: 'block', marginBottom: '8px', fontWeight: 600 }}>Generisane tačke ({aiDraft.waypoints.length}):</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '220px', overflowY: 'auto', paddingRight: '4px' }}>
                   {aiDraft.waypoints.map((wp, i) => (
-                    <div key={i} style={{ backgroundColor: '#1e293b', padding: '12px', borderRadius: '10px', fontSize: '13px', border: '1px solid #334155', color: '#e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <span style={{ color: '#38bdf8', fontWeight: 'bold' }}>Tačka {i + 1}:</span>
+                    <div key={i} style={{ backgroundColor: THEME.surfaceAlt, padding: '12px', borderRadius: '10px', fontSize: '13px', border: '1px solid ' + THEME.border, color: THEME.textPrimary, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <span style={{ color: THEME.accent, fontWeight: 'bold' }}>Tačka {i + 1}:</span>
                       <input
                         type="text"
                         placeholder="Naslov tačke (SR)..."
@@ -3046,7 +3073,7 @@ export default function TourPage() {
                           };
                           setAiDraft({ ...aiDraft, waypoints: updatedWps });
                         }}
-                        style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', background: '#0f172a', color: '#fff', border: '1px solid #475569', fontSize: '12px', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', background: THEME.surface, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '12px', boxSizing: 'border-box' }}
                       />
                       <textarea
                         placeholder="Opis / Tekst tačke (SR)..."
@@ -3060,7 +3087,7 @@ export default function TourPage() {
                           setAiDraft({ ...aiDraft, waypoints: updatedWps });
                         }}
                         rows={2}
-                        style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', background: '#0f172a', color: '#fff', border: '1px solid #475569', fontSize: '12px', resize: 'vertical', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', background: THEME.surface, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '12px', resize: 'vertical', boxSizing: 'border-box' }}
                       />
                     </div>
                   ))}
@@ -3068,18 +3095,18 @@ export default function TourPage() {
               </div>
 
               {/* SELEKCIJA CILJNIH JEZIKA DIREKTNO U MODALU */}
-              <div style={{ backgroundColor: '#1e293b', padding: '12px 14px', borderRadius: '10px', border: '1px solid #334155' }}>
-                <label style={{ fontSize: '12px', color: '#38bdf8', display: 'block', marginBottom: '6px', fontWeight: 700 }}>
+              <div style={{ backgroundColor: THEME.surfaceAlt, padding: '12px 14px', borderRadius: '10px', border: '1px solid ' + THEME.border }}>
+                <label style={{ fontSize: '12px', color: THEME.accent, display: 'block', marginBottom: '6px', fontWeight: 700 }}>
                   Prevedi i ubaci u scenu na sledeće jezike:
                 </label>
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                   {availableLanguages.map((l) => (
-                    <label key={l} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: '#fff' }}>
+                    <label key={l} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: THEME.textPrimary }}>
                       <input
                         type="checkbox"
                         checked={targetLanguages.includes(l)}
                         onChange={() => toggleTargetLanguage(l)}
-                        style={{ accentColor: '#0284c7', width: '16px', height: '16px' }}
+                        style={{ accentColor: THEME.accent, width: '16px', height: '16px' }}
                       />
                       {l.toUpperCase()} {l === 'sr' && '(Maternji)'}
                     </label>
@@ -3088,26 +3115,26 @@ export default function TourPage() {
               </div>
 
               {/* SELEKCIJA JEZIKA ZA AI GLASOVNU NARACIJU (OPCIONO) */}
-              <div style={{ backgroundColor: '#1e293b', padding: '12px 14px', borderRadius: '10px', border: '1px solid #334155' }}>
-                <label style={{ fontSize: '12px', color: '#c084fc', display: 'block', marginBottom: '6px', fontWeight: 700 }}>
+              <div style={{ backgroundColor: THEME.surfaceAlt, padding: '12px 14px', borderRadius: '10px', border: '1px solid ' + THEME.border }}>
+                <label style={{ fontSize: '12px', color: '#7c3aed', display: 'block', marginBottom: '6px', fontWeight: 700 }}>
                   🎙️ Generiši AI glasovnu naraciju (MP3) za sledeće jezike (opciono):
                 </label>
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
                   {availableLanguages
                     .filter((l) => targetLanguages.includes(l))
                     .map((l) => (
-                      <label key={l} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: '#fff' }}>
+                      <label key={l} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: THEME.textPrimary }}>
                         <input
                           type="checkbox"
                           checked={voiceLanguages.includes(l)}
                           onChange={() => toggleVoiceLanguage(l)}
-                          style={{ accentColor: '#c084fc', width: '16px', height: '16px' }}
+                          style={{ accentColor: '#7c3aed', width: '16px', height: '16px' }}
                         />
                         {l.toUpperCase()}
                       </label>
                     ))}
                 </div>
-                <p style={{ fontSize: '11px', color: '#64748b', margin: '8px 0 0 0' }}>
+                <p style={{ fontSize: '11px', color: THEME.textSecondary, margin: '8px 0 0 0' }}>
                   {voiceLanguages.length === 0
                     ? 'Nijedan jezik nije izabran - glas se neće generisati (biće samo tekst).'
                     : `Glas će biti generisan za: ${voiceLanguages.map((l) => l.toUpperCase()).join(', ')}. Ovo može potrajati.`}
@@ -3115,10 +3142,10 @@ export default function TourPage() {
               </div>
             </div>
 
-            <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', gap: '10px' }}>
+            <div style={{ padding: '16px 20px', borderTop: '1px solid ' + THEME.border, display: 'flex', gap: '10px' }}>
               <button
                 onClick={handleConfirmDraftAndProcess}
-                style={{ ...btnStyle, flex: 1, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', padding: '12px', fontSize: '14px', fontWeight: 'bold' }}
+                style={{ ...btnStyle, flex: 1, backgroundColor: THEME.accent, color: '#fff', borderColor: THEME.accent, padding: '12px', fontSize: '14px', fontWeight: 'bold' }}
               >
                 🚀 Potvrdi Draft & Pokreni Prevođenje
               </button>
@@ -3129,34 +3156,34 @@ export default function TourPage() {
 
       {/* MODAL: SAMOSTALNO GENERISANJE/OSVEŽAVANJE AI GLASA ZA POSTOJEĆI SADRŽAJ */}
       {showVoiceModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ backgroundColor: '#0f172a', border: '1px solid #c084fc', borderRadius: '20px', width: '100%', maxWidth: '420px', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.9)' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ color: '#c084fc', fontSize: '17px', margin: 0, fontWeight: 700 }}>🎙️ AI Glasovna Naracija</h2>
-              <button onClick={() => setShowVoiceModal(false)} style={{ ...btnStyle, backgroundColor: '#475569', color: '#fff', padding: '6px 12px' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', width: '100%', maxWidth: '420px', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid ' + THEME.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ color: '#7c3aed', fontSize: '17px', margin: 0, fontWeight: 700 }}>🎙️ AI Glasovna Naracija</h2>
+              <button onClick={() => setShowVoiceModal(false)} style={{ ...btnStyle, backgroundColor: THEME.surfaceAlt, color: THEME.textPrimary, borderColor: THEME.border, padding: '6px 12px' }}>
                 {t.cancel}
               </button>
             </div>
 
             <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8', lineHeight: '1.5' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: THEME.textSecondary, lineHeight: '1.5' }}>
                 Generiše (ili osvežava) AI glas na osnovu <b>trenutno sačuvanog</b> teksta u ovoj sobi
                 (uvodna naracija + info-tačke), za jezike koje izabereš. Postojeći MP3 za taj jezik biće
                 zamenjen novim.
               </p>
 
               <div>
-                <label style={{ fontSize: '12px', color: '#c084fc', display: 'block', marginBottom: '8px', fontWeight: 700 }}>
+                <label style={{ fontSize: '12px', color: '#7c3aed', display: 'block', marginBottom: '8px', fontWeight: 700 }}>
                   Za koje jezike da generišem glas:
                 </label>
                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                   {availableLanguages.map((l) => (
-                    <label key={l} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: '#fff' }}>
+                    <label key={l} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: THEME.textPrimary }}>
                       <input
                         type="checkbox"
                         checked={voiceLanguages.includes(l)}
                         onChange={() => toggleVoiceLanguage(l)}
-                        style={{ accentColor: '#c084fc', width: '16px', height: '16px' }}
+                        style={{ accentColor: '#7c3aed', width: '16px', height: '16px' }}
                       />
                       {l.toUpperCase()}
                     </label>
@@ -3165,16 +3192,16 @@ export default function TourPage() {
               </div>
             </div>
 
-            <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <div style={{ padding: '16px 20px', borderTop: '1px solid ' + THEME.border }}>
               <button
                 onClick={handleGenerateVoiceForRoom}
                 disabled={voiceLanguages.length === 0}
                 style={{
                   ...btnStyle,
                   width: '100%',
-                  backgroundColor: voiceLanguages.length === 0 ? '#475569' : '#c084fc',
-                  color: voiceLanguages.length === 0 ? '#94a3b8' : '#1e1b2e',
-                  borderColor: '#c084fc',
+                  backgroundColor: voiceLanguages.length === 0 ? THEME.surfaceAlt : '#7c3aed',
+                  color: voiceLanguages.length === 0 ? THEME.textMuted : '#fff',
+                  borderColor: '#7c3aed',
                   padding: '12px',
                   fontSize: '14px',
                   fontWeight: 'bold',
@@ -3190,58 +3217,58 @@ export default function TourPage() {
 
       {/* MODAL: DODAVANJE (PREVOĐENJE) SOBE NA DODATNI JEZIK U BILO KOM TRENUTKU */}
       {showAddLanguageModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ backgroundColor: '#0f172a', border: '1px solid #0ea5e9', borderRadius: '20px', width: '100%', maxWidth: '420px', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.9)' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ color: '#38bdf8', fontSize: '17px', margin: 0, fontWeight: 700 }}>🌐 Dodaj Jezik</h2>
-              <button onClick={() => { setShowAddLanguageModal(false); setAddLanguageTargets([]); }} style={{ ...btnStyle, backgroundColor: '#475569', color: '#fff', padding: '6px 12px' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', width: '100%', maxWidth: '420px', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid ' + THEME.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ color: THEME.accent, fontSize: '17px', margin: 0, fontWeight: 700 }}>🌐 Dodaj Jezik</h2>
+              <button onClick={() => { setShowAddLanguageModal(false); setAddLanguageTargets([]); }} style={{ ...btnStyle, backgroundColor: THEME.surfaceAlt, color: THEME.textPrimary, borderColor: THEME.border, padding: '6px 12px' }}>
                 {t.cancel}
               </button>
             </div>
 
             <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8', lineHeight: '1.5' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: THEME.textSecondary, lineHeight: '1.5' }}>
                 Prevodi <b>trenutno sačuvan srpski sadržaj</b> ove sobe (naslov, uvodna naracija, tačke) na
                 izabrane jezike i dodaje ih uz postojeće - ništa se ne briše. Ako jezik već ima prevod, biće
                 zamenjen novim.
               </p>
 
               <div>
-                <label style={{ fontSize: '12px', color: '#38bdf8', display: 'block', marginBottom: '8px', fontWeight: 700 }}>
+                <label style={{ fontSize: '12px', color: THEME.accent, display: 'block', marginBottom: '8px', fontWeight: 700 }}>
                   Za koje jezike da prevedem ovu sobu:
                 </label>
                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                   {availableLanguages
                     .filter((l) => l !== 'sr')
                     .map((l) => (
-                      <label key={l} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: '#fff' }}>
+                      <label key={l} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: THEME.textPrimary }}>
                         <input
                           type="checkbox"
                           checked={addLanguageTargets.includes(l)}
                           onChange={() => toggleAddLanguageTarget(l)}
-                          style={{ accentColor: '#0ea5e9', width: '16px', height: '16px' }}
+                          style={{ accentColor: THEME.accent, width: '16px', height: '16px' }}
                         />
                         {l.toUpperCase()} {roomHasLanguageContent(currentRoom, l) ? '✅' : '○'}
                       </label>
                     ))}
                 </div>
-                <p style={{ fontSize: '11px', color: '#64748b', margin: '10px 0 0 0' }}>
+                <p style={{ fontSize: '11px', color: THEME.textSecondary, margin: '10px 0 0 0' }}>
                   ✅ = već postoji prevod za taj jezik u ovoj sobi (biće osvežen). ○ = jezik još ne postoji u
                   ovoj sobi.
                 </p>
               </div>
             </div>
 
-            <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <div style={{ padding: '16px 20px', borderTop: '1px solid ' + THEME.border }}>
               <button
                 onClick={handleTranslateRoomLanguages}
                 disabled={addLanguageTargets.length === 0}
                 style={{
                   ...btnStyle,
                   width: '100%',
-                  backgroundColor: addLanguageTargets.length === 0 ? '#475569' : '#0ea5e9',
-                  color: '#fff',
-                  borderColor: '#0ea5e9',
+                  backgroundColor: addLanguageTargets.length === 0 ? THEME.surfaceAlt : THEME.accent,
+                  color: addLanguageTargets.length === 0 ? THEME.textMuted : '#fff',
+                  borderColor: THEME.accent,
                   padding: '12px',
                   fontSize: '14px',
                   fontWeight: 'bold',
@@ -3257,43 +3284,45 @@ export default function TourPage() {
 
       {/* MODAL: PROGRESS PREVOĐENJA / GENERISANJA GLASA / UPLOAD-A PANORAME */}
       {(translationProgress || voiceProgress || panoramaUploadProgress) && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 110, backgroundColor: 'rgba(0, 0, 0, 0.9)', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
-          <div style={{ width: '16px', height: '16px', backgroundColor: '#c084fc', borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both' }} />
-          <div style={{ color: '#c084fc', fontSize: '18px', fontWeight: 'bold' }}>{voiceProgress || panoramaUploadProgress || translationProgress}</div>
-          <p style={{ color: '#94a3b8', fontSize: '13px' }}>
-            {voiceProgress
-              ? 'Molimo vas sačekajte, generisanje AI glasa je u toku...'
-              : panoramaUploadProgress
-              ? 'Molimo vas sačekajte, upload na Cloudflare je u toku...'
-              : 'Molimo vas sačekajte, prevođenje i upis u bazu su u toku...'}
-          </p>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 110, backgroundColor: THEME.overlay, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+          <div style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', padding: '28px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', boxShadow: THEME.shadowLg, maxWidth: '360px', textAlign: 'center' }}>
+            <div style={{ width: '16px', height: '16px', backgroundColor: THEME.accent, borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both' }} />
+            <div style={{ color: THEME.textPrimary, fontSize: '18px', fontWeight: 'bold' }}>{voiceProgress || panoramaUploadProgress || translationProgress}</div>
+            <p style={{ color: THEME.textSecondary, fontSize: '13px' }}>
+              {voiceProgress
+                ? 'Molimo vas sačekajte, generisanje AI glasa je u toku...'
+                : panoramaUploadProgress
+                ? 'Molimo vas sačekajte, upload na Cloudflare je u toku...'
+                : 'Molimo vas sačekajte, prevođenje i upis u bazu su u toku...'}
+            </p>
+          </div>
         </div>
       )}
 
       {hasMounted && activeModal && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 80, backgroundColor: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ backgroundColor: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '20px', width: '100%', maxWidth: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-              <h2 style={{ color: '#fff', fontSize: '20px', margin: 0, fontWeight: 700 }}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 80, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', width: '100%', maxWidth: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid ' + THEME.border }}>
+              <h2 style={{ color: THEME.textPrimary, fontSize: '20px', margin: 0, fontWeight: 700 }}>
                 {activeModal === 'plan' && t.btnPlan}
                 {activeModal === 'location' && t.btnLocation}
                 {activeModal === 'about' && t.btnAbout}
                 {activeModal === 'faq' && t.btnFaq}
                 {activeModal === 'contact' && t.btnContact}
               </h2>
-              <button onClick={() => { setActiveModal(null); setSelectedFaq(null); }} style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#ef4444', padding: '8px 16px', fontSize: '14px' }}>
+              <button onClick={() => { setActiveModal(null); setSelectedFaq(null); }} style={{ ...btnStyle, backgroundColor: THEME.danger, color: '#fff', borderColor: THEME.danger, padding: '8px 16px', fontSize: '14px' }}>
                 {t.close}
               </button>
             </div>
 
-            <div style={{ padding: '20px', overflowY: 'auto', flex: 1, color: '#f1f5f9', fontSize: '16px' }}>
+            <div style={{ padding: '20px', overflowY: 'auto', flex: 1, color: THEME.textPrimary, fontSize: '16px' }}>
               {activeModal === 'plan' && (
                 tour?.floorplan_url ? (
                   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                     <img src={tour.floorplan_url} alt="Floorplan" style={{ maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain', borderRadius: '12px' }} />
                   </div>
                 ) : (
-                  <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '16px' }}>{t.noPlan}</p>
+                  <p style={{ textAlign: 'center', color: THEME.textMuted, fontSize: '16px' }}>{t.noPlan}</p>
                 )
               )}
 
@@ -3303,15 +3332,15 @@ export default function TourPage() {
                     <iframe src={tour.location_map_url} width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
                   </div>
                 ) : (
-                  <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '16px' }}>{t.noLocation}</p>
+                  <p style={{ textAlign: 'center', color: THEME.textMuted, fontSize: '16px' }}>{t.noLocation}</p>
                 )
               )}
 
               {activeModal === 'about' && (
                 aboutText ? (
-                  <p style={{ margin: 0, lineHeight: '1.6', color: '#e2e8f0', whiteSpace: 'pre-wrap', fontSize: '16px' }}>{aboutText}</p>
+                  <p style={{ margin: 0, lineHeight: '1.6', color: THEME.textPrimary, whiteSpace: 'pre-wrap', fontSize: '16px' }}>{aboutText}</p>
                 ) : (
-                  <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '16px' }}>{t.noAbout}</p>
+                  <p style={{ textAlign: 'center', color: THEME.textMuted, fontSize: '16px' }}>{t.noAbout}</p>
                 )
               )}
 
@@ -3324,11 +3353,11 @@ export default function TourPage() {
                         onClick={() => setSelectedFaq(index)}
                         style={{
                           textAlign: 'left',
-                          backgroundColor: 'rgba(30, 41, 59, 0.8)',
-                          border: '1px solid rgba(255,255,255,0.15)',
+                          backgroundColor: THEME.surfaceAlt,
+                          border: '1px solid ' + THEME.border,
                           borderRadius: '12px',
                           padding: '14px 16px',
-                          color: '#fef08a',
+                          color: THEME.textPrimary,
                           fontSize: '16px',
                           fontWeight: 600,
                           cursor: 'pointer',
@@ -3341,47 +3370,47 @@ export default function TourPage() {
                     ))}
                   </div>
                 ) : (
-                  <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '16px' }}>{t.noFaq}</p>
+                  <p style={{ textAlign: 'center', color: THEME.textMuted, fontSize: '16px' }}>{t.noFaq}</p>
                 )
               )}
 
               {activeModal === 'contact' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '4px' }}>
                   {tour?.agent_name && (
-                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.8)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)' }}>
-                      <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#94a3b8' }}>{t.agentLabel}</p>
-                      <p style={{ margin: 0, fontSize: '17px', fontWeight: 'bold', color: '#fff' }}>{tour.agent_name}</p>
+                    <div style={{ backgroundColor: THEME.surfaceAlt, padding: '16px', borderRadius: '12px', border: '1px solid ' + THEME.border }}>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: THEME.textSecondary }}>{t.agentLabel}</p>
+                      <p style={{ margin: 0, fontSize: '17px', fontWeight: 'bold', color: THEME.textPrimary }}>{tour.agent_name}</p>
                     </div>
                   )}
 
                   {tour?.agent_phone && (
-                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.8)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ backgroundColor: THEME.surfaceAlt, padding: '16px', borderRadius: '12px', border: '1px solid ' + THEME.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#94a3b8' }}>{t.phoneLabel}</p>
-                        <p style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: '#fff' }}>{tour.agent_phone}</p>
+                        <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: THEME.textSecondary }}>{t.phoneLabel}</p>
+                        <p style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: THEME.textPrimary }}>{tour.agent_phone}</p>
                       </div>
-                      <a href={`tel:${tour.agent_phone}`} style={{ ...btnStyle, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', textDecoration: 'none', padding: '10px 18px', fontSize: '14px' }}>
+                      <a href={`tel:${tour.agent_phone}`} style={{ ...btnStyle, backgroundColor: THEME.accent, color: '#fff', borderColor: THEME.accent, textDecoration: 'none', padding: '10px 18px', fontSize: '14px' }}>
                         {t.callBtn}
                       </a>
                     </div>
                   )}
 
                   {tour?.agent_email && (
-                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.8)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ backgroundColor: THEME.surfaceAlt, padding: '16px', borderRadius: '12px', border: '1px solid ' + THEME.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ overflow: 'hidden', paddingRight: '8px' }}>
-                        <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#94a3b8' }}>{t.emailLabel}</p>
-                        <p style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: '#fff', textOverflow: 'ellipsis', overflow: 'hidden' }}>{tour.agent_email}</p>
+                        <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: THEME.textSecondary }}>{t.emailLabel}</p>
+                        <p style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: THEME.textPrimary, textOverflow: 'ellipsis', overflow: 'hidden' }}>{tour.agent_email}</p>
                       </div>
-                      <a href={`mailto:${tour.agent_email}`} style={{ ...btnStyle, backgroundColor: '#0284c7', color: '#fff', borderColor: '#38bdf8', textDecoration: 'none', padding: '10px 18px', fontSize: '14px', flexShrink: 0 }}>
+                      <a href={`mailto:${tour.agent_email}`} style={{ ...btnStyle, backgroundColor: THEME.accent, color: '#fff', borderColor: THEME.accent, textDecoration: 'none', padding: '10px 18px', fontSize: '14px', flexShrink: 0 }}>
                         {t.emailBtn}
                       </a>
                     </div>
                   )}
 
                   {tour?.agency_name && (
-                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.8)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)' }}>
-                      <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#94a3b8' }}>{t.agencyLabel}</p>
-                      <p style={{ margin: 0, fontSize: '17px', fontWeight: 'bold', color: '#fff' }}>{tour.agency_name}</p>
+                    <div style={{ backgroundColor: THEME.surfaceAlt, padding: '16px', borderRadius: '12px', border: '1px solid ' + THEME.border }}>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: THEME.textSecondary }}>{t.agencyLabel}</p>
+                      <p style={{ margin: 0, fontSize: '17px', fontWeight: 'bold', color: THEME.textPrimary }}>{tour.agency_name}</p>
                     </div>
                   )}
                 </div>
@@ -3392,17 +3421,17 @@ export default function TourPage() {
       )}
 
       {hasMounted && selectedFaq !== null && faqList[selectedFaq] && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 90, backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ backgroundColor: '#0f172a', border: '1px solid rgba(254, 240, 138, 0.5)', borderRadius: '20px', width: '100%', maxWidth: '520px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-              <h3 style={{ color: '#fef08a', fontSize: '17px', margin: 0, paddingRight: '12px', fontWeight: 600 }}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 90, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', width: '100%', maxWidth: '520px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid ' + THEME.border }}>
+              <h3 style={{ color: THEME.textPrimary, fontSize: '17px', margin: 0, paddingRight: '12px', fontWeight: 600 }}>
                 {faqList[selectedFaq].question}
               </h3>
-              <button onClick={() => setSelectedFaq(null)} style={{ ...btnStyle, backgroundColor: '#dc2626', color: '#fff', borderColor: '#ef4444', flexShrink: 0, padding: '8px 14px', fontSize: '13px' }}>
+              <button onClick={() => setSelectedFaq(null)} style={{ ...btnStyle, backgroundColor: THEME.danger, color: '#fff', borderColor: THEME.danger, flexShrink: 0, padding: '8px 14px', fontSize: '13px' }}>
                 {t.close}
               </button>
             </div>
-            <div style={{ padding: '20px', overflowY: 'auto', flex: 1, color: '#f1f5f9', fontSize: '16px' }}>
+            <div style={{ padding: '20px', overflowY: 'auto', flex: 1, color: THEME.textPrimary, fontSize: '16px' }}>
               <p style={{ margin: 0, lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
                 {faqList[selectedFaq].answer || t.comingSoon}
               </p>
