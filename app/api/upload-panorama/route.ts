@@ -128,7 +128,13 @@ export async function POST(req: Request) {
     );
 
     const base = cdnUrl.replace(/\/+$/, '');
-    const r2Url = `${base}/${key}`;
+
+    // Ime fajla je izvedeno iz id-a sobe, pa zamena panorame piše preko iste
+    // putanje. Bez oznake verzije URL ostaje identičan: React ne primeti
+    // promenu i ne učita scenu ponovo, a i CDN i pretraživač i dalje drže
+    // staru sliku. Vreme otpremanja u query-ju rešava oboje.
+    const version = Date.now();
+    const r2Url = `${base}/${key}?v=${version}`;
 
     // Izvedene slike: mali isečak za share karticu i lakša panorama za
     // telefone. Ako neka pukne, original je već gore i soba radi - to su
@@ -145,7 +151,7 @@ export async function POST(req: Request) {
           ContentType: 'image/jpeg',
         })
       );
-      previewUrl = `${base}/${previewKey}`;
+      previewUrl = `${base}/${previewKey}?v=${version}`;
     } catch (previewError) {
       console.error('UPLOAD PANORAMA: preview nije generisan:', previewError);
     }

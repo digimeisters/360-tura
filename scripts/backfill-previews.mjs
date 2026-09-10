@@ -93,7 +93,7 @@ for (const room of rooms) {
   }
 
   // Ništa da se radi - ne vuci nekoliko megabajta bez potrebe.
-  if (room.preview_url && url.endsWith('.webp')) {
+  if (room.preview_url && url.split('?')[0].endsWith('.webp')) {
     skipped++;
     continue;
   }
@@ -124,7 +124,7 @@ for (const room of rooms) {
 
     // Panorame snimljene kao JPEG su 7-12MB; iste u WebP-u su ispod 1MB bez
     // vidljivog gubitka. Rezolucija se ne dira.
-    if (!url.endsWith('.webp')) {
+    if (!url.split('?')[0].endsWith('.webp')) {
       const webp = await toWebp(buf);
       const saved = (100 - (webp.length / buf.length) * 100).toFixed(0);
       parts.push(
