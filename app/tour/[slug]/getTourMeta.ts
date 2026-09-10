@@ -9,6 +9,7 @@ export type TourMeta = {
   address: string | null;
   category: string | null;
   propertyType: string | null;
+  previewUrl: string | null;
 };
 
 // Isti fallback lanac kao getLocalizedText u utils.tsx, ali bez povlačenja
@@ -51,6 +52,32 @@ function realValue(value: string | null): string | null {
   return trimmed;
 }
 
+type CoverRoom = {
+  preview_url: string | null;
+  title: string | null;
+  title_i18n: unknown;
+  order_index: number | null;
+};
+
+// Dnevna soba prodaje oglas bolje od hodnika ili kupatila, pa se ona bira
+// za naslovnu sliku umesto prve sobe po redosledu. Nazivi u bazi su
+// neujednačeni ("Dnevna soba 1/2", "Dnevna-radni", pa i cela rečenica
+// "Ulazimo u prijatnu dnevnu sobu..."), zato se traži koren reči.
+const LIVING_ROOM_HINTS = ['dnevn', 'boravak', 'living', 'wohnzimmer', 'гостин'];
+
+function pickCoverRoom(rooms: CoverRoom[]): string | null {
+  const withPreview = rooms.filter((r) => r.preview_url);
+  if (!withPreview.length) return null;
+
+  const living = withPreview.find((room) => {
+    // Pretražuje se ceo i18n blob, pa naziv na bilo kom jeziku pogađa.
+    const haystack = `${room.title ?? ''} ${JSON.stringify(room.title_i18n ?? '')}`.toLowerCase();
+    return LIVING_ROOM_HINTS.some((hint) => haystack.includes(hint));
+  });
+
+  return (living ?? withPreview[0]).preview_url;
+}
+
 // generateMetadata i opengraph-image se izvršavaju odvojeno za isti slug -
 // cache() sprečava dupli upit ka Supabase-u u istom renderu.
 export const getTourMeta = cache(async (slug: string): Promise<TourMeta | null> => {
@@ -62,7 +89,18 @@ export const getTourMeta = cache(async (slug: string): Promise<TourMeta | null> 
 
   if (error || !data) return null;
 
+  // Cast jer types/supabase.ts još ne zna za preview_url (migracija 004) -
+  // ukloniti kad se tipovi regenerišu.
+  const { data: rooms } = await supabase
+    .from('rooms')
+    .select('preview_url, title, title_i18n, order_index' as '*')
+    .eq('tour_slug', slug)
+    .not('preview_url', 'is', null)
+    .order('order_index', { ascending: true })
+    .returns<CoverRoom[]>();
+
   return {
+    previewUrl: pickCoverRoom(rooms ?? []),
     slug: data.slug,
     title: realValue(pickLang(data.title_i18n)) || realValue(data.title) || 'Virtuelna tura',
     agencyName: realValue(data.agency_name),

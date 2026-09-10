@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { r2Client } from '@/app/lib/r2';
+import { generatePanoramaPreview } from '@/app/lib/panoramaPreview';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -105,11 +106,31 @@ export async function POST(req: Request) {
       })
     );
 
-    const r2Url = `${cdnUrl.replace(/\/+$/, '')}/${key}`;
+    const base = cdnUrl.replace(/\/+$/, '');
+    const r2Url = `${base}/${key}`;
+
+    // Mali isečak za share/OG karticu. Ako generisanje pukne, panorama je
+    // već gore i soba radi - preview je dodatak, ne sme da obori upload.
+    let previewUrl: string | null = null;
+    try {
+      const preview = await generatePanoramaPreview(buffer);
+      const previewKey = `${roomId}-preview.jpg`;
+      await r2Client.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: previewKey,
+          Body: preview,
+          ContentType: 'image/jpeg',
+        })
+      );
+      previewUrl = `${base}/${previewKey}`;
+    } catch (previewError) {
+      console.error('UPLOAD PANORAMA: preview nije generisan:', previewError);
+    }
 
     const { error: updateError } = await supabase
       .from('rooms')
-      .update({ panorama_url_cf: r2Url })
+      .update(previewUrl ? { panorama_url_cf: r2Url, preview_url: previewUrl } : { panorama_url_cf: r2Url })
       .eq('id', roomId);
 
     if (updateError) {
@@ -120,6 +141,7 @@ export async function POST(req: Request) {
       success: true,
       roomId,
       r2Url,
+      previewUrl,
       bytes: buffer.length,
     });
   } catch (error: any) {
