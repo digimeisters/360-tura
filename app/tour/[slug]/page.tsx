@@ -2256,12 +2256,13 @@ export default function TourPage() {
 
       {!tourStarted && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 50, backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', textAlign: 'center' }}>
-          <div style={{ marginBottom: '18px' }}>
-            <div style={{ color: '#38bdf8', fontSize: '16px', fontWeight: 800, letterSpacing: '1px' }}>KVADRAT360</div>
-            {tour?.agency_name && (
-              <div style={{ color: '#94a3b8', fontSize: '13px', marginTop: '2px' }}>{tour.agency_name}</div>
-            )}
+          <div style={{ position: 'absolute', top: '16px', left: 0, right: 0, textAlign: 'center', color: '#38bdf8', fontSize: '16px', fontWeight: 800, letterSpacing: '1px' }}>
+            KVADRAT360
           </div>
+
+          {tour?.agency_name && (
+            <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '18px' }}>{tour.agency_name}</div>
+          )}
 
           <div style={{
             display: 'flex',
@@ -2329,9 +2330,11 @@ export default function TourPage() {
                 maxWidth: '55%',
                 boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
               }}>
-                <div style={{ color: '#38bdf8', fontSize: '10px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  KVADRAT360{tour?.agency_name ? ` · ${tour.agency_name}` : ''}
-                </div>
+                {tour?.agency_name && (
+                  <div style={{ color: '#38bdf8', fontSize: '10px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {tour.agency_name}
+                  </div>
+                )}
                 <div style={{ color: '#fff', fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {fullTourTitle}
                 </div>
@@ -2871,9 +2874,11 @@ export default function TourPage() {
             }
           `}</style>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '450px' }}>
-            <div style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-              KVADRAT360{tour?.agency_name ? ` · ${tour.agency_name}` : ''}
-            </div>
+            {tour?.agency_name && (
+              <div style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                {tour.agency_name}
+              </div>
+            )}
             <div style={{ color: '#fff', fontSize: '16px', fontWeight: 600, letterSpacing: '0.5px' }}>
               {fullTourTitle}
             </div>
