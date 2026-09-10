@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
+import { checkWebhookSecret } from '@/app/lib/webhookAuth';
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
@@ -46,6 +47,13 @@ function buildI18nSchema(languages: string[]): Schema {
 
 export async function POST(req: Request) {
   try {
+    // Ruta upisuje ture sa upsert-om po slug-u, pa neovlašćen poziv ne bi
+    // samo dodao turu nego bi mogao i da prepiše postojeći oglas.
+    const auth = checkWebhookSecret(req);
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
