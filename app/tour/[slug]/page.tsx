@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { Language, Waypoint, EstablishData, Room, Tour, ActiveModal } from './types';
 import { translations, categoryQuestions } from './translations';
 import { THEME, btnStyle, overlayIconStyle, overlayNavButtonStyle, applyGlassHotspotStyle } from './theme';
+import { SITE_URL } from '../../lib/site';
 import { Logo } from './Logo';
 import {
   normalizeYaw,
@@ -1308,7 +1309,10 @@ export default function TourPage() {
   // ako share API nije dostupan) kopira link u clipboard i prikazuje kratku
   // potvrdu na dugmetu.
   const handleShareTour = async () => {
-    const url = window.location.href;
+    // Namerno se ne koristi window.location.href: tura se otvara i preko
+    // 360-tura.vercel.app ili app.kvadrat360.com, pa bi se delio taj domen
+    // umesto brendiranog. Query se odbacuje da ?admin=1 ne ode klijentu.
+    const url = `${SITE_URL}${window.location.pathname}`;
     const shareTitle = getLocalizedText(tour?.title_i18n, lang) || 'Kvadrat360';
 
     if (typeof navigator !== 'undefined' && navigator.share) {
