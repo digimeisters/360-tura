@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 import { Language, Waypoint, EstablishData, Room, Tour, ActiveModal } from './types';
 import { translations, categoryQuestions } from './translations';
-import { THEME, btnStyle } from './theme';
+import { THEME, btnStyle, overlayIconStyle, overlayNavButtonStyle } from './theme';
 import { Logo } from './Logo';
 import {
   normalizeYaw,
@@ -2017,38 +2017,6 @@ export default function TourPage() {
                   </button>
                 )}
 
-                <button
-                  onClick={handleShareTour}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: shareCopied ? THEME.success : THEME.textPrimary,
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    padding: '3px 4px'
-                  }}
-                  title={shareCopied ? 'Link kopiran!' : 'Podeli turu'}
-                >
-                  {shareCopied ? '✅' : '🔗'}
-                </button>
-
-                <button
-                  onClick={toggleMute}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: THEME.textPrimary,
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    padding: '3px 4px'
-                  }}
-                  title={isMuted ? 'Uključi zvuk' : 'Isključi zvuk'}
-                >
-                  {isMuted ? '🔇' : '🔊'}
-                </button>
-
-                <div style={{ width: '1px', height: '14px', backgroundColor: THEME.border, margin: '0 2px' }} />
-
                 {availableLanguages
                   .filter((l) => adminMode || isLanguageAvailable(l))
                   .map((l) => (
@@ -2174,21 +2142,7 @@ export default function TourPage() {
           }}>
             <button
               onClick={toggleFullscreen}
-              style={{
-                backgroundColor: THEME.surface,
-                border: '1px solid ' + THEME.border,
-                color: THEME.textPrimary,
-                borderRadius: '50%',
-                width: '38px',
-                height: '38px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                fontSize: '16px',
-                boxShadow: THEME.shadow,
-                transition: 'transform 0.2s ease'
-              }}
+              style={overlayIconStyle}
               title={isFullscreen ? 'Napusti ceo ekran' : 'Ceo ekran'}
             >
               {isFullscreen ? '🗗' : '⛶'}
@@ -2197,33 +2151,37 @@ export default function TourPage() {
             {isFullscreen && (
               <button
                 onClick={toggleGyroscope}
-                style={{
-                  backgroundColor: isGyroActive ? THEME.accent : THEME.surface,
-                  border: '1px solid ' + THEME.border,
-                  color: isGyroActive ? '#fff' : THEME.textPrimary,
-                  borderRadius: '50%',
-                  width: '38px',
-                  height: '38px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  boxShadow: THEME.shadow,
-                  transition: 'background 0.2s'
-                }}
+                style={{ ...overlayIconStyle, color: isGyroActive ? THEME.accent : '#fff' }}
                 title={isGyroActive ? 'Ugasi giroskop' : 'Upali giroskop'}
               >
                 🧭
               </button>
             )}
+
+            <button onClick={handleShareTour} style={{ ...overlayIconStyle, color: shareCopied ? THEME.success : '#fff' }} title={shareCopied ? 'Link kopiran!' : 'Podeli turu'}>
+              {shareCopied ? '✅' : '🔗'}
+            </button>
+
+            <button onClick={toggleMute} style={overlayIconStyle} title={isMuted ? 'Uključi zvuk' : 'Isključi zvuk'}>
+              {isMuted ? '🔇' : '🔊'}
+            </button>
           </div>
         </>
       )}
 
       <div id="panorama" style={{ width: '100%', height: '100%' }} />
 
-      {!pendingCoords && isModalToolbarVisible && (
+      {!pendingCoords && isModalToolbarVisible && (() => {
+        // Ovaj toolbar se prikazuje i preko panorame (tamna/šarena pozadina
+        // fotografije - treba beo tekst + senka za čitljivost) i na svetlom
+        // welcome ekranu pre početka ture (treba tamniji tekst, bez senke).
+        const navBase: React.CSSProperties = tourStarted
+          ? { color: '#fff', filter: 'drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55))' }
+          : { color: THEME.textPrimary };
+        const navColor = (isActive: boolean): React.CSSProperties =>
+          isActive ? { ...navBase, color: THEME.accent } : navBase;
+
+        return (
         <div style={{
           position: 'absolute',
           bottom: '12px',
@@ -2236,23 +2194,29 @@ export default function TourPage() {
           maxWidth: '560px',
           justifyContent: 'center'
         }}>
-          <button onClick={() => setActiveModal('faq')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'faq' ? THEME.accent : THEME.surface, color: activeModal === 'faq' ? '#fff' : THEME.textPrimary, padding: '12px 4px', fontSize: '15px' }}>
-            ❓ {t.btnFaq.replace(/^[^\s]+\s*/, '')}
+          <button onClick={() => setActiveModal('faq')} style={{ ...overlayNavButtonStyle, flex: 1, ...navColor(activeModal === 'faq') }}>
+            <span style={{ fontSize: '20px' }}>❓</span>
+            {t.btnFaq.replace(/^[^\s]+\s*/, '')}
           </button>
-          <button onClick={() => setActiveModal('location')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'location' ? THEME.accent : THEME.surface, color: activeModal === 'location' ? '#fff' : THEME.textPrimary, padding: '12px 4px', fontSize: '15px' }}>
-            📍 {t.btnLocation.replace(/^[^\s]+\s*/, '')}
+          <button onClick={() => setActiveModal('location')} style={{ ...overlayNavButtonStyle, flex: 1, ...navColor(activeModal === 'location') }}>
+            <span style={{ fontSize: '20px' }}>📍</span>
+            {t.btnLocation.replace(/^[^\s]+\s*/, '')}
           </button>
-          <button onClick={() => setActiveModal('about')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'about' ? THEME.accent : THEME.surface, color: activeModal === 'about' ? '#fff' : THEME.textPrimary, padding: '12px 4px', fontSize: '15px' }}>
-            ℹ️ {t.btnAbout.replace(/^[^\s]+\s*/, '')}
+          <button onClick={() => setActiveModal('about')} style={{ ...overlayNavButtonStyle, flex: 1, ...navColor(activeModal === 'about') }}>
+            <span style={{ fontSize: '20px' }}>ℹ️</span>
+            {t.btnAbout.replace(/^[^\s]+\s*/, '')}
           </button>
-          <button onClick={() => setActiveModal('plan')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'plan' ? THEME.accent : THEME.surface, color: activeModal === 'plan' ? '#fff' : THEME.textPrimary, padding: '12px 4px', fontSize: '15px' }}>
-            🗺️ {t.btnPlan.replace(/^[^\s]+\s*/, '')}
+          <button onClick={() => setActiveModal('plan')} style={{ ...overlayNavButtonStyle, flex: 1, ...navColor(activeModal === 'plan') }}>
+            <span style={{ fontSize: '20px' }}>🗺️</span>
+            {t.btnPlan.replace(/^[^\s]+\s*/, '')}
           </button>
-          <button onClick={() => setActiveModal('contact')} style={{ ...btnStyle, flex: 1, textAlign: 'center', backgroundColor: activeModal === 'contact' ? THEME.accent : THEME.surface, color: activeModal === 'contact' ? '#fff' : THEME.textPrimary, padding: '12px 4px', fontSize: '15px' }}>
-            📞 {t.btnContact.replace(/^[^\s]+\s*/, '')}
+          <button onClick={() => setActiveModal('contact')} style={{ ...overlayNavButtonStyle, flex: 1, ...navColor(activeModal === 'contact') }}>
+            <span style={{ fontSize: '20px' }}>📞</span>
+            {t.btnContact.replace(/^[^\s]+\s*/, '')}
           </button>
         </div>
-      )}
+        );
+      })()}
 
       {tourStarted && adminMode && (
         <div style={{
