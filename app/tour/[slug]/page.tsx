@@ -84,6 +84,10 @@ export default function TourPage() {
   const [isMuted, setIsMuted] = useState(false);
   const isMutedRef = useRef(false);
 
+  // Deljenje linka ture (Web Share API na mobilnom, kopiranje u clipboard
+  // kao fallback na desktopu). shareCopied prikazuje kratku potvrdu.
+  const [shareCopied, setShareCopied] = useState(false);
+
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isGyroActive, setIsGyroActive] = useState(false);
   const isGyroActiveRef = useRef(false);
@@ -1318,6 +1322,32 @@ export default function TourPage() {
     return () => cancelAnimationFrame(tickerAnimationId);
   }, [tourStarted]);
 
+  // Deljenje linka trenutne ture: na mobilnom otvara native share meni
+  // (WhatsApp, Viber, SMS, mejl...) preko Web Share API-ja; na desktopu (ili
+  // ako share API nije dostupan) kopira link u clipboard i prikazuje kratku
+  // potvrdu na dugmetu.
+  const handleShareTour = async () => {
+    const url = window.location.href;
+    const shareTitle = getLocalizedText(tour?.title_i18n, lang) || 'Kvadrat360';
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ title: shareTitle, text: 'Pogledaj 360° virtuelnu turu:', url });
+      } catch {
+        // Korisnik je otkazao share meni - nema potrebe za greškom.
+      }
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      window.prompt('Kopiraj link ture:', url);
+    }
+  };
+
   const toggleMute = () => {
     const nextMuteState = !isMutedRef.current;
     isMutedRef.current = nextMuteState;
@@ -1796,6 +1826,13 @@ export default function TourPage() {
           <button onClick={() => setTourStarted(true)} style={{ padding: '14px 32px', fontSize: '17px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: 'none', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)' }}>
             {t.startTour}
           </button>
+
+          <button
+            onClick={handleShareTour}
+            style={{ marginTop: '18px', background: 'none', border: 'none', color: shareCopied ? THEME.success : THEME.textSecondary, fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            {shareCopied ? '✅ Link kopiran!' : '🔗 Podeli turu'}
+          </button>
         </div>
       )}
 
@@ -1979,6 +2016,21 @@ export default function TourPage() {
                     🔒 Odjava
                   </button>
                 )}
+
+                <button
+                  onClick={handleShareTour}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: shareCopied ? THEME.success : THEME.textPrimary,
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    padding: '3px 4px'
+                  }}
+                  title={shareCopied ? 'Link kopiran!' : 'Podeli turu'}
+                >
+                  {shareCopied ? '✅' : '🔗'}
+                </button>
 
                 <button
                   onClick={toggleMute}
