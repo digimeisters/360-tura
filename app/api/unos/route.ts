@@ -10,12 +10,14 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 const MAX_FLOORPLAN_BYTES = 10 * 1024 * 1024;
+// Bez PDF-a: modal "Skica" crta tlocrt kao <img>, pa bi PDF ostao prazan
+// okvir. Ako agent ima samo PDF, treba mu slika - bolje da to sazna pri
+// slanju nego da otkrije prazan modal.
 const FLOORPLAN_TYPES: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/jpg': 'jpg',
   'image/png': 'png',
-  'image/webp': 'webp',
-  'application/pdf': 'pdf'
+  'image/webp': 'webp'
 };
 
 function codeMatches(provided: string): boolean {
@@ -85,7 +87,7 @@ export async function POST(req: Request) {
 
       if (!ext) {
         return NextResponse.json(
-          { success: false, error: 'Tlocrt mora biti JPG, PNG, WEBP ili PDF.' },
+          { success: false, error: 'Tlocrt mora biti slika (JPG, PNG ili WEBP). PDF se ne prikazuje u turi.' },
           { status: 400 }
         );
       }

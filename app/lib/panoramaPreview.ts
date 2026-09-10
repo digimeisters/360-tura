@@ -3,6 +3,17 @@ import sharp from 'sharp';
 export const PREVIEW_WIDTH = 1200;
 export const PREVIEW_HEIGHT = 630;
 
+// Panorame stižu kao JPEG od 7-12MB, što je na mobilnoj mreži nekoliko
+// sekundi čekanja po prostoriji. Isti kadar u WebP-u je ispod 1MB bez
+// vidljivog gubitka - na uvećanju 1:1 razlika se ne primećuje. Zato se
+// rezolucija NE dira: smanjivanje bi oštetilo zumiranje u panorami, a
+// format sam po sebi rešava veličinu.
+export async function convertPanoramaToWebp(panorama: Buffer): Promise<Buffer> {
+  return sharp(panorama, { failOn: 'none', limitInputPixels: false })
+    .webp({ quality: 78 })
+    .toBuffer();
+}
+
 // Equirectangular panorama pokriva 360°x180°, pa je cela slika neupotrebljiva
 // kao thumbnail - plafon i pod su razvučeni preko celog kadra. Uzima se prozor
 // oko horizonta (vertikalna sredina), gde je izobličenje najmanje.

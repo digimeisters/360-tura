@@ -55,6 +55,18 @@ function i18nSchema(languages: string[]): Schema {
   return { type: Type.OBJECT, properties, required: languages };
 }
 
+/**
+ * Modal "Lokacija" prikazuje mapu u <iframe>, a Google odbija ugrađivanje
+ * običnog share linka (maps.app.goo.gl) sa X-Frame-Options. Jedini oblik
+ * koji se prikazuje je /maps/embed, pa se on gradi iz adrese - agent ne
+ * mora ništa da lepi. Ako je ipak nalepio pravi embed link, on ima prednost.
+ */
+export function buildMapEmbedUrl(address: string | null, pasted?: string): string | null {
+  if (pasted && /\/maps\/embed/i.test(pasted)) return pasted;
+  if (!address) return null;
+  return `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`;
+}
+
 export function detectLanguages(text: string): Language[] {
   const found = new Set<Language>();
   if (/srpski|\b(sr|rs)\b/i.test(text)) found.add('sr');
@@ -193,7 +205,7 @@ ${faqList}
   const data = JSON.parse(response.text);
   const primaryTitle = data.title_i18n?.sr || data.title_i18n?.[targetLanguages[0]] || '';
 
-  const mapUrl = Object.entries(answers)
+  const pastedMap = Object.entries(answers)
     .filter(([k]) => /maps|mapa|lokacij/i.test(k))
     .map(([, v]) => String(v).trim())
     .find((v) => /^https?:\/\//i.test(v));
@@ -208,7 +220,7 @@ ${faqList}
     agent_phone: data.agent_phone || null,
     agent_email: data.agent_email || null,
     address: data.address || null,
-    location_map_url: mapUrl || null,
+    location_map_url: buildMapEmbedUrl(data.address || null, pastedMap),
     title: primaryTitle,
     title_i18n: data.title_i18n,
     about_text_i18n: data.about_text_i18n,

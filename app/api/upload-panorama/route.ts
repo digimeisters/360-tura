@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { r2Client } from '@/app/lib/r2';
-import { generatePanoramaPreview } from '@/app/lib/panoramaPreview';
+import { generatePanoramaPreview, convertPanoramaToWebp } from '@/app/lib/panoramaPreview';
+import { requireAdmin } from '@/app/lib/adminAuth';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -31,6 +32,13 @@ const MAX_FILE_BYTES = 40 * 1024 * 1024; // 40MB - panorame su velike equirectan
  */
 export async function POST(req: Request) {
   try {
+    // Bez ovoga bi svako ko zna adresu mogao da otprema fajlove u bucket i
+    // zameni panoramu postojeće sobe.
+    const ctx = await requireAdmin(req);
+    if (!ctx.ok) {
+      return NextResponse.json({ success: false, error: ctx.error }, { status: ctx.status });
+    }
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -95,22 +103,36 @@ export async function POST(req: Request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const key = `${roomId}-panorama.${ext}`;
+
+    // Panorama se čuva kao WebP: isti kadar u punoj rezoluciji, ali oko 90%
+    // manji od JPEG-a. Ako konverzija pukne, ide original - bolje teška
+    // panorama nego nikakva.
+    let body: Buffer = buffer;
+    let contentType = file.type;
+    let key = `${roomId}-panorama.${ext}`;
+    try {
+      body = await convertPanoramaToWebp(buffer);
+      contentType = 'image/webp';
+      key = `${roomId}-panorama.webp`;
+    } catch (convertError) {
+      console.error('UPLOAD PANORAMA: WebP konverzija nije uspela:', convertError);
+    }
 
     await r2Client.send(
       new PutObjectCommand({
         Bucket: bucket,
         Key: key,
-        Body: buffer,
-        ContentType: file.type,
+        Body: body,
+        ContentType: contentType,
       })
     );
 
     const base = cdnUrl.replace(/\/+$/, '');
     const r2Url = `${base}/${key}`;
 
-    // Mali isečak za share/OG karticu. Ako generisanje pukne, panorama je
-    // već gore i soba radi - preview je dodatak, ne sme da obori upload.
+    // Izvedene slike: mali isečak za share karticu i lakša panorama za
+    // telefone. Ako neka pukne, original je već gore i soba radi - to su
+    // dodaci koji ne smeju da obore upload.
     let previewUrl: string | null = null;
     try {
       const preview = await generatePanoramaPreview(buffer);
@@ -128,9 +150,12 @@ export async function POST(req: Request) {
       console.error('UPLOAD PANORAMA: preview nije generisan:', previewError);
     }
 
+    const updates: Record<string, string> = { panorama_url_cf: r2Url };
+    if (previewUrl) updates.preview_url = previewUrl;
+
     const { error: updateError } = await supabase
       .from('rooms')
-      .update(previewUrl ? { panorama_url_cf: r2Url, preview_url: previewUrl } : { panorama_url_cf: r2Url })
+      .update(updates)
       .eq('id', roomId);
 
     if (updateError) {
@@ -142,7 +167,8 @@ export async function POST(req: Request) {
       roomId,
       r2Url,
       previewUrl,
-      bytes: buffer.length,
+      bytes: body.length,
+      originalBytes: buffer.length,
     });
   } catch (error: any) {
     console.error('UPLOAD PANORAMA ERROR:', error);

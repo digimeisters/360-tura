@@ -209,12 +209,12 @@ export default function UnosPage() {
             />
           </Field>
 
-          <Field label="Google Maps link" hint="Otvorite lokaciju u Google Maps → Share → Copy link.">
+          <Field label="Google Maps embed link" hint="Nije obavezno — mapa se sama postavlja po adresi. Popunite samo ako imate tačan embed link.">
             <input
               id="mapa"
               value={values['Google Maps lokacija'] || ''}
               onChange={set('Google Maps lokacija')}
-              placeholder="https://maps.app.goo.gl/..."
+              placeholder="https://www.google.com/maps/embed?pb=..."
               style={inputStyle}
             />
           </Field>
@@ -230,11 +230,11 @@ export default function UnosPage() {
             />
           </Field>
 
-          <Field label="Crtež osnove / tlocrt" hint="JPG, PNG, WEBP ili PDF, do 10MB. Može i naknadno.">
+          <Field label="Crtež osnove / tlocrt" hint="Slika tlocrta — JPG, PNG ili WEBP, do 10MB. Može i naknadno.">
             <input
               id="tlocrt"
               type="file"
-              accept="image/jpeg,image/png,image/webp,application/pdf"
+              accept="image/jpeg,image/png,image/webp"
               onChange={(e) => setFloorplan(e.target.files?.[0] || null)}
               style={{ ...inputStyle, padding: '9px 10px' }}
             />

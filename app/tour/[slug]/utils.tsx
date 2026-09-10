@@ -1,5 +1,6 @@
 import { Language, Waypoint, EstablishData } from './types';
 import { THEME } from './theme';
+import { adminAuthHeader } from '../../lib/authFetch';
 
 export const normalizeYaw = (yaw: number): number => {
   let res = (yaw + 180) % 360;
@@ -108,7 +109,7 @@ export const translateRoomToLanguages = async (
     targetLangs.map(async (targetLang) => {
       const res = await fetch('/api/ai/auto-populate-room', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
         body: JSON.stringify({
           roomId,
           action: 'translate_step',

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import sharp from 'sharp';
+import { requireAdmin } from '@/app/lib/adminAuth';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -407,6 +408,13 @@ async function handleTranslateStep(ai: GoogleGenAI, body: any) {
  */
 export async function POST(req: Request) {
   try {
+    // Ruta troši Gemini kredit i prepisuje sadržaj sobe, pa je otvorena samo
+    // prijavljenom administratoru.
+    const ctx = await requireAdmin(req);
+    if (!ctx.ok) {
+      return NextResponse.json({ success: false, error: ctx.error }, { status: ctx.status });
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ success: false, error: 'GEMINI_API_KEY fali.' }, { status: 500 });

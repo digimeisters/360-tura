@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { r2Client } from '@/app/lib/r2';
+import { requireAdmin } from '@/app/lib/adminAuth';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -21,6 +22,11 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(req: Request) {
   try {
+    const ctx = await requireAdmin(req);
+    if (!ctx.ok) {
+      return NextResponse.json({ success: false, error: ctx.error }, { status: ctx.status });
+    }
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;

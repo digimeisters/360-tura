@@ -1,6 +1,6 @@
 /**
- * Popunjava rooms.preview_url za sobe koje su uploadovane pre nego što je
- * generisanje preview slike dodato u /api/upload-panorama.
+ * Popunjava rooms.preview_url i pretvara panorame u WebP za sobe
+ * uploadovane pre nego što je to dodato u /api/upload-panorama.
  *
  * Pokretanje:  node --env-file=.env.local scripts/backfill-previews.mjs
  * Suvi hod:    node --env-file=.env.local scripts/backfill-previews.mjs --dry
@@ -42,6 +42,12 @@ async function generatePreview(panorama) {
     .toBuffer();
 }
 
+async function toWebp(panorama) {
+  return sharp(panorama, { failOn: 'none', limitInputPixels: false })
+    .webp({ quality: 78 })
+    .toBuffer();
+}
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -62,7 +68,6 @@ const cdnBase = process.env.NEXT_PUBLIC_CDN_URL.replace(/\/+$/, '');
 const { data: rooms, error } = await supabase
   .from('rooms')
   .select('id, tour_slug, panorama_url, panorama_url_cf, preview_url, order_index')
-  .is('preview_url', null)
   .order('tour_slug', { ascending: true })
   .order('order_index', { ascending: true });
 
@@ -71,7 +76,7 @@ if (error) {
   process.exit(1);
 }
 
-console.log(`Soba bez preview-a: ${rooms.length}${DRY ? ' (suvi hod)' : ''}\n`);
+console.log(`Soba za proveru: ${rooms.length}${DRY ? ' (suvi hod)' : ''}\n`);
 
 let ok = 0;
 let skipped = 0;
@@ -87,6 +92,12 @@ for (const room of rooms) {
     continue;
   }
 
+  // Ništa da se radi - ne vuci nekoliko megabajta bez potrebe.
+  if (room.preview_url && url.endsWith('.webp')) {
+    skipped++;
+    continue;
+  }
+
   try {
     const res = await fetch(url);
     if (!res.ok) {
@@ -96,33 +107,48 @@ for (const room of rooms) {
     }
 
     const buf = Buffer.from(await res.arrayBuffer());
-    const preview = await generatePreview(buf);
+    const updates = {};
+    const parts = [];
+
+    if (!room.preview_url) {
+      const preview = await generatePreview(buf);
+      parts.push(`preview ${(preview.length / 1024).toFixed(0)}KB`);
+      if (!DRY) {
+        const key = `${room.id}-preview.jpg`;
+        await r2.send(
+          new PutObjectCommand({ Bucket: bucket, Key: key, Body: preview, ContentType: 'image/jpeg' })
+        );
+        updates.preview_url = `${cdnBase}/${key}`;
+      }
+    }
+
+    // Panorame snimljene kao JPEG su 7-12MB; iste u WebP-u su ispod 1MB bez
+    // vidljivog gubitka. Rezolucija se ne dira.
+    if (!url.endsWith('.webp')) {
+      const webp = await toWebp(buf);
+      const saved = (100 - (webp.length / buf.length) * 100).toFixed(0);
+      parts.push(
+        `webp ${(buf.length / 1024 / 1024).toFixed(1)}MB -> ${(webp.length / 1024 / 1024).toFixed(2)}MB (-${saved}%)`
+      );
+      if (!DRY) {
+        const key = `${room.id}-panorama.webp`;
+        await r2.send(
+          new PutObjectCommand({ Bucket: bucket, Key: key, Body: webp, ContentType: 'image/webp' })
+        );
+        updates.panorama_url_cf = `${cdnBase}/${key}`;
+      }
+    }
 
     if (DRY) {
-      console.log(`= ${label}: generisan preview ${(preview.length / 1024).toFixed(0)}KB (nije upisan)`);
+      console.log(`= ${label}: ${parts.join(', ')} (nije upisano)`);
       ok++;
       continue;
     }
 
-    const key = `${room.id}-preview.jpg`;
-    await r2.send(
-      new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        Body: preview,
-        ContentType: 'image/jpeg'
-      })
-    );
-
-    const previewUrl = `${cdnBase}/${key}`;
-    const { error: upErr } = await supabase
-      .from('rooms')
-      .update({ preview_url: previewUrl })
-      .eq('id', room.id);
-
+    const { error: upErr } = await supabase.from('rooms').update(updates).eq('id', room.id);
     if (upErr) throw new Error(upErr.message);
 
-    console.log(`+ ${label}: ${(preview.length / 1024).toFixed(0)}KB -> ${previewUrl}`);
+    console.log(`+ ${label}: ${parts.join(', ')}`);
     ok++;
   } catch (err) {
     console.log(`! ${label}: ${err.message}`);

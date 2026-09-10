@@ -8,6 +8,7 @@ import { translations, categoryQuestions } from './translations';
 import { THEME, btnStyle, overlayIconStyle, overlayNavButtonStyle, applyGlassHotspotStyle } from './theme';
 import { SITE_URL } from '../../lib/site';
 import { trackEvent } from '../../lib/track';
+import { adminAuthHeader } from '../../lib/authFetch';
 import { Logo } from './Logo';
 import {
   normalizeYaw,
@@ -694,7 +695,7 @@ export default function TourPage() {
     try {
       const res = await fetch('/api/ai/auto-populate-room', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
         body: JSON.stringify({
           roomId: currentRoom.id,
           panoramaUrl: currentPanoramaUrl,
@@ -744,7 +745,7 @@ export default function TourPage() {
       formData.append('roomId', String(currentRoom.id));
       formData.append('file', file);
 
-      const res = await fetch('/api/upload-panorama', { method: 'POST', body: formData });
+      const res = await fetch('/api/upload-panorama', { method: 'POST', headers: await adminAuthHeader(), body: formData });
       const result = await res.json();
 
       if (!result.success) {
@@ -803,7 +804,7 @@ export default function TourPage() {
     try {
       const res = await fetch('/api/ai/auto-populate-room', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
         body: JSON.stringify({
           roomId: currentRoom.id,
           action: 'generate_voice',
@@ -951,7 +952,7 @@ export default function TourPage() {
         try {
           const voiceRes = await fetch('/api/ai/auto-populate-room', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
             body: JSON.stringify({
               roomId: currentRoom.id,
               action: 'generate_voice',
