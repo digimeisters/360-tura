@@ -1,6 +1,15 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/app/lib/adminAuth';
 import { uniqueSlug } from '@/app/lib/slug';
+
+// Početna strana i sitemap prikazuju objavljene ture i keširani su do sat
+// vremena. Posle objave, skidanja ili izmene naziva osvežavaju se odmah, pri
+// sledećoj poseti.
+function refreshPublicPages() {
+  revalidatePath('/');
+  revalidatePath('/sitemap.xml');
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -125,6 +134,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ success: false, error: 'Stanje nije promenjeno.' }, { status: 500 });
     }
 
+    refreshPublicPages();
     return NextResponse.json({ success: true, published: body.published });
   }
 
@@ -171,6 +181,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ success: false, error: 'Izmena nije sačuvana.' }, { status: 500 });
   }
 
+  refreshPublicPages();
   return NextResponse.json({ success: true });
 }
 

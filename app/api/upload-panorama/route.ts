@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { createClient } from '@supabase/supabase-js';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { r2Client } from '@/app/lib/r2';
@@ -167,6 +168,9 @@ export async function POST(req: Request) {
     if (updateError) {
       throw new Error(`Supabase upis greška: ${updateError.message}`);
     }
+
+    // Nova sličica može biti naslovna slika ture na početnoj strani.
+    revalidatePath('/');
 
     return NextResponse.json({
       success: true,

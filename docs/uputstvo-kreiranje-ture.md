@@ -134,6 +134,14 @@ Objavi je tek kad:
 
 Ako nešto krene naopako, `Skini` je vraća u pripremu — ali linkovi koje si već podelio tada prestaju da rade, pa to nije potez za usput.
 
+### Tura na početnoj strani sajta
+
+Objavljena tura se **sama pojavi** na `kvadrat360.com`, u odeljku „Primeri tura": kartica sa naslovnom slikom (dnevna soba, ako je ima), tipom oglasa, jezicima i dugmetom „Otvori turu". Skinuta tura sa sajta nestaje.
+
+- Promena se vidi odmah posle `Objavi` / `Skini`, izmene naziva ili zamene panorame. Inače se sajt osvežava sam, najkasnije na sat.
+- Kadar u vrhu strane, sa čipovima soba, pokazuje turu **`stan-gasse-1`**. Ako ona nije objavljena, uzima se objavljena tura sa najviše soba. Za drugu turu u vrhu — reci mi, menja se u kodu (`HERO_TOUR_SLUG` u `app/lib/showcaseTours.ts`).
+- Naziv na kartici je naziv ture, tačno kako je upisan. Ružan naziv (npr. `stan-gasse-apartman`) ispravi u `/admin/ture` → `Izmeni`.
+
 ---
 
 ## 7. Analitika — `kvadrat360.com/admin/analitika`

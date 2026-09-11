@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import { pickCoverRoom } from '../../lib/coverRoom';
 
 export type TourMeta = {
   slug: string;
@@ -14,7 +15,7 @@ export type TourMeta = {
 
 // Isti fallback lanac kao getLocalizedText u utils.tsx, ali bez povlačenja
 // klijentskih zavisnosti (THEME, React komponente) u server bundle.
-function pickLang(value: unknown, lang = 'sr'): string {
+export function pickLang(value: unknown, lang = 'sr'): string {
   if (!value) return '';
   let parsed = value;
   if (typeof value === 'string') {
@@ -45,7 +46,7 @@ const PLACEHOLDERS = new Set([
   '...'
 ]);
 
-function realValue(value: string | null): string | null {
+export function realValue(value: string | null): string | null {
   if (!value) return null;
   const trimmed = value.trim();
   if (!trimmed || PLACEHOLDERS.has(trimmed.toLowerCase())) return null;
@@ -58,25 +59,6 @@ type CoverRoom = {
   title_i18n: unknown;
   order_index: number | null;
 };
-
-// Dnevna soba prodaje oglas bolje od hodnika ili kupatila, pa se ona bira
-// za naslovnu sliku umesto prve sobe po redosledu. Nazivi u bazi su
-// neujednačeni ("Dnevna soba 1/2", "Dnevna-radni", pa i cela rečenica
-// "Ulazimo u prijatnu dnevnu sobu..."), zato se traži koren reči.
-const LIVING_ROOM_HINTS = ['dnevn', 'boravak', 'living', 'wohnzimmer', 'гостин'];
-
-function pickCoverRoom(rooms: CoverRoom[]): string | null {
-  const withPreview = rooms.filter((r) => r.preview_url);
-  if (!withPreview.length) return null;
-
-  const living = withPreview.find((room) => {
-    // Pretražuje se ceo i18n blob, pa naziv na bilo kom jeziku pogađa.
-    const haystack = `${room.title ?? ''} ${JSON.stringify(room.title_i18n ?? '')}`.toLowerCase();
-    return LIVING_ROOM_HINTS.some((hint) => haystack.includes(hint));
-  });
-
-  return (living ?? withPreview[0]).preview_url;
-}
 
 // generateMetadata i opengraph-image se izvršavaju odvojeno za isti slug -
 // cache() sprečava dupli upit ka Supabase-u u istom renderu.
@@ -100,7 +82,7 @@ export const getTourMeta = cache(async (slug: string): Promise<TourMeta | null> 
     .returns<CoverRoom[]>();
 
   return {
-    previewUrl: pickCoverRoom(rooms ?? []),
+    previewUrl: pickCoverRoom(rooms ?? [])?.preview_url ?? null,
     slug: data.slug,
     title: realValue(pickLang(data.title_i18n)) || realValue(data.title) || 'Virtuelna tura',
     agencyName: realValue(data.agency_name),

@@ -37,22 +37,22 @@ export default function ContactForm() {
   const isSending = status.kind === 'sending';
 
   return (
-    <form id="contact-form" onSubmit={handleSubmit}>
+    <form id="contact-form" className="card contact-form" onSubmit={handleSubmit}>
       <div className="row2">
         <div className="field">
           <label htmlFor="f-name">Ime i prezime</label>
-          <input id="f-name" name="name" type="text" required placeholder="Marko Marković" />
+          <input className="input" id="f-name" name="name" type="text" required placeholder="Marko Marković" />
         </div>
         <div className="field">
           <label htmlFor="f-contact">Telefon ili e-mail</label>
-          <input id="f-contact" name="contact" type="text" required placeholder="+381 6x xxx xxxx" />
+          <input className="input" id="f-contact" name="contact" type="text" required placeholder="+381 6x xxx xxxx" />
         </div>
       </div>
 
       <div className="row2">
         <div className="field">
           <label htmlFor="f-package">Paket</label>
-          <select id="f-package" name="package" defaultValue="Pojedinačna tura">
+          <select className="input" id="f-package" name="package" defaultValue="Pojedinačna tura">
             <option>Pojedinačna tura</option>
             <option>Agencija — 3 ture mesečno</option>
             <option>Agencija — 5 tura mesečno</option>
@@ -61,14 +61,14 @@ export default function ContactForm() {
         </div>
         <div className="field">
           <label htmlFor="f-agency">Naziv agencije</label>
-          <input id="f-agency" name="agency" type="text" placeholder="Opciono, ako prijavljujete agenciju" />
+          <input className="input" id="f-agency" name="agency" type="text" placeholder="Opciono, ako prijavljujete agenciju" />
         </div>
       </div>
 
       <div className="row2">
         <div className="field">
           <label htmlFor="f-type">Tip oglasa</label>
-          <select id="f-type" name="type" defaultValue="Prodaja">
+          <select className="input" id="f-type" name="type" defaultValue="Prodaja">
             <option>Prodaja</option>
             <option>Izdavanje</option>
             <option>Kratkoročni smeštaj</option>
@@ -76,33 +76,36 @@ export default function ContactForm() {
         </div>
         <div className="field">
           <label htmlFor="f-size">Kvadratura (m²)</label>
-          <input id="f-size" name="size" type="text" placeholder="npr. 64" />
+          <input className="input" id="f-size" name="size" type="text" placeholder="npr. 64" />
         </div>
       </div>
 
       <div className="field">
         <label htmlFor="f-msg">Poruka</label>
         <textarea
+          className="input"
           id="f-msg"
           name="message"
           placeholder="Lokacija nekretnine, željeni termin snimanja, jezici koji su vam potrebni..."
         />
       </div>
 
-      <div>
+      <div className="form-foot">
         <button className="btn btn-primary" type="submit" disabled={isSending}>
           {isSending ? 'Šaljemo...' : 'Pošaljite upit'}
         </button>
-      </div>
 
-      <p
-        className="form-note"
-        role="status"
-        aria-live="polite"
-        style={{ color: status.kind === 'error' ? '#dc2626' : 'var(--accent)' }}
-      >
-        {status.text}
-      </p>
+        {/* Ista poruka kao čip, u boji koja kaže da li je uspelo. Prazan
+            element ostaje u DOM-u da bi čitač ekrana najavio promenu. */}
+        <p
+          role="status"
+          aria-live="polite"
+          className={status.text ? `toast toast-${status.kind === 'error' ? 'error' : 'ok'}` : undefined}
+        >
+          {status.kind === 'ok' ? '✓ ' : ''}
+          {status.text}
+        </p>
+      </div>
     </form>
   );
 }
