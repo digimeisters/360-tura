@@ -7,12 +7,22 @@ import { SITE_URL } from './lib/site';
 export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Obe jezičke verzije početne, svaka sa oznakom druge (hreflang).
+  const homeAlternates = { languages: { sr: SITE_URL, en: `${SITE_URL}/en` } };
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: SITE_URL,
       lastModified: new Date(),
       changeFrequency: 'weekly',
-      priority: 1
+      priority: 1,
+      alternates: homeAlternates
+    },
+    {
+      url: `${SITE_URL}/en`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.9,
+      alternates: homeAlternates
     }
   ];
 

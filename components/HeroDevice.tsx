@@ -2,21 +2,29 @@
 
 import { useRef, useState } from 'react';
 import type { ShowcaseTour } from '../app/lib/showcaseTours';
+import type { HomeLang } from '../app/lib/homeCopy';
+import { tourHref as buildTourHref } from '../app/lib/tourHref';
+
+const LABELS: Record<HomeLang, { empty: string; open: string; langs: string; rooms: string }> = {
+  sr: { empty: 'Primer ture stiže uskoro.', open: '▶ Otvori turu', langs: 'Jezici ture', rooms: 'Prostorije u turi' },
+  en: { empty: 'A sample tour is coming soon.', open: '▶ Open the tour', langs: 'Tour languages', rooms: 'Rooms in the tour' }
+};
 
 /**
  * Kadar u vrhu početne strane: prava tura sa izgledom aplikacije preko nje -
  * naziv, jezici, čipovi soba i info-kartica, isti oblici kao u samoj turi.
  * Čipovi menjaju sliku u sličicu te sobe; ceo pregled vodi na pravu turu.
  */
-export default function HeroDevice({ tour }: { tour: ShowcaseTour | null }) {
+export default function HeroDevice({ tour, lang = 'sr' }: { tour: ShowcaseTour | null; lang?: HomeLang }) {
   const [activeId, setActiveId] = useState<string | null>(tour?.coverRoomId ?? tour?.rooms[0]?.id ?? null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const latestRequest = useRef<string | null>(null);
+  const t = LABELS[lang];
 
   if (!tour || tour.rooms.length === 0) {
     return (
       <div className="device device-empty">
-        <p>Primer ture stiže uskoro.</p>
+        <p>{t.empty}</p>
       </div>
     );
   }
@@ -50,7 +58,9 @@ export default function HeroDevice({ tour }: { tour: ShowcaseTour | null }) {
     img.src = url;
   };
 
-  const tourHref = `/tour/${tour.slug}`;
+  const tourHref = buildTourHref(tour.slug, tour.languages, lang);
+  // Istaknut je jezik strane ako ga tura ima, inače prvi (srpski).
+  const activeLang = tour.languages.includes(lang) ? lang : tour.languages[0];
 
   return (
     <div className="device">
@@ -63,16 +73,16 @@ export default function HeroDevice({ tour }: { tour: ShowcaseTour | null }) {
           {tour.agency && <small>{tour.agency}</small>}
           <strong>{tour.title}</strong>
         </div>
-        <div className="d-langs" aria-label="Jezici ture">
-          {tour.languages.map((l, i) => (
-            <span key={l} className={i === 0 ? 'on' : undefined}>
+        <div className="d-langs" aria-label={t.langs}>
+          {tour.languages.map((l) => (
+            <span key={l} className={l === activeLang ? 'on' : undefined}>
               {l.toUpperCase()}
             </span>
           ))}
         </div>
       </div>
 
-      <div className="d-rooms" role="group" aria-label="Prostorije u turi">
+      <div className="d-rooms" role="group" aria-label={t.rooms}>
         {tour.rooms.map((r) => (
           <button
             key={r.id}
@@ -91,8 +101,8 @@ export default function HeroDevice({ tour }: { tour: ShowcaseTour | null }) {
       <div className="d-info">
         <h4>{room.title}</h4>
         {room.narration && <p>{room.narration}</p>}
-        <a className="d-open" href={tourHref}>
-          ▶ Otvori turu
+        <a className="d-open" href={tourHref} data-track="cta:hero_device_tour">
+          {t.open}
         </a>
       </div>
     </div>

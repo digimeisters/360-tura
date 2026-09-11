@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { preload } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
@@ -10,6 +11,7 @@ import { THEME, btnStyle, overlayIconStyle, overlayNavButtonStyle, applyGlassHot
 import { SITE_URL } from '../../lib/site';
 import { trackEvent } from '../../lib/track';
 import { Logo } from './Logo';
+import { PANNELLUM_CSS, PANNELLUM_JS } from './pannellum';
 import {
   normalizeYaw,
   getShortestTargetYaw,
@@ -26,6 +28,11 @@ import {
 const TourAdminTools = dynamic(() => import('./TourAdminTools'), { ssr: false });
 
 export default function TourPage() {
+  // Pri renderovanju na serveru ovo postaje <link rel="preload"> u <head>, pa
+  // pregledač skida Pannellum paralelno sa ostatkom strane.
+  preload(PANNELLUM_JS, { as: 'script' });
+  preload(PANNELLUM_CSS, { as: 'style' });
+
   const [hasMounted, setHasMounted] = useState(false);
   const isMountedRef = useRef(true);
   const roomSessionRef = useRef(0);
@@ -655,6 +662,23 @@ export default function TourPage() {
     return false;
   };
 
+  // Jezik iz linka (?lang=en) - sa engleske početne strane, ili kad agencija
+  // deli turu na nemačkom. Primenjuje se jednom, čim su tura i sobe učitane,
+  // i samo ako tura stvarno ima taj jezik; inače ostaje srpski.
+  const urlLangAppliedRef = useRef(false);
+  useEffect(() => {
+    if (loading || urlLangAppliedRef.current) return;
+    urlLangAppliedRef.current = true;
+    const requested = new URLSearchParams(window.location.search).get('lang') as Language | null;
+    if (requested && requested !== 'sr' && ['en', 'de', 'ru'].includes(requested) && isLanguageAvailable(requested)) {
+      setLang(requested);
+      langRef.current = requested;
+    }
+    // isLanguageAvailable čita tour/rooms iz istog rendera u kom je loading
+    // postao false - to je baš trenutak koji nam treba.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
@@ -744,7 +768,9 @@ export default function TourPage() {
     if (!slug || !tour || adminMode) return;
     if (openTrackedRef.current) return;
     openTrackedRef.current = true;
-    trackEvent({ eventType: 'open', tourSlug: slug, lang });
+    // langRef, a ne lang: jezik iz linka (?lang=) je u ref-u upisan u istom
+    // prolazu, dok lang state stiže tek u sledećem renderu.
+    trackEvent({ eventType: 'open', tourSlug: slug, lang: langRef.current });
     // lang namerno nije zavisnost: otvaranje se beleži jednom, sa jezikom
     // koji je tada bio aktivan.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -897,13 +923,16 @@ export default function TourPage() {
     if (!hasMounted) return;
     if ((window as any).pannellum) { setPannellumReady(true); return; }
 
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css';
-    document.head.appendChild(link);
+    // Pri prelasku sa ture na turu stil je već tu - ne dodajemo ga ponovo.
+    if (!document.querySelector(`link[rel="stylesheet"][href="${PANNELLUM_CSS}"]`)) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = PANNELLUM_CSS;
+      document.head.appendChild(link);
+    }
 
     const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js';
+    script.src = PANNELLUM_JS;
     script.onload = () => setPannellumReady(true);
     document.body.appendChild(script);
 

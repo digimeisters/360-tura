@@ -169,8 +169,10 @@ export async function POST(req: Request) {
       throw new Error(`Supabase upis greška: ${updateError.message}`);
     }
 
-    // Nova sličica može biti naslovna slika ture na početnoj strani.
+    // Nova sličica može biti naslovna slika ture na početnoj strani (obe
+    // jezičke verzije).
     revalidatePath('/');
+    revalidatePath('/en');
 
     return NextResponse.json({
       success: true,

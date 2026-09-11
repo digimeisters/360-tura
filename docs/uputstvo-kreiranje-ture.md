@@ -141,6 +141,16 @@ Objavljena tura se **sama pojavi** na `kvadrat360.com`, u odeljku „Primeri tur
 - Promena se vidi odmah posle `Objavi` / `Skini`, izmene naziva ili zamene panorame. Inače se sajt osvežava sam, najkasnije na sat.
 - Kadar u vrhu strane, sa čipovima soba, pokazuje turu **`stan-gasse-1`**. Ako ona nije objavljena, uzima se objavljena tura sa najviše soba. Za drugu turu u vrhu — reci mi, menja se u kodu (`HERO_TOUR_SLUG` u `app/lib/showcaseTours.ts`).
 - Naziv na kartici je naziv ture, tačno kako je upisan. Ružan naziv (npr. `stan-gasse-apartman`) ispravi u `/admin/ture` → `Izmeni`.
+- Ista tura se pojavljuje i na engleskoj početnoj, `kvadrat360.com/en`. Tamo kartica pokazuje engleski naziv, ako ga tura ima, i otvara turu na engleskom. Za kadar u vrhu engleske strane prednost ima tura koja ima engleski; ako `stan-gasse-1` nema engleski, tamo se prikazuje druga tura.
+
+### Link ture na određenom jeziku
+
+Na kraj linka dodaj `?lang=` i tura se otvara odmah na tom jeziku, bez biranja na početnom ekranu:
+
+- `kvadrat360.com/tour/stan-gasse-1?lang=de` — nemački, npr. za agenciju iz Beča
+- `?lang=en` engleski, `?lang=ru` ruski
+
+Ako tura nema traženi jezik, otvara se na srpskom. Posetilac i dalje može da promeni jezik u turi.
 
 ---
 
@@ -155,6 +165,13 @@ Jedan ekran, sve ture. Period 7 / 30 / 90 dana.
 - Klik na red otvara **vreme po prostoriji** — koja se najduže gleda, gde ljudi odustaju
 
 Tvoje posete se **ne broje** dok si prijavljen kao administrator. Preview botovi (WhatsApp, Facebook) se takođe ne broje.
+
+Ispod tura je odeljak **Početna strana** (radi posle migracije `008_site_events.sql`):
+
+- **Posetilaca** i **Poslatih upita** preko forme, i koliki deo posetilaca pošalje upit
+- **Sa telefona** — koliki deo poseta dolazi sa telefona
+- **Klikovi** — „Pogledajte primer ture", kartice tura, paketi, poziv / Viber / WhatsApp / mejl / mapa
+- **Odakle dolaze** — sa kog sajta je posetilac došao (google.com, instagram...). Za kampanju dodaj `?utm_source=naziv` na link, npr. `kvadrat360.com/?utm_source=facebook_oglas`, pa se vidi posebno.
 
 ---
 

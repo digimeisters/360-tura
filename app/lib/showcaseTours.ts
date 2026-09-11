@@ -89,7 +89,15 @@ function preview(text: string, max: number): string {
 
 const CATEGORIES: ShowcaseCategory[] = ['sale', 'rent', 'booking'];
 
-export async function getShowcaseTours(): Promise<ShowcaseTour[]> {
+// Kad tura nema naziv na traženom jeziku, pickLang pada na srpski.
+const FALLBACK_TITLES: Record<string, { tour: string; room: (n: number) => string }> = {
+  sr: { tour: 'Virtuelna tura', room: (n) => `Soba ${n}` },
+  en: { tour: 'Virtual tour', room: (n) => `Room ${n}` }
+};
+
+export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
+  const fallback = FALLBACK_TITLES[lang] ?? FALLBACK_TITLES.sr;
+
   // Cast jer types/supabase.ts još ne zna za preview_url (004) i published
   // (007) - ukloniti kad se tipovi regenerišu.
   const { data: tours, error } = await supabase
@@ -137,7 +145,7 @@ export async function getShowcaseTours(): Promise<ShowcaseTour[]> {
 
     return {
       slug: tour.slug,
-      title: realValue(pickLang(tour.title_i18n)) || realValue(tour.title) || 'Virtuelna tura',
+      title: realValue(pickLang(tour.title_i18n, lang)) || realValue(tour.title) || fallback.tour,
       agency: realValue(tour.agency_name),
       category,
       roomCount: tourRooms.length,
@@ -148,20 +156,28 @@ export async function getShowcaseTours(): Promise<ShowcaseTour[]> {
         .filter((r) => r.preview_url)
         .map((r, i) => ({
           id: String(r.id),
-          title: realValue(pickLang(r.title_i18n)) || realValue(r.title) || `Soba ${i + 1}`,
+          title: realValue(pickLang(r.title_i18n, lang)) || realValue(r.title) || fallback.room(i + 1),
           previewUrl: r.preview_url as string,
-          narration: preview(pickLang(asObject(r.establish_i18n).text_i18n), NARRATION_PREVIEW_CHARS)
+          narration: preview(pickLang(asObject(r.establish_i18n).text_i18n, lang), NARRATION_PREVIEW_CHARS)
         }))
     };
   });
 }
 
-/** Tura za kadar u vrhu strane - vidi HERO_TOUR_SLUG. */
-export function pickHeroTour(tours: ShowcaseTour[]): ShowcaseTour | null {
+/**
+ * Tura za kadar u vrhu strane - vidi HERO_TOUR_SLUG. Na stranoj verziji
+ * strane (/en) prednost imaju ture koje imaju taj jezik, da engleski
+ * posetilac u kadru ne čita srpski tekst.
+ */
+export function pickHeroTour(tours: ShowcaseTour[], lang = 'sr'): ShowcaseTour | null {
   const usable = tours.filter((t) => t.rooms.length > 0);
   if (!usable.length) return null;
+
+  const inLang = usable.filter((t) => t.languages.includes(lang));
+  const pool = lang !== 'sr' && inLang.length ? inLang : usable;
+
   return (
-    usable.find((t) => t.slug === HERO_TOUR_SLUG) ??
-    [...usable].sort((a, b) => b.rooms.length - a.rooms.length)[0]
+    pool.find((t) => t.slug === HERO_TOUR_SLUG) ??
+    [...pool].sort((a, b) => b.rooms.length - a.rooms.length)[0]
   );
 }

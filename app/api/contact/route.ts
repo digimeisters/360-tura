@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { escapeHtml, sendTelegramMessage } from '@/app/lib/telegram';
 import { rateLimit, tooManyRequests } from '@/app/lib/rateLimit';
+import { describeSlot } from '@/app/lib/shootSlot';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,6 +74,14 @@ export async function POST(req: Request) {
     const listingType = clean(body.type, 'listing_type');
     const size = clean(body.size, 'size');
     const message = clean(body.message, 'message');
+    // Upit sa engleske početne (/en) - da se zna na kom jeziku odgovoriti.
+    const fromEnglish = body.lang === 'en';
+    // Željeni termin iz forme; tabela nema posebnu kolonu, pa se u bazi
+    // čuva kao prvi red poruke, a na Telegramu ide u svoj red.
+    const slot = describeSlot(body.slotDate, body.slotWindow);
+    const storedMessage = slot
+      ? `Željeni termin: ${slot}${message ? `\n\n${message}` : ''}`
+      : message;
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -83,8 +92,8 @@ export async function POST(req: Request) {
       agency: agency || null,
       listing_type: listingType || null,
       size: size || null,
-      message: message || null,
-      source: 'landing'
+      message: storedMessage || null,
+      source: fromEnglish ? 'landing_en' : 'landing'
     });
 
     if (error) {
@@ -103,10 +112,12 @@ export async function POST(req: Request) {
       `👤 <b>${escapeHtml(name)}</b>`,
       `📞 ${escapeHtml(contact)}`
     ];
+    if (fromEnglish) lines.push('🌐 Sa engleske strane — odgovoriti na engleskom');
     if (agency) lines.push(`🏢 ${escapeHtml(agency)}`);
     if (pkg) lines.push(`📦 ${escapeHtml(pkg)}`);
     if (listingType) lines.push(`🏷️ ${escapeHtml(listingType)}`);
     if (size) lines.push(`📐 ${escapeHtml(size)} m²`);
+    if (slot) lines.push(`🗓 ${escapeHtml(slot)}`);
     if (message) lines.push('', `💬 ${escapeHtml(message)}`);
 
     await sendTelegramMessage(lines.join('\n'));

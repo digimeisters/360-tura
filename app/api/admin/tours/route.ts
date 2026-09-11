@@ -8,6 +8,7 @@ import { uniqueSlug } from '@/app/lib/slug';
 // sledećoj poseti.
 function refreshPublicPages() {
   revalidatePath('/');
+  revalidatePath('/en');
   revalidatePath('/sitemap.xml');
 }
 
