@@ -1,17 +1,22 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
-import Script from "next/script";
 import { SITE_NAME, SITE_URL } from "./lib/site";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+// Fontovi se preuzimaju pri build-u i služe sa našeg domena: nema čekanja na
+// Google-ov CSS pre prvog prikaza, tekst ne skače dok font stiže, a IP adresa
+// posetioca ne odlazi Google-u. Latin-ext nosi č, ć, š, ž, đ; ćirilica za
+// ruski tekst u turama postoji, ali se skida tek kad je stranica zatraži.
+const inter = Inter({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-inter",
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-jakarta",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -32,9 +37,10 @@ export const metadata: Metadata = {
   twitter: { card: 'summary_large_image' }
 };
 
-// Panorame stižu sa R2 CDN-a, a prva se traži tek kad se Pannellum podigne.
-// Preconnect otvara vezu (DNS, TLS) unapred, pa se to čekanje ne plaća onda
-// kad se slika stvarno zatraži.
+// Panorame i sličice tura stižu sa R2 CDN-a. Preconnect otvara vezu (DNS,
+// TLS) unapred, pa se to čekanje ne plaća onda kad se slika stvarno zatraži.
+// Dve veze, jer ih pregledač ne deli: sličice na početnoj su obične <img>
+// (bez CORS-a), a Pannellum panorame traži sa CORS-om (crossOrigin).
 function cdnOrigin(): string | null {
   try {
     return new URL(process.env.NEXT_PUBLIC_CDN_URL || '').origin;
@@ -43,29 +49,19 @@ function cdnOrigin(): string | null {
   }
 }
 
+// Biblioteka za 360° prikaz (Pannellum) se ovde više ne učitava - treba samo
+// turi, pa je tura sama najavljuje i učitava (app/tour/[slug]/pannellum.ts).
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const cdn = cdnOrigin();
 
   return (
-    <html lang="sr" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="sr" className={`${inter.variable} ${jakarta.variable}`}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        {/* Same fajlove isporučuje gstatic, ne googleapis - bez ovoga se
-            preconnect troši na pogrešan domen. */}
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {cdn && <link rel="preconnect" href={cdn} />}
         {cdn && <link rel="preconnect" href={cdn} crossOrigin="anonymous" />}
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap"
-        />
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css" />
       </head>
       <body className="min-h-full flex flex-col">
         {children}
-        <Script 
-          src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js" 
-          strategy="beforeInteractive" 
-        />
       </body>
     </html>
   );

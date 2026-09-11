@@ -19,8 +19,11 @@ export const THEME = {
   overlay: 'rgba(17, 17, 19, 0.45)',
   shadow: '0 2px 8px rgba(17, 17, 19, 0.08)',
   shadowLg: '0 10px 30px rgba(17, 17, 19, 0.15)',
-  fontBody: "'Inter', system-ui, -apple-system, sans-serif",
-  fontDisplay: "'Plus Jakarta Sans', system-ui, sans-serif"
+  // Fontove učitava next/font (app/layout.tsx), a globals.css ih izlaže kao
+  // --font-body i --font-display. Direktno ime ('Inter') ovde ne bi radilo,
+  // jer next/font daje fontu svoje interno ime.
+  fontBody: 'var(--font-body)',
+  fontDisplay: 'var(--font-display)'
 };
 
 // Providna ikonica preko panorame (fullscreen, žiroskop, zvuk, deljenje) -
