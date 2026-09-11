@@ -603,7 +603,7 @@ export default async function Home() {
                 <a className="btn btn-secondary price-cta" href="#kontakt">Zatražite ponudu</a>
               </div>
             </div>
-            <p className="fine-print">* Cene i broj tura su orijentacioni — prilagodite ih pre objave. Za više od 5 tura mesečno pravimo poseban predlog po dogovoru.</p>
+            <p className="fine-print">* Cene i broj tura su orijentacioni. Za više od 5 tura mesečno pravimo poseban predlog po dogovoru.</p>
           </div>
         </section>
 
