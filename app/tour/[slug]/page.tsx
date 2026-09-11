@@ -699,6 +699,9 @@ export default function TourPage() {
         body: JSON.stringify({
           roomId: currentRoom.id,
           panoramaUrl: currentPanoramaUrl,
+          // Bez ovoga server ne zna da li stan ide u prodaju, izdavanje ili
+          // na dan, pa je tekst pisan za podstanara i kad je stan na prodaju.
+          listingType: tour?.category,
           action: 'generate_draft'
         })
       });

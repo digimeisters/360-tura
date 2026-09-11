@@ -78,9 +78,11 @@ Otvori `kvadrat360.com/tour/<slug>?admin=1` i prijavi se. Zatim:
 
 **AI popuna (SR)** — čita samu panoramu i piše srpski opis sobe i predlog tačaka. Otvara se prozor `✏️ Pregled i Izmena AI Drafta (SR)` gde ispraviš šta treba pre nego što se sačuva. Tu biraš i na koje jezike da se prevede.
 
-**`🌐 Dodaj Jezik`** — prevodi sobu na još neki jezik, u bilo kom trenutku, i naknadno. Postojeći prevodi se ne gube.
+Tekst se piše prema **tipu oglasa ture**: za prodaju se naglašava vrednost i raspored, za izdavanje svakodnevna praktičnost, za stan na dan atmosfera i ugođaj. Tip se uzima sa same ture, pa ga ne biraš ručno.
 
-**`🎙️ AI Glasovna Naracija`** — pravi audio vodič od već napisanog teksta sobe. Radi po jeziku: ako soba nema tekst na nekom jeziku, za taj jezik neće biti ni zvuka.
+**`🌐 Dodaj Jezik`** — prevodi sobu na još neki jezik, u bilo kom trenutku, i naknadno. Postojeći prevodi se ne gube. Svaki jezik se prevodi svojim pozivom, pa ako jedan ne uspe, ostali su i dalje tu.
+
+**`🎙️ AI Glasovna Naracija`** — **trenutno ne radi.** Servis za sintezu govora nije podešen na serveru, pa dugme vraća poruku o tome. Tekstualni deo ture radi normalno.
 
 Jezici koje posetilac vidi ne biraju se ručno — pojavljuju se sami, čim soba dobije tekst na tom jeziku.
 
@@ -134,7 +136,6 @@ Tvoje posete se **ne broje** dok si prijavljen kao administrator. Preview botovi
 |---|---|---|
 | Admin nalog | Supabase Auth, e-mail mora biti u `ADMIN_EMAILS` | ti |
 | Kod za upitnik | `FORM_ACCESS_CODE` | agencija |
-| Tajna za Google Formu | `FORM_WEBHOOK_SECRET` | Apps Script (ako se koristi) |
 
 Javna registracija na Supabase-u je **isključena** — nalog može da napravi samo ti, iz Supabase panela.
 
@@ -173,3 +174,9 @@ Kod na Vercelu i onaj koji si dao agenciji nisu isti, ili posle izmene nije ura�
 
 **Admin panel javlja da nalog nema prava.**
 E-mail nije u `ADMIN_EMAILS` na Vercelu.
+
+**AI tačke padaju pored onoga što opisuju.**
+Za sobe popunjene pre 11.09.2026. — model tada nije dobijao objašnjenje koordinata. Pokreni AI popunu ponovo ili pomeri tačke ručno.
+
+**Google Forma više ne upisuje ture.**
+Tako i treba — ruta za nju je uklonjena 11.09.2026. Jedini put za unos je `/unos`. Ako Apps Script okidač još radi, ugasi ga da ne šalje u prazno.

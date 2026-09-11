@@ -1,6 +1,5 @@
-import { GoogleGenAI, Type, Schema } from '@google/genai';
-
-const MODEL_NAME = 'gemini-3.1-flash-lite';
+import { Type, Schema } from '@google/genai';
+import { generateJsonWithRetry, TEMP_EXTRACT } from './gemini';
 
 export type Language = 'sr' | 'en' | 'de' | 'ru';
 
@@ -27,25 +26,6 @@ export type ProcessedTour = {
   faq_5_i18n: Record<string, string>;
   target_languages: Language[];
 };
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-
-async function callGeminiWithRetry(prompt: string, config: object, retries = 3, delayMs = 2000) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await ai.models.generateContent({ model: MODEL_NAME, contents: prompt, config });
-    } catch (err: unknown) {
-      const status = (err as { status?: number; code?: number })?.status ?? (err as { code?: number })?.code;
-      const retryable = status === 503 || status === 429 || /50[23]|429/.test(String(err));
-      if (retryable && i < retries - 1) {
-        await new Promise((res) => setTimeout(res, delayMs * (i + 1)));
-      } else {
-        throw err;
-      }
-    }
-  }
-  throw new Error('Svi pokušaji pozivanja Gemini API-ja su neuspešni.');
-}
 
 function i18nSchema(languages: string[]): Schema {
   const properties: Record<string, Schema> = {};
@@ -168,41 +148,45 @@ ${faqList}
    Nikad ne navodi cenu, površinu, datum ili uslov koji ne postoji u ulazu.
 `;
 
-  const response = await callGeminiWithRetry(prompt, {
-    responseMimeType: 'application/json',
-    responseSchema: {
-      type: Type.OBJECT,
-      properties: {
-        property_type: { type: Type.STRING },
-        advertiser_type: { type: Type.STRING },
-        agency_name: { type: Type.STRING },
-        agent_name: { type: Type.STRING },
-        agent_phone: { type: Type.STRING },
-        agent_email: { type: Type.STRING },
-        address: { type: Type.STRING },
-        title_i18n: textSchema,
-        about_text_i18n: textSchema,
-        faq_1_i18n: textSchema,
-        faq_2_i18n: textSchema,
-        faq_3_i18n: textSchema,
-        faq_4_i18n: textSchema,
-        faq_5_i18n: textSchema
-      },
-      required: [
-        'title_i18n',
-        'about_text_i18n',
-        'faq_1_i18n',
-        'faq_2_i18n',
-        'faq_3_i18n',
-        'faq_4_i18n',
-        'faq_5_i18n'
-      ]
+  const { data } = await generateJsonWithRetry<Record<string, any>>({
+    contents: prompt,
+    label: 'Obrada upitnika',
+    // Obrada upitnika je duža od jednog opisa sobe: 7 polja puta do 4 jezika.
+    timeoutMs: 60_000,
+    config: {
+      responseMimeType: 'application/json',
+      temperature: TEMP_EXTRACT,
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          property_type: { type: Type.STRING },
+          advertiser_type: { type: Type.STRING },
+          agency_name: { type: Type.STRING },
+          agent_name: { type: Type.STRING },
+          agent_phone: { type: Type.STRING },
+          agent_email: { type: Type.STRING },
+          address: { type: Type.STRING },
+          title_i18n: textSchema,
+          about_text_i18n: textSchema,
+          faq_1_i18n: textSchema,
+          faq_2_i18n: textSchema,
+          faq_3_i18n: textSchema,
+          faq_4_i18n: textSchema,
+          faq_5_i18n: textSchema
+        },
+        required: [
+          'title_i18n',
+          'about_text_i18n',
+          'faq_1_i18n',
+          'faq_2_i18n',
+          'faq_3_i18n',
+          'faq_4_i18n',
+          'faq_5_i18n'
+        ]
+      }
     }
   });
 
-  if (!response?.text) throw new Error('AI nije vratio odgovor.');
-
-  const data = JSON.parse(response.text);
   const primaryTitle = data.title_i18n?.sr || data.title_i18n?.[targetLanguages[0]] || '';
 
   const pastedMap = Object.entries(answers)
