@@ -15,8 +15,11 @@ Kompletan tok, od unosa nekretnine do objavljene ture.
 3. Tekst i jezici    →  AI draft, prevodi, naracija
 4. Tačke u prostoru  →  hotspotovi
 5. Tlocrt            →  oznake soba na skici
-6. Praćenje          →  /admin/analitika
+6. Objava            →  /admin/ture → „Objavi"
+7. Praćenje          →  /admin/analitika
 ```
+
+**Nova tura je „u pripremi" dok je ne objaviš.** Link radi samo tebi, prijavljenom; za sve ostale se ponaša kao da ne postoji, i Google je ne vidi. Tako niko ne može da naleti na poluzavršenu turu.
 
 ---
 
@@ -52,7 +55,8 @@ Za tvoje unose i za ispravke. Prijava administratorskim nalogom.
 - Formular pravi turu: naslov, agencija, tip oglasa, adresa, tip nekretnine, podaci agenta.
 - Link se generiše iz naslova i vidi se uživo dok kucaš.
 - **Izmena** postojeće ture menja samo prikazane podatke — **link se ne menja**, jer su za njega vezani podeljeni linkovi i zabeležena analitika.
-- Lista pokazuje sve ture, broj soba i crveno upozorenje kad tura nema sobe ili neka soba nema panoramu.
+- Lista pokazuje sve ture, stanje (**Objavljena** / **U pripremi**), broj soba i crveno upozorenje kad tura nema sobe ili neka soba nema panoramu.
+- **`Objavi` / `Skini`** menja stanje jednim klikom. Objava se ne da ako tura nema nijednu sobu, a pita za potvrdu ako neka soba nema panoramu. Skidanje sa objave takođe pita — podeljeni linkovi tad prestaju da rade.
 - **Nema brisanja ture** — nepovratno je i povuklo bi sobe i analitiku. Briše se u Supabase-u, uz razmišljanje.
 
 Razlika: upitnik popunjava i opis i svih pet odgovora; ručni panel ne — njega koristi za osnovne podatke i ispravke.
@@ -116,7 +120,23 @@ Ponovi za svaku sobu. Oznaka trenutne sobe je istaknuta drugom bojom.
 
 ---
 
-## 6. Analitika — `kvadrat360.com/admin/analitika`
+## 6. Objava
+
+Dok je tura „u pripremi", link vraća „tura nije pronađena" svima osim tebi. To je namerno: tako se link može pripremiti, testirati i podeliti tek kad je tura gotova.
+
+Objavi je tek kad:
+
+- sve sobe imaju panoramu,
+- prva soba je ona kojom želiš da tura počne,
+- hotspotovi za prelaz vode kuda treba.
+
+`/admin/ture` → `Objavi`. Od tog trenutka tura je javna i ulazi u sitemap.
+
+Ako nešto krene naopako, `Skini` je vraća u pripremu — ali linkovi koje si već podelio tada prestaju da rade, pa to nije potez za usput.
+
+---
+
+## 7. Analitika — `kvadrat360.com/admin/analitika`
 
 Jedan ekran, sve ture. Period 7 / 30 / 90 dana.
 
@@ -130,7 +150,7 @@ Tvoje posete se **ne broje** dok si prijavljen kao administrator. Preview botovi
 
 ---
 
-## 7. Pristup i kodovi
+## 8. Pristup i kodovi
 
 | Šta | Gde stoji | Ko koristi |
 |---|---|---|
@@ -143,7 +163,7 @@ Sve varijable se podešavaju na Vercel → Settings → Environment Variables, i
 
 ---
 
-## 8. Šta se još ne uređuje kroz aplikaciju
+## 9. Šta se još ne uređuje kroz aplikaciju
 
 Ovo se popunjava **samo pri prvom unosu kroz upitnik**. Naknadna izmena ide direktno u Supabase, tabela `tours`:
 
@@ -158,7 +178,7 @@ Ako ovo počne često da treba, sledeći korak je dopuna `/admin/ture` da i ta p
 
 ---
 
-## 9. Česti problemi
+## 10. Česti problemi
 
 **Tura se otvara ali panorama neće da se učita.**
 Slika je obrisana sa starog Supabase Storage-a. Otpremi je ponovo kroz admin režim.
@@ -171,6 +191,12 @@ Facebook i WhatsApp keširaju preview. Proveri kako stvarno izgleda na `opengrap
 
 **Upitnik javlja da kod nije ispravan.**
 Kod na Vercelu i onaj koji si dao agenciji nisu isti, ili posle izmene nije urađen redeploy.
+
+**Upitnik javlja „previše pokušaja".**
+Pet pogrešnih kodova sa iste veze zatvara slanje na petnaest minuta. Ispravan kod se ne broji, pa agent koji radi turu za turom ne može da se saplete o ovo.
+
+**Poslao sam link, a agenciji piše da tura ne postoji.**
+Tura je još „u pripremi". Otvori `/admin/ture` i klikni `Objavi`.
 
 **Admin panel javlja da nalog nema prava.**
 E-mail nije u `ADMIN_EMAILS` na Vercelu.

@@ -28,10 +28,15 @@ export async function GET(req: Request) {
   const supabase = ctx.supabase;
 
   const [{ data: events, error: evErr }, { data: tours }, { data: rooms }] = await Promise.all([
+    // Redosled je obavezan uz limit: bez njega Postgres pri odsecanju vraća
+    // proizvoljnih MAX_EVENTS redova, pa bi izveštaj tiho pokazivao pogrešne
+    // brojeve. Ovako odsečeno znači "poslednjih MAX_EVENTS", što je i
+    // prijavljeno kroz `truncated`.
     supabase
       .from('tour_events')
       .select('tour_slug, room_id, event_type, session_id, duration_ms')
       .gte('created_at', since)
+      .order('created_at', { ascending: false })
       .limit(MAX_EVENTS),
     supabase.from('tours').select('slug, title, title_i18n, agency_name'),
     supabase.from('rooms').select('id, tour_slug, title, title_i18n')

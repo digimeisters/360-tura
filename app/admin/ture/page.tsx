@@ -18,6 +18,7 @@ type TourRow = {
   agent_phone: string | null;
   agent_email: string | null;
   created_at: string | null;
+  published: boolean;
   rooms: number;
   roomsWithPanorama: number;
 };
@@ -82,6 +83,7 @@ export default function ToursAdminPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [togglingSlug, setTogglingSlug] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
 
   useEffect(() => {
@@ -162,6 +164,48 @@ export default function ToursAdminPage() {
       setError('Nema veze sa serverom.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Objavljivanje se namerno pita pre nego što se uradi: skidanje sa objave
+  // obara link koji je možda već podeljen, a objavljivanje pušta turu u
+  // sitemap i pred kupce.
+  const togglePublished = async (tour: TourRow) => {
+    const next = !tour.published;
+
+    if (next && tour.rooms === 0) {
+      setError('Tura nema nijednu sobu - nema šta da se objavi.');
+      return;
+    }
+    if (next && tour.roomsWithPanorama < tour.rooms) {
+      const ok = confirm(
+        `Neke sobe nemaju panoramu (${tour.roomsWithPanorama}/${tour.rooms}). Ipak objaviti turu?`
+      );
+      if (!ok) return;
+    }
+    if (!next && !confirm('Skinuti turu sa objave? Podeljeni linkovi prestaju da rade.')) {
+      return;
+    }
+
+    setTogglingSlug(tour.slug);
+    setNotice('');
+    setError('');
+    try {
+      const res = await authedFetch('/api/admin/tours', {
+        method: 'PATCH',
+        body: JSON.stringify({ slug: tour.slug, published: next })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setError(json.error || 'Stanje nije promenjeno.');
+        return;
+      }
+      setNotice(next ? 'Tura je objavljena.' : 'Tura je vraćena u pripremu.');
+      await load();
+    } catch {
+      setError('Nema veze sa serverom.');
+    } finally {
+      setTogglingSlug(null);
     }
   };
 
@@ -408,12 +452,12 @@ export default function ToursAdminPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
             <thead>
               <tr>
-                {['Tura', 'Agencija', 'Tip', 'Sobe', ''].map((h, i) => (
+                {['Tura', 'Stanje', 'Agencija', 'Tip', 'Sobe', ''].map((h, i) => (
                   <th
                     key={h || i}
                     style={{
                       padding: '13px 14px',
-                      textAlign: i === 3 ? 'right' : 'left',
+                      textAlign: i === 4 ? 'right' : 'left',
                       fontSize: '12px',
                       fontWeight: 700,
                       letterSpacing: '0.3px',
@@ -439,6 +483,24 @@ export default function ToursAdminPage() {
                         /tour/{tour.slug}
                       </div>
                     </td>
+                    <td style={{ padding: '12px 14px' }}>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          padding: '3px 9px',
+                          borderRadius: '999px',
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          letterSpacing: '0.2px',
+                          whiteSpace: 'nowrap',
+                          color: tour.published ? THEME.success : THEME.textSecondary,
+                          background: tour.published ? '#eaf7ee' : THEME.surfaceAlt,
+                          border: '1px solid ' + (tour.published ? '#c7e8d1' : THEME.border)
+                        }}
+                      >
+                        {tour.published ? 'Objavljena' : 'U pripremi'}
+                      </span>
+                    </td>
                     <td style={{ padding: '12px 14px', color: tour.agency_name ? THEME.textPrimary : THEME.textMuted }}>
                       {tour.agency_name || '—'}
                     </td>
@@ -457,6 +519,21 @@ export default function ToursAdminPage() {
                       )}
                     </td>
                     <td style={{ padding: '12px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <button
+                        onClick={() => void togglePublished(tour)}
+                        disabled={togglingSlug === tour.slug}
+                        style={{
+                          ...btnStyle,
+                          padding: '6px 12px',
+                          fontSize: '12.5px',
+                          marginRight: '6px',
+                          ...(tour.published
+                            ? {}
+                            : { background: THEME.accent, color: '#fff', borderColor: THEME.accent })
+                        }}
+                      >
+                        {togglingSlug === tour.slug ? '…' : tour.published ? 'Skini' : 'Objavi'}
+                      </button>
                       <button
                         onClick={() => startEdit(tour)}
                         style={{ ...btnStyle, padding: '6px 12px', fontSize: '12.5px', marginRight: '6px' }}
@@ -481,7 +558,8 @@ export default function ToursAdminPage() {
 
         <p style={{ marginTop: '14px', fontSize: '12.5px', color: THEME.textMuted }}>
           „Uredi sadržaj" otvara turu u admin režimu, gde se dodaju sobe, panorame i hotspotovi.
-          Crveno kod broja soba znači da neka soba nema panoramu.
+          Crveno kod broja soba znači da neka soba nema panoramu. Nova tura kreće „u pripremi" —
+          link radi samo tebi dok je ne objaviš.
         </p>
       </div>
     </main>

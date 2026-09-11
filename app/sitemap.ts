@@ -16,9 +16,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   ];
 
+  // Anon rola posle migracije 007 ionako vidi samo objavljene ture, ali uslov
+  // stoji i ovde: sitemap ne sme da zavisi od toga kojim ključem se čita.
+  // Cast jer types/supabase.ts još ne zna za `published` (migracija 007) -
+  // ukloniti kad se tipovi regenerišu.
   const { data: tours } = await supabase
     .from('tours')
     .select('slug, created_at')
+    .eq('published' as never, true as never)
     .order('created_at', { ascending: false });
 
   const tourRoutes: MetadataRoute.Sitemap = (tours || []).map((tour) => ({

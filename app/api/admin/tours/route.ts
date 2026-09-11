@@ -28,7 +28,9 @@ export async function GET(req: Request) {
   const [{ data: tours, error }, { data: rooms }] = await Promise.all([
     ctx.supabase
       .from('tours')
-      .select('slug, title, title_i18n, agency_name, address, category, property_type, agent_name, agent_phone, agent_email, created_at')
+      .select(
+        'slug, title, title_i18n, agency_name, address, category, property_type, agent_name, agent_phone, agent_email, created_at, published' as '*'
+      )
       .order('created_at', { ascending: false }),
     ctx.supabase.from('rooms').select('tour_slug, panorama_url, panorama_url_cf')
   ]);
@@ -78,6 +80,9 @@ export async function POST(req: Request) {
   const { error } = await ctx.supabase.from('tours').insert({
     slug,
     title,
+    // Nova tura nema nijednu sobu, pa kreće kao nacrt - objavljuje se tek kad
+    // se otpreme panorame. Do tada je link mrtav za sve osim za admina.
+    published: false,
     // Tura čita title_i18n pre title-a, pa se naslov upisuje na oba mesta.
     title_i18n: { sr: title },
     agency_name: clean(body.agency_name, 'agency_name') || null,
@@ -105,6 +110,22 @@ export async function PATCH(req: Request) {
   const slug = typeof body.slug === 'string' ? body.slug : '';
   if (!slug) {
     return NextResponse.json({ success: false, error: 'Nedostaje slug.' }, { status: 400 });
+  }
+
+  // Prekidač objave se šalje sam, bez ostatka formulara - lista tura ga menja
+  // jednim klikom, bez otvaranja izmene.
+  if (typeof body.published === 'boolean' && body.title === undefined) {
+    const { error: pubError } = await ctx.supabase
+      .from('tours')
+      .update({ published: body.published } as never)
+      .eq('slug', slug);
+
+    if (pubError) {
+      console.error('[api/admin/tours] publish toggle failed:', pubError.message);
+      return NextResponse.json({ success: false, error: 'Stanje nije promenjeno.' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, published: body.published });
   }
 
   const title = clean(body.title, 'title');

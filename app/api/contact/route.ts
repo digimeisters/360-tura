@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { escapeHtml, sendTelegramMessage } from '@/app/lib/telegram';
+import { rateLimit, tooManyRequests } from '@/app/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
+
+// Čovek koji šalje upit pošalje jedan, eventualno dva ako pogreši. Pet u deset
+// minuta je široko za njega, a usko za skript koji puni tabelu i Telegram.
+const RATE_LIMIT = 5;
+const RATE_WINDOW_MS = 10 * 60 * 1000;
 
 // Gornje granice po polju - forma je javna, pa se dužine seku pre upisa da
 // jedan zlonameran POST ne može da napuni tabelu megabajtima teksta.
@@ -31,6 +37,14 @@ function clean(value: unknown, field: string): string {
  */
 export async function POST(req: Request) {
   try {
+    const limit = rateLimit(req, 'contact', RATE_LIMIT, RATE_WINDOW_MS);
+    if (!limit.ok) {
+      return tooManyRequests(
+        limit.retryAfterSec,
+        'Previše upita u kratkom roku. Pokušajte ponovo za nekoliko minuta.'
+      );
+    }
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
