@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
-import { Language, Waypoint, EstablishData, Room, Tour, ActiveModal } from './types';
+import { Language, Waypoint, Room, Tour, ActiveModal } from './types';
 import { translations, categoryQuestions } from './translations';
 import { THEME, btnStyle, overlayIconStyle, overlayNavButtonStyle, applyGlassHotspotStyle } from './theme';
 import { SITE_URL } from '../../lib/site';
 import { trackEvent } from '../../lib/track';
-import { adminAuthHeader } from '../../lib/authFetch';
 import { Logo } from './Logo';
 import {
   normalizeYaw,
@@ -17,11 +17,13 @@ import {
   parseWaypoints,
   parseEstablish,
   buildI18nObject,
-  translateRoomToLanguages,
   mergeAudioI18n,
-  hasExactLangText,
   Centered
 } from './utils';
+
+// Admin alati (AI popuna, jezici, glas, otpremanje panorame) su poseban chunk
+// koji se skida tek kad postoji admin sesija - posetilac ga nikad ne dobija.
+const TourAdminTools = dynamic(() => import('./TourAdminTools'), { ssr: false });
 
 export default function TourPage() {
   const [hasMounted, setHasMounted] = useState(false);
@@ -30,37 +32,16 @@ export default function TourPage() {
 
   const [tourStarted, setTourStarted] = useState(false);
   const [lang, setLang] = useState<Language>('sr');
-  // Podrazumevano SAMO srpski - inicijalni AI draft se pravi na srpskom,
-  // a ostali jezici (en/de/ru) se mogu dodati kasnije u bilo kom trenutku
-  // preko admin režima ("🌐 Jezici" dugme), ili odmah ovde u draft modalu
-  // ako admin ipak želi sve odjednom.
-  const [targetLanguages, setTargetLanguages] = useState<Language[]>(['sr']);
-  // Podrazumevano PRAZAN niz = "ne generiši AI glas ni za jedan jezik" dok
-  // korisnik eksplicitno ne izabere jezike u draft modalu.
-  const [voiceLanguages, setVoiceLanguages] = useState<Language[]>([]);
 
-  // AI Generation States
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiDraft, setAiDraft] = useState<{ title: string; narration: string; waypoints: Waypoint[] } | null>(null);
-  const [showDraftModal, setShowDraftModal] = useState(false);
-  const [translationProgress, setTranslationProgress] = useState<string | null>(null);
-  const [voiceProgress, setVoiceProgress] = useState<string | null>(null);
-  const [showVoiceModal, setShowVoiceModal] = useState(false);
-
-  // Dodavanje NOVOG jezika u već postojeću (ranije kreiranu) sobu - odvojeno
-  // od inicijalnog AI drafta, dostupno u admin režimu u bilo kom trenutku.
-  const [showAddLanguageModal, setShowAddLanguageModal] = useState(false);
-  const [addLanguageTargets, setAddLanguageTargets] = useState<Language[]>([]);
-
-  // Upload panorame (admin) - fajl sa računara ide na Cloudflare R2, a CDN
-  // link se upisuje u rooms.panorama_url_cf preko /api/upload-panorama.
-  const [panoramaUploadProgress, setPanoramaUploadProgress] = useState<string | null>(null);
-  const panoramaFileInputRef = useRef<HTMLInputElement>(null);
-
-  // Kreiranje nove sobe (pre bilo kakvog sadržaja/panorame).
-  const [creatingRoom, setCreatingRoom] = useState(false);
+  // Mesto u gornjoj traci u koje TourAdminTools crta svoja dugmad. State, a
+  // ne ref, da bi se admin alati ponovo iscrtali kad se mesto pojavi.
+  const [adminToolbarSlot, setAdminToolbarSlot] = useState<HTMLSpanElement | null>(null);
 
   const langRef = useRef<Language>('sr');
+
+  // Panorame koje su već poslate na skidanje - da se pri svakom povratku u
+  // sobu ne traže ponovo.
+  const preloadedPanoramasRef = useRef<Set<string>>(new Set());
 
   const t = translations[lang];
 
@@ -231,30 +212,6 @@ export default function TourPage() {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
   }, [stopGyroscope]);
-
-  const toggleTargetLanguage = (l: Language) => {
-    setTargetLanguages((prev) => {
-      const next = prev.includes(l) ? prev.filter((langItem) => langItem !== l) : [...prev, l];
-      // Ako se jezik isključi iz prevoda, ukloni ga i iz izabranih jezika za glas
-      // (nema smisla generisati glas za jezik koji se ne prevodi)
-      if (!next.includes(l)) {
-        setVoiceLanguages((prevVoice) => prevVoice.filter((v) => v !== l));
-      }
-      return next;
-    });
-  };
-
-  const toggleVoiceLanguage = (l: Language) => {
-    setVoiceLanguages((prev) =>
-      prev.includes(l) ? prev.filter((langItem) => langItem !== l) : [...prev, l]
-    );
-  };
-
-  const toggleAddLanguageTarget = (l: Language) => {
-    setAddLanguageTargets((prev) =>
-      prev.includes(l) ? prev.filter((langItem) => langItem !== l) : [...prev, l]
-    );
-  };
 
   const handleStartEditWaypoint = useCallback((index: number) => {
     const currentRoom = rooms[roomIdx];
@@ -620,37 +577,11 @@ export default function TourPage() {
     }
   };
 
-  // Kreira novu (praznu) sobu za trenutnu turu - obavezan PRVI korak pre
-  // nego što admin može da uploaduje panoramu, pokrene AI popunu ili doda
-  // jezike, jer sve to radi NAD postojećom sobom (rooms[roomIdx]).
-  const handleAddRoom = async () => {
-    if (!slug) return;
-
-    setCreatingRoom(true);
-    try {
-      const nextOrderIndex = rooms.length > 0 ? Math.max(...rooms.map((r) => r.order_index ?? 0)) + 1 : 1;
-
-      const { data, error: insertErr } = await supabase
-        .from('rooms')
-        .insert({ tour_slug: slug, title: `Soba ${nextOrderIndex}`, order_index: nextOrderIndex })
-        .select()
-        .single();
-
-      if (insertErr || !data) {
-        throw new Error(insertErr?.message || 'Nepoznata greška pri kreiranju sobe.');
-      }
-
-      const newRoom = data as unknown as Room;
-      setRooms((prev) => [...prev, newRoom]);
-      setRoomIdx(rooms.length);
-      setError('');
-      setTourStarted(true);
-    } catch (err: any) {
-      console.error('[Kreiranje sobe] Greška:', err);
-      alert('Greška pri kreiranju sobe: ' + (err.message || 'Nepoznata greška'));
-    } finally {
-      setCreatingRoom(false);
-    }
+  // TourAdminTools javlja kad je napravio sobu: tura bez soba je do tada
+  // stajala na ekranu sa greškom "nema soba", a sad treba da krene.
+  const handleAdminRoomCreated = () => {
+    setError('');
+    setTourStarted(true);
   };
 
   // Admin klikne na tlocrt (Skica modal) da postavi/pomeri oznaku TRENUTNE
@@ -680,478 +611,6 @@ export default function TourPage() {
     setRooms((prev) =>
       prev.map((r, idx) => (idx === roomIdx ? { ...r, floorplan_x: xPct, floorplan_y: yPct } : r))
     );
-  };
-
-  // KORAK 1: Generisanje SR drafta
-  const handleAutoPopulateRoom = async () => {
-    const currentRoom = rooms[roomIdx];
-    const currentPanoramaUrl = currentRoom?.panorama_url_cf || currentRoom?.panorama_url;
-    if (!currentRoom || !currentPanoramaUrl) {
-      alert('Nema dostupne panorame za ovu sobu.');
-      return;
-    }
-
-    setAiLoading(true);
-    try {
-      const res = await fetch('/api/ai/auto-populate-room', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
-        body: JSON.stringify({
-          roomId: currentRoom.id,
-          panoramaUrl: currentPanoramaUrl,
-          // Bez ovoga server ne zna da li stan ide u prodaju, izdavanje ili
-          // na dan, pa je tekst pisan za podstanara i kad je stan na prodaju.
-          listingType: tour?.category,
-          action: 'generate_draft'
-        })
-      });
-
-      const result = await res.json();
-      if (result.success && result.draft) {
-        setAiDraft(result.draft);
-        setShowDraftModal(true);
-      } else {
-        alert('Greška pri obradi: ' + (result.error || 'Nepoznata greška'));
-      }
-    } catch (err) {
-      console.error('AI Draft Error:', err);
-      alert('Došlo je do greške prilikom generisanja SR drafta.');
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  // Upload panorame sa računara za trenutnu sobu: šalje fajl na
-  // /api/upload-panorama, koji ga smešta na Cloudflare R2 i upisuje novi
-  // CDN link u rooms.panorama_url_cf. Zamenjuje postojeću panoramu sobe.
-  const handlePanoramaFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-
-    const currentRoom = rooms[roomIdx];
-    if (!currentRoom) return;
-
-    if (!file.type.startsWith('image/')) {
-      alert('Molimo izaberite fajl slike (JPG, PNG ili WEBP).');
-      return;
-    }
-
-    if (currentRoom.panorama_url_cf && !confirm('Ova soba već ima panoramu. Zameniti je novom slikom?')) {
-      return;
-    }
-
-    setPanoramaUploadProgress('Otpremanje panorame na Cloudflare...');
-
-    try {
-      const formData = new FormData();
-      formData.append('roomId', String(currentRoom.id));
-      formData.append('file', file);
-
-      const res = await fetch('/api/upload-panorama', { method: 'POST', headers: await adminAuthHeader(), body: formData });
-      const result = await res.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Nepoznata greška pri upload-u.');
-      }
-
-      setRooms((prevRooms) =>
-        prevRooms.map((r, idx) => (idx === roomIdx ? { ...r, panorama_url_cf: result.r2Url } : r))
-      );
-    } catch (err: any) {
-      console.error('[Upload panorame] Greška:', err);
-      alert('Greška pri upload-u panorame: ' + (err.message || 'Nepoznata greška'));
-    } finally {
-      setPanoramaUploadProgress(null);
-    }
-  };
-
-  // Naknadno/dodatno generisanje AI glasa za VEĆ POSTOJEĆI sadržaj sobe
-  // (bez pokretanja celog AI draft/prevod toka). Koristi trenutno sačuvan
-  // tekst (establish_i18n.text_i18n i waypoints_i18n[].text_i18n) kakav god
-  // da je - ručno unet ili prethodno AI generisan/preveden.
-  const handleGenerateVoiceForRoom = async () => {
-    const currentRoom = rooms[roomIdx];
-    if (!currentRoom) return;
-
-    if (voiceLanguages.length === 0) {
-      alert('Izaberite bar jedan jezik za generisanje glasa.');
-      return;
-    }
-
-    const establishData = parseEstablish(currentRoom.establish_i18n);
-    const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
-
-    // Provera PRE poziva ka TTS-u: da li BAR JEDAN izabrani jezik ima
-    // stvaran tekst za izgovaranje (bez SR fallback-a, jer backend ne radi
-    // fallback - prazan 'en' ostaje prazan, ne uzima se SR tekst).
-    const hasAnyText = voiceLanguages.some(
-      (l) =>
-        hasExactLangText(establishData.text_i18n, l) ||
-        waypointsList.some((wp) => hasExactLangText(wp.text_i18n, l))
-    );
-
-    if (!hasAnyText) {
-      alert(
-        'Nijedan izabrani jezik (' +
-          voiceLanguages.map((l) => l.toUpperCase()).join(', ') +
-          ') nema uneti/preveden tekst - ni uvodnu naraciju ni info-tačke. ' +
-          'Prvo unesi tekst ili prevedi sobu na taj jezik, pa tek onda generiši glas.'
-      );
-      return;
-    }
-
-    setShowVoiceModal(false);
-    setVoiceProgress('Generisanje AI glasovne naracije...');
-
-    try {
-      const res = await fetch('/api/ai/auto-populate-room', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
-        body: JSON.stringify({
-          roomId: currentRoom.id,
-          action: 'generate_voice',
-          voiceLanguages,
-          content: {
-            establishText: establishData.text_i18n,
-            waypoints: waypointsList.map((wp, idx) => ({ index: idx, text: wp.text_i18n }))
-          }
-        })
-      });
-
-      const result = await res.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Nepoznata greška pri generisanju glasa.');
-      }
-
-      const establishCount = Object.keys(result.audio?.establish || {}).length;
-      const waypointCount = (result.audio?.waypoints || []).reduce(
-        (acc: number, w: any) => acc + Object.keys(w.audio_url_i18n || {}).length,
-        0
-      );
-      const totalGenerated = establishCount + waypointCount;
-
-      const errorLines = [
-        ...Object.entries(result.errors?.establish || {}).map(([l, e]) => `Uvod (${String(l).toUpperCase()}): ${e}`),
-        ...Object.entries(result.errors?.waypoints || {}).map(([k, e]) => `Tačka ${k}: ${e}`)
-      ];
-      const skippedCount =
-        (result.skipped?.establish?.length || 0) + (result.skipped?.waypoints?.length || 0);
-
-      if (totalGenerated === 0) {
-        // Ništa nije generisano - NE piši u bazu, jasno obavesti šta se desilo
-        alert(
-          'Glas NIJE generisan ni za jedan segment.\n' +
-            (errorLines.length > 0
-              ? 'Greške:\n' + errorLines.join('\n')
-              : 'Razlog: tekst za izabrane jezike je prazan (' + skippedCount + ' segmenata preskočeno).')
-        );
-        return;
-      }
-
-      const existingEstablishAudio =
-        typeof establishData.audio_url_i18n === 'object' ? establishData.audio_url_i18n : {};
-      const updatedEstablish: EstablishData = {
-        ...establishData,
-        audio_url_i18n: { ...existingEstablishAudio, ...result.audio?.establish }
-      };
-
-      let updatedWaypoints = waypointsList;
-      if (Array.isArray(result.audio?.waypoints)) {
-        updatedWaypoints = waypointsList.map((wp, idx) => {
-          const wpAudio = result.audio.waypoints.find((a: any) => a.index === idx);
-          if (!wpAudio) return wp;
-          const existingWpAudio = typeof wp.audio_url_i18n === 'object' ? wp.audio_url_i18n : {};
-          return { ...wp, audio_url_i18n: { ...existingWpAudio, ...wpAudio.audio_url_i18n } };
-        });
-      }
-
-      const { error: dbErr } = await supabase
-        .from('rooms')
-        .update({
-          establish_i18n: updatedEstablish,
-          waypoints_i18n: updatedWaypoints
-        })
-        .eq('id', currentRoom.id as any);
-
-      if (dbErr) throw dbErr;
-
-      setRooms((prev) =>
-        prev.map((r, idx) =>
-          idx === roomIdx ? { ...r, establish_i18n: updatedEstablish, waypoints_i18n: updatedWaypoints } : r
-        )
-      );
-
-      refreshViewerHotspots(updatedWaypoints, langRef.current);
-
-      alert(
-        `Generisano ${totalGenerated} audio segmenata i sačuvano.` +
-          (errorLines.length > 0 ? '\n\nDeo segmenata NIJE uspeo:\n' + errorLines.join('\n') : '')
-      );
-    } catch (err: any) {
-      console.error('[TTS] Greška pri generisanju glasa za sobu:', err);
-      alert('Greška pri generisanju glasa: ' + (err.message || 'Nepoznata greška'));
-    } finally {
-      setVoiceProgress(null);
-    }
-  };
-
-  
-
-  // KORAK 2 & 3: Potvrda SR drafta, sekvencijalno prevođenje i upis u bazu
-  const handleConfirmDraftAndProcess = async () => {
-    if (!aiDraft || !rooms[roomIdx]) return;
-    
-    if (targetLanguages.length === 0) {
-      alert('Molimo izaberite bar jedan jezik za prevođenje i prikaz.');
-      return;
-    }
-
-    setShowDraftModal(false);
-
-    const currentRoom = rooms[roomIdx];
-    const otherLangs = targetLanguages.filter((l) => l !== 'sr');
-
-    let currentTitleI18n: Record<string, string> = buildI18nObject(aiDraft.title, currentRoom.title_i18n, 'sr');
-    let currentEstablishI18n: EstablishData = {
-      ...parseEstablish(currentRoom.establish_i18n),
-      text_i18n: buildI18nObject(aiDraft.narration, parseEstablish(currentRoom.establish_i18n).text_i18n, 'sr')
-    };
-
-    let currentWaypoints: Waypoint[] = aiDraft.waypoints.map((wp) => ({
-      ...wp,
-      title_i18n: buildI18nObject(getLocalizedText(wp.title_i18n, 'sr'), wp.title_i18n, 'sr'),
-      text_i18n: buildI18nObject(getLocalizedText(wp.text_i18n, 'sr'), wp.text_i18n, 'sr')
-    }));
-
-    try {
-      if (otherLangs.length > 0) {
-        setTranslationProgress(`Prevođenje na jezike: ${otherLangs.map((l) => l.toUpperCase()).join(', ')}...`);
-
-        const translated = await translateRoomToLanguages(
-          currentRoom.id,
-          aiDraft.title,
-          aiDraft.narration,
-          currentTitleI18n,
-          typeof currentEstablishI18n.text_i18n === 'object' ? (currentEstablishI18n.text_i18n as Record<string, string>) : {},
-          currentWaypoints,
-          otherLangs
-        );
-
-        currentTitleI18n = translated.titleI18n;
-        currentEstablishI18n.text_i18n = translated.establishTextI18n;
-        currentWaypoints = translated.waypoints;
-      }
-
-      // Generisanje AI glasovne naracije (opciono - samo ako je korisnik
-      // izabrao bar jedan jezik u draft modalu). Poziva se POSLE prevoda
-      // teksta, jer nam trebaju finalni, prevedeni tekstovi za sve jezike.
-      let voiceSummaryMessage = '';
-
-      if (voiceLanguages.length > 0) {
-        setVoiceProgress('Generisanje AI glasovne naracije...');
-
-        try {
-          const voiceRes = await fetch('/api/ai/auto-populate-room', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
-            body: JSON.stringify({
-              roomId: currentRoom.id,
-              action: 'generate_voice',
-              voiceLanguages,
-              content: {
-                establishText: currentEstablishI18n.text_i18n,
-                waypoints: currentWaypoints.map((wp, idx) => ({ index: idx, text: wp.text_i18n }))
-              }
-            })
-          });
-
-          const voiceResult = await voiceRes.json();
-
-          if (voiceResult.success && voiceResult.audio) {
-            const existingEstablishAudio =
-              typeof currentEstablishI18n.audio_url_i18n === 'object' ? currentEstablishI18n.audio_url_i18n : {};
-            currentEstablishI18n.audio_url_i18n = {
-              ...existingEstablishAudio,
-              ...voiceResult.audio.establish
-            };
-
-            if (Array.isArray(voiceResult.audio.waypoints)) {
-              currentWaypoints = currentWaypoints.map((wp, idx) => {
-                const wpAudio = voiceResult.audio.waypoints.find((a: any) => a.index === idx);
-                if (!wpAudio) return wp;
-                const existingWpAudio = typeof wp.audio_url_i18n === 'object' ? wp.audio_url_i18n : {};
-                return {
-                  ...wp,
-                  audio_url_i18n: { ...existingWpAudio, ...wpAudio.audio_url_i18n }
-                };
-              });
-            }
-
-            const establishCount = Object.keys(voiceResult.audio.establish || {}).length;
-            const waypointCount = (voiceResult.audio.waypoints || []).reduce(
-              (acc: number, w: any) => acc + Object.keys(w.audio_url_i18n || {}).length,
-              0
-            );
-            const totalGenerated = establishCount + waypointCount;
-
-            const errorLines = [
-              ...Object.entries(voiceResult.errors?.establish || {}).map(
-                ([l, e]) => `Uvod (${String(l).toUpperCase()}): ${e}`
-              ),
-              ...Object.entries(voiceResult.errors?.waypoints || {}).map(([k, e]) => `Tačka ${k}: ${e}`)
-            ];
-
-            if (totalGenerated === 0) {
-              voiceSummaryMessage =
-                '\n\n⚠️ AI glas NIJE generisan ni za jedan segment' +
-                (errorLines.length > 0 ? ' - greške:\n' + errorLines.join('\n') : ' (tekst je prazan?).');
-            } else {
-              voiceSummaryMessage =
-                `\n\n🎙️ Generisano ${totalGenerated} audio segmenata.` +
-                (errorLines.length > 0 ? ' Deo NIJE uspeo:\n' + errorLines.join('\n') : '');
-            }
-
-            if (errorLines.length > 0) {
-              console.warn('[TTS] Delimične greške pri generisanju glasa:', voiceResult.errors);
-            }
-          } else {
-            console.error('[TTS] Generisanje glasa nije uspelo:', voiceResult.error);
-            voiceSummaryMessage =
-              '\n\n⚠️ Generisanje AI glasa nije uspelo (' + (voiceResult.error || 'nepoznata greška') + ').';
-          }
-        } catch (voiceErr: any) {
-          console.error('[TTS] Greška pri pozivu generate_voice:', voiceErr);
-          voiceSummaryMessage = '\n\n⚠️ Generisanje AI glasa nije uspelo (mrežna greška).';
-        }
-      }
-
-      setTranslationProgress('Upisivanje u bazu podataka...');
-
-      const { error: dbErr } = await supabase
-        .from('rooms')
-        .update({
-          title_i18n: currentTitleI18n,
-          establish_i18n: currentEstablishI18n,
-          waypoints_i18n: currentWaypoints
-        })
-        .eq('id', currentRoom.id as any);
-
-      if (dbErr) {
-        throw dbErr;
-      }
-
-      setRooms((prevRooms: any[]) =>
-        prevRooms.map((r, idx) =>
-          idx === roomIdx
-            ? {
-                ...r,
-                title_i18n: currentTitleI18n,
-                establish_i18n: currentEstablishI18n,
-                waypoints_i18n: currentWaypoints
-              }
-            : r
-        )
-      );
-
-      refreshViewerHotspots(currentWaypoints, langRef.current);
-
-      alert('Soba je uspešno popunjena i prevedena!' + voiceSummaryMessage);
-    } catch (err: any) {
-      console.error('Translation & Saving Error:', err);
-      alert('Greška tokom prevođenja i upisa: ' + (err.message || 'Nepoznata greška'));
-    } finally {
-      setTranslationProgress(null);
-      setVoiceProgress(null);
-    }
-  };
-
-  // Prevodi VEĆ SAČUVAN srpski sadržaj trenutne sobe (naslov, uvodna
-  // naracija, tačke) na jedan ili više DODATNIH jezika - za razliku od
-  // handleConfirmDraftAndProcess, ovo se može pokrenuti u bilo kom trenutku
-  // nakon što je soba već kreirana, ne samo odmah posle AI generisanja.
-  const handleTranslateRoomLanguages = async () => {
-    const currentRoom = rooms[roomIdx];
-    if (!currentRoom) return;
-
-    const targets = [...addLanguageTargets];
-    if (targets.length === 0) {
-      alert('Izaberite bar jedan jezik za prevod.');
-      return;
-    }
-
-    const sourceTitle = getLocalizedText(currentRoom.title_i18n, 'sr');
-    const establishData = parseEstablish(currentRoom.establish_i18n);
-    const sourceNarration = getLocalizedText(establishData.text_i18n, 'sr');
-    const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
-
-    if (!sourceTitle && !sourceNarration && waypointsList.length === 0) {
-      alert('Ova soba još nema sadržaj na srpskom. Prvo pokreni "🤖 AI Popuni Sobu" da napraviš SR draft.');
-      return;
-    }
-
-    setShowAddLanguageModal(false);
-
-    let currentTitleI18n: Record<string, string> = buildI18nObject(sourceTitle, currentRoom.title_i18n, 'sr');
-    let currentEstablishI18n: EstablishData = {
-      ...establishData,
-      text_i18n: buildI18nObject(sourceNarration, establishData.text_i18n, 'sr')
-    };
-    let currentWaypoints: Waypoint[] = waypointsList.map((wp) => ({
-      ...wp,
-      title_i18n: buildI18nObject(getLocalizedText(wp.title_i18n, 'sr'), wp.title_i18n, 'sr'),
-      text_i18n: buildI18nObject(getLocalizedText(wp.text_i18n, 'sr'), wp.text_i18n, 'sr')
-    }));
-
-    try {
-      setTranslationProgress(`Prevođenje na jezike: ${targets.map((l) => l.toUpperCase()).join(', ')}...`);
-
-      const translated = await translateRoomToLanguages(
-        currentRoom.id,
-        sourceTitle,
-        sourceNarration,
-        currentTitleI18n,
-        typeof currentEstablishI18n.text_i18n === 'object' ? (currentEstablishI18n.text_i18n as Record<string, string>) : {},
-        currentWaypoints,
-        targets
-      );
-
-      currentTitleI18n = translated.titleI18n;
-      currentEstablishI18n.text_i18n = translated.establishTextI18n;
-      currentWaypoints = translated.waypoints;
-
-      setTranslationProgress('Upisivanje u bazu podataka...');
-
-      const { error: dbErr } = await supabase
-        .from('rooms')
-        .update({
-          title_i18n: currentTitleI18n,
-          establish_i18n: currentEstablishI18n,
-          waypoints_i18n: currentWaypoints
-        })
-        .eq('id', currentRoom.id as any);
-
-      if (dbErr) throw dbErr;
-
-      setRooms((prevRooms: any[]) =>
-        prevRooms.map((r, idx) =>
-          idx === roomIdx
-            ? { ...r, title_i18n: currentTitleI18n, establish_i18n: currentEstablishI18n, waypoints_i18n: currentWaypoints }
-            : r
-        )
-      );
-
-      refreshViewerHotspots(currentWaypoints, langRef.current);
-      setAddLanguageTargets([]);
-
-      alert(`Soba je prevedena na: ${targets.map((l) => l.toUpperCase()).join(', ')}.`);
-    } catch (err: any) {
-      console.error('Greška pri dodavanju jezika:', err);
-      alert('Greška pri prevođenju: ' + (err.message || 'Nepoznata greška'));
-    } finally {
-      setTranslationProgress(null);
-    }
   };
 
   const isLanguageAvailable = (l: Language): boolean => {
@@ -1196,39 +655,6 @@ export default function TourPage() {
     return false;
   };
 
-  // Da li TRENUTNA soba (ne cela tura) već ima sadržaj za dati jezik -
-  // koristi se u admin modalu za dodavanje jezika, da admin vidi šta je
-  // već prevedeno, a šta nedostaje.
-  const roomHasLanguageContent = (room: Room | undefined, l: Language): boolean => {
-    if (!room) return false;
-
-    const checkI18n = (data: any): boolean => {
-      if (!data) return false;
-      if (typeof data === 'object') return Boolean(data[l]);
-      if (typeof data === 'string') {
-        try {
-          const parsed = JSON.parse(data);
-          return Boolean(parsed && parsed[l]);
-        } catch {
-          return false;
-        }
-      }
-      return false;
-    };
-
-    if (checkI18n(room.title_i18n)) return true;
-
-    const establishData = parseEstablish(room.establish_i18n);
-    if (checkI18n(establishData.text_i18n)) return true;
-
-    const waypoints = parseWaypoints(room.waypoints_i18n);
-    for (const wp of waypoints) {
-      if (checkI18n(wp.text_i18n) || checkI18n(wp.title_i18n)) return true;
-    }
-
-    return false;
-  };
-
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
@@ -1249,10 +675,6 @@ export default function TourPage() {
     // adminMode i showAdminLogin se ažuriraju automatski preko
     // supabase.auth.onAuthStateChange listener-a gore.
     setLoginPassword('');
-  };
-
-  const handleAdminLogout = async () => {
-    await supabase.auth.signOut();
   };
 
   useEffect(() => {
@@ -1365,6 +787,50 @@ export default function TourPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tourStarted, slug, roomIdx, rooms, adminMode]);
 
+  // Panorame do kojih posetilac može da ode iz trenutne sobe skidaju se u
+  // pozadini, dok on još gleda ovu. Bez toga se svaki prelazak plaća čekanjem
+  // na ~1MB slike, što je na telefonu jasno vidljivo. R2 nema naplatu
+  // izlaznog saobraćaja, pa je jedina cena tuđi mobilni internet - zato ide
+  // samo prvi krug susednih soba, a ne cela tura.
+  useEffect(() => {
+    if (!tourStarted || rooms.length < 2) return;
+
+    const current = rooms[roomIdx];
+    if (!current) return;
+
+    const neighbours = new Set<string>();
+
+    for (const wp of parseWaypoints(current.waypoints_i18n)) {
+      if (!wp.targetRoomId) continue;
+      const target = rooms.find((r) => String(r.id) === String(wp.targetRoomId));
+      const url = target?.panorama_url_cf || target?.panorama_url;
+      if (url) neighbours.add(url);
+    }
+
+    // Strelice za napred/nazad postoje i kad soba nema nijedan hotspot za
+    // prelaz, pa su susedi po redosledu uvek kandidati.
+    for (const idx of [roomIdx + 1, roomIdx - 1]) {
+      const url = rooms[idx]?.panorama_url_cf || rooms[idx]?.panorama_url;
+      if (url) neighbours.add(url);
+    }
+
+    const currentUrl = current.panorama_url_cf || current.panorama_url;
+    if (currentUrl) neighbours.delete(currentUrl);
+
+    // Kratko odlaganje: prvo neka se učita panorama koju čovek gleda.
+    const timer = setTimeout(() => {
+      for (const url of neighbours) {
+        if (preloadedPanoramasRef.current.has(url)) continue;
+        preloadedPanoramasRef.current.add(url);
+        const img = new Image();
+        img.decoding = 'async';
+        img.src = url;
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [tourStarted, rooms, roomIdx]);
+
   useEffect(() => {
     if (activeModal !== 'contact' || !slug || adminMode) return;
     trackEvent({ eventType: 'contact', tourSlug: slug, lang });
@@ -1451,8 +917,15 @@ export default function TourPage() {
     if (!slug || !hasMounted) return;
     async function load() {
       setLoading(true);
-      const { data: tourData, error: tourErr } = await supabase.from('tours').select('*').eq('slug', slug).single();
-      const { data: roomRows, error: roomsErr } = await supabase.from('rooms').select('*').eq('tour_slug', slug).order('order_index', { ascending: true });
+      // Sobe ne zavise od ture, pa se oba upita šalju odjednom - redom bi
+      // svako otvaranje ture plaćalo jedan odlazak do baze više.
+      const [
+        { data: tourData, error: tourErr },
+        { data: roomRows, error: roomsErr }
+      ] = await Promise.all([
+        supabase.from('tours').select('*').eq('slug', slug).single(),
+        supabase.from('rooms').select('*').eq('tour_slug', slug).order('order_index', { ascending: true })
+      ]);
 
       if (tourErr) console.error('[TOUR LOAD ERROR]', tourErr);
       if (roomsErr) console.error('[ROOMS LOAD ERROR]', roomsErr);
@@ -1743,6 +1216,21 @@ export default function TourPage() {
     playAudioFileWithCompletion
   ]);
 
+  // Isto za oba mesta gde se admin alati crtaju (prazna tura i puna tura).
+  const adminToolsProps = {
+    slug,
+    tour,
+    rooms,
+    setRooms,
+    roomIdx,
+    setRoomIdx,
+    lang,
+    langRef,
+    refreshViewerHotspots,
+    onRoomCreated: handleAdminRoomCreated,
+    toolbarSlot: adminToolbarSlot
+  };
+
   if (!hasMounted || loading) return <Centered>{t.loading}</Centered>;
 
   // Tura postoji ali nema nijednu sobu: admin dobija dugme da kreira prvu
@@ -1753,15 +1241,7 @@ export default function TourPage() {
       <div style={{ color: THEME.textPrimary, background: THEME.bg, height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', gap: '16px', padding: '20px', textAlign: 'center' }}>
         <Logo />
         <p style={{ color: THEME.textSecondary, fontSize: '16px' }}>{t.noRooms}</p>
-        {adminMode && (
-          <button
-            onClick={handleAddRoom}
-            disabled={creatingRoom}
-            style={{ padding: '12px 28px', fontSize: '15px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: 'none', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(30, 90, 168, 0.35)' }}
-          >
-            {creatingRoom ? 'Kreiranje...' : '➕ Kreiraj prvu sobu'}
-          </button>
-        )}
+        {adminMode && <TourAdminTools variant="empty" {...adminToolsProps} />}
       </div>
     );
   }
@@ -1912,138 +1392,10 @@ export default function TourPage() {
                 pointerEvents: 'auto',
                 boxShadow: THEME.shadow
               }}>
-                {adminMode && (
-                  <button
-                    onClick={handleAddRoom}
-                    disabled={creatingRoom}
-                    title="Dodaj novu (praznu) sobu u ovu turu"
-                    style={{
-                      background: THEME.success,
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '4px 8px',
-                      fontSize: '11px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      marginRight: '6px'
-                    }}
-                  >
-                    {creatingRoom ? '➕ Kreiranje...' : '➕ Soba'}
-                  </button>
-                )}
-
-                {adminMode && (
-                  <>
-                    <input
-                      ref={panoramaFileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePanoramaFileSelected}
-                      style={{ display: 'none' }}
-                    />
-                    <button
-                      onClick={() => panoramaFileInputRef.current?.click()}
-                      disabled={!!panoramaUploadProgress}
-                      title="Otpremi/zameni panoramu ove sobe (šalje se na Cloudflare)"
-                      style={{
-                        background: '#0891b2',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        padding: '4px 8px',
-                        fontSize: '11px',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        marginRight: '6px'
-                      }}
-                    >
-                      📤 Panorama
-                    </button>
-                  </>
-                )}
-
-                {adminMode && (
-                  <button
-                    onClick={handleAutoPopulateRoom}
-                    disabled={aiLoading}
-                    style={{
-                      background: '#7c3aed',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '4px 8px',
-                      fontSize: '11px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      marginRight: '6px'
-                    }}
-                  >
-                    {aiLoading ? '🤖 Generisanje...' : '🤖 AI Popuni Sobu'}
-                  </button>
-                )}
-
-                {adminMode && (
-                  <button
-                    onClick={() => setShowVoiceModal(true)}
-                    disabled={!!voiceProgress}
-                    title="Generiši ili osveži AI glasovnu naraciju za postojeći tekst ove sobe"
-                    style={{
-                      background: '#c084fc',
-                      color: '#1e1b2e',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '4px 8px',
-                      fontSize: '11px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      marginRight: '6px'
-                    }}
-                  >
-                    🎙️ Glas
-                  </button>
-                )}
-
-                {adminMode && (
-                  <button
-                    onClick={() => setShowAddLanguageModal(true)}
-                    disabled={!!translationProgress}
-                    title="Dodaj (prevedi) ovu sobu na još neki jezik, u bilo kom trenutku"
-                    style={{
-                      background: '#0ea5e9',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '4px 8px',
-                      fontSize: '11px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      marginRight: '6px'
-                    }}
-                  >
-                    🌐 Jezici
-                  </button>
-                )}
-
-                {adminMode && (
-                  <button
-                    onClick={handleAdminLogout}
-                    title="Odjavi se iz admin režima"
-                    style={{
-                      background: THEME.dangerSoft,
-                      border: '1px solid ' + THEME.border,
-                      color: THEME.danger,
-                      borderRadius: '8px',
-                      padding: '4px 8px',
-                      fontSize: '11px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      marginRight: '6px'
-                    }}
-                  >
-                    🔒 Odjava
-                  </button>
-                )}
+                {/* Admin dugmad crta TourAdminTools kroz portal. display:
+                    contents ih pušta da budu članovi ove flex trake kao da
+                    su ovde napisana, sa istim razmakom kao ranije. */}
+                {adminMode && <span ref={setAdminToolbarSlot} style={{ display: 'contents' }} />}
 
                 {availableLanguages
                   .filter((l) => adminMode || isLanguageAvailable(l))
@@ -2554,285 +1906,10 @@ export default function TourPage() {
         </div>
       )}
 
-      {/* MODAL: PREGLED I IZMENA SRPSKO DRAFTA + ODABIR JEZIKA */}
-      {showDraftModal && aiDraft && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', width: '100%', maxWidth: '650px', maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid ' + THEME.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ color: THEME.textPrimary, fontSize: '18px', margin: 0, fontWeight: 700 }}>✏️ Pregled i Izmena AI Drafta (SR)</h2>
-              <button
-                onClick={() => setShowDraftModal(false)}
-                title="Zatvori"
-                style={{ background: 'transparent', border: 'none', color: THEME.textMuted, fontSize: '24px', fontWeight: 'bold', cursor: 'pointer', padding: '0 4px', lineHeight: '1', flexShrink: 0 }}
-              >
-                ×
-              </button>
-            </div>
-
-            <div style={{ padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
-              <div>
-                <label style={{ fontSize: '12px', color: THEME.textSecondary, display: 'block', marginBottom: '4px', fontWeight: 600 }}>Naziv sobe (SR):</label>
-                <input
-                  type="text"
-                  value={aiDraft.title}
-                  onChange={(e) => setAiDraft({ ...aiDraft, title: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '14px', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '12px', color: THEME.textSecondary, display: 'block', marginBottom: '4px', fontWeight: 600 }}>Uvodna naracija (SR):</label>
-                <textarea
-                  value={aiDraft.narration}
-                  onChange={(e) => setAiDraft({ ...aiDraft, narration: e.target.value })}
-                  rows={3}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '14px', resize: 'vertical', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '12px', color: THEME.textSecondary, display: 'block', marginBottom: '8px', fontWeight: 600 }}>Generisane tačke ({aiDraft.waypoints.length}):</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '220px', overflowY: 'auto', paddingRight: '4px' }}>
-                  {aiDraft.waypoints.map((wp, i) => (
-                    <div key={i} style={{ backgroundColor: THEME.surfaceAlt, padding: '12px', borderRadius: '10px', fontSize: '13px', border: '1px solid ' + THEME.border, color: THEME.textPrimary, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <span style={{ color: THEME.accent, fontWeight: 'bold' }}>Tačka {i + 1}:</span>
-                      <input
-                        type="text"
-                        placeholder="Naslov tačke (SR)..."
-                        value={getLocalizedText(wp.title_i18n, 'sr')}
-                        onChange={(e) => {
-                          const updatedWps = [...aiDraft.waypoints];
-                          updatedWps[i] = {
-                            ...updatedWps[i],
-                            title_i18n: buildI18nObject(e.target.value, updatedWps[i].title_i18n, 'sr')
-                          };
-                          setAiDraft({ ...aiDraft, waypoints: updatedWps });
-                        }}
-                        style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', background: THEME.surface, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '12px', boxSizing: 'border-box' }}
-                      />
-                      <textarea
-                        placeholder="Opis / Tekst tačke (SR)..."
-                        value={getLocalizedText(wp.text_i18n, 'sr')}
-                        onChange={(e) => {
-                          const updatedWps = [...aiDraft.waypoints];
-                          updatedWps[i] = {
-                            ...updatedWps[i],
-                            text_i18n: buildI18nObject(e.target.value, updatedWps[i].text_i18n, 'sr')
-                          };
-                          setAiDraft({ ...aiDraft, waypoints: updatedWps });
-                        }}
-                        rows={2}
-                        style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', background: THEME.surface, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '12px', resize: 'vertical', boxSizing: 'border-box' }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* SELEKCIJA CILJNIH JEZIKA DIREKTNO U MODALU */}
-              <div style={{ backgroundColor: THEME.surfaceAlt, padding: '12px 14px', borderRadius: '10px', border: '1px solid ' + THEME.border }}>
-                <label style={{ fontSize: '12px', color: THEME.accent, display: 'block', marginBottom: '6px', fontWeight: 700 }}>
-                  Prevedi i ubaci u scenu na sledeće jezike:
-                </label>
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                  {availableLanguages.map((l) => (
-                    <label key={l} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: THEME.textPrimary }}>
-                      <input
-                        type="checkbox"
-                        checked={targetLanguages.includes(l)}
-                        onChange={() => toggleTargetLanguage(l)}
-                        style={{ accentColor: THEME.accent, width: '16px', height: '16px' }}
-                      />
-                      {l.toUpperCase()} {l === 'sr' && '(Maternji)'}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* SELEKCIJA JEZIKA ZA AI GLASOVNU NARACIJU (OPCIONO) */}
-              <div style={{ backgroundColor: THEME.surfaceAlt, padding: '12px 14px', borderRadius: '10px', border: '1px solid ' + THEME.border }}>
-                <label style={{ fontSize: '12px', color: '#7c3aed', display: 'block', marginBottom: '6px', fontWeight: 700 }}>
-                  🎙️ Generiši AI glasovnu naraciju (MP3) za sledeće jezike (opciono):
-                </label>
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  {availableLanguages
-                    .filter((l) => targetLanguages.includes(l))
-                    .map((l) => (
-                      <label key={l} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: THEME.textPrimary }}>
-                        <input
-                          type="checkbox"
-                          checked={voiceLanguages.includes(l)}
-                          onChange={() => toggleVoiceLanguage(l)}
-                          style={{ accentColor: '#7c3aed', width: '16px', height: '16px' }}
-                        />
-                        {l.toUpperCase()}
-                      </label>
-                    ))}
-                </div>
-                <p style={{ fontSize: '11px', color: THEME.textSecondary, margin: '8px 0 0 0' }}>
-                  {voiceLanguages.length === 0
-                    ? 'Nijedan jezik nije izabran - glas se neće generisati (biće samo tekst).'
-                    : `Glas će biti generisan za: ${voiceLanguages.map((l) => l.toUpperCase()).join(', ')}. Ovo može potrajati.`}
-                </p>
-              </div>
-            </div>
-
-            <div style={{ padding: '16px 20px', borderTop: '1px solid ' + THEME.border, display: 'flex', gap: '10px' }}>
-              <button
-                onClick={handleConfirmDraftAndProcess}
-                style={{ ...btnStyle, flex: 1, backgroundColor: THEME.accent, color: '#fff', borderColor: THEME.accent, padding: '12px', fontSize: '14px', fontWeight: 'bold' }}
-              >
-                🚀 Potvrdi Draft & Pokreni Prevođenje
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: SAMOSTALNO GENERISANJE/OSVEŽAVANJE AI GLASA ZA POSTOJEĆI SADRŽAJ */}
-      {showVoiceModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', width: '100%', maxWidth: '420px', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid ' + THEME.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ color: '#7c3aed', fontSize: '17px', margin: 0, fontWeight: 700 }}>🎙️ AI Glasovna Naracija</h2>
-              <button onClick={() => setShowVoiceModal(false)} style={{ ...btnStyle, backgroundColor: THEME.surfaceAlt, color: THEME.textPrimary, borderColor: THEME.border, padding: '6px 12px' }}>
-                {t.cancel}
-              </button>
-            </div>
-
-            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <p style={{ margin: 0, fontSize: '13px', color: THEME.textSecondary, lineHeight: '1.5' }}>
-                Generiše (ili osvežava) AI glas na osnovu <b>trenutno sačuvanog</b> teksta u ovoj sobi
-                (uvodna naracija + info-tačke), za jezike koje izabereš. Postojeći MP3 za taj jezik biće
-                zamenjen novim.
-              </p>
-
-              <div>
-                <label style={{ fontSize: '12px', color: '#7c3aed', display: 'block', marginBottom: '8px', fontWeight: 700 }}>
-                  Za koje jezike da generišem glas:
-                </label>
-                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                  {availableLanguages.map((l) => (
-                    <label key={l} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: THEME.textPrimary }}>
-                      <input
-                        type="checkbox"
-                        checked={voiceLanguages.includes(l)}
-                        onChange={() => toggleVoiceLanguage(l)}
-                        style={{ accentColor: '#7c3aed', width: '16px', height: '16px' }}
-                      />
-                      {l.toUpperCase()}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ padding: '16px 20px', borderTop: '1px solid ' + THEME.border }}>
-              <button
-                onClick={handleGenerateVoiceForRoom}
-                disabled={voiceLanguages.length === 0}
-                style={{
-                  ...btnStyle,
-                  width: '100%',
-                  backgroundColor: voiceLanguages.length === 0 ? THEME.surfaceAlt : '#7c3aed',
-                  color: voiceLanguages.length === 0 ? THEME.textMuted : '#fff',
-                  borderColor: '#7c3aed',
-                  padding: '12px',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  cursor: voiceLanguages.length === 0 ? 'not-allowed' : 'pointer'
-                }}
-              >
-                🎙️ Generiši Glas
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: DODAVANJE (PREVOĐENJE) SOBE NA DODATNI JEZIK U BILO KOM TRENUTKU */}
-      {showAddLanguageModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', width: '100%', maxWidth: '420px', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid ' + THEME.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ color: THEME.accent, fontSize: '17px', margin: 0, fontWeight: 700 }}>🌐 Dodaj Jezik</h2>
-              <button onClick={() => { setShowAddLanguageModal(false); setAddLanguageTargets([]); }} style={{ ...btnStyle, backgroundColor: THEME.surfaceAlt, color: THEME.textPrimary, borderColor: THEME.border, padding: '6px 12px' }}>
-                {t.cancel}
-              </button>
-            </div>
-
-            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <p style={{ margin: 0, fontSize: '13px', color: THEME.textSecondary, lineHeight: '1.5' }}>
-                Prevodi <b>trenutno sačuvan srpski sadržaj</b> ove sobe (naslov, uvodna naracija, tačke) na
-                izabrane jezike i dodaje ih uz postojeće - ništa se ne briše. Ako jezik već ima prevod, biće
-                zamenjen novim.
-              </p>
-
-              <div>
-                <label style={{ fontSize: '12px', color: THEME.accent, display: 'block', marginBottom: '8px', fontWeight: 700 }}>
-                  Za koje jezike da prevedem ovu sobu:
-                </label>
-                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                  {availableLanguages
-                    .filter((l) => l !== 'sr')
-                    .map((l) => (
-                      <label key={l} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: THEME.textPrimary }}>
-                        <input
-                          type="checkbox"
-                          checked={addLanguageTargets.includes(l)}
-                          onChange={() => toggleAddLanguageTarget(l)}
-                          style={{ accentColor: THEME.accent, width: '16px', height: '16px' }}
-                        />
-                        {l.toUpperCase()} {roomHasLanguageContent(currentRoom, l) ? '✅' : '○'}
-                      </label>
-                    ))}
-                </div>
-                <p style={{ fontSize: '11px', color: THEME.textSecondary, margin: '10px 0 0 0' }}>
-                  ✅ = već postoji prevod za taj jezik u ovoj sobi (biće osvežen). ○ = jezik još ne postoji u
-                  ovoj sobi.
-                </p>
-              </div>
-            </div>
-
-            <div style={{ padding: '16px 20px', borderTop: '1px solid ' + THEME.border }}>
-              <button
-                onClick={handleTranslateRoomLanguages}
-                disabled={addLanguageTargets.length === 0}
-                style={{
-                  ...btnStyle,
-                  width: '100%',
-                  backgroundColor: addLanguageTargets.length === 0 ? THEME.surfaceAlt : THEME.accent,
-                  color: addLanguageTargets.length === 0 ? THEME.textMuted : '#fff',
-                  borderColor: THEME.accent,
-                  padding: '12px',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  cursor: addLanguageTargets.length === 0 ? 'not-allowed' : 'pointer'
-                }}
-              >
-                🌐 Prevedi i Sačuvaj
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: PROGRESS PREVOĐENJA / GENERISANJA GLASA / UPLOAD-A PANORAME */}
-      {(translationProgress || voiceProgress || panoramaUploadProgress) && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 110, backgroundColor: THEME.overlay, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
-          <div style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', padding: '28px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', boxShadow: THEME.shadowLg, maxWidth: '360px', textAlign: 'center' }}>
-            <div style={{ width: '16px', height: '16px', backgroundColor: THEME.accent, borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both' }} />
-            <div style={{ color: THEME.textPrimary, fontSize: '18px', fontWeight: 'bold' }}>{voiceProgress || panoramaUploadProgress || translationProgress}</div>
-            <p style={{ color: THEME.textSecondary, fontSize: '13px' }}>
-              {voiceProgress
-                ? 'Molimo vas sačekajte, generisanje AI glasa je u toku...'
-                : panoramaUploadProgress
-                ? 'Molimo vas sačekajte, upload na Cloudflare je u toku...'
-                : 'Molimo vas sačekajte, prevođenje i upis u bazu su u toku...'}
-            </p>
-          </div>
-        </div>
-      )}
+      {/* ADMIN ALATI: AI draft, glas, jezici, napredak otpremanja. Modali su
+          fixed/absolute, pa im mesto u stablu ne menja izgled - stoje ovde da
+          zadrže isti redosled slojeva kao pre izdvajanja u poseban fajl. */}
+      {adminMode && <TourAdminTools variant="full" {...adminToolsProps} />}
 
       {hasMounted && activeModal && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 80, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
