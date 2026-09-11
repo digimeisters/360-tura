@@ -28,6 +28,39 @@ type TourStat = {
 
 type SortKey = 'title' | 'opens' | 'uniqueVisitors' | 'startRate' | 'shares' | 'contacts';
 
+type SiteStat = {
+  visitors: number;
+  pageViews: number;
+  formSubmits: number;
+  conversionRate: number;
+  mobileShare: number;
+  sources: { source: string; visitors: number }[];
+  clicks: { target: string; count: number }[];
+  truncated: boolean;
+};
+
+type SiteStatus = 'ok' | 'missing' | 'error';
+
+// Oznake iz data-track atributa na početnoj (app/page.tsx), prevedene na
+// ono što admin prepoznaje na strani.
+const TARGET_LABELS: Record<string, string> = {
+  hero_tour: '„Pogledajte primer ture“ (vrh strane)',
+  hero_device_tour: '„Otvori turu“ u kadru ture',
+  hero_packages: '„Paketi za agencije“ (vrh strane)',
+  nav_book: '„Zakažite snimanje“ (meni)',
+  price_single: 'Paket: Pojedinačna tura',
+  price_basic: 'Paket: Agencija Osnovni',
+  price_premium: 'Paket: Agencija Premium',
+  calculator_send: 'Kalkulator: „Pošalji upit sa ovim“',
+  phone: 'Poziv',
+  viber: 'Viber',
+  whatsapp: 'WhatsApp',
+  email: 'Mejl',
+  map: 'Adresa na mapi'
+};
+
+const TOUR_CARD_PREFIX = 'tour_card:';
+
 const PERIODS = [
   { days: 7, label: '7 dana' },
   { days: 30, label: '30 dana' },
@@ -70,6 +103,8 @@ export default function AnalyticsPage() {
     dir: 'desc'
   });
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [site, setSite] = useState<SiteStat | null>(null);
+  const [siteStatus, setSiteStatus] = useState<SiteStatus>('ok');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -102,6 +137,8 @@ export default function AnalyticsPage() {
         return;
       }
       setTours(json.tours);
+      setSite(json.site ?? null);
+      setSiteStatus(json.siteStatus ?? 'ok');
     } catch {
       setError('Nema veze sa serverom.');
     } finally {
@@ -245,6 +282,15 @@ export default function AnalyticsPage() {
   }
 
   const hasData = tours.some((t) => t.opens > 0);
+
+  const tourTitles = new Map(tours.map((t) => [t.slug, t.title || t.slug]));
+  const targetLabel = (target: string): string => {
+    if (target.startsWith(TOUR_CARD_PREFIX)) {
+      const slug = target.slice(TOUR_CARD_PREFIX.length);
+      return `Kartica ture: ${tourTitles.get(slug) || slug}`;
+    }
+    return TARGET_LABELS[target] ?? target;
+  };
 
   return (
     <main style={wrap}>
@@ -481,8 +527,140 @@ export default function AnalyticsPage() {
         <p style={{ marginTop: '14px', fontSize: '12.5px', color: THEME.textMuted }}>
           Klikni na red da vidiš prostorije. Klikni na zaglavlje kolone da sortiraš.
         </p>
+
+        {!loading && !error && (
+          <section style={{ marginTop: '34px' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
+              <h2 style={{ fontSize: '17px', margin: 0, fontFamily: THEME.fontDisplay }}>Početna strana</h2>
+              <span style={{ fontSize: '13px', color: THEME.textSecondary }}>
+                posete kvadrat360.com i klikovi koji vode ka upitu
+              </span>
+            </div>
+
+            {siteStatus === 'missing' && (
+              <Notice>
+                Merenje početne strane još nije uključeno. Pokreni migraciju{' '}
+                <code>supabase/migrations/008_site_events.sql</code> u Supabase SQL editoru.
+              </Notice>
+            )}
+            {siteStatus === 'error' && <Notice danger>Podaci o početnoj strani trenutno ne mogu da se pročitaju.</Notice>}
+
+            {site && (
+              <>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                    gap: '10px',
+                    marginBottom: '12px'
+                  }}
+                >
+                  <Metric label="Posetilaca" value={site.visitors} />
+                  <Metric label="Poslatih upita" value={site.formSubmits} />
+                  <Metric label="Poslalo upit" value={`${site.conversionRate}%`} />
+                  <Metric label="Sa telefona" value={`${site.mobileShare}%`} />
+                </div>
+
+                {site.visitors === 0 ? (
+                  <Notice>Još nema poseta početnoj strani u ovom periodu.</Notice>
+                ) : (
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                      gap: '10px'
+                    }}
+                  >
+                    <BarCard
+                      title="Klikovi"
+                      empty="Još nema klikova."
+                      items={site.clicks.map((c) => ({ label: targetLabel(c.target), value: c.count }))}
+                    />
+                    <BarCard
+                      title="Odakle dolaze posetioci"
+                      empty="Nema podataka."
+                      items={site.sources.map((s) => ({
+                        label: s.source === 'direktno' ? 'Direktno (link, obeleživač)' : s.source,
+                        value: s.visitors
+                      }))}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+        )}
       </div>
     </main>
+  );
+}
+
+function Notice({ children, danger }: { children: React.ReactNode; danger?: boolean }) {
+  return (
+    <div
+      style={{
+        background: THEME.surface,
+        border: '1px solid ' + THEME.border,
+        borderRadius: '16px',
+        padding: '18px 20px',
+        color: danger ? THEME.danger : THEME.textSecondary,
+        fontSize: '14px',
+        boxShadow: THEME.shadow
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// Lista sa trakom uz broj - odmah se vidi šta ljudi najviše klikću i odakle
+// najviše dolaze, bez čitanja brojeva red po red.
+function BarCard({
+  title,
+  items,
+  empty
+}: {
+  title: string;
+  items: { label: string; value: number }[];
+  empty: string;
+}) {
+  const max = Math.max(1, ...items.map((i) => i.value));
+  return (
+    <div
+      style={{
+        background: THEME.surface,
+        border: '1px solid ' + THEME.border,
+        borderRadius: '16px',
+        padding: '16px 18px',
+        boxShadow: THEME.shadow
+      }}
+    >
+      <strong style={{ fontSize: '13px', display: 'block', marginBottom: '10px' }}>{title}</strong>
+      {items.length === 0 ? (
+        <p style={{ margin: 0, fontSize: '13px', color: THEME.textSecondary }}>{empty}</p>
+      ) : (
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '9px' }}>
+          {items.map((item) => (
+            <li key={item.label} style={{ fontSize: '13px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', marginBottom: '4px' }}>
+                <span style={{ color: THEME.textPrimary }}>{item.label}</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{item.value}</span>
+              </div>
+              <div style={{ height: '5px', borderRadius: '999px', background: THEME.border, overflow: 'hidden' }}>
+                <div
+                  style={{
+                    width: `${(item.value / max) * 100}%`,
+                    height: '100%',
+                    background: THEME.accent,
+                    borderRadius: '999px'
+                  }}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 

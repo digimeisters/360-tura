@@ -39,6 +39,43 @@ async function isKnownTour(supabase: SupabaseClient, slug: string): Promise<bool
 const EVENT_TYPES = new Set(['open', 'start', 'room_view', 'share', 'contact']);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Događaji sa početne strane (migracija 008). Cilj klika i izvor posete su
+// kratke oznake, pa se sve što ne liči na oznaku odbacuje umesto da se upiše.
+const SITE_EVENT_TYPES = new Set(['page_view', 'cta_click', 'contact_click', 'form_submit']);
+const SITE_TARGET_RE = /^[a-z0-9_:-]{1,80}$/;
+const SITE_SOURCE_RE = /^[a-z0-9.-]{1,100}$/;
+
+async function recordSiteEvent(
+  supabase: SupabaseClient,
+  body: Record<string, unknown>,
+  sessionId: string
+): Promise<NextResponse> {
+  const eventType = String(body.eventType || '');
+  if (!SITE_EVENT_TYPES.has(eventType)) {
+    return NextResponse.json({ success: false, error: 'Neispravan događaj.' }, { status: 400 });
+  }
+
+  const target =
+    typeof body.target === 'string' && SITE_TARGET_RE.test(body.target) ? body.target : null;
+  const device = body.device === 'mobile' || body.device === 'desktop' ? body.device : null;
+  const source =
+    typeof body.source === 'string' && SITE_SOURCE_RE.test(body.source) ? body.source : null;
+
+  const { error } = await supabase.from('site_events').insert({
+    event_type: eventType,
+    target,
+    session_id: sessionId,
+    device,
+    source
+  });
+
+  if (error) {
+    console.error('[api/track] site insert failed:', error.message);
+    return NextResponse.json({ success: false }, { status: 500 });
+  }
+  return NextResponse.json({ success: true });
+}
+
 // Gornja granica za jedan boravak u prostoriji (2h). Bez ovoga bi zaboravljen
 // otvoren tab preko noći ubacio desetine sati i pomerio svaki prosek.
 const MAX_DURATION_MS = 2 * 60 * 60 * 1000;
@@ -68,12 +105,19 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    const sessionId = String(body.sessionId || '').slice(0, 64);
+    if (!sessionId) {
+      return NextResponse.json({ success: false, error: 'Neispravan događaj.' }, { status: 400 });
+    }
+
+    if (body.scope === 'site') {
+      return recordSiteEvent(createClient(supabaseUrl, supabaseKey), body, sessionId);
+    }
 
     const eventType = String(body.eventType || '');
     const tourSlug = String(body.tourSlug || '').slice(0, 200);
-    const sessionId = String(body.sessionId || '').slice(0, 64);
 
-    if (!EVENT_TYPES.has(eventType) || !tourSlug || !sessionId) {
+    if (!EVENT_TYPES.has(eventType) || !tourSlug) {
       return NextResponse.json({ success: false, error: 'Neispravan događaj.' }, { status: 400 });
     }
 

@@ -17,6 +17,67 @@ type EventRow = {
 
 type RoomStat = { roomId: string; views: number; totalMs: number };
 
+type SiteRow = {
+  event_type: string;
+  target: string | null;
+  session_id: string;
+  device: string | null;
+  source: string | null;
+};
+
+// Tabela site_events nastaje migracijom 008. Dok migracija nije pokrenuta,
+// izveštaj o turama radi normalno, a admin vidi šta treba uraditi.
+const MISSING_TABLE_CODES = new Set(['42P01', 'PGRST205']);
+
+const TOP_SOURCES = 6;
+
+function summarizeSite(rows: SiteRow[]) {
+  const visitors = new Set<string>();
+  const formSessions = new Set<string>();
+  const deviceBySession = new Map<string, string>();
+  const sourceVisitors = new Map<string, Set<string>>();
+  const clicks = new Map<string, number>();
+  let pageViews = 0;
+  let formSubmits = 0;
+
+  for (const row of rows) {
+    if (row.event_type === 'page_view') {
+      pageViews++;
+      visitors.add(row.session_id);
+      if (row.device) deviceBySession.set(row.session_id, row.device);
+      const source = row.source || 'direktno';
+      const set = sourceVisitors.get(source) ?? new Set<string>();
+      set.add(row.session_id);
+      sourceVisitors.set(source, set);
+    } else if (row.event_type === 'form_submit') {
+      formSubmits++;
+      formSessions.add(row.session_id);
+    } else if (row.target) {
+      clicks.set(row.target, (clicks.get(row.target) ?? 0) + 1);
+    }
+  }
+
+  const devices = [...deviceBySession.values()];
+  const mobile = devices.filter((d) => d === 'mobile').length;
+
+  return {
+    visitors: visitors.size,
+    pageViews,
+    formSubmits,
+    // Udeo posetilaca koji su poslali upit - ne broj upita, jer isti čovek
+    // može da pošalje dva.
+    conversionRate: visitors.size ? Math.round((formSessions.size / visitors.size) * 1000) / 10 : 0,
+    mobileShare: devices.length ? Math.round((mobile / devices.length) * 100) : 0,
+    sources: [...sourceVisitors.entries()]
+      .map(([source, set]) => ({ source, visitors: set.size }))
+      .sort((a, b) => b.visitors - a.visitors)
+      .slice(0, TOP_SOURCES),
+    clicks: [...clicks.entries()]
+      .map(([target, count]) => ({ target, count }))
+      .sort((a, b) => b.count - a.count)
+  };
+}
+
 export async function GET(req: Request) {
   const ctx = await requireAdmin(req);
   if (!ctx.ok) return NextResponse.json({ success: false, error: ctx.error }, { status: ctx.status });
@@ -27,7 +88,12 @@ export async function GET(req: Request) {
 
   const supabase = ctx.supabase;
 
-  const [{ data: events, error: evErr }, { data: tours }, { data: rooms }] = await Promise.all([
+  const [
+    { data: events, error: evErr },
+    { data: tours },
+    { data: rooms },
+    { data: siteEvents, error: siteErr }
+  ] = await Promise.all([
     // Redosled je obavezan uz limit: bez njega Postgres pri odsecanju vraća
     // proizvoljnih MAX_EVENTS redova, pa bi izveštaj tiho pokazivao pogrešne
     // brojeve. Ovako odsečeno znači "poslednjih MAX_EVENTS", što je i
@@ -39,8 +105,24 @@ export async function GET(req: Request) {
       .order('created_at', { ascending: false })
       .limit(MAX_EVENTS),
     supabase.from('tours').select('slug, title, title_i18n, agency_name'),
-    supabase.from('rooms').select('id, tour_slug, title, title_i18n')
+    supabase.from('rooms').select('id, tour_slug, title, title_i18n'),
+    supabase
+      .from('site_events')
+      .select('event_type, target, session_id, device, source')
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(MAX_EVENTS)
   ]);
+
+  let site: (ReturnType<typeof summarizeSite> & { truncated: boolean }) | null = null;
+  let siteStatus: 'ok' | 'missing' | 'error' = 'ok';
+  if (siteErr) {
+    siteStatus = MISSING_TABLE_CODES.has(siteErr.code) ? 'missing' : 'error';
+    if (siteStatus === 'error') console.error('[api/analytics] site read failed:', siteErr.message);
+  } else {
+    const siteRows = (siteEvents ?? []) as SiteRow[];
+    site = { ...summarizeSite(siteRows), truncated: siteRows.length >= MAX_EVENTS };
+  }
 
   if (evErr) {
     console.error('[api/analytics] read failed:', evErr.message);
@@ -151,6 +233,8 @@ export async function GET(req: Request) {
     days,
     totalEvents: rows.length,
     truncated: rows.length >= MAX_EVENTS,
-    tours: result
+    tours: result,
+    site,
+    siteStatus
   });
 }
