@@ -12,19 +12,25 @@ import { SITE_URL } from '../../lib/site';
 import { trackEvent } from '../../lib/track';
 import { Logo } from './Logo';
 import { RoomNavBar, type RoomDot } from './RoomNavBar';
+import { MODAL_ICONS, withoutEmoji } from './icons';
 import { PANNELLUM_CSS, PANNELLUM_JS } from './pannellum';
 import {
   ARRIVE_HFOV,
   CREEP_HFOV,
   CREEP_MS,
   DEFAULT_HFOV,
+  ENTRY_START_HFOV,
   FADE_MS,
   IMAGE_WAIT_MS,
   INFO_HFOV,
   SETTLE_MS,
   SLOW_LOAD_HINT_MS,
   WALK_HFOV,
+  WALK_MIN_HFOV_BOUND,
   WALK_MS,
+  WALK_REVEAL_AT,
+  VIEW_MAX_HFOV,
+  VIEW_MIN_HFOV,
   clampPitch,
   entryViewFor,
   pickHfov,
@@ -486,12 +492,18 @@ export default function TourPage() {
     const foundIndex = rooms.findIndex(r => r.id == id);
     if (foundIndex === -1) return;
 
+    // Soba u koju se upravo ulazi se već priprema ispod stare scene - klik na
+    // nju (spisak, tlocrt) ne sme da prekine taj prelaz.
+    if (foundIndex === roomIdx && walkingRef.current && fadingLayerRef.current) return;
+
     if (!transition?.guided) takeManualControl();
 
     // Prelaz koji se još približava vratima više ne važi - posetilac je
-    // izabrao sobu (ili je to upravo taj prelaz stigao do kraja).
+    // izabrao sobu. Prelaz sa revealAt je sam taj prelaz: on traje dok nova
+    // scena ne izađe ispod stare (v.on('load') dole).
+    const walkCancelled = walkingRef.current && !transition;
     walkTokenRef.current += 1;
-    walkingRef.current = false;
+    walkingRef.current = Boolean(transition?.revealAt);
 
     roomSessionRef.current += 1;
     sequenceActiveRef.current = false;
@@ -508,7 +520,17 @@ export default function TourPage() {
     // nikad bio vraćen na false - "Ulazimo u prostoriju" bi ostalo zauvek na
     // ekranu. Iznad smo već prekinuli naraciju/animaciju; ponovno učitavanje
     // panorame ovde nije ni potrebno.
-    if (foundIndex === roomIdx) return;
+    if (foundIndex === roomIdx) {
+      // Prekinut prilaz vratima u istoj sobi: kamera je ostala duboko
+      // uvećana, sa spuštenom granicom zuma - vrati normalan pogled.
+      if (walkCancelled && viewerRef.current) {
+        try {
+          viewerRef.current.setHfovBounds([VIEW_MIN_HFOV, VIEW_MAX_HFOV]);
+          viewerRef.current.setHfov(pickHfov(DEFAULT_HFOV), SETTLE_MS);
+        } catch {}
+      }
+      return;
+    }
 
     if (viewerRef.current) {
       // Postoji scena na ekranu: ona ostaje dok se nova ne učita, pa se
@@ -555,6 +577,7 @@ export default function TourPage() {
       if (reduceMotion) return resolve();
       const yaw = getShortestTargetYaw(normalizeYaw(v.getYaw()), wp.yaw ?? 0);
       try {
+        v.setHfovBounds([WALK_MIN_HFOV_BOUND, VIEW_MAX_HFOV]);
         v.lookAt(clampPitch(wp.pitch ?? 0), yaw, scaledHfov(WALK_HFOV), WALK_MS, () => resolve());
       } catch {
         resolve();
@@ -565,15 +588,21 @@ export default function TourPage() {
     });
 
     const entry = entryViewFor(wp);
+    // Nova soba se pravi dok kamera još prilazi, skrivena ispod stare, i
+    // pokazuje se tek pred kraj prilaza - raspakivanje velike panorame traje
+    // ~1,5 s i ranije je na kraju prilaza izgledalo kao da kamera stoji.
+    const revealAt = reduceMotion ? undefined : Date.now() + WALK_MS * WALK_REVEAL_AT;
 
-    Promise.all([approach, Promise.race([imageReady, wait(WALK_MS + IMAGE_WAIT_MS)])]).then(() => {
+    Promise.race([imageReady, wait(WALK_MS + IMAGE_WAIT_MS)]).then(() => {
       if (!isMountedRef.current || token !== walkTokenRef.current) return;
-      // Stara scena ostaje na ekranu dok se nova obrađuje; neka se za to
-      // vreme i dalje polako približava (vidi CREEP_* u transition.ts).
-      if (!reduceMotion) {
-        try { v.setHfov(scaledHfov(CREEP_HFOV), CREEP_MS); } catch {}
-      }
-      changeRoomById(target.id, { entry, zoomedIn: !reduceMotion, guided: options?.guided });
+      changeRoomById(target.id, { entry, zoomedIn: !reduceMotion, guided: options?.guided, revealAt });
+    });
+
+    approach.then(() => {
+      // Nova soba još nije spremna, a kamera je stigla do vrata: stara scena
+      // i dalje polako ide napred (vidi CREEP_* u transition.ts).
+      if (reduceMotion || !walkingRef.current || v === viewerRef.current) return;
+      try { v.setHfov(scaledHfov(CREEP_HFOV), CREEP_MS); } catch {}
     });
   }, [rooms, roomIdx, changeRoomById, stopAudio, stopCurrentAnimation, takeManualControl]);
 
@@ -1324,10 +1353,13 @@ export default function TourPage() {
     // Veliki ekran "Ulazimo u prostoriju" samo za prvu sobu; pri prelazu
     // stara scena ostaje vidljiva, a mali natpis se pojavi tek ako kasni.
     let slowHintTimer: ReturnType<typeof setTimeout> | null = null;
+    // Nova scena ove šetnje čeka ispod stare dok kamera ne stigne do vrata
+    // (vidi walkToRoom) - "kasni" se računa tek od tog trenutka.
+    const holdUntil = crossfade && transition?.revealAt ? transition.revealAt : 0;
     if (crossfade) {
       slowHintTimer = setTimeout(() => {
         if (isMountedRef.current && currentSession === roomSessionRef.current) setSlowRoomLoad(true);
-      }, SLOW_LOAD_HINT_MS);
+      }, SLOW_LOAD_HINT_MS + Math.max(0, holdUntil - Date.now()));
     } else {
       setRoomLoading(true);
     }
@@ -1349,6 +1381,9 @@ export default function TourPage() {
     // Svaka scena dobija svoj sloj; nova ide ISPOD stare koja se pretapa.
     const layer = document.createElement('div');
     layer.style.cssText = 'position:absolute;inset:0;z-index:1;';
+    // Skrivena scena ne sme da hvata prevlačenje - pomerila bi pogled
+    // koji posetilac još ne vidi.
+    if (holdUntil) layer.style.pointerEvents = 'none';
     panoramaContainer.appendChild(layer);
     currentLayerRef.current = layer;
 
@@ -1409,8 +1444,8 @@ export default function TourPage() {
       autoLoad: true,
       showControls: false,
       hfov: zoomedIn ? scaledHfov(ARRIVE_HFOV) : pickHfov(DEFAULT_HFOV),
-      minHfov: 30,
-      maxHfov: 110,
+      minHfov: VIEW_MIN_HFOV,
+      maxHfov: VIEW_MAX_HFOV,
       yaw: startYaw,
       pitch: startPitch,
       autoRotate: 0,
@@ -1515,6 +1550,8 @@ export default function TourPage() {
     // svom sloju - stara scena ne sme da ostane preko nje.
     v.on('error', () => {
       if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
+      walkingRef.current = false;
+      layer.style.pointerEvents = '';
       if (slowHintTimer) clearTimeout(slowHintTimer);
       setSlowRoomLoad(false);
       setRoomLoading(false);
@@ -1524,16 +1561,25 @@ export default function TourPage() {
 
     v.on('load', async () => {
       if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
-      sceneReadyRef.current = true;
       if (slowHintTimer) clearTimeout(slowHintTimer);
       setSlowRoomLoad(false);
       setRoomLoading(false);
-      fadeOutPreviousScene();
 
-      // Ulazak kroz vrata: soba se "otvori" sa uvećanog na normalan pogled.
-      if (zoomedIn && viewerRef.current) {
-        try { viewerRef.current.setHfov(pickHfov(DEFAULT_HFOV), SETTLE_MS); } catch {}
+      // Scena je napravljena sa ARRIVE_HFOV (ka njemu je okretanje vodi), a
+      // pojavljuje se malo šira - vidi ENTRY_START_HFOV u transition.ts.
+      if (zoomedIn) {
+        try { v.setHfov(scaledHfov(ENTRY_START_HFOV), 0); } catch {}
       }
+
+      const holdMs = holdUntil - Date.now();
+      if (holdMs > 0) {
+        await wait(holdMs);
+        if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
+      }
+      walkingRef.current = false;
+      sceneReadyRef.current = true;
+      layer.style.pointerEvents = '';
+      fadeOutPreviousScene();
 
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
@@ -1550,7 +1596,12 @@ export default function TourPage() {
           const toYaw = getShortestTargetYaw(fromYaw, door.yaw ?? 0);
           turnMs = revisitTurnMs(toYaw - fromYaw);
           try {
-            viewerRef.current.lookAt(clampPitch(door.pitch ?? 0), toYaw, pickHfov(DEFAULT_HFOV), turnMs);
+            viewerRef.current.lookAt(
+              clampPitch(door.pitch ?? 0),
+              toYaw,
+              zoomedIn ? scaledHfov(ARRIVE_HFOV) : pickHfov(DEFAULT_HFOV),
+              turnMs
+            );
           } catch {}
         }
         window.setTimeout(() => {
@@ -1608,10 +1659,7 @@ export default function TourPage() {
           animFrameRef.current = requestAnimationFrame(checkCompletion);
         };
 
-        // Posle ulaska kroz vrata prvo se završi "otvaranje" pogleda, pa tek
-        // onda kreće okretanje - inače bi se dva pokreta sudarila.
-        if (zoomedIn) setTimeout(beginRotation, SETTLE_MS);
-        else beginRotation();
+        beginRotation();
       });
 
       await Promise.all([
@@ -2052,6 +2100,9 @@ export default function TourPage() {
           : { color: THEME.textPrimary };
         const navColor = (isActive: boolean): React.CSSProperties =>
           isActive ? { ...navBase, color: THEME.accent } : navBase;
+        // Preko panorame svetlija plava (kao tačke na vratima), da se vidi i
+        // na tamnim delovima slike; na svetlom welcome ekranu plava sajta.
+        const navIconColor = tourStarted ? '#8BB8F2' : THEME.accent;
 
         return (
         <>
@@ -2094,26 +2145,21 @@ export default function TourPage() {
           maxWidth: '560px',
           justifyContent: 'center'
         }}>
-          <button onClick={() => setActiveModal('faq')} style={{ ...overlayNavButtonStyle, flex: 1, ...navColor(activeModal === 'faq') }}>
-            <span style={{ fontSize: '20px' }}>❓</span>
-            {t.btnFaq.replace(/^[^\s]+\s*/, '')}
-          </button>
-          <button onClick={() => setActiveModal('location')} style={{ ...overlayNavButtonStyle, flex: 1, ...navColor(activeModal === 'location') }}>
-            <span style={{ fontSize: '20px' }}>📍</span>
-            {t.btnLocation.replace(/^[^\s]+\s*/, '')}
-          </button>
-          <button onClick={() => setActiveModal('about')} style={{ ...overlayNavButtonStyle, flex: 1, ...navColor(activeModal === 'about') }}>
-            <span style={{ fontSize: '20px' }}>ℹ️</span>
-            {t.btnAbout.replace(/^[^\s]+\s*/, '')}
-          </button>
-          <button onClick={() => setActiveModal('plan')} style={{ ...overlayNavButtonStyle, flex: 1, ...navColor(activeModal === 'plan') }}>
-            <span style={{ fontSize: '20px' }}>🗺️</span>
-            {t.btnPlan.replace(/^[^\s]+\s*/, '')}
-          </button>
-          <button onClick={() => setActiveModal('contact')} style={{ ...overlayNavButtonStyle, flex: 1, ...navColor(activeModal === 'contact') }}>
-            <span style={{ fontSize: '20px' }}>📞</span>
-            {t.btnContact.replace(/^[^\s]+\s*/, '')}
-          </button>
+          {([
+            ['faq', t.btnFaq],
+            ['location', t.btnLocation],
+            ['about', t.btnAbout],
+            ['plan', t.btnPlan],
+            ['contact', t.btnContact]
+          ] as const).map(([modal, label]) => {
+            const Icon = MODAL_ICONS[modal];
+            return (
+              <button key={modal} onClick={() => setActiveModal(modal)} style={{ ...overlayNavButtonStyle, flex: 1, ...navColor(activeModal === modal) }}>
+                <Icon size={22} color={navIconColor} />
+                {withoutEmoji(label)}
+              </button>
+            );
+          })}
         </div>
         </>
         );
@@ -2301,14 +2347,20 @@ export default function TourPage() {
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 30,
-          width: '94%',
+          width: 'calc(100% - 24px)',
           maxWidth: '520px',
-          backgroundColor: THEME.surface,
-          border: '1px solid ' + THEME.border,
-          borderRadius: '18px',
-          padding: '16px 18px',
-          color: THEME.textPrimary,
-          boxShadow: THEME.shadowLg
+          boxSizing: 'border-box',
+          // Isto tamno staklo kao traka sa sobama (RoomNavBar), samo gušće -
+          // ovde se čita duži tekst preko svetlih delova fotografije.
+          background: 'rgba(15, 23, 42, 0.68)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255, 255, 255, 0.28)',
+          borderRadius: '16px',
+          padding: '14px 18px 16px',
+          color: '#fff',
+          boxShadow: '0 6px 20px rgba(0, 0, 0, 0.25)',
+          fontFamily: THEME.fontBody
         }}>
           <button
             onClick={() => {
@@ -2319,31 +2371,35 @@ export default function TourPage() {
             style={{
               position: 'absolute',
               top: '10px',
-              right: '12px',
-              background: 'transparent',
+              right: '10px',
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(255, 255, 255, 0.1)',
               border: 'none',
-              color: THEME.textMuted,
-              fontSize: '18px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              padding: '2px 6px',
+              borderRadius: '50%',
+              color: 'rgba(255, 255, 255, 0.8)',
+              fontSize: '17px',
               lineHeight: '1',
-              borderRadius: '4px',
-              transition: 'color 0.2s'
+              cursor: 'pointer',
+              transition: 'background 0.15s ease'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = THEME.textPrimary)}
-            onMouseLeave={(e) => (e.currentTarget.style.color = THEME.textMuted)}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.22)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')}
             title={t.close}
+            aria-label={t.close}
           >
             ×
           </button>
 
           {displayedInfoTitle && (
-            <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', color: THEME.accent, paddingRight: '22px', fontWeight: 600 }}>
+            <h3 style={{ margin: '0 0 7px', paddingRight: '34px', fontFamily: THEME.fontDisplay, fontSize: '17px', lineHeight: 1.2, fontWeight: 700, color: '#fff', textWrap: 'balance' }}>
               {displayedInfoTitle}
             </h3>
           )}
-          <p style={{ margin: 0, fontSize: '13px', lineHeight: '1.5', color: THEME.textPrimary, paddingRight: '12px' }}>
+          <p style={{ margin: 0, fontSize: '13.5px', lineHeight: 1.55, color: 'rgba(255, 255, 255, 0.9)', paddingRight: '6px' }}>
             {displayedInfoText}
           </p>
         </div>
@@ -2411,12 +2467,20 @@ export default function TourPage() {
         <div style={{ position: 'absolute', inset: 0, zIndex: 80, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', width: '100%', maxWidth: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid ' + THEME.border }}>
-              <h2 style={{ color: THEME.textPrimary, fontSize: '20px', margin: 0, fontWeight: 700 }}>
-                {activeModal === 'plan' && t.btnPlan}
-                {activeModal === 'location' && t.btnLocation}
-                {activeModal === 'about' && t.btnAbout}
-                {activeModal === 'faq' && t.btnFaq}
-                {activeModal === 'contact' && t.btnContact}
+              <h2 style={{ color: THEME.textPrimary, fontSize: '20px', margin: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {(() => {
+                  const Icon = MODAL_ICONS[activeModal];
+                  return <Icon size={22} color={THEME.accent} />;
+                })()}
+                {withoutEmoji(
+                  {
+                    plan: t.btnPlan,
+                    location: t.btnLocation,
+                    about: t.btnAbout,
+                    faq: t.btnFaq,
+                    contact: t.btnContact
+                  }[activeModal]
+                )}
               </h2>
               <button
                 onClick={() => { setActiveModal(null); setSelectedFaq(null); }}

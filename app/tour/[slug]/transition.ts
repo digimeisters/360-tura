@@ -3,12 +3,12 @@ import { normalizeYaw } from './utils';
 
 /**
  * Prelaz iz sobe u sobu, "kao da posetilac hoda ka vratima":
- *   1. kamera se okrene ka navigacionoj tački i približi joj se (WALK_*),
- *      a za to vreme se skida panorama sledeće sobe;
- *   2. nova soba se napravi ISPOD stare, i kad se učita, stara se pretopi
- *      (FADE_MS) - nema praznog ekrana između soba;
- *   3. nova soba kreće malo uvećana i "otvori se" na normalan pogled
- *      (ARRIVE_HFOV -> DEFAULT_HFOV), u svom početnom kadru - vidi entryViewFor.
+ *   1. kamera se okrene ka navigacionoj tački i približi joj se (WALK_*);
+ *   2. za to vreme se nova soba skida i pravi, skrivena ISPOD stare, pa je
+ *      spremna kad kamera stigne do vrata (WALK_REVEAL_AT) i stara se odmah
+ *      pretopi (FADE_MS) - bez stajanja na kraju prilaza i bez praznog ekrana;
+ *   3. nova soba se pojavi u svom početnom kadru (vidi entryViewFor) i, dok
+ *      kreće okretanje, lagano se primiče (ENTRY_START_HFOV -> ARRIVE_HFOV).
  * WALK/CREEP/ARRIVE_HFOV su za telefon; u pregledaču idu kroz scaledHfov().
  * Klik na sobu u spisku ili na tlocrtu radi samo korak 2 (bez približavanja).
  */
@@ -39,22 +39,43 @@ export const scaledHfov = (mobile: number) =>
 /** Okret i približavanje ka tački. */
 export const WALK_MS = 2500;
 /** Koliko se "priđe" vratima - manje je bliže, ali slika postaje mutnija. */
-export const WALK_HFOV = 42;
+export const WALK_HFOV = 32;
+/**
+ * Deo prilaza (0-1) posle kog nova soba sme da se pokaže. Pre samog kraja,
+ * dok se kamera još kreće, da pretapanje ne sačeka da ona stane.
+ */
+export const WALK_REVEAL_AT = 0.9;
+/**
+ * Scena ne dozvoljava zoom ispod 30° (posetilac ne sme da zumira u mutno),
+ * a prilaz vratima ide dublje - pa se granica spusti samo sceni iz koje se
+ * izlazi. Ona se posle prelaza ionako briše.
+ */
+export const WALK_MIN_HFOV_BOUND = 15;
+/** Najjači zoom koji posetilac sam može da napravi. */
+export const VIEW_MIN_HFOV = 30;
+export const VIEW_MAX_HFOV = 110;
 /** Dok "hoda", kamera ne gleda strmo u pod ni u plafon. */
 export const WALK_PITCH_MIN = -25;
 export const WALK_PITCH_MAX = 20;
 /** Najduže čekanje na sliku sledeće sobe posle približavanja. */
 export const IMAGE_WAIT_MS = 1500;
 /**
- * Dok se nova soba obrađuje (skidanje + dekodiranje velike panorame), stari
- * kadar se i dalje sasvim polako približava - da "hod" ne stane u mestu.
+ * Samo kad nova soba nije spremna do kraja prilaza (spora mreža ili slab
+ * telefon): stari kadar se i dalje sasvim polako približava - da "hod" ne
+ * stane u mestu.
  */
-export const CREEP_HFOV = 34;
+export const CREEP_HFOV = 26;
 export const CREEP_MS = 3200;
 
-/** Nova soba kreće malo uvećana... */
+/**
+ * Ulazak u sobu nastavlja kretanje napred, bez odzumiranja: soba se pojavi
+ * na ENTRY_START_HFOV, a okretanje sobe (startAutoRotate) je samo lagano
+ * primakne na ARRIVE_HFOV - Pannellum pri okretanju uvek ide ka početnom
+ * zoomu scene, a scena se pravi baš sa ARRIVE_HFOV.
+ */
+export const ENTRY_START_HFOV = 60;
 export const ARRIVE_HFOV = 52;
-/** ...i za ovoliko se otvori na normalan pogled. */
+/** Vraćanje na normalan pogled kad se prilaz vratima prekine u istoj sobi. */
 export const SETTLE_MS = 1200;
 
 /** Pretapanje stare scene u novu. */
@@ -77,6 +98,12 @@ export type PendingTransition = {
    * naracije ide samo okret ka sledećim vratima (GUIDE_REVISIT_*).
    */
   guided?: boolean;
+  /**
+   * Trenutak (Date.now()) pre kog nova scena ostaje skrivena ispod stare -
+   * kamera stare scene tada još prilazi vratima. Bez ovoga se pokazuje čim
+   * se učita.
+   */
+  revealAt?: number;
 };
 
 /**
