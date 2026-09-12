@@ -19,14 +19,17 @@ import {
   DEFAULT_HFOV,
   FADE_MS,
   IMAGE_WAIT_MS,
+  INFO_HFOV,
   SETTLE_MS,
   SLOW_LOAD_HINT_MS,
   WALK_HFOV,
   WALK_MS,
   clampPitch,
   entryViewFor,
+  pickHfov,
   preloadPanorama,
   prefersReducedMotion,
+  scaledHfov,
   wait,
   type PendingTransition
 } from './transition';
@@ -530,7 +533,7 @@ export default function TourPage() {
       if (reduceMotion) return resolve();
       const yaw = getShortestTargetYaw(normalizeYaw(v.getYaw()), wp.yaw ?? 0);
       try {
-        v.lookAt(clampPitch(wp.pitch ?? 0), yaw, WALK_HFOV, WALK_MS, () => resolve());
+        v.lookAt(clampPitch(wp.pitch ?? 0), yaw, scaledHfov(WALK_HFOV), WALK_MS, () => resolve());
       } catch {
         resolve();
       }
@@ -546,7 +549,7 @@ export default function TourPage() {
       // Stara scena ostaje na ekranu dok se nova obrađuje; neka se za to
       // vreme i dalje polako približava (vidi CREEP_* u transition.ts).
       if (!reduceMotion) {
-        try { v.setHfov(CREEP_HFOV, CREEP_MS); } catch {}
+        try { v.setHfov(scaledHfov(CREEP_HFOV), CREEP_MS); } catch {}
       }
       changeRoomById(target.id, { entry, zoomedIn: !reduceMotion, guided: options?.guided });
     });
@@ -661,7 +664,7 @@ export default function TourPage() {
             isInterruptedRef.current = true;
             stopCurrentAnimation();
             audioCurrentTimeRef.current = 0;
-            if (viewerRef.current) viewerRef.current.setHfov(48);
+            if (viewerRef.current) viewerRef.current.setHfov(pickHfov(INFO_HFOV));
             playAudioFileWithCompletion(wp.audio_url_i18n ?? wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
           }
         }
@@ -1304,7 +1307,7 @@ export default function TourPage() {
             isInterruptedRef.current = true;
             stopCurrentAnimation();
             audioCurrentTimeRef.current = 0;
-            if (viewerRef.current) viewerRef.current.setHfov(48);
+            if (viewerRef.current) viewerRef.current.setHfov(pickHfov(INFO_HFOV));
             playAudioFileWithCompletion(wp.audio_url_i18n ?? wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
           }
         }
@@ -1326,7 +1329,7 @@ export default function TourPage() {
       panorama: resolvedPanoramaUrl,
       autoLoad: true,
       showControls: false,
-      hfov: zoomedIn ? ARRIVE_HFOV : DEFAULT_HFOV,
+      hfov: zoomedIn ? scaledHfov(ARRIVE_HFOV) : pickHfov(DEFAULT_HFOV),
       minHfov: 30,
       maxHfov: 110,
       yaw: startYaw,
@@ -1403,7 +1406,7 @@ export default function TourPage() {
       // glatko rotira. startAutoRotate() je pravljen tačno za ovaj slučaj
       // (neprekidno, glatko okretanje) i ne pati od tog problema.
       if (viewerRef.current) {
-        viewerRef.current.setHfov(65);
+        viewerRef.current.setHfov(pickHfov(DEFAULT_HFOV));
         const idleRotateDegPerSec = 360 / 30; // 360° za 30 sekundi
         viewerRef.current.startAutoRotate(idleRotateDegPerSec, targetEstablishPitch);
       }
@@ -1449,7 +1452,7 @@ export default function TourPage() {
 
       // Ulazak kroz vrata: soba se "otvori" sa uvećanog na normalan pogled.
       if (zoomedIn && viewerRef.current) {
-        try { viewerRef.current.setHfov(DEFAULT_HFOV, SETTLE_MS); } catch {}
+        try { viewerRef.current.setHfov(pickHfov(DEFAULT_HFOV), SETTLE_MS); } catch {}
       }
 
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
@@ -1490,7 +1493,7 @@ export default function TourPage() {
               // gleda, bez skoka na početni pogled sobe.
               viewerRef.current.startAutoRotate(speed, startPitch);
             } else {
-              if (!zoomedIn) viewerRef.current.setHfov(DEFAULT_HFOV);
+              if (!zoomedIn) viewerRef.current.setHfov(pickHfov(DEFAULT_HFOV));
               viewerRef.current.setYaw(targetEstablishYaw);
               viewerRef.current.setPitch(targetEstablishPitch);
               viewerRef.current.startAutoRotate(speed, targetEstablishPitch);
@@ -1541,7 +1544,7 @@ export default function TourPage() {
         const targetYaw = getShortestTargetYaw(currentYaw, item.wp.yaw);
         const targetPitch = item.wp.pitch ?? 0;
 
-        viewerRef.current.lookAt(targetPitch, targetYaw, 50, 2200);
+        viewerRef.current.lookAt(targetPitch, targetYaw, pickHfov(INFO_HFOV), 2200);
 
         await new Promise(r => setTimeout(r, 2300));
         if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;

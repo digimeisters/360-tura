@@ -9,13 +9,35 @@ import { normalizeYaw } from './utils';
  *      (FADE_MS) - nema praznog ekrana između soba;
  *   3. nova soba kreće malo uvećana i "otvori se" na normalan pogled
  *      (ARRIVE_HFOV -> DEFAULT_HFOV), u svom početnom kadru - vidi entryViewFor.
+ * WALK/CREEP/ARRIVE_HFOV su za telefon; u pregledaču idu kroz scaledHfov().
  * Klik na sobu u spisku ili na tlocrtu radi samo korak 2 (bez približavanja).
  */
 
-export const DEFAULT_HFOV = 65;
+/**
+ * Pannellum zoom zadaje kao HORIZONTALNI ugao. Na uspravnom telefonu 65°
+ * izgleda prirodno, ali na širokom ekranu isti ugao odseca visinu sobe na
+ * ~39° i sve deluje previše približeno - zato širok ekran dobija širi kadar.
+ */
+const WIDE_SCREEN_ASPECT = 1.2;
+
+export type HfovPair = { mobile: number; desktop: number };
+
+export const isWideScreen = () =>
+  typeof window !== 'undefined' && window.innerWidth / window.innerHeight > WIDE_SCREEN_ASPECT;
+
+export const pickHfov = (v: HfovPair) => (isWideScreen() ? v.desktop : v.mobile);
+
+/** Normalan pogled na sobu. */
+export const DEFAULT_HFOV: HfovPair = { mobile: 65, desktop: 90 };
+/** Približavanje info-tački (vodič i ručni klik). */
+export const INFO_HFOV: HfovPair = { mobile: 50, desktop: 62 };
+
+/** Vrednosti prelaza su zadate za telefon; na širokom ekranu se srazmerno šire. */
+export const scaledHfov = (mobile: number) =>
+  isWideScreen() ? Math.round((mobile * DEFAULT_HFOV.desktop) / DEFAULT_HFOV.mobile) : mobile;
 
 /** Okret i približavanje ka tački. */
-export const WALK_MS = 1400;
+export const WALK_MS = 2200;
 /** Koliko se "priđe" vratima - manje je bliže, ali slika postaje mutnija. */
 export const WALK_HFOV = 42;
 /** Dok "hoda", kamera ne gleda strmo u pod ni u plafon. */
@@ -33,10 +55,10 @@ export const CREEP_MS = 3200;
 /** Nova soba kreće malo uvećana... */
 export const ARRIVE_HFOV = 52;
 /** ...i za ovoliko se otvori na normalan pogled. */
-export const SETTLE_MS = 1400;
+export const SETTLE_MS = 1000;
 
 /** Pretapanje stare scene u novu. */
-export const FADE_MS = 700;
+export const FADE_MS = 600;
 /** Ako nova soba stiže sporije od ovoga, prikaže se "Ulazimo u prostoriju". */
 export const SLOW_LOAD_HINT_MS = 700;
 
