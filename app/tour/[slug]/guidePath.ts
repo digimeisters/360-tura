@@ -12,7 +12,7 @@ import { parseWaypoints } from './utils';
 // Koliko dugo (ms) vodič ćuti pri PONOVNOM prolasku kroz već predstavljenu
 // sobu (npr. hodnik drugi put) - bez naracije, samo kratak predah pre nego
 // što nastavi dalje.
-export const GUIDE_REVISIT_PAUSE_MS = 2000;
+export const GUIDE_REVISIT_PAUSE_MS = 4000;
 
 export function parseGuidePath(raw: string | null | undefined): number[] {
   if (!raw) return [];

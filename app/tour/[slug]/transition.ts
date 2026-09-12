@@ -15,7 +15,7 @@ import { normalizeYaw } from './utils';
 export const DEFAULT_HFOV = 65;
 
 /** Okret i približavanje ka tački. */
-export const WALK_MS = 850;
+export const WALK_MS = 1400;
 /** Koliko se "priđe" vratima - manje je bliže, ali slika postaje mutnija. */
 export const WALK_HFOV = 42;
 /** Dok "hoda", kamera ne gleda strmo u pod ni u plafon. */
@@ -28,15 +28,15 @@ export const IMAGE_WAIT_MS = 1500;
  * kadar se i dalje sasvim polako približava - da "hod" ne stane u mestu.
  */
 export const CREEP_HFOV = 34;
-export const CREEP_MS = 2500;
+export const CREEP_MS = 3200;
 
 /** Nova soba kreće malo uvećana... */
 export const ARRIVE_HFOV = 52;
 /** ...i za ovoliko se otvori na normalan pogled. */
-export const SETTLE_MS = 900;
+export const SETTLE_MS = 1400;
 
 /** Pretapanje stare scene u novu. */
-export const FADE_MS = 450;
+export const FADE_MS = 700;
 /** Ako nova soba stiže sporije od ovoga, prikaže se "Ulazimo u prostoriju". */
 export const SLOW_LOAD_HINT_MS = 700;
 
