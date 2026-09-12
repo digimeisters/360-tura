@@ -35,8 +35,12 @@ export const GLASS: React.CSSProperties = {
   border: '1px solid rgba(255, 255, 255, 0.28)',
   boxShadow: '0 6px 20px rgba(0, 0, 0, 0.25)'
 };
-/** Plava na tamnom staklu - THEME.accent je tu pretaman za čitanje. */
-export const GLASS_ACCENT = '#8BB8F2';
+// Plava na tamnom staklu - THEME.accent (#1E5AA8) je tu pretaman za čitanje.
+// Ovo NIJE nova boja: isti je #5B92D6 koji sajt koristi za akcenat u tamnom
+// režimu (HomePage.tsx) i koji tura već koristi za tačke na vratima
+// (applyGlassHotspotStyle) i trenutnu sobu u traci (RoomNavBar) - tako sva
+// plava u turi ostaje ista, umesto posebne nijanse za providne elemente.
+export const GLASS_ACCENT = '#5B92D6';
 
 // Providno dugme sa ikonicom (ceo ekran, žiroskop, zvuk, vodič) - bez
 // podloge, plava ikonica sa senkom, isti tretman kao donji meni.

@@ -1932,7 +1932,7 @@ export default function TourPage() {
                     key={l}
                     onClick={() => changeLanguage(l)}
                     style={{
-                      background: lang === l ? THEME.accent : 'transparent',
+                      background: lang === l ? GLASS_ACCENT : 'transparent',
                       color: lang === l ? '#fff' : 'rgba(255, 255, 255, 0.78)',
                       border: 'none',
                       borderRadius: '999px',
@@ -2023,7 +2023,7 @@ export default function TourPage() {
                       key={l}
                       onClick={() => changeLanguage(l)}
                       style={{
-                        background: lang === l ? THEME.accent : 'transparent',
+                        background: lang === l ? GLASS_ACCENT : 'transparent',
                         color: lang === l ? '#fff' : 'rgba(255, 255, 255, 0.75)',
                         border: 'none',
                         borderRadius: '8px',
