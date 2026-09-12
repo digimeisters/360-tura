@@ -13,6 +13,24 @@ import { trackEvent } from '../../lib/track';
 import { Logo } from './Logo';
 import { PANNELLUM_CSS, PANNELLUM_JS } from './pannellum';
 import {
+  ARRIVE_HFOV,
+  CREEP_HFOV,
+  CREEP_MS,
+  DEFAULT_HFOV,
+  FADE_MS,
+  IMAGE_WAIT_MS,
+  SETTLE_MS,
+  SLOW_LOAD_HINT_MS,
+  WALK_HFOV,
+  WALK_MS,
+  clampPitch,
+  entryViewFor,
+  preloadPanorama,
+  prefersReducedMotion,
+  wait,
+  type PendingTransition
+} from './transition';
+import {
   normalizeYaw,
   getShortestTargetYaw,
   getLocalizedText,
@@ -26,6 +44,13 @@ import {
 // Admin alati (AI popuna, jezici, glas, otpremanje panorame) su poseban chunk
 // koji se skida tek kad postoji admin sesija - posetilac ga nikad ne dobija.
 const TourAdminTools = dynamic(() => import('./TourAdminTools'), { ssr: false });
+
+// Uklanja sloj jedne scene: Pannellum viewer i njegov div.
+function disposeLayer(layer: { viewer: any; el: HTMLDivElement } | null) {
+  if (!layer) return;
+  try { layer.viewer?.destroy(); } catch {}
+  layer.el.remove();
+}
 
 export default function TourPage() {
   // Pri renderovanju na serveru ovo postaje <link rel="preload"> u <head>, pa
@@ -46,9 +71,21 @@ export default function TourPage() {
 
   const langRef = useRef<Language>('sr');
 
-  // Panorame koje su već poslate na skidanje - da se pri svakom povratku u
-  // sobu ne traže ponovo.
-  const preloadedPanoramasRef = useRef<Set<string>>(new Set());
+  // ---- Prelaz između soba (vidi transition.ts) --------------------------
+  // Šta sledeća scena treba da uradi; postavlja changeRoomById, a troši
+  // efekat koji pravi scenu. Dok je postavljeno, stara scena se NE uništava
+  // nego ostaje na ekranu da bi se pretopila u novu.
+  const pendingTransitionRef = useRef<PendingTransition | null>(null);
+  // Sloj (div) sa Pannellum-om trenutne scene, i sloj stare scene koja se
+  // upravo pretapa. Svaka scena ima svoj sloj unutar #panorama.
+  const currentLayerRef = useRef<HTMLDivElement | null>(null);
+  const fadingLayerRef = useRef<{ viewer: any; el: HTMLDivElement } | null>(null);
+  // Svaki novi prelaz ili klik na sobu poništava prelaz koji se još
+  // približava vratima - da se ne desi dupla promena sobe.
+  const walkTokenRef = useRef(0);
+  const walkingRef = useRef(false);
+  // Mali natpis "Ulazimo u prostoriju" samo kad nova soba kasni.
+  const [slowRoomLoad, setSlowRoomLoad] = useState(false);
 
   const t = translations[lang];
 
@@ -360,9 +397,16 @@ export default function TourPage() {
     });
   }, [stopAudio, loadAndPlayLocalizedAudio]);
 
-  const changeRoomById = useCallback((id: string | number) => {
+  // `transition` dolazi iz walkToRoom (prelaz kroz tačku, sa smerom ulaska).
+  // Bez njega (spisak soba, tlocrt) prelaz je samo pretapanje.
+  const changeRoomById = useCallback((id: string | number, transition?: PendingTransition) => {
     const foundIndex = rooms.findIndex(r => r.id == id);
     if (foundIndex === -1) return;
+
+    // Prelaz koji se još približava vratima više ne važi - posetilac je
+    // izabrao sobu (ili je to upravo taj prelaz stigao do kraja).
+    walkTokenRef.current += 1;
+    walkingRef.current = false;
 
     roomSessionRef.current += 1;
     sequenceActiveRef.current = false;
@@ -381,9 +425,69 @@ export default function TourPage() {
     // panorame ovde nije ni potrebno.
     if (foundIndex === roomIdx) return;
 
-    setRoomLoading(true);
+    if (viewerRef.current) {
+      // Postoji scena na ekranu: ona ostaje dok se nova ne učita, pa se
+      // pretapaju. Veliki ekran za učitavanje se tada ne prikazuje.
+      pendingTransitionRef.current = transition ?? { entry: null, zoomedIn: false };
+    } else {
+      pendingTransitionRef.current = null;
+      setRoomLoading(true);
+    }
     setRoomIdx(foundIndex);
   }, [rooms, roomIdx, stopAudio, stopCurrentAnimation]);
+
+  // Klik na navigacionu tačku: kamera se okrene ka tački i približi joj se,
+  // za to vreme se skida sledeća soba, pa prelaz (vidi transition.ts).
+  const walkToRoom = useCallback((wp: Waypoint) => {
+    if (wp.targetRoomId == null || walkingRef.current) return;
+
+    const fromRoom = rooms[roomIdx];
+    const target = rooms.find(r => String(r.id) === String(wp.targetRoomId));
+    const v = viewerRef.current;
+    if (!fromRoom || !target || target.id == fromRoom.id || !v) {
+      changeRoomById(wp.targetRoomId);
+      return;
+    }
+
+    const token = ++walkTokenRef.current;
+    walkingRef.current = true;
+
+    // Kamera sad pripada prelazu: prekini naraciju i okretanje.
+    sequenceActiveRef.current = false;
+    isInterruptedRef.current = true;
+    stopCurrentAnimation();
+    stopAudio();
+    setInfoBoxData(null);
+
+    const url = target.panorama_url_cf || target.panorama_url;
+    const imageReady = url ? preloadPanorama(url) : Promise.resolve();
+
+    const reduceMotion = prefersReducedMotion();
+    const approach = new Promise<void>((resolve) => {
+      if (reduceMotion) return resolve();
+      const yaw = getShortestTargetYaw(normalizeYaw(v.getYaw()), wp.yaw ?? 0);
+      try {
+        v.lookAt(clampPitch(wp.pitch ?? 0), yaw, WALK_HFOV, WALK_MS, () => resolve());
+      } catch {
+        resolve();
+      }
+      // Ako posetilac povuče pogled usred animacije, Pannellum ne pozove
+      // callback - zato i rezervni tajmer.
+      setTimeout(resolve, WALK_MS + 150);
+    });
+
+    const entry = entryViewFor(wp);
+
+    Promise.all([approach, Promise.race([imageReady, wait(WALK_MS + IMAGE_WAIT_MS)])]).then(() => {
+      if (!isMountedRef.current || token !== walkTokenRef.current) return;
+      // Stara scena ostaje na ekranu dok se nova obrađuje; neka se za to
+      // vreme i dalje polako približava (vidi CREEP_* u transition.ts).
+      if (!reduceMotion) {
+        try { v.setHfov(CREEP_HFOV, CREEP_MS); } catch {}
+      }
+      changeRoomById(target.id, { entry, zoomedIn: !reduceMotion });
+    });
+  }, [rooms, roomIdx, changeRoomById, stopAudio, stopCurrentAnimation]);
 
   // Iscrtava hotspot-ove na vieweru koristeći TAČNO prosleđen niz tačaka.
   // Namerno NE čita rooms[roomIdx] iz state-a, jer bi to moglo biti zastarelo
@@ -424,7 +528,7 @@ export default function TourPage() {
           if (adminModeRef.current) {
             handleStartEditWaypoint(index);
           } else if (isNav && wp.targetRoomId) {
-            changeRoomById(wp.targetRoomId);
+            walkToRoom(wp);
           } else if (!isNav) {
             isInterruptedRef.current = true;
             stopCurrentAnimation();
@@ -435,7 +539,7 @@ export default function TourPage() {
         }
       });
     });
-  }, [rooms, handleStartEditWaypoint, changeRoomById, playAudioFileWithCompletion, stopCurrentAnimation]);
+  }, [rooms, handleStartEditWaypoint, walkToRoom, playAudioFileWithCompletion, stopCurrentAnimation]);
 
   const changeLanguage = useCallback((l: Language) => {
     setLang(l);
@@ -744,6 +848,9 @@ export default function TourPage() {
         try { viewerRef.current.destroy(); } catch {}
         viewerRef.current = null;
       }
+      // Scena koja se upravo pretapala, ako se iz ture izađe usred prelaza.
+      disposeLayer(fadingLayerRef.current);
+      fadingLayerRef.current = null;
     };
   }, [stopAudio, stopCurrentAnimation]);
 
@@ -851,21 +958,10 @@ export default function TourPage() {
     if (currentUrl) neighbours.delete(currentUrl);
 
     // Kratko odlaganje: prvo neka se učita panorama koju čovek gleda.
+    // preloadPanorama traži sliku u CORS režimu (kao Pannellum) i pamti je,
+    // pa je ne traži dvaput - vidi transition.ts.
     const timer = setTimeout(() => {
-      for (const url of neighbours) {
-        if (preloadedPanoramasRef.current.has(url)) continue;
-        preloadedPanoramasRef.current.add(url);
-        const img = new Image();
-        // KLJUČNO: Pannellum posle učitava istu panoramu preko XHR-a (CORS
-        // zahtev, bez kolačića). Bez crossOrigin ovde, pregledač kešira
-        // odgovor kao "no-cors" (bez CORS zaglavlja), pa taj XHR posle puca
-        // sa "No 'Access-Control-Allow-Origin' header..." - vidljivo kao
-        // "učitava sliku, ali ne prelazi u sobu" (viewer.on('load') se nikad
-        // ne pozove). crossOrigin mora da se postavi PRE src-a.
-        img.crossOrigin = 'anonymous';
-        img.decoding = 'async';
-        img.src = url;
-      }
+      for (const url of neighbours) void preloadPanorama(url);
     }, 1500);
 
     return () => clearTimeout(timer);
@@ -996,9 +1092,30 @@ export default function TourPage() {
     const currentSession = ++roomSessionRef.current;
     const currentRoom = rooms[roomIdx];
     const resolvedPanoramaUrl = currentRoom?.panorama_url_cf || currentRoom?.panorama_url;
-    if (!resolvedPanoramaUrl) return;
 
-    setRoomLoading(true);
+    // Prelaz iz druge sobe (vidi transition.ts): stara scena je već sklonjena
+    // u fadingLayerRef i ostaje na ekranu dok se ova ne učita.
+    const transition = pendingTransitionRef.current;
+    pendingTransitionRef.current = null;
+    const crossfade = Boolean(transition && fadingLayerRef.current);
+
+    const panoramaContainer = document.getElementById('panorama');
+    if (!resolvedPanoramaUrl || !panoramaContainer) {
+      disposeLayer(fadingLayerRef.current);
+      fadingLayerRef.current = null;
+      return;
+    }
+
+    // Veliki ekran "Ulazimo u prostoriju" samo za prvu sobu; pri prelazu
+    // stara scena ostaje vidljiva, a mali natpis se pojavi tek ako kasni.
+    let slowHintTimer: ReturnType<typeof setTimeout> | null = null;
+    if (crossfade) {
+      slowHintTimer = setTimeout(() => {
+        if (isMountedRef.current && currentSession === roomSessionRef.current) setSlowRoomLoad(true);
+      }, SLOW_LOAD_HINT_MS);
+    } else {
+      setRoomLoading(true);
+    }
     sequenceActiveRef.current = true;
     isInterruptedRef.current = false;
     setIsInfoboxManuallyClosed(false);
@@ -1008,8 +1125,17 @@ export default function TourPage() {
       try { viewerRef.current.destroy(); } catch {}
       viewerRef.current = null;
     }
-    const panoramaContainer = document.getElementById('panorama');
-    if (panoramaContainer) panoramaContainer.innerHTML = '';
+    if (!crossfade) {
+      disposeLayer(fadingLayerRef.current);
+      fadingLayerRef.current = null;
+      panoramaContainer.innerHTML = '';
+    }
+
+    // Svaka scena dobija svoj sloj; nova ide ISPOD stare koja se pretapa.
+    const layer = document.createElement('div');
+    layer.style.cssText = 'position:absolute;inset:0;z-index:1;';
+    panoramaContainer.appendChild(layer);
+    currentLayerRef.current = layer;
 
     const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
     const establishData = parseEstablish(currentRoom.establish_i18n);
@@ -1040,7 +1166,7 @@ export default function TourPage() {
           if (adminModeRef.current) {
             handleStartEditWaypoint(index);
           } else if (isNav && wp.targetRoomId) {
-            changeRoomById(wp.targetRoomId);
+            walkToRoom(wp);
           } else if (!isNav) {
             isInterruptedRef.current = true;
             stopCurrentAnimation();
@@ -1055,16 +1181,23 @@ export default function TourPage() {
     const targetEstablishYaw = normalizeYaw(establishData.fromYaw ?? 0);
     const targetEstablishPitch = establishData.pitch ?? 0;
 
-    const v = (window as any).pannellum.viewer('panorama', {
+    // Posle prolaska kroz vrata posetilac gleda u smeru kretanja; inače soba
+    // kreće od svog početnog pogleda (establish).
+    const entry = transition?.entry ?? null;
+    const zoomedIn = Boolean(transition?.zoomedIn);
+    const startYaw = entry ? entry.yaw : targetEstablishYaw;
+    const startPitch = entry ? entry.pitch : targetEstablishPitch;
+
+    const v = (window as any).pannellum.viewer(layer, {
       type: 'equirectangular',
       panorama: resolvedPanoramaUrl,
       autoLoad: true,
       showControls: false,
-      hfov: 65,
+      hfov: zoomedIn ? ARRIVE_HFOV : DEFAULT_HFOV,
       minHfov: 30,
       maxHfov: 110,
-      yaw: targetEstablishYaw,
-      pitch: targetEstablishPitch,
+      yaw: startYaw,
+      pitch: startPitch,
       autoRotate: 0,
       hotSpots: formattedHotspots,
       loadingHtml: ''
@@ -1143,9 +1276,38 @@ export default function TourPage() {
       }
     };
 
+    // Stara scena (iznad nove) nestaje; nova je već učitana ispod nje.
+    const fadeOutPreviousScene = () => {
+      const fading = fadingLayerRef.current;
+      if (!fading) return;
+      fadingLayerRef.current = null;
+      fading.el.style.transition = `opacity ${FADE_MS}ms ease`;
+      requestAnimationFrame(() => { fading.el.style.opacity = '0'; });
+      setTimeout(() => disposeLayer(fading), FADE_MS + 60);
+    };
+
+    // Ako nova panorama ne može da se učita, Pannellum ispisuje grešku u
+    // svom sloju - stara scena ne sme da ostane preko nje.
+    v.on('error', () => {
+      if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
+      if (slowHintTimer) clearTimeout(slowHintTimer);
+      setSlowRoomLoad(false);
+      setRoomLoading(false);
+      disposeLayer(fadingLayerRef.current);
+      fadingLayerRef.current = null;
+    });
+
     v.on('load', async () => {
       if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
+      if (slowHintTimer) clearTimeout(slowHintTimer);
+      setSlowRoomLoad(false);
       setRoomLoading(false);
+      fadeOutPreviousScene();
+
+      // Ulazak kroz vrata: soba se "otvori" sa uvećanog na normalan pogled.
+      if (zoomedIn && viewerRef.current) {
+        try { viewerRef.current.setHfov(DEFAULT_HFOV, SETTLE_MS); } catch {}
+      }
 
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
@@ -1158,35 +1320,47 @@ export default function TourPage() {
         const totalDegrees = 240;
         const speed = totalDegrees / (durationPhase1 / 1000);
 
-        if (currentSession !== roomSessionRef.current || !isMountedRef.current) return resolve();
-        if (!sequenceActiveRef.current || isInterruptedRef.current) return resolve();
+        const stillValid = () =>
+          currentSession === roomSessionRef.current && isMountedRef.current &&
+          sequenceActiveRef.current && !isInterruptedRef.current;
 
-        if (viewerRef.current) {
-          viewerRef.current.setHfov(65);
-          viewerRef.current.setYaw(targetEstablishYaw);
-          viewerRef.current.setPitch(targetEstablishPitch);
-          viewerRef.current.startAutoRotate(speed, targetEstablishPitch);
-        }
+        const beginRotation = () => {
+          if (!stillValid()) return resolve();
 
-        const startTime = performance.now();
-        const checkCompletion = (now: number) => {
-          if (currentSession !== roomSessionRef.current || !isMountedRef.current) {
-            if (viewerRef.current) viewerRef.current.stopAutoRotate();
-            return resolve();
+          if (viewerRef.current) {
+            if (entry) {
+              // Ušli smo kroz vrata: okretanje kreće odatle gde posetilac
+              // gleda, bez skoka na početni pogled sobe.
+              viewerRef.current.startAutoRotate(speed, startPitch);
+            } else {
+              if (!zoomedIn) viewerRef.current.setHfov(DEFAULT_HFOV);
+              viewerRef.current.setYaw(targetEstablishYaw);
+              viewerRef.current.setPitch(targetEstablishPitch);
+              viewerRef.current.startAutoRotate(speed, targetEstablishPitch);
+            }
           }
-          if (!sequenceActiveRef.current || isInterruptedRef.current) {
-            if (viewerRef.current) viewerRef.current.stopAutoRotate();
-            return resolve();
-          }
-          const elapsed = now - startTime;
-          if (elapsed < durationPhase1) {
-            animFrameRef.current = requestAnimationFrame(checkCompletion);
-          } else {
-            if (viewerRef.current) viewerRef.current.stopAutoRotate();
-            resolve();
-          }
+
+          const startTime = performance.now();
+          const checkCompletion = (now: number) => {
+            if (!stillValid()) {
+              if (viewerRef.current) viewerRef.current.stopAutoRotate();
+              return resolve();
+            }
+            const elapsed = now - startTime;
+            if (elapsed < durationPhase1) {
+              animFrameRef.current = requestAnimationFrame(checkCompletion);
+            } else {
+              if (viewerRef.current) viewerRef.current.stopAutoRotate();
+              resolve();
+            }
+          };
+          animFrameRef.current = requestAnimationFrame(checkCompletion);
         };
-        animFrameRef.current = requestAnimationFrame(checkCompletion);
+
+        // Posle ulaska kroz vrata prvo se završi "otvaranje" pogleda, pa tek
+        // onda kreće okretanje - inače bi se dva pokreta sudarila.
+        if (zoomedIn) setTimeout(beginRotation, SETTLE_MS);
+        else beginRotation();
       });
 
       await Promise.all([
@@ -1232,15 +1406,28 @@ export default function TourPage() {
     });
 
     return () => {
+      if (slowHintTimer) clearTimeout(slowHintTimer);
       sequenceActiveRef.current = false;
       isInterruptedRef.current = true;
-      panoramaContainer?.removeEventListener('mouseup', handlePanEnd);
-      panoramaContainer?.removeEventListener('touchend', handlePanEnd);
+      panoramaContainer.removeEventListener('mouseup', handlePanEnd);
+      panoramaContainer.removeEventListener('touchend', handlePanEnd);
       stopCurrentAnimation();
       stopAudio();
       if (viewerRef.current) {
-        try { viewerRef.current.destroy(); } catch {}
+        if (pendingTransitionRef.current && currentLayerRef.current && isMountedRef.current) {
+          // Sledeća soba stiže sa pretapanjem: ova scena ostaje na ekranu,
+          // iznad nove, dok se nova ne učita (fadeOutPreviousScene).
+          disposeLayer(fadingLayerRef.current);
+          const el = currentLayerRef.current;
+          el.style.zIndex = '2';
+          el.style.pointerEvents = 'none';
+          fadingLayerRef.current = { viewer: viewerRef.current, el };
+        } else {
+          try { viewerRef.current.destroy(); } catch {}
+          currentLayerRef.current?.remove();
+        }
         viewerRef.current = null;
+        currentLayerRef.current = null;
       }
     };
   }, [
@@ -1252,7 +1439,7 @@ export default function TourPage() {
     // Cloudflare), scena se mora ponovo učitati sa novim URL-om.
     rooms[roomIdx]?.panorama_url_cf,
     rooms[roomIdx]?.panorama_url,
-    changeRoomById,
+    walkToRoom,
     stopCurrentAnimation,
     stopAudio,
     handleStartEditWaypoint,
@@ -1588,7 +1775,40 @@ export default function TourPage() {
         </>
       )}
 
-      <div id="panorama" style={{ width: '100%', height: '100%' }} />
+      {/* Okvir za slojeve scena: pri prelazu su tu dve scene jedna preko
+          druge dok se stara ne pretopi (vidi transition.ts). */}
+      <div id="panorama" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }} />
+
+      {slowRoomLoad && <style>{'@keyframes pulseDot{0%,80%,100%{transform:scale(0);opacity:.3}40%{transform:scale(1);opacity:1}}'}</style>}
+      {slowRoomLoad && (
+        <div
+          role="status"
+          style={{
+            position: 'absolute',
+            left: '50%',
+            bottom: '120px',
+            transform: 'translateX(-50%)',
+            zIndex: 15,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 14px',
+            borderRadius: '999px',
+            background: 'rgba(15, 23, 42, 0.55)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            border: '1px solid rgba(255, 255, 255, 0.6)',
+            color: '#fff',
+            fontSize: '13px',
+            fontFamily: THEME.fontBody,
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none'
+          }}
+        >
+          <span aria-hidden="true" style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#5B92D6', animation: 'pulseDot 1.4s infinite ease-in-out both' }} />
+          {t.roomLoadingPrefix}<b>{currentRoomTitle}</b>
+        </div>
+      )}
 
       {!pendingCoords && isModalToolbarVisible && (() => {
         // Ovaj toolbar se prikazuje i preko panorame (tamna/šarena pozadina

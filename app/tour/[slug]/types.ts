@@ -7,6 +7,11 @@ export type Waypoint = {
   title_i18n?: Record<string, string> | string;
   type?: 'navigation' | 'info';
   targetRoomId?: string | number;
+  // Smer pogleda posle prelaza u ciljnu sobu (samo za navigacione tačke).
+  // Ako nije upisan, soba se otvara u svom početnom pogledu - vidi
+  // entryViewFor u transition.ts.
+  targetYaw?: number;
+  targetPitch?: number;
   // audio_url je stari, jednojezicni format (zadrzan radi kompatibilnosti sa
   // vec postojecim podacima). Novi kod treba da koristi audio_url_i18n.
   audio_url?: string;
