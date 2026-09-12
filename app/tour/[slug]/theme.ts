@@ -38,13 +38,16 @@ export const GLASS: React.CSSProperties = {
 /** Plava na tamnom staklu - THEME.accent je tu pretaman za čitanje. */
 export const GLASS_ACCENT = '#8BB8F2';
 
-// Okruglo stakleno dugme sa ikonicom (ceo ekran, žiroskop, zvuk, vodič).
+// Providno dugme sa ikonicom (ceo ekran, žiroskop, zvuk, vodič) - bez
+// podloge, plava ikonica sa senkom, isti tretman kao donji meni.
 export const overlayIconStyle: React.CSSProperties = {
-  ...GLASS,
-  color: '#fff',
+  background: 'transparent',
+  border: 'none',
+  color: GLASS_ACCENT,
+  filter: 'drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55))',
   borderRadius: '50%',
-  width: '38px',
-  height: '38px',
+  width: '44px',
+  height: '44px',
   padding: 0,
   display: 'flex',
   alignItems: 'center',

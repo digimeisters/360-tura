@@ -2074,17 +2074,17 @@ export default function TourPage() {
               title={isFullscreen ? 'Napusti ceo ekran' : 'Ceo ekran'}
               aria-label={isFullscreen ? 'Napusti ceo ekran' : 'Ceo ekran'}
             >
-              {isFullscreen ? <IconCollapse size={19} /> : <IconExpand size={19} />}
+              {isFullscreen ? <IconCollapse size={27} /> : <IconExpand size={27} />}
             </button>
 
             {isFullscreen && (
               <button
                 onClick={toggleGyroscope}
-                style={{ ...overlayIconStyle, color: isGyroActive ? GLASS_ACCENT : '#fff' }}
+                style={{ ...overlayIconStyle, color: isGyroActive ? '#fff' : GLASS_ACCENT }}
                 title={isGyroActive ? 'Ugasi giroskop' : 'Upali giroskop'}
                 aria-label={isGyroActive ? 'Ugasi giroskop' : 'Upali giroskop'}
               >
-                <IconCompass size={19} />
+                <IconCompass size={27} />
               </button>
             )}
 
@@ -2094,18 +2094,18 @@ export default function TourPage() {
               title={isMuted ? 'Uključi zvuk' : 'Isključi zvuk'}
               aria-label={isMuted ? 'Uključi zvuk' : 'Isključi zvuk'}
             >
-              {isMuted ? <IconMute size={19} /> : <IconSound size={19} />}
+              {isMuted ? <IconMute size={27} /> : <IconSound size={27} />}
             </button>
 
             {hasGuide && (
               <button
                 onClick={toggleGuideMode}
-                style={{ ...overlayIconStyle, color: guideMode === 'auto' ? GLASS_ACCENT : '#fff' }}
+                style={{ ...overlayIconStyle, color: guideMode === 'auto' ? '#fff' : GLASS_ACCENT }}
                 title={guideMode === 'auto' ? 'Vodič vodi - klikni da sam istražuješ' : 'Sami istražujete - klikni da vodič vodi'}
                 aria-label={guideMode === 'auto' ? 'Vodič vodi - klikni da sam istražuješ' : 'Sami istražujete - klikni da vodič vodi'}
                 aria-pressed={guideMode === 'auto'}
               >
-                {guideMode === 'auto' ? <IconHeadphones size={19} /> : <IconHand size={19} />}
+                {guideMode === 'auto' ? <IconHeadphones size={27} /> : <IconHand size={27} />}
               </button>
             )}
           </div>
@@ -2189,23 +2189,26 @@ export default function TourPage() {
 
 
       {!pendingCoords && isModalToolbarVisible && (() => {
+        const NAV_SHADOW = 'drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55))';
         return (
         <>
-        {/* Deljenje stoji iznad menija, na sredini (iznad "Info"). */}
+        {/* Deljenje stoji iznad menija, na sredini (iznad "Info"). Meni je
+            bez podloge - beli tekst sa senkom se čita i preko svetle slike. */}
         <button
           onClick={handleShareTour}
           style={{
-            ...GLASS,
             position: 'absolute',
-            bottom: '84px',
+            bottom: '76px',
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 56,
             display: 'flex',
             alignItems: 'center',
             gap: '7px',
-            padding: '7px 14px',
-            borderRadius: '999px',
+            padding: '6px 4px',
+            background: 'transparent',
+            border: 'none',
+            filter: NAV_SHADOW,
             color: shareCopied ? '#86efac' : '#fff',
             fontSize: '13px',
             fontWeight: 700,
@@ -2216,26 +2219,22 @@ export default function TourPage() {
         >
           {shareCopied ? t.linkCopied : (
             <>
-              <IconLink size={16} color={GLASS_ACCENT} />
+              <IconLink size={20} color={GLASS_ACCENT} />
               {withoutEmoji(t.shareTour)}
             </>
           )}
         </button>
 
         <div style={{
-          ...GLASS,
           position: 'absolute',
           bottom: '12px',
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 55,
           display: 'flex',
-          gap: '2px',
+          gap: '6px',
           width: 'calc(100% - 24px)',
           maxWidth: '520px',
-          boxSizing: 'border-box',
-          padding: '5px',
-          borderRadius: '16px',
           justifyContent: 'center'
         }}>
           {([
@@ -2256,12 +2255,12 @@ export default function TourPage() {
                   flex: 1,
                   minWidth: 0,
                   color: active ? GLASS_ACCENT : '#fff',
-                  background: active ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-                  fontSize: '12.5px',
+                  filter: NAV_SHADOW,
+                  fontSize: '13px',
                   fontFamily: THEME.fontBody
                 }}
               >
-                <Icon size={22} color={GLASS_ACCENT} />
+                <Icon size={27} color={GLASS_ACCENT} />
                 <span style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {withoutEmoji(label)}
                 </span>
