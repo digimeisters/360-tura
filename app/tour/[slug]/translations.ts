@@ -136,7 +136,14 @@ export const translations: Record<Language, Record<string, string>> = {
     close: 'Zatvori',
     comingSoon: 'Odgovor uskoro...',
     shareTour: '🔗 Podeli turu',
-    linkCopied: '✅ Link kopiran!'
+    linkCopied: '✅ Link kopiran!',
+    startGuidedTour: '▶ Pokreni vođenu turu',
+    navPrev: 'Prethodna',
+    navNext: 'Sledeća',
+    chooseRoom: 'Izaberi prostoriju',
+    roomPosition: 'Prostorija {current} od {total}',
+    guidePosition: '🎧 Vodič · {current} od {total}',
+    guideAllSeen: '🎉 Obišli ste sve prostorije'
   },
   en: {
     startTour: '▶ Start Tour',
@@ -180,7 +187,14 @@ export const translations: Record<Language, Record<string, string>> = {
     close: 'Close',
     comingSoon: 'Answer coming soon...',
     shareTour: '🔗 Share Tour',
-    linkCopied: '✅ Link copied!'
+    linkCopied: '✅ Link copied!',
+    startGuidedTour: '▶ Start Guided Tour',
+    navPrev: 'Previous',
+    navNext: 'Next',
+    chooseRoom: 'Choose a room',
+    roomPosition: 'Room {current} of {total}',
+    guidePosition: '🎧 Guide · {current} of {total}',
+    guideAllSeen: '🎉 You have seen every room'
   },
   de: {
     startTour: '▶ Tour Starten',
@@ -224,7 +238,14 @@ export const translations: Record<Language, Record<string, string>> = {
     close: 'Schließen',
     comingSoon: 'Antwort folgt...',
     shareTour: '🔗 Tour teilen',
-    linkCopied: '✅ Link kopiert!'
+    linkCopied: '✅ Link kopiert!',
+    startGuidedTour: '▶ Geführte Tour starten',
+    navPrev: 'Zurück',
+    navNext: 'Weiter',
+    chooseRoom: 'Raum wählen',
+    roomPosition: 'Raum {current} von {total}',
+    guidePosition: '🎧 Führung · {current} von {total}',
+    guideAllSeen: '🎉 Sie haben alle Räume gesehen'
   },
   ru: {
     startTour: '▶ Начать тур',
@@ -268,6 +289,13 @@ export const translations: Record<Language, Record<string, string>> = {
     close: 'Закрыть',
     comingSoon: 'Ответ скоро появится...',
     shareTour: '🔗 Поделиться туром',
-    linkCopied: '✅ Ссылка скопирована!'
+    linkCopied: '✅ Ссылка скопирована!',
+    startGuidedTour: '▶ Начать тур с гидом',
+    navPrev: 'Назад',
+    navNext: 'Далее',
+    chooseRoom: 'Выбрать комнату',
+    roomPosition: 'Комната {current} из {total}',
+    guidePosition: '🎧 Гид · {current} из {total}',
+    guideAllSeen: '🎉 Вы осмотрели все комнаты'
   }
 };

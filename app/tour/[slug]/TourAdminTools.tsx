@@ -135,6 +135,7 @@ export default function TourAdminTools({
   const [showGuidePathModal, setShowGuidePathModal] = useState(false);
   const [guidePathInput, setGuidePathInput] = useState('');
   const [savingGuidePath, setSavingGuidePath] = useState(false);
+  const [guideLinkCopied, setGuideLinkCopied] = useState(false);
 
   const currentRoom = rooms[roomIdx];
 
@@ -143,6 +144,19 @@ export default function TourAdminTools({
   const openGuidePathModal = () => {
     setGuidePathInput(tour?.guide_path || '');
     setShowGuidePathModal(true);
+  };
+
+  // Link koji turu otvara odmah sa automatskim vodičem - za slanje kupcu.
+  const guideLink = typeof window !== 'undefined' ? `${window.location.origin}/tour/${slug}?vodic=1` : '';
+
+  const copyGuideLink = async () => {
+    try {
+      await navigator.clipboard.writeText(guideLink);
+      setGuideLinkCopied(true);
+      setTimeout(() => setGuideLinkCopied(false), 2000);
+    } catch {
+      window.prompt('Kopiraj link:', guideLink);
+    }
   };
 
   const guidePathSteps = parseGuidePath(guidePathInput);
@@ -1092,6 +1106,29 @@ export default function TourAdminTools({
                   </p>
                 ) : null}
               </div>
+
+              {tour?.guide_path && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', color: THEME.textSecondary, fontWeight: 600 }}>
+                    Link koji otvara turu odmah sa vodičem:
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      readOnly
+                      value={guideLink}
+                      onFocus={(e) => e.currentTarget.select()}
+                      style={{ flex: 1, minWidth: 0, padding: '9px 10px', borderRadius: '8px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '12.5px', fontFamily: 'monospace', boxSizing: 'border-box' }}
+                    />
+                    <button
+                      onClick={copyGuideLink}
+                      style={{ ...btnStyle, backgroundColor: THEME.surfaceAlt, color: THEME.textPrimary, borderColor: THEME.border, padding: '8px 12px', whiteSpace: 'nowrap' }}
+                    >
+                      {guideLinkCopied ? '✅ Kopiran' : '🔗 Kopiraj'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div style={{ padding: '16px 20px', borderTop: '1px solid ' + THEME.border }}>
