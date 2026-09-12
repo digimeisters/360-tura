@@ -361,6 +361,9 @@ export default function TourPage() {
   }, [stopAudio, loadAndPlayLocalizedAudio]);
 
   const changeRoomById = useCallback((id: string | number) => {
+    const foundIndex = rooms.findIndex(r => r.id == id);
+    if (foundIndex === -1) return;
+
     roomSessionRef.current += 1;
     sequenceActiveRef.current = false;
     isInterruptedRef.current = true;
@@ -369,14 +372,18 @@ export default function TourPage() {
     setIsInfoboxManuallyClosed(false);
     stopCurrentAnimation();
     stopAudio();
+    setInfoBoxData(null);
 
-    const foundIndex = rooms.findIndex(r => r.id == id);
-    if (foundIndex !== -1) {
-      setRoomLoading(true);
-      setRoomIdx(foundIndex);
-      setInfoBoxData(null);
-    }
-  }, [rooms, stopAudio, stopCurrentAnimation]);
+    // Klik na sobu u kojoj se već nalazimo (isti indeks): setRoomIdx sa istom
+    // vrednošću NE pokreće efekat koji učitava scenu, pa "roomLoading" ne bi
+    // nikad bio vraćen na false - "Ulazimo u prostoriju" bi ostalo zauvek na
+    // ekranu. Iznad smo već prekinuli naraciju/animaciju; ponovno učitavanje
+    // panorame ovde nije ni potrebno.
+    if (foundIndex === roomIdx) return;
+
+    setRoomLoading(true);
+    setRoomIdx(foundIndex);
+  }, [rooms, roomIdx, stopAudio, stopCurrentAnimation]);
 
   // Iscrtava hotspot-ove na vieweru koristeći TAČNO prosleđen niz tačaka.
   // Namerno NE čita rooms[roomIdx] iz state-a, jer bi to moglo biti zastarelo
