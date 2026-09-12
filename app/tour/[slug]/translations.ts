@@ -143,7 +143,11 @@ export const translations: Record<Language, Record<string, string>> = {
     chooseRoom: 'Izaberi prostoriju',
     roomPosition: 'Prostorija {current} od {total}',
     guidePosition: '🎧 Vodič · {current} od {total}',
-    guideAllSeen: '🎉 Obišli ste sve prostorije'
+    guideAllSeen: '🎉 Obišli ste sve prostorije',
+    lockedRentedTitle: 'Ova nekretnina je izdata',
+    lockedSoldTitle: 'Ova nekretnina je prodata',
+    lockedPausedTitle: 'Ova nekretnina trenutno nije dostupna',
+    lockedIntro: 'Za slične nekretnine ili više informacija, obratite se:'
   },
   en: {
     startTour: '▶ Start Tour',
@@ -194,7 +198,11 @@ export const translations: Record<Language, Record<string, string>> = {
     chooseRoom: 'Choose a room',
     roomPosition: 'Room {current} of {total}',
     guidePosition: '🎧 Guide · {current} of {total}',
-    guideAllSeen: '🎉 You have seen every room'
+    guideAllSeen: '🎉 You have seen every room',
+    lockedRentedTitle: 'This property has been rented',
+    lockedSoldTitle: 'This property has been sold',
+    lockedPausedTitle: 'This property is currently unavailable',
+    lockedIntro: 'For similar properties or more information, contact:'
   },
   de: {
     startTour: '▶ Tour Starten',
@@ -245,7 +253,11 @@ export const translations: Record<Language, Record<string, string>> = {
     chooseRoom: 'Raum wählen',
     roomPosition: 'Raum {current} von {total}',
     guidePosition: '🎧 Führung · {current} von {total}',
-    guideAllSeen: '🎉 Sie haben alle Räume gesehen'
+    guideAllSeen: '🎉 Sie haben alle Räume gesehen',
+    lockedRentedTitle: 'Diese Immobilie ist bereits vermietet',
+    lockedSoldTitle: 'Diese Immobilie ist bereits verkauft',
+    lockedPausedTitle: 'Diese Immobilie ist derzeit nicht verfügbar',
+    lockedIntro: 'Für ähnliche Immobilien oder weitere Informationen wenden Sie sich an:'
   },
   ru: {
     startTour: '▶ Начать тур',
@@ -296,6 +308,10 @@ export const translations: Record<Language, Record<string, string>> = {
     chooseRoom: 'Выбрать комнату',
     roomPosition: 'Комната {current} из {total}',
     guidePosition: '🎧 Гид · {current} из {total}',
-    guideAllSeen: '🎉 Вы осмотрели все комнаты'
+    guideAllSeen: '🎉 Вы осмотрели все комнаты',
+    lockedRentedTitle: 'Эта недвижимость уже сдана',
+    lockedSoldTitle: 'Эта недвижимость уже продана',
+    lockedPausedTitle: 'Эта недвижимость временно недоступна',
+    lockedIntro: 'По поводу похожих объектов или дополнительной информации обращайтесь:'
   }
 };

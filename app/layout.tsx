@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { SITE_NAME, SITE_URL } from "./lib/site";
@@ -35,6 +35,15 @@ export const metadata: Metadata = {
     url: SITE_URL
   },
   twitter: { card: 'summary_large_image' }
+};
+
+// viewportFit: 'cover' pušta sadržaj ispod notch-a/zaobljenih ivica
+// (iPhone, neki Android telefoni) - bez ovoga env(safe-area-inset-*) uvek
+// vraća 0, pa tura ne bi mogla da izbegne preklapanje sa tim ivicama.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover'
 };
 
 // Panorame i sličice tura stižu sa R2 CDN-a. Preconnect otvara vezu (DNS,

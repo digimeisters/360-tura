@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Language, Room } from './types';
 import { THEME } from './theme';
 import { getLocalizedText } from './utils';
+import { IconChevronDown } from './icons';
 
 export type RoomDot = 'seen' | 'current' | 'unseen';
 
@@ -95,8 +96,9 @@ export function RoomNavBar({
         .k360-roomnav__title { display: flex; align-items: center; gap: 8px; max-width: 100%; }
         .k360-roomnav__name { font-family: ${THEME.fontDisplay}; font-size: 17px; font-weight: 700; line-height: 1.15;
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
-        .k360-roomnav__caret { flex: none; font-size: 10px; color: rgba(255, 255, 255, 0.7); transition: transform 0.15s ease; }
+        .k360-roomnav__caret { flex: none; display: flex; color: ${DOT_BLUE}; transition: transform 0.15s ease; }
         .k360-roomnav__caret[data-open="true"] { transform: rotate(180deg); }
+        .k360-roomnav__current:hover .k360-roomnav__caret { color: #fff; }
         .k360-roomnav__dots { display: flex; align-items: center; gap: 5px; }
         .k360-roomnav__dot { width: 6px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.28);
           transition: width 0.25s ease, background 0.25s ease; }
@@ -149,7 +151,9 @@ export function RoomNavBar({
         <span className="k360-roomnav__label">{label}</span>
         <span className="k360-roomnav__title">
           <span className="k360-roomnav__name">{roomTitle(current, roomIdx, lang)}</span>
-          <span className="k360-roomnav__caret" data-open={open} aria-hidden="true">▼</span>
+          <span className="k360-roomnav__caret" data-open={open} aria-hidden="true">
+            <IconChevronDown size={16} />
+          </span>
         </span>
         {dots.length > MAX_DOTS ? (
           <span className="k360-roomnav__line" aria-hidden="true">

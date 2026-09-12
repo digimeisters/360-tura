@@ -15,6 +15,7 @@ function refreshPublicPages() {
 export const dynamic = 'force-dynamic';
 
 const CATEGORIES = new Set(['rent', 'sale', 'booking']);
+const TOUR_STATUSES = new Set(['active', 'rented', 'sold', 'paused']);
 
 const LIMITS: Record<string, number> = {
   title: 160,
@@ -39,7 +40,7 @@ export async function GET(req: Request) {
     ctx.supabase
       .from('tours')
       .select(
-        'slug, title, title_i18n, agency_name, address, category, property_type, agent_name, agent_phone, agent_email, created_at, published' as '*'
+        'slug, title, title_i18n, agency_name, address, category, property_type, agent_name, agent_phone, agent_email, created_at, published, status' as '*'
       )
       .order('created_at', { ascending: false }),
     ctx.supabase.from('rooms').select('tour_slug, panorama_url, panorama_url_cf')
@@ -137,6 +138,28 @@ export async function PATCH(req: Request) {
 
     refreshPublicPages();
     return NextResponse.json({ success: true, published: body.published });
+  }
+
+  // Stanje nekretnine (aktivna/izdato/prodato/pauza, migracija 010) se
+  // menja samo, bez ostatka formulara - lista tura ga menja jednim klikom.
+  // Nezavisno od `published`: posetilac i dalje ima link, ali vidi poruku
+  // umesto ture (page.tsx) dok status nije 'active'.
+  if (typeof body.status === 'string' && body.title === undefined) {
+    if (!TOUR_STATUSES.has(body.status)) {
+      return NextResponse.json({ success: false, error: 'Nepoznato stanje.' }, { status: 400 });
+    }
+
+    const { error: statusErr } = await ctx.supabase
+      .from('tours')
+      .update({ status: body.status } as never)
+      .eq('slug', slug);
+
+    if (statusErr) {
+      console.error('[api/admin/tours] status update failed:', statusErr.message);
+      return NextResponse.json({ success: false, error: 'Stanje nije promenjeno.' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, status: body.status });
   }
 
   // Putanja vodiča se čuva sama, bez ostatka formulara - TourAdminTools je

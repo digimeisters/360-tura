@@ -19,8 +19,18 @@ type TourRow = {
   agent_email: string | null;
   created_at: string | null;
   published: boolean;
+  // Nezavisno od `published` - da li je nekretnina i dalje dostupna
+  // (migracija 010). Kad nije, posetilac vidi poruku umesto ture.
+  status: 'active' | 'rented' | 'sold' | 'paused';
   rooms: number;
   roomsWithPanorama: number;
+};
+
+const STATUS_LABELS: Record<TourRow['status'], string> = {
+  active: 'Aktivna',
+  rented: 'Izdato',
+  sold: 'Prodato',
+  paused: 'Pauza'
 };
 
 type FormState = {
@@ -84,6 +94,7 @@ export default function ToursAdminPage() {
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [togglingSlug, setTogglingSlug] = useState<string | null>(null);
+  const [updatingStatusSlug, setUpdatingStatusSlug] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
 
   useEffect(() => {
@@ -206,6 +217,40 @@ export default function ToursAdminPage() {
       setError('Nema veze sa serverom.');
     } finally {
       setTogglingSlug(null);
+    }
+  };
+
+  // Prelazak sa "Aktivna" na bilo šta drugo se pita, jer odmah sklanja turu
+  // sa podeljenih linkova (posetilac vidi poruku umesto ture); povratak na
+  // "Aktivna" ne pita ništa - ništa se time ne gubi.
+  const updateStatus = async (tour: TourRow, status: TourRow['status']) => {
+    if (status === tour.status) return;
+    if (
+      tour.status === 'active' &&
+      !confirm(`Nekretnina "${pickTitle(tour)}" postaje "${STATUS_LABELS[status]}" - posetioci više ne vide turu, samo poruku i kontakt. Nastaviti?`)
+    ) {
+      return;
+    }
+
+    setUpdatingStatusSlug(tour.slug);
+    setNotice('');
+    setError('');
+    try {
+      const res = await authedFetch('/api/admin/tours', {
+        method: 'PATCH',
+        body: JSON.stringify({ slug: tour.slug, status })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setError(json.error || 'Stanje nije promenjeno.');
+        return;
+      }
+      setNotice(`Stanje promenjeno: ${STATUS_LABELS[status]}.`);
+      await load();
+    } catch {
+      setError('Nema veze sa serverom.');
+    } finally {
+      setUpdatingStatusSlug(null);
     }
   };
 
@@ -452,12 +497,12 @@ export default function ToursAdminPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
             <thead>
               <tr>
-                {['Tura', 'Stanje', 'Agencija', 'Tip', 'Sobe', ''].map((h, i) => (
+                {['Tura', 'Stanje', 'Nekretnina', 'Agencija', 'Tip', 'Sobe', ''].map((h, i) => (
                   <th
                     key={h || i}
                     style={{
                       padding: '13px 14px',
-                      textAlign: i === 4 ? 'right' : 'left',
+                      textAlign: i === 5 ? 'right' : 'left',
                       fontSize: '12px',
                       fontWeight: 700,
                       letterSpacing: '0.3px',
@@ -500,6 +545,27 @@ export default function ToursAdminPage() {
                       >
                         {tour.published ? 'Objavljena' : 'U pripremi'}
                       </span>
+                    </td>
+                    <td style={{ padding: '12px 14px' }}>
+                      <select
+                        value={tour.status}
+                        onChange={(e) => void updateStatus(tour, e.target.value as TourRow['status'])}
+                        disabled={updatingStatusSlug === tour.slug}
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: '8px',
+                          fontSize: '12.5px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          color: tour.status === 'active' ? THEME.textPrimary : '#fff',
+                          background: tour.status === 'active' ? THEME.surface : THEME.danger,
+                          border: '1px solid ' + (tour.status === 'active' ? THEME.border : THEME.danger)
+                        }}
+                      >
+                        {(Object.keys(STATUS_LABELS) as TourRow['status'][]).map((s) => (
+                          <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                        ))}
+                      </select>
                     </td>
                     <td style={{ padding: '12px 14px', color: tour.agency_name ? THEME.textPrimary : THEME.textMuted }}>
                       {tour.agency_name || '—'}

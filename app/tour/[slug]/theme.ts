@@ -42,16 +42,14 @@ export const GLASS: React.CSSProperties = {
 // plava u turi ostaje ista, umesto posebne nijanse za providne elemente.
 export const GLASS_ACCENT = '#5B92D6';
 
-// Providno dugme sa ikonicom (ceo ekran, žiroskop, zvuk, vodič) - bez
-// podloge, plava ikonica sa senkom, isti tretman kao donji meni.
+// Okruglo stakleno dugme sa ikonicom (ceo ekran, žiroskop, zvuk, vodič) -
+// isto staklo kao traka sa sobama i donji meni.
 export const overlayIconStyle: React.CSSProperties = {
-  background: 'transparent',
-  border: 'none',
-  color: GLASS_ACCENT,
-  filter: 'drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55))',
+  ...GLASS,
+  color: '#fff',
   borderRadius: '50%',
-  width: '44px',
-  height: '44px',
+  width: '38px',
+  height: '38px',
   padding: 0,
   display: 'flex',
   alignItems: 'center',

@@ -49,6 +49,10 @@ export type Tour = {
   slug: string;
   title_i18n?: Record<string, string> | string;
   category?: 'rent' | 'sale' | 'booking';
+  // Nezavisno od objave (published): da li je nekretnina i dalje dostupna
+  // (migracija 010). 'active' ili nepostojeće = normalan rad; inače
+  // posetilac vidi poruku umesto ture (vidi page.tsx).
+  status?: 'active' | 'rented' | 'sold' | 'paused';
   location_map_url?: string;
   about_text_i18n?: Record<string, string> | string;
   floorplan_url?: string;

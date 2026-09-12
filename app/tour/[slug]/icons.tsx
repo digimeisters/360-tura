@@ -106,6 +106,12 @@ export const IconHand = (p: IconProps) => (
   </Svg>
 );
 
+export const IconChevronDown = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M5.5 9.5 12 16l6.5-6.5" />
+  </Svg>
+);
+
 export const IconLink = (p: IconProps) => (
   <Svg {...p}>
     <path d="M10 13.5a4.5 4.5 0 0 0 6.8.5l2.7-2.7a4.5 4.5 0 0 0-6.4-6.4l-1.5 1.5" />
