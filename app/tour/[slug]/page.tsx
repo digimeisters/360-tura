@@ -849,6 +849,13 @@ export default function TourPage() {
         if (preloadedPanoramasRef.current.has(url)) continue;
         preloadedPanoramasRef.current.add(url);
         const img = new Image();
+        // KLJUČNO: Pannellum posle učitava istu panoramu preko XHR-a (CORS
+        // zahtev, bez kolačića). Bez crossOrigin ovde, pregledač kešira
+        // odgovor kao "no-cors" (bez CORS zaglavlja), pa taj XHR posle puca
+        // sa "No 'Access-Control-Allow-Origin' header..." - vidljivo kao
+        // "učitava sliku, ali ne prelazi u sobu" (viewer.on('load') se nikad
+        // ne pozove). crossOrigin mora da se postavi PRE src-a.
+        img.crossOrigin = 'anonymous';
         img.decoding = 'async';
         img.src = url;
       }
