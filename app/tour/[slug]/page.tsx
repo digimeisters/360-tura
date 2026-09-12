@@ -2056,16 +2056,17 @@ export default function TourPage() {
                 labels={{ prev: t.navPrev, next: t.navNext, chooseRoom: t.chooseRoom }}
               />
             </div>
-          </div>
 
+          {/* U istom bloku kao traka sa sobama, ispod nje - nikad se ne
+              preklapaju, ni kad se gornji red prelomi zbog dugog naziva. */}
           <div style={{
-            position: 'absolute',
-            top: '82px',
-            right: '8px',
-            zIndex: 36,
+            alignSelf: 'flex-end',
+            marginTop: '6px',
+            marginRight: '4px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '6px'
+            gap: '6px',
+            pointerEvents: 'auto'
           }}>
             <button
               onClick={toggleFullscreen}
@@ -2096,22 +2097,6 @@ export default function TourPage() {
               {isMuted ? <IconMute size={19} /> : <IconSound size={19} />}
             </button>
 
-            {tour?.floorplan_url && (
-              <>
-                {/* Na širokom ekranu skica stoji stalno u uglu (FloorplanMiniMap). */}
-                <style>{'.k360-plan-btn{display:flex}@media (min-width:1024px){.k360-plan-btn{display:none}}'}</style>
-                <button
-                  className="k360-plan-btn"
-                  onClick={() => setActiveModal('plan')}
-                  style={{ ...overlayIconStyle, display: undefined }}
-                  title={withoutEmoji(t.btnPlan)}
-                  aria-label={withoutEmoji(t.btnPlan)}
-                >
-                  <MODAL_ICONS.plan size={19} />
-                </button>
-              </>
-            )}
-
             {hasGuide && (
               <button
                 onClick={toggleGuideMode}
@@ -2123,6 +2108,7 @@ export default function TourPage() {
                 {guideMode === 'auto' ? <IconHeadphones size={19} /> : <IconHand size={19} />}
               </button>
             )}
+          </div>
           </div>
 
           {tour?.floorplan_url && !pendingCoords && (

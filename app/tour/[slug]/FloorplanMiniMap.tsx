@@ -21,8 +21,8 @@ const DOT_BLUE = '#5B92D6';
 
 /**
  * Mali tlocrt u donjem levom uglu: gde je posetilac, koje je sobe video,
- * klik na sobu vodi u nju. Na uskom ekranu nema mesta za njega - tamo
- * postoji dugme koje otvara prozor "Skica" (page.tsx).
+ * klik na sobu vodi u nju. Na uskom ekranu nema mesta za njega - tamo se
+ * skica otvara iz donjeg menija ("Skica").
  */
 export function FloorplanMiniMap({
   floorplanUrl,
