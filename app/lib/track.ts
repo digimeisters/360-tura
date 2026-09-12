@@ -75,7 +75,7 @@ function isAdminBrowser(): boolean {
 function visitSource(): string | null {
   try {
     const utm = new URLSearchParams(window.location.search).get('utm_source');
-    if (utm) return utm.toLowerCase().replace(/[^a-z0-9.-]/g, '').slice(0, 100) || null;
+    if (utm) return utm.toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 100) || null;
     if (!document.referrer) return null;
     const host = new URL(document.referrer).hostname.replace(/^www\./, '');
     return host && host !== window.location.hostname.replace(/^www\./, '') ? host : null;

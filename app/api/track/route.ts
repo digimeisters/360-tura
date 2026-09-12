@@ -43,7 +43,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // kratke oznake, pa se sve što ne liči na oznaku odbacuje umesto da se upiše.
 const SITE_EVENT_TYPES = new Set(['page_view', 'cta_click', 'contact_click', 'form_submit']);
 const SITE_TARGET_RE = /^[a-z0-9_:-]{1,80}$/;
-const SITE_SOURCE_RE = /^[a-z0-9.-]{1,100}$/;
+const SITE_SOURCE_RE = /^[a-z0-9._-]{1,100}$/;
 
 async function recordSiteEvent(
   supabase: SupabaseClient,
