@@ -37,7 +37,7 @@ export const scaledHfov = (mobile: number) =>
   isWideScreen() ? Math.round((mobile * DEFAULT_HFOV.desktop) / DEFAULT_HFOV.mobile) : mobile;
 
 /** Okret i približavanje ka tački. */
-export const WALK_MS = 2200;
+export const WALK_MS = 2500;
 /** Koliko se "priđe" vratima - manje je bliže, ali slika postaje mutnija. */
 export const WALK_HFOV = 42;
 /** Dok "hoda", kamera ne gleda strmo u pod ni u plafon. */
@@ -55,10 +55,10 @@ export const CREEP_MS = 3200;
 /** Nova soba kreće malo uvećana... */
 export const ARRIVE_HFOV = 52;
 /** ...i za ovoliko se otvori na normalan pogled. */
-export const SETTLE_MS = 1000;
+export const SETTLE_MS = 1200;
 
 /** Pretapanje stare scene u novu. */
-export const FADE_MS = 600;
+export const FADE_MS = 550;
 /** Ako nova soba stiže sporije od ovoga, prikaže se "Ulazimo u prostoriju". */
 export const SLOW_LOAD_HINT_MS = 700;
 
@@ -74,7 +74,7 @@ export type PendingTransition = {
    * Ovaj korak je pokrenuo AUTOMATSKI vodič (guidePath.ts), ne ručan klik.
    * Menja dve stvari u page.tsx: (1) ne gasi automatski mod - ručni klik bez
    * ovoga gasi vodiča; (2) ako je ciljna soba već predstavljena, umesto pune
-   * naracije ide kratak tih prolaz (GUIDE_REVISIT_PAUSE_MS).
+   * naracije ide samo okret ka sledećim vratima (GUIDE_REVISIT_*).
    */
   guided?: boolean;
 };

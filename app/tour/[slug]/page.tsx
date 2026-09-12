@@ -44,7 +44,9 @@ import {
   Centered
 } from './utils';
 import {
-  GUIDE_REVISIT_PAUSE_MS,
+  GUIDE_REVISIT_OVERLAP_MS,
+  GUIDE_REVISIT_TURN_MIN_MS,
+  revisitTurnMs,
   parseGuidePath,
   resolveGuidePath,
   type GuideStep
@@ -108,7 +110,8 @@ export default function TourPage() {
   // odakle je vodič stao).
   const guidePathIndexRef = useRef(0);
   // Sobe koje su već dobile PUNU naraciju u ovoj poseti (ručno ili od
-  // vodiča) - drugi automatski prolazak kroz njih je tih (GUIDE_REVISIT_PAUSE_MS).
+  // vodiča) - drugi automatski prolazak kroz njih je samo okret ka sledećim
+  // vratima, bez priče (vidi GUIDE_REVISIT_* u guidePath.ts).
   const visitedGuideRoomsRef = useRef<Set<string>>(new Set());
   // Da li je naracija TRENUTNE sobe već završena (vodič sad samo mirno
   // stoji) - treba activateGuide-u da zna da li da odmah krene dalje ili da
@@ -559,25 +562,36 @@ export default function TourPage() {
   // koraka ka SLEDEĆEM i "prošeta" kroz nju. Ako je tačka u međuvremenu
   // nestala (obrisana posle čuvanja putanje), pretopi se bez hodanja umesto
   // da ostane zaglavljeno.
+  // Vrata u trenutnoj sobi putanje koja vode u sledeći korak (null na kraju
+  // putanje ili ako tačka za prelaz ne postoji).
+  const nextGuideDoor = useCallback(() => {
+    const idx = guidePathIndexRef.current;
+    if (idx >= guideSteps.length - 1) return null;
+    const from = guideSteps[idx].room;
+    const to = guideSteps[idx + 1].room;
+    return (
+      parseWaypoints(from.waypoints_i18n).find(
+        (w) => w.targetRoomId != null && String(w.targetRoomId) === String(to.id)
+      ) ?? null
+    );
+  }, [guideSteps]);
+
   const advanceGuide = useCallback(() => {
     const idx = guidePathIndexRef.current;
     if (idx >= guideSteps.length - 1) {
       setGuideFinished(true);
       return;
     }
-    const from = guideSteps[idx].room;
+    const wp = nextGuideDoor();
     const to = guideSteps[idx + 1];
     guidePathIndexRef.current = idx + 1;
 
-    const wp = parseWaypoints(from.waypoints_i18n).find(
-      (w) => w.targetRoomId != null && String(w.targetRoomId) === String(to.room.id)
-    );
     if (wp) {
       walkToRoom(wp, { guided: true });
     } else {
       changeRoomById(to.room.id, { entry: null, zoomedIn: false, guided: true });
     }
-  }, [guideSteps, walkToRoom, changeRoomById]);
+  }, [guideSteps, nextGuideDoor, walkToRoom, changeRoomById]);
 
   // Uključivanje vodiča: nastavlja od tamo gde je stao, preskačući sobe koje
   // su već predstavljene (ručno ili od ranijeg vođenja - "pokaži samo ono
@@ -1460,13 +1474,24 @@ export default function TourPage() {
       const roomKey = String(currentRoom.id);
       if (isGuidedStep && visitedGuideRoomsRef.current.has(roomKey)) {
         // Vodič drugi put prolazi kroz VEĆ predstavljenu sobu (npr. hodnik
-        // kao prolaz između grana) - bez ponavljanja priče, samo kratak tih
-        // predah pa nastavak ka sledećem koraku putanje.
+        // kao prolaz između grana) - bez priče i bez stajanja: kadar se
+        // otvara i istovremeno okreće ka sledećim vratima, pa prilaz kreće
+        // pre nego što se okret sasvim završi.
+        const door = nextGuideDoor();
+        let turnMs = GUIDE_REVISIT_TURN_MIN_MS;
+        if (door && viewerRef.current && !prefersReducedMotion()) {
+          const fromYaw = normalizeYaw(viewerRef.current.getYaw());
+          const toYaw = getShortestTargetYaw(fromYaw, door.yaw ?? 0);
+          turnMs = revisitTurnMs(toYaw - fromYaw);
+          try {
+            viewerRef.current.lookAt(clampPitch(door.pitch ?? 0), toYaw, pickHfov(DEFAULT_HFOV), turnMs);
+          } catch {}
+        }
         window.setTimeout(() => {
           if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
           if (!sequenceActiveRef.current || isInterruptedRef.current) return;
           if (guideModeRef.current === 'auto') advanceGuide();
-        }, GUIDE_REVISIT_PAUSE_MS);
+        }, Math.max(0, turnMs - GUIDE_REVISIT_OVERLAP_MS));
         return;
       }
       visitedGuideRoomsRef.current.add(roomKey);
@@ -1601,6 +1626,7 @@ export default function TourPage() {
     rooms[roomIdx]?.panorama_url,
     walkToRoom,
     advanceGuide,
+    nextGuideDoor,
     stopCurrentAnimation,
     stopAudio,
     handleStartEditWaypoint,
