@@ -62,6 +62,10 @@ export type Tour = {
   agent_phone?: string;
   agent_email?: string;
   agency_name?: string;
+  // Putanja automatskog vodiča: redni brojevi soba (order_index) odvojeni
+  // zarezom, npr. "1,2,3,2,4,2,5" - vidi guidePath.ts. Prazno/undefined = tura
+  // nema automatskog vodiča.
+  guide_path?: string | null;
 };
 
 export type ActiveModal = 'plan' | 'location' | 'about' | 'faq' | 'contact' | null;

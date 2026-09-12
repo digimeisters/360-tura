@@ -9,6 +9,7 @@ import { translations } from './translations';
 import { THEME, btnStyle } from './theme';
 import { getLocalizedText, parseWaypoints, parseEstablish, buildI18nObject } from './utils';
 import { translateRoomToLanguages, hasExactLangText } from './adminUtils';
+import { describeGuidePathError, parseGuidePath, validateGuidePath } from './guidePath';
 
 /**
  * Admin alati ture: dodavanje sobe, otpremanje panorame, AI popuna, glas i
@@ -31,6 +32,7 @@ export type TourAdminToolsProps = {
   variant: 'full' | 'empty';
   slug: string;
   tour: Tour | null;
+  setTour: React.Dispatch<React.SetStateAction<Tour | null>>;
   rooms: Room[];
   setRooms: React.Dispatch<React.SetStateAction<Room[]>>;
   roomIdx: number;
@@ -95,6 +97,7 @@ export default function TourAdminTools({
   variant,
   slug,
   tour,
+  setTour,
   rooms,
   setRooms,
   roomIdx,
@@ -129,7 +132,47 @@ export default function TourAdminTools({
 
   const [creatingRoom, setCreatingRoom] = useState(false);
 
+  const [showGuidePathModal, setShowGuidePathModal] = useState(false);
+  const [guidePathInput, setGuidePathInput] = useState('');
+  const [savingGuidePath, setSavingGuidePath] = useState(false);
+
   const currentRoom = rooms[roomIdx];
+
+  const roomsByOrder = [...rooms].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+
+  const openGuidePathModal = () => {
+    setGuidePathInput(tour?.guide_path || '');
+    setShowGuidePathModal(true);
+  };
+
+  const guidePathSteps = parseGuidePath(guidePathInput);
+  const guidePathError = guidePathInput.trim() ? validateGuidePath(guidePathSteps, rooms) : null;
+
+  // Čuva putanju vodiča na turi (ne na sobi) - ide preko API rute jer
+  // prijavljeni admin sme da čita `tours`, ali ne i da piše u nju direktno
+  // (za razliku od `rooms`, koja ima svoju write policy - migracija 006).
+  const handleSaveGuidePath = async () => {
+    if (guidePathInput.trim() && guidePathError) return;
+
+    setSavingGuidePath(true);
+    try {
+      const res = await fetch('/api/admin/tours', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
+        body: JSON.stringify({ slug, guide_path: guidePathInput.trim() })
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error || 'Nepoznata greška.');
+
+      const saved = guidePathInput.trim() || null;
+      setTour((prev) => (prev ? { ...prev, guide_path: saved } : prev));
+      setShowGuidePathModal(false);
+    } catch (err: any) {
+      alert('Greška pri čuvanju putanje: ' + (err.message || 'Nepoznata greška'));
+    } finally {
+      setSavingGuidePath(false);
+    }
+  };
 
   const toggleTargetLanguage = (l: Language) => {
     setTargetLanguages((prev) => {
@@ -713,6 +756,14 @@ export default function TourAdminTools({
       </button>
 
       <button
+        onClick={openGuidePathModal}
+        title="Putanja automatskog vodiča kroz sve sobe"
+        style={{ ...toolbarButtonStyle, background: '#059669' }}
+      >
+        🧭 Vodič
+      </button>
+
+      <button
         onClick={() => void supabase.auth.signOut()}
         title="Odjavi se iz admin režima"
         style={{
@@ -988,6 +1039,78 @@ export default function TourAdminTools({
                 }}
               >
                 🌐 Prevedi i Sačuvaj
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: PUTANJA AUTOMATSKOG VODIČA (na nivou cele ture, ne sobe) */}
+      {showGuidePathModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', width: '100%', maxWidth: '480px', maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid ' + THEME.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ color: '#059669', fontSize: '17px', margin: 0, fontWeight: 700 }}>🧭 Putanja vodiča</h2>
+              <button onClick={() => setShowGuidePathModal(false)} style={{ ...btnStyle, backgroundColor: THEME.surfaceAlt, color: THEME.textPrimary, borderColor: THEME.border, padding: '6px 12px' }}>
+                {t.cancel}
+              </button>
+            </div>
+
+            <div style={{ padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: THEME.textSecondary, lineHeight: '1.5' }}>
+                Redosled kojim automatski vodič šeta kroz sobe, upisan kao brojevi odvojeni zarezom.
+                Ista soba sme da se ponovi (npr. hodnik kao prolaz između dve grane) - drugi put je
+                vodič samo tiho prođe, bez ponavljanja priče. Ostavi prazno da tura nema dugme za
+                automatski vodič.
+              </p>
+
+              <div style={{ backgroundColor: THEME.surfaceAlt, padding: '12px 14px', borderRadius: '10px', border: '1px solid ' + THEME.border, display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '160px', overflowY: 'auto' }}>
+                {roomsByOrder.map((r) => (
+                  <div key={r.id} style={{ fontSize: '12.5px', color: THEME.textPrimary, display: 'flex', gap: '8px' }}>
+                    <span style={{ color: THEME.accent, fontWeight: 700, minWidth: '1.4em' }}>{r.order_index}</span>
+                    <span>{getLocalizedText(r.title_i18n, 'sr') || '(bez naziva)'}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', color: THEME.textSecondary, display: 'block', marginBottom: '6px', fontWeight: 600 }}>
+                  Putanja (npr. 1,2,3,2,4,2,5):
+                </label>
+                <input
+                  type="text"
+                  value={guidePathInput}
+                  onChange={(e) => setGuidePathInput(e.target.value)}
+                  placeholder="1,2,3,2,4,2,5"
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + (guidePathError ? THEME.danger : THEME.borderStrong), fontSize: '14px', fontFamily: 'monospace', boxSizing: 'border-box' }}
+                />
+                {guidePathError ? (
+                  <p style={{ margin: '6px 0 0', fontSize: '12px', color: THEME.danger }}>{describeGuidePathError(guidePathError)}</p>
+                ) : guidePathSteps.length > 0 ? (
+                  <p style={{ margin: '6px 0 0', fontSize: '12px', color: THEME.textSecondary }}>
+                    {guidePathSteps.length} koraka, {new Set(guidePathSteps).size} različitih soba.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            <div style={{ padding: '16px 20px', borderTop: '1px solid ' + THEME.border }}>
+              <button
+                onClick={handleSaveGuidePath}
+                disabled={savingGuidePath || (!!guidePathInput.trim() && !!guidePathError)}
+                style={{
+                  ...btnStyle,
+                  width: '100%',
+                  backgroundColor: savingGuidePath || (guidePathInput.trim() && guidePathError) ? THEME.surfaceAlt : '#059669',
+                  color: savingGuidePath || (guidePathInput.trim() && guidePathError) ? THEME.textMuted : '#fff',
+                  borderColor: '#059669',
+                  padding: '12px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  cursor: savingGuidePath || (guidePathInput.trim() && guidePathError) ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {savingGuidePath ? 'Čuvanje...' : '🧭 Sačuvaj putanju'}
               </button>
             </div>
           </div>

@@ -48,6 +48,13 @@ export type PendingTransition = {
   entry: EntryView | null;
   /** Da li je bilo približavanja - tada nova soba kreće uvećana. */
   zoomedIn: boolean;
+  /**
+   * Ovaj korak je pokrenuo AUTOMATSKI vodič (guidePath.ts), ne ručan klik.
+   * Menja dve stvari u page.tsx: (1) ne gasi automatski mod - ručni klik bez
+   * ovoga gasi vodiča; (2) ako je ciljna soba već predstavljena, umesto pune
+   * naracije ide kratak tih prolaz (GUIDE_REVISIT_PAUSE_MS).
+   */
+  guided?: boolean;
 };
 
 /**

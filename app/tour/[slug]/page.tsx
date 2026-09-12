@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { preload } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
@@ -40,6 +40,12 @@ import {
   mergeAudioI18n,
   Centered
 } from './utils';
+import {
+  GUIDE_REVISIT_PAUSE_MS,
+  parseGuidePath,
+  resolveGuidePath,
+  type GuideStep
+} from './guidePath';
 
 // Admin alati (AI popuna, jezici, glas, otpremanje panorame) su poseban chunk
 // koji se skida tek kad postoji admin sesija - posetilac ga nikad ne dobija.
@@ -87,6 +93,27 @@ export default function TourPage() {
   // Mali natpis "Ulazimo u prostoriju" samo kad nova soba kasni.
   const [slowRoomLoad, setSlowRoomLoad] = useState(false);
 
+  // ---- Automatski vodič (vidi guidePath.ts) ------------------------------
+  // 'auto' = vodič sam hoda kroz putanju i priča; 'manual' = kao i do sada,
+  // posetilac sam bira sobe. Ref postoji jer se čita iz async koda unutar
+  // efekta koji pravi scenu (v.on('load'), tajmeri) - state bi tamo bio
+  // "zaleđen" na vrednost iz trenutka kad je efekat pokrenut.
+  const [guideMode, setGuideMode] = useState<'auto' | 'manual'>('manual');
+  const guideModeRef = useRef<'auto' | 'manual'>('manual');
+  // Koliko je vodič odmakao u putanji - indeks POSLEDNJE sobe do koje je
+  // stigao (ne resetuje se pri prelasku auto/ručno, da bi "nastavak" znao
+  // odakle je vodič stao).
+  const guidePathIndexRef = useRef(0);
+  // Sobe koje su već dobile PUNU naraciju u ovoj poseti (ručno ili od
+  // vodiča) - drugi automatski prolazak kroz njih je tih (GUIDE_REVISIT_PAUSE_MS).
+  const visitedGuideRoomsRef = useRef<Set<string>>(new Set());
+  // Da li je naracija TRENUTNE sobe već završena (vodič sad samo mirno
+  // stoji) - treba activateGuide-u da zna da li da odmah krene dalje ili da
+  // pusti postojeću naraciju da se sama završi.
+  const roomSequenceFinishedRef = useRef(false);
+  const [guideFinished, setGuideFinished] = useState(false);
+  const guideFinishedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const t = translations[lang];
 
   const params = useParams();
@@ -98,6 +125,14 @@ export default function TourPage() {
   const [loading, setLoading] = useState(true);
   const [roomLoading, setRoomLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Putanja vodiča razrešena na stvarne sobe (vidi guidePath.ts). Prazno ili
+  // sa manje od 2 koraka = tura nema automatskog vodiča, dugme se ne krca.
+  const guideSteps: GuideStep[] = useMemo(
+    () => resolveGuidePath(parseGuidePath(tour?.guide_path), rooms),
+    [tour?.guide_path, rooms]
+  );
+  const hasGuide = guideSteps.length >= 2;
 
   const [pannellumReady, setPannellumReady] = useState(false);
   const [adminMode, setAdminMode] = useState(false);
@@ -397,11 +432,36 @@ export default function TourPage() {
     });
   }, [stopAudio, loadAndPlayLocalizedAudio]);
 
+  // Ručni klik (soba, tačka, tlocrt) uvek preuzima kontrolu od vodiča - kao
+  // audio-vodič u muzeju: čim nešto sam pipneš, vodič ćuti. `transition.guided`
+  // označava korak koji je pokrenuo SAM vodič, pa ovo za njega preskačemo.
+  const takeManualControl = useCallback(() => {
+    if (guideFinishedTimerRef.current) {
+      clearTimeout(guideFinishedTimerRef.current);
+      guideFinishedTimerRef.current = null;
+    }
+    setGuideFinished(false);
+    if (guideModeRef.current === 'manual') return;
+    guideModeRef.current = 'manual';
+    setGuideMode('manual');
+  }, []);
+
+  // Poruka "obišli ste sve" sama nestane posle nekoliko sekundi.
+  useEffect(() => {
+    if (!guideFinished) return;
+    guideFinishedTimerRef.current = setTimeout(() => setGuideFinished(false), 6000);
+    return () => {
+      if (guideFinishedTimerRef.current) clearTimeout(guideFinishedTimerRef.current);
+    };
+  }, [guideFinished]);
+
   // `transition` dolazi iz walkToRoom (prelaz kroz tačku, sa smerom ulaska).
   // Bez njega (spisak soba, tlocrt) prelaz je samo pretapanje.
   const changeRoomById = useCallback((id: string | number, transition?: PendingTransition) => {
     const foundIndex = rooms.findIndex(r => r.id == id);
     if (foundIndex === -1) return;
+
+    if (!transition?.guided) takeManualControl();
 
     // Prelaz koji se još približava vratima više ne važi - posetilac je
     // izabrao sobu (ili je to upravo taj prelaz stigao do kraja).
@@ -434,18 +494,21 @@ export default function TourPage() {
       setRoomLoading(true);
     }
     setRoomIdx(foundIndex);
-  }, [rooms, roomIdx, stopAudio, stopCurrentAnimation]);
+  }, [rooms, roomIdx, stopAudio, stopCurrentAnimation, takeManualControl]);
 
   // Klik na navigacionu tačku: kamera se okrene ka tački i približi joj se,
   // za to vreme se skida sledeća soba, pa prelaz (vidi transition.ts).
-  const walkToRoom = useCallback((wp: Waypoint) => {
+  // `options.guided` = ovaj korak pokreće automatski vodič, ne ručan klik.
+  const walkToRoom = useCallback((wp: Waypoint, options?: { guided?: boolean }) => {
     if (wp.targetRoomId == null || walkingRef.current) return;
+
+    if (!options?.guided) takeManualControl();
 
     const fromRoom = rooms[roomIdx];
     const target = rooms.find(r => String(r.id) === String(wp.targetRoomId));
     const v = viewerRef.current;
     if (!fromRoom || !target || target.id == fromRoom.id || !v) {
-      changeRoomById(wp.targetRoomId);
+      changeRoomById(wp.targetRoomId, options?.guided ? { entry: null, zoomedIn: false, guided: true } : undefined);
       return;
     }
 
@@ -485,9 +548,74 @@ export default function TourPage() {
       if (!reduceMotion) {
         try { v.setHfov(CREEP_HFOV, CREEP_MS); } catch {}
       }
-      changeRoomById(target.id, { entry, zoomedIn: !reduceMotion });
+      changeRoomById(target.id, { entry, zoomedIn: !reduceMotion, guided: options?.guided });
     });
-  }, [rooms, roomIdx, changeRoomById, stopAudio, stopCurrentAnimation]);
+  }, [rooms, roomIdx, changeRoomById, stopAudio, stopCurrentAnimation, takeManualControl]);
+
+  // Sledeći korak u putanji vodiča (guidePath.ts): nađe tačku iz TRENUTNOG
+  // koraka ka SLEDEĆEM i "prošeta" kroz nju. Ako je tačka u međuvremenu
+  // nestala (obrisana posle čuvanja putanje), pretopi se bez hodanja umesto
+  // da ostane zaglavljeno.
+  const advanceGuide = useCallback(() => {
+    const idx = guidePathIndexRef.current;
+    if (idx >= guideSteps.length - 1) {
+      setGuideFinished(true);
+      return;
+    }
+    const from = guideSteps[idx].room;
+    const to = guideSteps[idx + 1];
+    guidePathIndexRef.current = idx + 1;
+
+    const wp = parseWaypoints(from.waypoints_i18n).find(
+      (w) => w.targetRoomId != null && String(w.targetRoomId) === String(to.room.id)
+    );
+    if (wp) {
+      walkToRoom(wp, { guided: true });
+    } else {
+      changeRoomById(to.room.id, { entry: null, zoomedIn: false, guided: true });
+    }
+  }, [guideSteps, walkToRoom, changeRoomById]);
+
+  // Uključivanje vodiča: nastavlja od tamo gde je stao, preskačući sobe koje
+  // su već predstavljene (ručno ili od ranijeg vođenja - "pokaži samo ono
+  // što još nisam video"). Ako je posetilac u međuvremenu ručno odlutao
+  // negde drugde, "sustigne" ga pretapanjem (nema garancije da baš iz TE
+  // sobe postoji tačka do sledećeg koraka), pa dalje hoda normalno.
+  const activateGuide = useCallback(() => {
+    if (!hasGuide) return;
+
+    guideModeRef.current = 'auto';
+    setGuideMode('auto');
+    if (guideFinishedTimerRef.current) clearTimeout(guideFinishedTimerRef.current);
+    setGuideFinished(false);
+
+    let idx = guidePathIndexRef.current;
+    while (idx < guideSteps.length && visitedGuideRoomsRef.current.has(String(guideSteps[idx].room.id))) {
+      idx++;
+    }
+
+    if (idx >= guideSteps.length) {
+      setGuideFinished(true);
+      return;
+    }
+    guidePathIndexRef.current = idx;
+
+    const targetRoom = guideSteps[idx].room;
+    if (rooms[roomIdx]?.id === targetRoom.id) {
+      // Već smo u ciljnoj sobi. Ako je naracija već završena (mirno stojimo),
+      // nastavi odmah; ako još traje, nastaviće se sama - v.on('load') dole
+      // uživo proverava guideModeRef pri kraju sekvence.
+      if (roomSequenceFinishedRef.current) advanceGuide();
+      return;
+    }
+
+    changeRoomById(targetRoom.id, { entry: null, zoomedIn: false, guided: true });
+  }, [hasGuide, guideSteps, rooms, roomIdx, changeRoomById, advanceGuide]);
+
+  const toggleGuideMode = useCallback(() => {
+    if (guideModeRef.current === 'auto') takeManualControl();
+    else activateGuide();
+  }, [takeManualControl, activateGuide]);
 
   // Iscrtava hotspot-ove na vieweru koristeći TAČNO prosleđen niz tačaka.
   // Namerno NE čita rooms[roomIdx] iz state-a, jer bi to moglo biti zastarelo
@@ -1090,6 +1218,8 @@ export default function TourPage() {
     if (!tourStarted || rooms.length === 0 || !pannellumReady || !hasMounted) return;
 
     const currentSession = ++roomSessionRef.current;
+    // Nova soba, nova sekvenca - dosadašnje "mirujemo" više ne važi.
+    roomSequenceFinishedRef.current = false;
     const currentRoom = rooms[roomIdx];
     const resolvedPanoramaUrl = currentRoom?.panorama_url_cf || currentRoom?.panorama_url;
 
@@ -1098,6 +1228,9 @@ export default function TourPage() {
     const transition = pendingTransitionRef.current;
     pendingTransitionRef.current = null;
     const crossfade = Boolean(transition && fadingLayerRef.current);
+    // Ovaj korak je pokrenuo automatski vodič (guidePath.ts), ne ručan klik -
+    // odlučuje da li se već predstavljena soba samo tiho prođe (v.on('load')).
+    const isGuidedStep = Boolean(transition?.guided);
 
     const panoramaContainer = document.getElementById('panorama');
     if (!resolvedPanoramaUrl || !panoramaContainer) {
@@ -1276,6 +1409,16 @@ export default function TourPage() {
       }
     };
 
+    // Kraj naracije sobe: u ručnom modu se kao i do sada samo mirno stoji
+    // (startInfiniteGlide); u automatskom vodič odmah nastavlja dalje.
+    const finishRoomSequence = () => {
+      if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
+      if (!sequenceActiveRef.current || isInterruptedRef.current) return;
+      roomSequenceFinishedRef.current = true;
+      if (guideModeRef.current === 'auto') advanceGuide();
+      else startInfiniteGlide();
+    };
+
     // Stara scena (iznad nove) nestaje; nova je već učitana ispod nje.
     const fadeOutPreviousScene = () => {
       const fading = fadingLayerRef.current;
@@ -1310,6 +1453,20 @@ export default function TourPage() {
       }
 
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
+
+      const roomKey = String(currentRoom.id);
+      if (isGuidedStep && visitedGuideRoomsRef.current.has(roomKey)) {
+        // Vodič drugi put prolazi kroz VEĆ predstavljenu sobu (npr. hodnik
+        // kao prolaz između grana) - bez ponavljanja priče, samo kratak tih
+        // predah pa nastavak ka sledećem koraku putanje.
+        window.setTimeout(() => {
+          if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
+          if (!sequenceActiveRef.current || isInterruptedRef.current) return;
+          if (guideModeRef.current === 'auto') advanceGuide();
+        }, GUIDE_REVISIT_PAUSE_MS);
+        return;
+      }
+      visitedGuideRoomsRef.current.add(roomKey);
 
       const introTextRaw = establishData.text_i18n ||
 `${translations[langRef.current].welcomePrefix}${getLocalizedText(currentRoom.title_i18n, langRef.current)}`;
@@ -1375,7 +1532,7 @@ export default function TourPage() {
         if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
         if (!sequenceActiveRef.current || isInterruptedRef.current || !viewerRef.current) return;
         if (index >= infoPoints.length) {
-          startInfiniteGlide();
+          finishRoomSequence();
           return;
         }
 
@@ -1401,7 +1558,7 @@ export default function TourPage() {
       if (infoPoints.length > 0) {
         runInfoSequencePhase2(0);
       } else {
-        startInfiniteGlide();
+        finishRoomSequence();
       }
     });
 
@@ -1440,6 +1597,7 @@ export default function TourPage() {
     rooms[roomIdx]?.panorama_url_cf,
     rooms[roomIdx]?.panorama_url,
     walkToRoom,
+    advanceGuide,
     stopCurrentAnimation,
     stopAudio,
     handleStartEditWaypoint,
@@ -1450,6 +1608,7 @@ export default function TourPage() {
   const adminToolsProps = {
     slug,
     tour,
+    setTour,
     rooms,
     setRooms,
     roomIdx,
@@ -1771,6 +1930,16 @@ export default function TourPage() {
             <button onClick={toggleMute} style={overlayIconStyle} title={isMuted ? 'Uključi zvuk' : 'Isključi zvuk'}>
               {isMuted ? '🔇' : '🔊'}
             </button>
+
+            {hasGuide && (
+              <button
+                onClick={toggleGuideMode}
+                style={{ ...overlayIconStyle, color: guideMode === 'auto' ? THEME.accent : '#fff' }}
+                title={guideMode === 'auto' ? 'Vodič vodi - klikni da sam istražuješ' : 'Sami istražujete - klikni da vodič vodi'}
+              >
+                {guideMode === 'auto' ? '🎧' : '🖐️'}
+              </button>
+            )}
           </div>
         </>
       )}
@@ -1807,6 +1976,32 @@ export default function TourPage() {
         >
           <span aria-hidden="true" style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#5B92D6', animation: 'pulseDot 1.4s infinite ease-in-out both' }} />
           {t.roomLoadingPrefix}<b>{currentRoomTitle}</b>
+        </div>
+      )}
+
+      {guideFinished && (
+        <div
+          role="status"
+          style={{
+            position: 'absolute',
+            left: '50%',
+            bottom: '120px',
+            transform: 'translateX(-50%)',
+            zIndex: 15,
+            padding: '10px 18px',
+            borderRadius: '999px',
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            border: '1px solid rgba(255, 255, 255, 0.6)',
+            color: '#fff',
+            fontSize: '13px',
+            fontFamily: THEME.fontBody,
+            whiteSpace: 'nowrap',
+            textAlign: 'center'
+          }}
+        >
+          🎉 Obišli ste sve prostorije
         </div>
       )}
 

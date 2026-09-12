@@ -139,6 +139,49 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ success: true, published: body.published });
   }
 
+  // Putanja vodiča se čuva sama, bez ostatka formulara - TourAdminTools je
+  // menja iz same ture, gde ostala polja (naziv, agencija...) nisu učitana.
+  // Admin je već proverio putanju pre slanja (validateGuidePath), ovde se
+  // samo još jednom potvrđuje da svaki broj odgovara postojećoj sobi - da
+  // ručno sastavljen zahtev ne upiše besmislenu putanju.
+  if (typeof body.guide_path === 'string' && body.title === undefined) {
+    const path = body.guide_path
+      .split(',')
+      .map((s: string) => Number(s.trim()))
+      .filter((n: number) => Number.isInteger(n) && n > 0);
+
+    if (body.guide_path.trim() !== '' && path.length < 2) {
+      return NextResponse.json({ success: false, error: 'Putanja mora imati bar dva broja.' }, { status: 400 });
+    }
+
+    if (path.length > 0) {
+      const { data: rooms } = await ctx.supabase
+        .from('rooms')
+        .select('order_index')
+        .eq('tour_slug', slug);
+      const known = new Set((rooms ?? []).map((r) => r.order_index));
+      const unknown = path.find((n: number) => !known.has(n));
+      if (unknown !== undefined) {
+        return NextResponse.json(
+          { success: false, error: `Soba pod brojem ${unknown} ne postoji.` },
+          { status: 400 }
+        );
+      }
+    }
+
+    const { error: guideErr } = await ctx.supabase
+      .from('tours')
+      .update({ guide_path: path.length > 0 ? path.join(',') : null } as never)
+      .eq('slug', slug);
+
+    if (guideErr) {
+      console.error('[api/admin/tours] guide_path update failed:', guideErr.message);
+      return NextResponse.json({ success: false, error: 'Putanja nije sačuvana.' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  }
+
   const title = clean(body.title, 'title');
   if (!title) {
     return NextResponse.json({ success: false, error: 'Naslov je obavezan.' }, { status: 400 });
