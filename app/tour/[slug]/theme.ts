@@ -26,29 +26,35 @@ export const THEME = {
   fontDisplay: 'var(--font-display)'
 };
 
-// Providna ikonica preko panorame (fullscreen, žiroskop, zvuk, deljenje) -
-// bez pozadine/okvira, beli glif sa senkom radi čitljivosti na svetlim i
-// tamnim delovima fotografije.
+// Tamno staklo preko panorame - isti izgled kao traka sa sobama
+// (RoomNavBar) i kartica sa tekstom, da ceo ekran ture deluje kao jedna celina.
+export const GLASS: React.CSSProperties = {
+  background: 'rgba(15, 23, 42, 0.55)',
+  backdropFilter: 'blur(10px)',
+  WebkitBackdropFilter: 'blur(10px)',
+  border: '1px solid rgba(255, 255, 255, 0.28)',
+  boxShadow: '0 6px 20px rgba(0, 0, 0, 0.25)'
+};
+/** Plava na tamnom staklu - THEME.accent je tu pretaman za čitanje. */
+export const GLASS_ACCENT = '#8BB8F2';
+
+// Okruglo stakleno dugme sa ikonicom (ceo ekran, žiroskop, zvuk, vodič).
 export const overlayIconStyle: React.CSSProperties = {
-  backgroundColor: 'transparent',
-  border: 'none',
+  ...GLASS,
   color: '#fff',
   borderRadius: '50%',
   width: '38px',
   height: '38px',
+  padding: 0,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   cursor: 'pointer',
-  fontSize: '18px',
-  filter: 'drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55))',
   transition: 'transform 0.15s ease'
 };
 
-// Isti providni tretman za donji toolbar (Pitanja/Lokacija/Info/Skica/Kontakt)
-// - ikonica + label, bez belog kartona. Boja/senka se dodaju odvojeno u
-// page.tsx jer se ovo dugme koristi i preko panorame (tamna pozadina, treba
-// beo tekst+senka) i na svetlom welcome ekranu (treba tamniji tekst).
+// Dugme donjeg menija (Pitanja/Lokacija/Info/Skica/Kontakt) - ikonica +
+// naziv, bez sopstvene pozadine; stakleni okvir nosi ceo meni (page.tsx).
 export const overlayNavButtonStyle: React.CSSProperties = {
   background: 'transparent',
   border: 'none',

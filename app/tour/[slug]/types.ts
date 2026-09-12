@@ -35,6 +35,8 @@ export type Room = {
   establish_i18n?: EstablishData | string;
   panorama_url?: string;
   panorama_url_cf?: string;
+  // Isečak panorame 1200x630 (migracija 004) - share kartica i početni ekran ture.
+  preview_url?: string | null;
   // Pozicija ove sobe na tlocrtu ture (tour.floorplan_url), kao procenat
   // širine/visine slike (0-100). Null/undefined = soba još nema oznaku na
   // tlocrtu. Postavlja se klikom na skicu u admin modu.

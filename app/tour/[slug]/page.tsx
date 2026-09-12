@@ -7,12 +7,25 @@ import { useParams } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 import { Language, Waypoint, Room, Tour, ActiveModal } from './types';
 import { translations, categoryQuestions } from './translations';
-import { THEME, btnStyle, overlayIconStyle, overlayNavButtonStyle, applyGlassHotspotStyle } from './theme';
+import { THEME, GLASS, GLASS_ACCENT, btnStyle, overlayIconStyle, overlayNavButtonStyle, applyGlassHotspotStyle } from './theme';
 import { SITE_URL } from '../../lib/site';
 import { trackEvent } from '../../lib/track';
+import { pickCoverRoom } from '../../lib/coverRoom';
 import { Logo } from './Logo';
 import { RoomNavBar, type RoomDot } from './RoomNavBar';
-import { MODAL_ICONS, withoutEmoji } from './icons';
+import { FloorplanMiniMap } from './FloorplanMiniMap';
+import {
+  IconCollapse,
+  IconCompass,
+  IconExpand,
+  IconHand,
+  IconHeadphones,
+  IconLink,
+  IconMute,
+  IconSound,
+  MODAL_ICONS,
+  withoutEmoji
+} from './icons';
 import { PANNELLUM_CSS, PANNELLUM_JS } from './pannellum';
 import {
   ARRIVE_HFOV,
@@ -1309,14 +1322,28 @@ export default function TourPage() {
 
       if (!isMountedRef.current) return;
 
-      if (!tourData) {
+      let loadedTour = tourData as Tour | null;
+      let loadedRooms = roomRows as Room[] | null;
+
+      // SAMO lokalno, za pregled malog tlocrta pre nego što ijedna tura ima
+      // skicu - vidi demoFloorplan.ts. Na pravom sajtu ova grana ne postoji.
+      if (
+        process.env.NODE_ENV === 'development' &&
+        loadedTour && loadedRooms?.length &&
+        new URLSearchParams(window.location.search).get('testskica') === '1'
+      ) {
+        const { withDemoFloorplan } = await import('./demoFloorplan');
+        ({ tour: loadedTour, rooms: loadedRooms } = withDemoFloorplan(loadedTour, loadedRooms));
+      }
+
+      if (!loadedTour) {
         // VAŽNO: ako tura nije nađena, ne dozvoljavamo da rooms-provera dole prepiše ovu poruku
         setError(tourErr ? `Greška (tours): ${tourErr.message}` : translations[langRef.current].tourNotFound);
       } else {
-        setTour(tourData as Tour);
+        setTour(loadedTour);
         if (roomsErr) setError(`Greška (rooms): ${roomsErr.message}`);
-        else if (!roomRows || roomRows.length === 0) setError(translations[langRef.current].noRooms);
-        else setRooms(roomRows as Room[]);
+        else if (!loadedRooms || loadedRooms.length === 0) setError(translations[langRef.current].noRooms);
+        else setRooms(loadedRooms);
       }
 
       setLoading(false);
@@ -1812,6 +1839,8 @@ export default function TourPage() {
 
   const fullTourTitle = getLocalizedText(tour?.title_i18n, lang);
   const currentRoomTitle = getLocalizedText(currentRoom?.title_i18n, lang) || `Soba ${roomIdx + 1}`;
+  // Ista soba kao na share kartici (dnevna soba ako postoji).
+  const welcomeCoverUrl = pickCoverRoom(rooms)?.preview_url ?? null;
 
   // Traka sa sobama: u automatskom modu broji i crta sobe putanje vodiča
   // (redom kojim ih vodič prvi put obilazi), inače sve sobe ture.
@@ -1840,53 +1869,101 @@ export default function TourPage() {
       `}</style>
 
       {!tourStarted && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 50, backgroundColor: THEME.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', textAlign: 'center' }}>
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 50,
+            overflow: 'hidden',
+            // Bez slike (tura još nema pregled) ostaje tamna pozadina, da
+            // beli tekst i stakleni meni i dalje izgledaju isto.
+            background: 'linear-gradient(160deg, #1e293b 0%, #0f172a 100%)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px 20px 140px',
+            textAlign: 'center',
+            color: '#fff',
+            // Logo na tamnoj pozadini: belo "Kvadrat", svetlija plava "360".
+            ['--ink' as string]: '#fff',
+            ['--accent' as string]: '#5B92D6'
+          }}
+        >
+          {welcomeCoverUrl && (
+            <>
+              <style>{'@keyframes k360WelcomeDrift{from{transform:scale(1.02)}to{transform:scale(1.1)}}@media (prefers-reduced-motion: reduce){.k360-welcome-cover{animation:none!important}}'}</style>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                className="k360-welcome-cover"
+                src={welcomeCoverUrl}
+                alt=""
+                aria-hidden="true"
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  animation: 'k360WelcomeDrift 24s ease-in-out infinite alternate'
+                }}
+              />
+            </>
+          )}
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.55) 0%, rgba(15, 23, 42, 0.35) 40%, rgba(15, 23, 42, 0.8) 100%)'
+            }}
+          />
+
           <div style={{ position: 'absolute', top: '16px', left: 0, right: 0, display: 'flex', justifyContent: 'center' }}>
             <Logo />
           </div>
 
-          <div style={{
-            display: 'flex',
-            gap: '4px',
-            backgroundColor: THEME.surfaceAlt,
-            border: '1px solid ' + THEME.border,
-            borderRadius: '999px',
-            padding: '4px',
-            marginBottom: '10px',
-            boxShadow: THEME.shadow
-          }}>
-            {availableLanguages
-              .filter((l) => adminMode || isLanguageAvailable(l))
-              .map((l) => (
-                <button
-                  key={l}
-                  onClick={() => changeLanguage(l)}
-                  style={{
-                    background: lang === l ? THEME.accent : 'transparent',
-                    color: lang === l ? '#fff' : THEME.textSecondary,
-                    border: 'none',
-                    borderRadius: '999px',
-                    padding: '6px 14px',
-                    fontSize: '13px',
-                    fontWeight: lang === l ? 'bold' : 'normal',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s'
-                  }}
-                >
-                  {l.toUpperCase()}
-                </button>
-              ))}
+          <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: '520px' }}>
+            <div style={{ ...GLASS, display: 'flex', gap: '4px', borderRadius: '999px', padding: '4px', marginBottom: '22px' }}>
+              {availableLanguages
+                .filter((l) => adminMode || isLanguageAvailable(l))
+                .map((l) => (
+                  <button
+                    key={l}
+                    onClick={() => changeLanguage(l)}
+                    style={{
+                      background: lang === l ? THEME.accent : 'transparent',
+                      color: lang === l ? '#fff' : 'rgba(255, 255, 255, 0.78)',
+                      border: 'none',
+                      borderRadius: '999px',
+                      padding: '6px 14px',
+                      fontSize: '13px',
+                      fontWeight: lang === l ? 'bold' : 'normal',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s'
+                    }}
+                  >
+                    {l.toUpperCase()}
+                  </button>
+                ))}
+            </div>
+
+            {tour?.agency_name && (
+              <div style={{ color: GLASS_ACCENT, fontSize: '12px', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '10px' }}>
+                {tour.agency_name}
+              </div>
+            )}
+
+            <h1 style={{ color: '#fff', fontSize: 'clamp(26px, 5vw, 38px)', lineHeight: 1.15, margin: '0 0 12px', fontWeight: 700, fontFamily: THEME.fontDisplay, textWrap: 'balance', textShadow: '0 2px 12px rgba(0, 0, 0, 0.35)' }}>
+              {fullTourTitle}
+            </h1>
+            <p style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '16px', maxWidth: '440px', margin: '0 0 30px', lineHeight: 1.5, textShadow: '0 1px 8px rgba(0, 0, 0, 0.35)' }}>
+              {t.welcome}
+            </p>
+            <button onClick={startTour} style={{ padding: '15px 34px', fontSize: '17px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '999px', cursor: 'pointer', boxShadow: '0 8px 24px rgba(30, 90, 168, 0.45)' }}>
+              {guideRequested && hasGuide ? t.startGuidedTour : t.startTour}
+            </button>
           </div>
-
-          {tour?.agency_name && (
-            <div style={{ color: THEME.textMuted, fontSize: '13px', marginBottom: '18px', fontStyle: 'italic' }}>( {tour.agency_name} )</div>
-          )}
-
-          <h1 style={{ color: THEME.textPrimary, fontSize: '26px', marginBottom: '12px', fontWeight: 700, fontFamily: THEME.fontDisplay }}>{fullTourTitle}</h1>
-          <p style={{ color: THEME.textSecondary, fontSize: '16px', maxWidth: '440px', marginBottom: '32px', lineHeight: '1.5' }}>{t.welcome}</p>
-          <button onClick={startTour} style={{ padding: '14px 32px', fontSize: '17px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: 'none', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(30, 90, 168, 0.35)' }}>
-            {guideRequested && hasGuide ? t.startGuidedTour : t.startTour}
-          </button>
         </div>
       )}
 
@@ -1905,25 +1982,24 @@ export default function TourPage() {
           }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', rowGap: '4px', width: '100%' }}>
               <div style={{
-                backgroundColor: THEME.surface,
-                border: '1px solid ' + THEME.border,
+                ...GLASS,
                 borderRadius: '12px',
-                padding: '5px 12px',
+                padding: '6px 12px 7px',
                 pointerEvents: 'auto',
-                maxWidth: '55%',
-                boxShadow: THEME.shadow
+                maxWidth: '55%'
               }}>
                 {tour?.agency_name && (
-                  <div style={{ color: THEME.accent, fontSize: '10px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ color: GLASS_ACCENT, fontSize: '10px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {tour.agency_name}
                   </div>
                 )}
-                <div style={{ color: THEME.textPrimary, fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ color: '#fff', fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {fullTourTitle}
                 </div>
               </div>
 
               <div style={{
+                ...GLASS,
                 display: 'flex',
                 alignItems: 'center',
                 flexWrap: 'wrap',
@@ -1931,12 +2007,9 @@ export default function TourPage() {
                 rowGap: '4px',
                 gap: '4px',
                 maxWidth: '55%',
-                backgroundColor: THEME.surface,
-                border: '1px solid ' + THEME.border,
                 borderRadius: '12px',
-                padding: '3px 6px',
-                pointerEvents: 'auto',
-                boxShadow: THEME.shadow
+                padding: '4px 6px',
+                pointerEvents: 'auto'
               }}>
                 {/* Admin dugmad crta TourAdminTools kroz portal. display:
                     contents ih pušta da budu članovi ove flex trake kao da
@@ -1951,10 +2024,10 @@ export default function TourPage() {
                       onClick={() => changeLanguage(l)}
                       style={{
                         background: lang === l ? THEME.accent : 'transparent',
-                        color: lang === l ? '#fff' : THEME.textSecondary,
+                        color: lang === l ? '#fff' : 'rgba(255, 255, 255, 0.75)',
                         border: 'none',
                         borderRadius: '8px',
-                        padding: '3px 6px',
+                        padding: '3px 7px',
                         fontSize: '11px',
                         fontWeight: lang === l ? 'bold' : 'normal',
                         cursor: 'pointer',
@@ -1998,34 +2071,72 @@ export default function TourPage() {
               onClick={toggleFullscreen}
               style={overlayIconStyle}
               title={isFullscreen ? 'Napusti ceo ekran' : 'Ceo ekran'}
+              aria-label={isFullscreen ? 'Napusti ceo ekran' : 'Ceo ekran'}
             >
-              {isFullscreen ? '🗗' : '⛶'}
+              {isFullscreen ? <IconCollapse size={19} /> : <IconExpand size={19} />}
             </button>
 
             {isFullscreen && (
               <button
                 onClick={toggleGyroscope}
-                style={{ ...overlayIconStyle, color: isGyroActive ? THEME.accent : '#fff' }}
+                style={{ ...overlayIconStyle, color: isGyroActive ? GLASS_ACCENT : '#fff' }}
                 title={isGyroActive ? 'Ugasi giroskop' : 'Upali giroskop'}
+                aria-label={isGyroActive ? 'Ugasi giroskop' : 'Upali giroskop'}
               >
-                🧭
+                <IconCompass size={19} />
               </button>
             )}
 
-            <button onClick={toggleMute} style={overlayIconStyle} title={isMuted ? 'Uključi zvuk' : 'Isključi zvuk'}>
-              {isMuted ? '🔇' : '🔊'}
+            <button
+              onClick={toggleMute}
+              style={overlayIconStyle}
+              title={isMuted ? 'Uključi zvuk' : 'Isključi zvuk'}
+              aria-label={isMuted ? 'Uključi zvuk' : 'Isključi zvuk'}
+            >
+              {isMuted ? <IconMute size={19} /> : <IconSound size={19} />}
             </button>
+
+            {tour?.floorplan_url && (
+              <>
+                {/* Na širokom ekranu skica stoji stalno u uglu (FloorplanMiniMap). */}
+                <style>{'.k360-plan-btn{display:flex}@media (min-width:1024px){.k360-plan-btn{display:none}}'}</style>
+                <button
+                  className="k360-plan-btn"
+                  onClick={() => setActiveModal('plan')}
+                  style={{ ...overlayIconStyle, display: undefined }}
+                  title={withoutEmoji(t.btnPlan)}
+                  aria-label={withoutEmoji(t.btnPlan)}
+                >
+                  <MODAL_ICONS.plan size={19} />
+                </button>
+              </>
+            )}
 
             {hasGuide && (
               <button
                 onClick={toggleGuideMode}
-                style={{ ...overlayIconStyle, color: guideMode === 'auto' ? THEME.accent : '#fff' }}
+                style={{ ...overlayIconStyle, color: guideMode === 'auto' ? GLASS_ACCENT : '#fff' }}
                 title={guideMode === 'auto' ? 'Vodič vodi - klikni da sam istražuješ' : 'Sami istražujete - klikni da vodič vodi'}
+                aria-label={guideMode === 'auto' ? 'Vodič vodi - klikni da sam istražuješ' : 'Sami istražujete - klikni da vodič vodi'}
+                aria-pressed={guideMode === 'auto'}
               >
-                {guideMode === 'auto' ? '🎧' : '🖐️'}
+                {guideMode === 'auto' ? <IconHeadphones size={19} /> : <IconHand size={19} />}
               </button>
             )}
           </div>
+
+          {tour?.floorplan_url && !pendingCoords && (
+            <FloorplanMiniMap
+              floorplanUrl={tour.floorplan_url}
+              rooms={rooms}
+              currentRoomId={currentRoom?.id}
+              seenRoomIds={seenRoomIds}
+              lang={lang}
+              onSelectRoom={(id) => changeRoomById(id)}
+              onExpand={() => setActiveModal('plan')}
+              labels={{ title: withoutEmoji(t.btnPlan), expand: withoutEmoji(t.btnPlan) }}
+            />
+          )}
         </>
       )}
 
@@ -2092,57 +2203,53 @@ export default function TourPage() {
 
 
       {!pendingCoords && isModalToolbarVisible && (() => {
-        // Ovaj toolbar se prikazuje i preko panorame (tamna/šarena pozadina
-        // fotografije - treba beo tekst + senka za čitljivost) i na svetlom
-        // welcome ekranu pre početka ture (treba tamniji tekst, bez senke).
-        const navBase: React.CSSProperties = tourStarted
-          ? { color: '#fff', filter: 'drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55))' }
-          : { color: THEME.textPrimary };
-        const navColor = (isActive: boolean): React.CSSProperties =>
-          isActive ? { ...navBase, color: THEME.accent } : navBase;
-        // Preko panorame svetlija plava (kao tačke na vratima), da se vidi i
-        // na tamnim delovima slike; na svetlom welcome ekranu plava sajta.
-        const navIconColor = tourStarted ? '#8BB8F2' : THEME.accent;
-
         return (
         <>
-        {/* Plutajuće dugme za deljenje, centrirano iznad reda ispod (samim
-            tim tačno iznad "Info", srednjeg od 5 dugmića) - bez okvira/
-            pozadine, isti providni tretman kao ostali dugmići u toolbaru. */}
+        {/* Deljenje stoji iznad menija, na sredini (iznad "Info"). */}
         <button
           onClick={handleShareTour}
           style={{
+            ...GLASS,
             position: 'absolute',
-            bottom: '76px',
+            bottom: '84px',
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 56,
             display: 'flex',
             alignItems: 'center',
             gap: '7px',
-            padding: '6px 4px',
-            background: 'transparent',
-            border: 'none',
-            ...(shareCopied ? { color: THEME.success } : navBase),
+            padding: '7px 14px',
+            borderRadius: '999px',
+            color: shareCopied ? '#86efac' : '#fff',
             fontSize: '13px',
             fontWeight: 700,
+            fontFamily: THEME.fontBody,
             cursor: 'pointer',
             whiteSpace: 'nowrap'
           }}
         >
-          {shareCopied ? t.linkCopied : t.shareTour}
+          {shareCopied ? t.linkCopied : (
+            <>
+              <IconLink size={16} color={GLASS_ACCENT} />
+              {withoutEmoji(t.shareTour)}
+            </>
+          )}
         </button>
 
         <div style={{
+          ...GLASS,
           position: 'absolute',
           bottom: '12px',
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 55,
           display: 'flex',
-          gap: '6px',
-          width: '96%',
-          maxWidth: '560px',
+          gap: '2px',
+          width: 'calc(100% - 24px)',
+          maxWidth: '520px',
+          boxSizing: 'border-box',
+          padding: '5px',
+          borderRadius: '16px',
           justifyContent: 'center'
         }}>
           {([
@@ -2153,10 +2260,25 @@ export default function TourPage() {
             ['contact', t.btnContact]
           ] as const).map(([modal, label]) => {
             const Icon = MODAL_ICONS[modal];
+            const active = activeModal === modal;
             return (
-              <button key={modal} onClick={() => setActiveModal(modal)} style={{ ...overlayNavButtonStyle, flex: 1, ...navColor(activeModal === modal) }}>
-                <Icon size={22} color={navIconColor} />
-                {withoutEmoji(label)}
+              <button
+                key={modal}
+                onClick={() => setActiveModal(modal)}
+                style={{
+                  ...overlayNavButtonStyle,
+                  flex: 1,
+                  minWidth: 0,
+                  color: active ? GLASS_ACCENT : '#fff',
+                  background: active ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                  fontSize: '12.5px',
+                  fontFamily: THEME.fontBody
+                }}
+              >
+                <Icon size={22} color={GLASS_ACCENT} />
+                <span style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {withoutEmoji(label)}
+                </span>
               </button>
             );
           })}
@@ -2500,12 +2622,16 @@ export default function TourPage() {
                         🖊️ Klikni na skicu da postaviš oznaku za trenutnu sobu: <b>{currentRoomTitle}</b>
                       </p>
                     )}
-                    <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    {/* Unutrašnji omotač je tačno veličine slike: oznake su u
+                        procentima slike, a spoljni okvir je širi kad je skica
+                        visoka - tada bi oznake stajale pomereno. */}
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <div style={{ position: 'relative', lineHeight: 0 }}>
                       <img
                         src={tour.floorplan_url}
                         alt="Floorplan"
                         onClick={adminMode ? handleSetFloorplanMarker : undefined}
-                        style={{ maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain', borderRadius: '12px', cursor: adminMode ? 'crosshair' : 'default', display: 'block' }}
+                        style={{ maxWidth: '100%', maxHeight: '60vh', borderRadius: '12px', cursor: adminMode ? 'crosshair' : 'default', display: 'block' }}
                       />
                       {rooms
                         .filter((r) => typeof r.floorplan_x === 'number' && typeof r.floorplan_y === 'number')
@@ -2537,6 +2663,7 @@ export default function TourPage() {
                             />
                           );
                         })}
+                    </div>
                     </div>
                   </div>
                 ) : (

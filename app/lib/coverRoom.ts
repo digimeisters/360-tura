@@ -10,9 +10,9 @@
 const LIVING_ROOM_HINTS = ['dnevn', 'boravak', 'living', 'wohnzimmer', 'гостин'];
 
 export type CoverCandidate = {
-  preview_url: string | null;
-  title: string | null;
-  title_i18n: unknown;
+  preview_url?: string | null;
+  title?: string | null;
+  title_i18n?: unknown;
 };
 
 export function pickCoverRoom<T extends CoverCandidate>(rooms: T[]): T | null {
