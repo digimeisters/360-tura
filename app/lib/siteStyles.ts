@@ -240,6 +240,17 @@ export const SITE_STYLES = `
   @media (max-width:520px){ .d-info p, .d-langs span:not(.on){display:none;} .d-current span{max-width:120px;} }
 
   /* ---------- BENEFITI ---------- */
+  /* Filteri na spisku tura (/ture). */
+  .filters{display:flex; flex-direction:column; gap:.7rem; margin-bottom:1.1rem;}
+  .filter-row{display:flex; align-items:baseline; gap:.7rem; flex-wrap:wrap;}
+  .filter-label{font-family:var(--font-display); font-size:.72rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); min-width:5.5rem;}
+  .filter-chips{display:flex; flex-wrap:wrap; gap:.4rem;}
+  .filter-chip{cursor:pointer; font-family:inherit;}
+  .filter-chip.on{background:var(--accent); color:var(--on-accent); border-color:var(--accent);}
+  .filter-count{margin:.2rem 0 1.2rem; font-size:.88rem; color:var(--ink-soft); display:flex; align-items:center; gap:.6rem; flex-wrap:wrap;}
+  .filter-reset{background:none; border:none; padding:0; font:inherit; color:var(--accent); font-weight:650; cursor:pointer; text-decoration:underline;}
+  @media (max-width:560px){ .filter-label{min-width:0; width:100%;} }
+
   .feat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:1rem;}
   /* Šest kartica: 3+3, da poslednji red ne ostane napola prazan. */
   .feat-grid.n-3{grid-template-columns:repeat(3,1fr);}

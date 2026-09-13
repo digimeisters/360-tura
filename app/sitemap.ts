@@ -31,6 +31,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.8
+    },
+    // Spisak svih objavljenih tura - ulaz ka pojedinačnim turama.
+    {
+      url: `${SITE_URL}/ture`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.8
     }
   ];
 

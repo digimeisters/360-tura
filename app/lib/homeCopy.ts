@@ -56,7 +56,9 @@ export type HomeCopy = {
   };
   categories: Record<'sale' | 'rent' | 'booking', string>;
   tourCard: { rooms: (count: number) => string; open: string };
-  examples: { eyebrow: string; title: string; note: string };
+  // allTours: link ka spisku svih tura (/ture); strana je za sada samo na
+  // srpskom, pa se dugme prikazuje samo tamo.
+  examples: { eyebrow: string; title: string; note: string; allTours?: string };
   benefits: { eyebrow: string; title: string; note: string; items: Titled[] };
   steps: { eyebrow: string; title: string; note: string; items: Titled[]; deliverTitle: string; deliver: string[] };
   types: {
@@ -121,7 +123,8 @@ const sr: HomeCopy = {
   examples: {
     eyebrow: 'Primeri tura',
     title: 'Prošetajte kroz pravu turu',
-    note: 'Ture koje su trenutno objavljene — otvaraju se u pretraživaču, na telefonu ili računaru, bez preuzimanja aplikacije.'
+    note: 'Ture koje su trenutno objavljene — otvaraju se u pretraživaču, na telefonu ili računaru, bez preuzimanja aplikacije.',
+    allTours: 'Pogledajte sve ture →'
   },
   benefits: {
     eyebrow: 'Benefiti',

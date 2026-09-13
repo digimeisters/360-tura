@@ -37,6 +37,9 @@ export type ShowcaseTour = {
   languages: string[];
   coverUrl: string | null;
   coverRoomId: string | null;
+  /** Adresa nekretnine i grad izveden iz nje - filter na /ture. */
+  address: string | null;
+  city: string | null;
   /** Samo sobe koje imaju sličicu, redom obilaska. */
   rooms: ShowcaseRoom[];
 };
@@ -47,8 +50,25 @@ type TourRow = {
   title_i18n: unknown;
   category: string | null;
   agency_name: string | null;
+  address: string | null;
   created_at: string | null;
+  /** Postoji tek posle migracije 010; ture bez nje se čitaju kao 'active'. */
+  status?: string | null;
 };
+
+/**
+ * Grad iz adrese: agent je kuca slobodno ("Janka Katića 17, Kragujevac"),
+ * pa se uzima deo posle poslednjeg zareza. Bez zareza nema pouzdanog grada,
+ * pa se tura prosto ne pojavljuje u filteru po gradu.
+ */
+function cityFromAddress(address: string | null): string | null {
+  if (!address) return null;
+  const parts = address.split(',').map((p) => p.trim()).filter(Boolean);
+  if (parts.length < 2) return null;
+  const city = parts[parts.length - 1];
+  // Poštanski broj ili broj ulice na kraju nije grad.
+  return /[0-9]/.test(city) ? null : city;
+}
 
 type RoomRow = {
   id: string;
@@ -100,14 +120,20 @@ export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
 
   // Cast jer types/supabase.ts još ne zna za preview_url (004) i published
   // (007) - ukloniti kad se tipovi regenerišu.
-  const { data: tours, error } = await supabase
+  // select('*') jer `status` (migracija 010) na bazi možda još ne postoji -
+  // nabrajanje kolone koje nema oborilo bi ceo upit.
+  const { data: allTours, error } = await supabase
     .from('tours')
-    .select('slug, title, title_i18n, category, agency_name, created_at')
+    .select('*')
     .eq('published' as never, true as never)
     .order('created_at', { ascending: false })
     .returns<TourRow[]>();
 
-  if (error || !tours?.length) {
+  // Izdata/prodata/pauzirana nekretnina se ne nudi kao primer: klik bi
+  // odveo na poruku da je više nema (vidi status u app/tour/[slug]/page.tsx).
+  const tours = (allTours ?? []).filter((t) => (t.status ?? 'active') === 'active');
+
+  if (error || !tours.length) {
     if (error) console.error('[showcaseTours] tours:', error.message);
     return [];
   }
@@ -152,6 +178,8 @@ export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
       languages: languages.length ? [...languages] : ['sr'],
       coverUrl: cover?.preview_url ?? null,
       coverRoomId: cover ? String(cover.id) : null,
+      address: realValue(tour.address),
+      city: cityFromAddress(realValue(tour.address)),
       rooms: tourRooms
         .filter((r) => r.preview_url)
         .map((r, i) => ({

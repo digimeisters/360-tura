@@ -10,6 +10,7 @@ import { HOME_COPY, type HomeCopy, type HomeLang } from './lib/homeCopy';
 import { HOME_FAQ } from './lib/homeFaq';
 import { homeJsonLd, serializeJsonLd } from './lib/structuredData';
 import { SITE_STYLES } from './lib/siteStyles';
+import TourCard, { tourCardLabels } from '../components/TourCard';
 import { getPublicOpenCount } from './lib/tourStats';
 import { tourHref } from './lib/tourHref';
 
@@ -51,44 +52,6 @@ function gridClass(count: number): string {
 }
 
 
-function TourCard({ tour, copy, lang }: { tour: ShowcaseTour; copy: HomeCopy; lang: HomeLang }) {
-  const category = tour.category ? copy.categories[tour.category] : null;
-  const rooms = copy.tourCard.rooms(tour.roomCount);
-
-  return (
-    <a
-      className="card tour-card"
-      href={tourHref(tour.slug, tour.languages, lang)}
-      data-track={`cta:tour_card:${tour.slug}`}
-    >
-      <div className="tour-photo">
-        {tour.coverUrl && (
-          /* eslint-disable-next-line @next/next/no-img-element -- sličica je
-             već 1200x630 JPG sa CDN-a, next/image nema šta da doda */
-          <img src={tour.coverUrl} alt="" loading="lazy" decoding="async" />
-        )}
-        {category && (
-          <span className="glass tag">
-            <span className="dot" />
-            {category}
-          </span>
-        )}
-        <span className="tour-langs">
-          {tour.languages.map((l) => (
-            <span key={l} className="glass">
-              {l.toUpperCase()}
-            </span>
-          ))}
-        </span>
-      </div>
-      <div className="tour-body">
-        <h3>{tour.title}</h3>
-        <p className="tour-meta">{[tour.agency, rooms].filter(Boolean).join(' · ')}</p>
-        <span className="btn btn-secondary btn-sm tour-open">{copy.tourCard.open}</span>
-      </div>
-    </a>
-  );
-}
 
 export default async function HomePage({ lang }: { lang: HomeLang }) {
   const copy = HOME_COPY[lang];
@@ -179,9 +142,16 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
               </div>
               <div className={`tours-grid ${gridClass(tours.length)}`}>
                 {tours.map((tour) => (
-                  <TourCard key={tour.slug} tour={tour} copy={copy} lang={lang} />
+                  <TourCard key={tour.slug} tour={tour} labels={tourCardLabels(copy)} lang={lang} />
                 ))}
               </div>
+              {copy.examples.allTours && (
+                <p className="fine-print" style={{ textAlign: 'center' }}>
+                  <a className="btn btn-secondary btn-sm" href="/ture" data-track="cta:all_tours">
+                    {copy.examples.allTours}
+                  </a>
+                </p>
+              )}
             </div>
           </section>
         )}
