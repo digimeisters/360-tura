@@ -253,24 +253,35 @@ const styles = `
   .device::after{content:""; position:absolute; inset:0; background:linear-gradient(180deg,rgba(0,0,0,.1) 0%,transparent 32%,transparent 60%,rgba(0,0,0,.2) 100%); pointer-events:none; z-index:1;}
   .device-empty{display:flex; align-items:center; justify-content:center; color:var(--ink-faint); font-weight:600;}
   .device-empty::after{display:none;}
-  .d-top{position:absolute; top:10px; left:10px; right:10px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px; z-index:2;}
-  .d-title{background:#fff; border:1px solid #E4E4DE; border-radius:12px; box-shadow:0 2px 8px rgba(17,17,19,.08); padding:5px 11px; min-width:0; max-width:62%;}
-  .d-title small{display:block; color:#1E5AA8; font-family:var(--font-display); font-size:.6rem; font-weight:800; letter-spacing:.5px; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  .d-title strong{display:block; color:#111113; font-size:.78rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  .d-langs{display:flex; gap:2px; background:#fff; border:1px solid #E4E4DE; border-radius:12px; padding:3px; box-shadow:0 2px 8px rgba(17,17,19,.08); flex:none;}
-  .d-langs span{font-size:.66rem; font-weight:700; color:#5B5D63; padding:3px 8px; border-radius:999px;}
-  .d-langs span.on{background:#1E5AA8; color:#fff;}
-  .d-rooms{position:absolute; top:54px; left:10px; right:10px; display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; z-index:2; padding-bottom:4px;}
-  .d-rooms::-webkit-scrollbar{display:none;}
-  .d-rooms button{flex:none; font-family:var(--font-body); font-size:.72rem; font-weight:500; background:#fff; color:#111113; border:1px solid #E4E4DE; border-radius:16px; padding:4px 10px; box-shadow:0 2px 8px rgba(17,17,19,.08); white-space:nowrap; cursor:pointer; transition:opacity .15s ease;}
-  .d-rooms button[aria-pressed="true"]{background:#1E5AA8; color:#fff; border-color:#1E5AA8; font-weight:600;}
-  .d-rooms button[aria-busy="true"]{opacity:.55;}
-  .d-info{position:absolute; left:12px; right:12px; bottom:12px; margin-inline:auto; max-width:420px; background:#fff; border:1px solid #E4E4DE; border-radius:16px; box-shadow:0 10px 30px rgba(17,17,19,.15); padding:.7rem .8rem .7rem .95rem; z-index:2; display:grid; grid-template-columns:1fr auto; column-gap:.8rem; align-items:center;}
-  .d-info h4{margin:0; color:#1E5AA8; font-family:var(--font-body); font-size:.86rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  .d-info p{grid-column:1; color:#111113; font-size:.74rem; line-height:1.45; margin-top:.15rem;}
+  /* Maketa nosi ISTI izgled kao sama tura: tamno staklo preko fotografije,
+     traka "Prostorija X od Y" sa strelicama i kartica sa tekstom pri dnu.
+     Vrednosti stakla su iste kao u app/tour/[slug]/theme.ts (GLASS). */
+  .d-glass{background:rgba(15,23,42,.55); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.28); box-shadow:0 6px 20px rgba(0,0,0,.25); color:#fff;}
+  .d-top{position:absolute; top:8px; left:8px; right:8px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px; z-index:2;}
+  .d-title{border-radius:12px; padding:5px 11px 6px; min-width:0; max-width:62%;}
+  .d-title small{display:block; color:#5B92D6; font-family:var(--font-display); font-size:.6rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .d-title strong{display:block; color:#fff; font-size:.78rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .d-langs{display:flex; gap:2px; border-radius:12px; padding:4px 5px; flex:none;}
+  .d-langs span{font-size:.66rem; font-weight:700; color:rgba(255,255,255,.75); padding:3px 7px; border-radius:8px;}
+  .d-langs span.on{background:#5B92D6; color:#fff;}
+
+  .d-nav{position:absolute; top:52px; left:0; right:0; z-index:2; display:flex; justify-content:center; align-items:center; gap:8px; padding-inline:8px;}
+  .d-step{flex:none; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; line-height:1; padding:0 0 2px; cursor:pointer; color:#fff;}
+  .d-step:disabled{opacity:.35; cursor:default;}
+  .d-current{min-width:0; display:flex; flex-direction:column; align-items:flex-start; gap:4px; border-radius:14px; padding:6px 13px 7px;}
+  .d-current b{font-size:.58rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:rgba(255,255,255,.72); white-space:nowrap;}
+  .d-current span{font-family:var(--font-display); font-size:.86rem; font-weight:700; line-height:1.15; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:170px;}
+  .d-dots{display:flex; align-items:center; gap:4px;}
+  .d-dots i{width:5px; height:5px; border-radius:3px; background:rgba(255,255,255,.28);}
+  .d-dots i.seen{background:rgba(255,255,255,.9);}
+  .d-dots i.now{width:13px; background:#5B92D6;}
+
+  .d-info{position:absolute; left:12px; right:12px; bottom:12px; margin-inline:auto; max-width:420px; border-radius:16px; padding:.7rem .8rem .7rem .95rem; z-index:2; display:grid; grid-template-columns:1fr auto; column-gap:.8rem; align-items:center;}
+  .d-info h4{margin:0; font-family:var(--font-display); font-size:.88rem; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .d-info p{grid-column:1; color:rgba(255,255,255,.9); font-size:.74rem; line-height:1.45; margin-top:.15rem;}
   .d-open{grid-column:2; grid-row:1 / span 2; background:#1E5AA8; color:#fff; border-radius:999px; padding:.5rem .85rem; font-family:var(--font-display); font-size:.76rem; font-weight:700; text-decoration:none; white-space:nowrap; box-shadow:0 4px 14px rgba(30,90,168,.35);}
   .d-open:hover{background:#17447E;}
-  @media (max-width:520px){ .d-info p, .d-langs span:not(.on){display:none;} }
+  @media (max-width:520px){ .d-info p, .d-langs span:not(.on){display:none;} .d-current span{max-width:120px;} }
 
   /* ---------- BENEFITI ---------- */
   .feat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:1rem;}

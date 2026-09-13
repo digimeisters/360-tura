@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { THEME, btnStyle } from '../tour/[slug]/theme';
+import { FORM, FormThemeStyle, formBtnStyle } from '../lib/formTheme';
 import { Logo } from '../tour/[slug]/Logo';
 
 type Category = 'rent' | 'sale' | 'booking';
@@ -110,13 +110,14 @@ export default function UnosPage() {
 
   if (done) {
     return (
-      <main style={pageStyle}>
+      <main className="k-form" style={pageStyle}>
+        <FormThemeStyle />
         <div style={{ ...cardStyle, textAlign: 'center' }}>
           <Logo />
-          <h1 style={{ fontSize: '20px', margin: '10px 0 0', fontFamily: THEME.fontDisplay }}>
+          <h1 style={{ fontSize: '20px', margin: '10px 0 0', fontFamily: FORM.fontDisplay }}>
             Nekretnina je poslata
           </h1>
-          <p style={{ margin: 0, color: THEME.textSecondary, fontSize: '14.5px', lineHeight: 1.6 }}>
+          <p style={{ margin: 0, color: FORM.textSecondary, fontSize: '14.5px', lineHeight: 1.6 }}>
             Tura je kreirana, tekst je pripremljen na {done.languages.length} jezika. Sledi
             snimanje i postavljanje panorama.
           </p>
@@ -124,8 +125,8 @@ export default function UnosPage() {
             style={{
               fontFamily: 'monospace',
               fontSize: '13px',
-              background: THEME.surfaceAlt,
-              border: '1px solid ' + THEME.border,
+              background: FORM.surfaceAlt,
+              border: '1px solid ' + FORM.border,
               borderRadius: '8px',
               padding: '10px',
               wordBreak: 'break-all'
@@ -152,14 +153,15 @@ export default function UnosPage() {
   }
 
   return (
-    <main style={pageStyle}>
+    <main className="k-form" style={pageStyle}>
+        <FormThemeStyle />
       <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: '720px' }}>
         <div style={{ ...cardStyle, marginBottom: '16px' }}>
           <Logo />
-          <h1 style={{ fontSize: '22px', margin: '8px 0 0', fontFamily: THEME.fontDisplay }}>
+          <h1 style={{ fontSize: '22px', margin: '8px 0 0', fontFamily: FORM.fontDisplay }}>
             Unos nekretnine
           </h1>
-          <p style={{ margin: 0, color: THEME.textSecondary, fontSize: '14.5px', lineHeight: 1.6 }}>
+          <p style={{ margin: 0, color: FORM.textSecondary, fontSize: '14.5px', lineHeight: 1.6 }}>
             Popunite podatke o nekretnini. Na osnovu njih se automatski pripremaju opis i
             odgovori na česta pitanja, na svim izabranim jezicima.
           </p>
@@ -167,11 +169,11 @@ export default function UnosPage() {
             style={{
               margin: 0,
               padding: '10px 12px',
-              background: THEME.accentSoft,
-              border: '1px solid ' + THEME.border,
+              background: FORM.accentSoft,
+              border: '1px solid ' + FORM.border,
               borderRadius: '10px',
               fontSize: '13.5px',
-              color: THEME.textPrimary
+              color: FORM.textPrimary
             }}
           >
             Za slanje na kraju je potreban <strong>kod</strong> koji ste dobili od Kvadrat360.
@@ -231,13 +233,39 @@ export default function UnosPage() {
           </Field>
 
           <Field label="Crtež osnove / tlocrt" hint="Slika tlocrta — JPG, PNG ili WEBP, do 10MB. Može i naknadno.">
-            <input
-              id="tlocrt"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={(e) => setFloorplan(e.target.files?.[0] || null)}
-              style={{ ...inputStyle, padding: '9px 10px' }}
-            />
+            {/* Sopstveno dugme: pregledačevo ("Choose File / No file chosen")
+                je uvek na jeziku pregledača, pa je usred srpske forme umelo
+                da bude na engleskom. */}
+            <div style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px' }}>
+              <label htmlFor="tlocrt" style={{ ...formBtnStyle, padding: '6px 14px', borderRadius: '999px', whiteSpace: 'nowrap' }}>
+                Izaberi sliku
+              </label>
+              <span
+                style={{
+                  minWidth: 0,
+                  fontSize: '13.5px',
+                  color: floorplan ? FORM.textPrimary : FORM.textMuted,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {floorplan ? floorplan.name : 'Nije izabrana'}
+              </span>
+              <input
+                id="tlocrt"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(e) => setFloorplan(e.target.files?.[0] || null)}
+                style={{
+                  position: 'absolute',
+                  width: '1px',
+                  height: '1px',
+                  opacity: 0,
+                  pointerEvents: 'none'
+                }}
+              />
+            </div>
           </Field>
         </Section>
 
@@ -305,12 +333,12 @@ export default function UnosPage() {
                   type="button"
                   onClick={() => setCategory(c)}
                   style={{
-                    ...btnStyle,
+                    ...formBtnStyle,
                     padding: '9px 16px',
                     fontSize: '13.5px',
-                    background: category === c ? THEME.accent : THEME.surface,
-                    color: category === c ? '#fff' : THEME.textPrimary,
-                    borderColor: category === c ? THEME.accent : THEME.border
+                    background: category === c ? FORM.accent : FORM.surface,
+                    color: category === c ? '#fff' : FORM.textPrimary,
+                    borderColor: category === c ? FORM.accent : FORM.border
                   }}
                 >
                   {CATEGORY_LABELS[c]}
@@ -329,12 +357,12 @@ export default function UnosPage() {
                     type="button"
                     onClick={() => toggleLanguage(l.code)}
                     style={{
-                      ...btnStyle,
+                      ...formBtnStyle,
                       padding: '9px 16px',
                       fontSize: '13.5px',
-                      background: on ? THEME.accent : THEME.surface,
-                      color: on ? '#fff' : THEME.textPrimary,
-                      borderColor: on ? THEME.accent : THEME.border
+                      background: on ? FORM.accent : FORM.surface,
+                      color: on ? '#fff' : FORM.textPrimary,
+                      borderColor: on ? FORM.accent : FORM.border
                     }}
                   >
                     {l.label}
@@ -501,10 +529,10 @@ export default function UnosPage() {
               style={{
                 margin: 0,
                 padding: '10px 12px',
-                background: THEME.dangerSoft,
-                border: '1px solid ' + THEME.danger,
+                background: FORM.dangerSoft,
+                border: '1px solid ' + FORM.danger,
                 borderRadius: '10px',
-                color: THEME.danger,
+                color: FORM.danger,
                 fontSize: '13.5px'
               }}
             >
@@ -515,7 +543,7 @@ export default function UnosPage() {
           <button type="submit" disabled={sending} style={primaryBtn}>
             {sending ? 'Šaljemo i pripremamo tekst...' : 'Pošalji nekretninu'}
           </button>
-          <p style={{ margin: 0, fontSize: '12.5px', color: THEME.textMuted }}>
+          <p style={{ margin: 0, fontSize: '12.5px', color: FORM.textMuted }}>
             Priprema teksta na svim jezicima traje do pola minuta. Ne zatvarajte stranicu.
           </p>
         </Section>
@@ -531,10 +559,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
         style={{
           fontSize: '13px',
           margin: 0,
-          fontFamily: THEME.fontDisplay,
+          fontFamily: FORM.fontDisplay,
           textTransform: 'uppercase',
           letterSpacing: '0.6px',
-          color: THEME.accent
+          color: FORM.accent
         }}
       >
         {title}
@@ -557,34 +585,34 @@ function Field({
 }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-      <span style={{ fontSize: '13px', fontWeight: 600, color: THEME.textPrimary }}>
+      <span style={{ fontSize: '13px', fontWeight: 600, color: FORM.textPrimary }}>
         {label}
-        {required && <span style={{ color: THEME.danger }}> *</span>}
+        {required && <span style={{ color: FORM.danger }}> *</span>}
       </span>
       {children}
-      {hint && <span style={{ fontSize: '11.5px', color: THEME.textMuted }}>{hint}</span>}
+      {hint && <span style={{ fontSize: '11.5px', color: FORM.textMuted }}>{hint}</span>}
     </label>
   );
 }
 
 const pageStyle: React.CSSProperties = {
   minHeight: '100dvh',
-  background: THEME.bg,
-  color: THEME.textPrimary,
-  fontFamily: THEME.fontBody,
+  background: FORM.bg,
+  color: FORM.textPrimary,
+  fontFamily: FORM.fontBody,
   padding: '28px 20px 64px',
   display: 'flex',
   justifyContent: 'center'
 };
 
 const cardStyle: React.CSSProperties = {
-  background: THEME.surface,
-  border: '1px solid ' + THEME.border,
+  background: FORM.surface,
+  border: '1px solid ' + FORM.border,
   borderRadius: '18px',
   padding: '22px',
   width: '100%',
   maxWidth: '720px',
-  boxShadow: THEME.shadow,
+  boxShadow: FORM.shadow,
   display: 'flex',
   flexDirection: 'column',
   gap: '16px'
@@ -593,19 +621,19 @@ const cardStyle: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
   padding: '11px 12px',
   borderRadius: '10px',
-  border: '1px solid ' + THEME.border,
+  border: '1px solid ' + FORM.border,
   fontSize: '14.5px',
   fontFamily: 'inherit',
-  background: THEME.surfaceAlt,
-  color: THEME.textPrimary,
+  background: FORM.surfaceAlt,
+  color: FORM.textPrimary,
   width: '100%'
 };
 
 const primaryBtn: React.CSSProperties = {
-  ...btnStyle,
-  background: THEME.accent,
-  color: '#fff',
-  borderColor: THEME.accent,
+  ...formBtnStyle,
+  background: FORM.accent,
+  color: FORM.onAccent,
+  borderColor: FORM.accent,
   padding: '13px 18px',
   fontSize: '15px',
   fontWeight: 700

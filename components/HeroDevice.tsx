@@ -5,15 +5,36 @@ import type { ShowcaseTour } from '../app/lib/showcaseTours';
 import type { HomeLang } from '../app/lib/homeCopy';
 import { tourHref as buildTourHref } from '../app/lib/tourHref';
 
-const LABELS: Record<HomeLang, { empty: string; open: string; langs: string; rooms: string }> = {
-  sr: { empty: 'Primer ture stiže uskoro.', open: '▶ Otvori turu', langs: 'Jezici ture', rooms: 'Prostorije u turi' },
-  en: { empty: 'A sample tour is coming soon.', open: '▶ Open the tour', langs: 'Tour languages', rooms: 'Rooms in the tour' }
+const LABELS: Record<
+  HomeLang,
+  { empty: string; open: string; langs: string; rooms: string; prev: string; next: string; position: string }
+> = {
+  sr: {
+    empty: 'Primer ture stiže uskoro.',
+    open: '▶ Otvori turu',
+    langs: 'Jezici ture',
+    rooms: 'Prostorije u turi',
+    prev: 'Prethodna',
+    next: 'Sledeća',
+    position: 'Prostorija {current} od {total}'
+  },
+  en: {
+    empty: 'A sample tour is coming soon.',
+    open: '▶ Open the tour',
+    langs: 'Tour languages',
+    rooms: 'Rooms in the tour',
+    prev: 'Previous',
+    next: 'Next',
+    position: 'Room {current} of {total}'
+  }
 };
 
 /**
- * Kadar u vrhu početne strane: prava tura sa izgledom aplikacije preko nje -
- * naziv, jezici, čipovi soba i info-kartica, isti oblici kao u samoj turi.
- * Čipovi menjaju sliku u sličicu te sobe; ceo pregled vodi na pravu turu.
+ * Kadar u vrhu početne strane: prava tura sa izgledom aplikacije preko nje.
+ * Namerno ponavlja ONO ŠTO TURA DANAS ZAISTA IMA (app/tour/[slug]): tamno
+ * staklo, traka "Prostorija X od Y" sa strelicama i kartica sa tekstom -
+ * inače bi sajt reklamirao izgled koji posetilac posle ne vidi u turi.
+ * Strelice menjaju sliku u sličicu te sobe; dugme vodi na pravu turu.
  */
 export default function HeroDevice({ tour, lang = 'sr' }: { tour: ShowcaseTour | null; lang?: HomeLang }) {
   const [activeId, setActiveId] = useState<string | null>(tour?.coverRoomId ?? tour?.rooms[0]?.id ?? null);
@@ -30,15 +51,16 @@ export default function HeroDevice({ tour, lang = 'sr' }: { tour: ShowcaseTour |
   }
 
   const room = tour.rooms.find((r) => r.id === activeId) ?? tour.rooms[0];
+  const index = Math.max(0, tour.rooms.findIndex((r) => r.id === room.id));
 
   // Nova slika se prvo dekodira pa tek onda menja, da kadar ne ostane prazan
   // dok se sličica skida. Ako se u međuvremenu klikne druga soba, važi
   // poslednji klik.
-  const selectRoom = (id: string) => {
-    const target = tour.rooms.find((r) => r.id === id);
-    if (!target || id === room.id) return;
-    latestRequest.current = id;
-    setPendingId(id);
+  const selectRoom = (id: string | undefined) => {
+    const target = id ? tour.rooms.find((r) => r.id === id) : undefined;
+    if (!target || target.id === room.id) return;
+    latestRequest.current = target.id;
+    setPendingId(target.id);
 
     const img = new Image();
     img.src = target.previewUrl;
@@ -46,14 +68,15 @@ export default function HeroDevice({ tour, lang = 'sr' }: { tour: ShowcaseTour |
       .decode()
       .catch(() => {})
       .finally(() => {
-        if (latestRequest.current !== id) return;
-        setActiveId(id);
+        if (latestRequest.current !== target.id) return;
+        setActiveId(target.id);
         setPendingId(null);
       });
   };
 
-  // Zagreje keš čim miš pređe preko čipa - do klika je slika obično već tu.
-  const warm = (url: string) => {
+  // Zagreje keš čim miš pređe preko strelice - do klika je slika obično već tu.
+  const warm = (url: string | undefined) => {
+    if (!url) return;
     const img = new Image();
     img.src = url;
   };
@@ -69,11 +92,11 @@ export default function HeroDevice({ tour, lang = 'sr' }: { tour: ShowcaseTour |
       <img className="device-img" src={room.previewUrl} alt={`${tour.title}, ${room.title}`} decoding="async" />
 
       <div className="d-top">
-        <div className="d-title">
+        <div className="d-title d-glass">
           {tour.agency && <small>{tour.agency}</small>}
           <strong>{tour.title}</strong>
         </div>
-        <div className="d-langs" aria-label={t.langs}>
+        <div className="d-langs d-glass" aria-label={t.langs}>
           {tour.languages.map((l) => (
             <span key={l} className={l === activeLang ? 'on' : undefined}>
               {l.toUpperCase()}
@@ -82,23 +105,43 @@ export default function HeroDevice({ tour, lang = 'sr' }: { tour: ShowcaseTour |
         </div>
       </div>
 
-      <div className="d-rooms" role="group" aria-label={t.rooms}>
-        {tour.rooms.map((r) => (
-          <button
-            key={r.id}
-            type="button"
-            aria-pressed={r.id === room.id}
-            aria-busy={r.id === pendingId}
-            onClick={() => selectRoom(r.id)}
-            onPointerEnter={() => warm(r.previewUrl)}
-            onFocus={() => warm(r.previewUrl)}
-          >
-            🚪 {r.title}
-          </button>
-        ))}
+      <div className="d-nav" role="group" aria-label={t.rooms}>
+        <button
+          type="button"
+          className="d-step d-glass"
+          onClick={() => selectRoom(tour.rooms[index - 1]?.id)}
+          onPointerEnter={() => warm(tour.rooms[index - 1]?.previewUrl)}
+          disabled={index === 0}
+          aria-label={t.prev}
+          title={t.prev}
+        >
+          ‹
+        </button>
+
+        <div className="d-current d-glass" aria-busy={pendingId !== null}>
+          <b>{t.position.replace('{current}', String(index + 1)).replace('{total}', String(tour.rooms.length))}</b>
+          <span>{room.title}</span>
+          <div className="d-dots" aria-hidden="true">
+            {tour.rooms.map((r, i) => (
+              <i key={r.id} className={i === index ? 'now' : i < index ? 'seen' : undefined} />
+            ))}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="d-step d-glass"
+          onClick={() => selectRoom(tour.rooms[index + 1]?.id)}
+          onPointerEnter={() => warm(tour.rooms[index + 1]?.previewUrl)}
+          disabled={index === tour.rooms.length - 1}
+          aria-label={t.next}
+          title={t.next}
+        >
+          ›
+        </button>
       </div>
 
-      <div className="d-info">
+      <div className="d-info d-glass">
         <h4>{room.title}</h4>
         {room.narration && <p>{room.narration}</p>}
         <a className="d-open" href={tourHref} data-track="cta:hero_device_tour">

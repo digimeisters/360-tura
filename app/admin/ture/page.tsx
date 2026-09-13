@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import { THEME, btnStyle } from '../../tour/[slug]/theme';
+import { FORM, FormThemeStyle, formBtnStyle } from '../../lib/formTheme';
 import { Logo } from '../../tour/[slug]/Logo';
 import { slugify } from '../../lib/slug';
 
@@ -273,23 +273,25 @@ export default function ToursAdminPage() {
 
   const wrap: React.CSSProperties = {
     minHeight: '100dvh',
-    background: THEME.bg,
-    color: THEME.textPrimary,
-    fontFamily: THEME.fontBody,
+    background: FORM.bg,
+    color: FORM.textPrimary,
+    fontFamily: FORM.fontBody,
     padding: '24px 20px 64px'
   };
 
   if (checkingSession) {
     return (
-      <main style={{ ...wrap, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: THEME.textSecondary }}>Provera pristupa...</p>
+      <main className="k-form" style={{ ...wrap, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <FormThemeStyle />
+        <p style={{ color: FORM.textSecondary }}>Provera pristupa...</p>
       </main>
     );
   }
 
   if (!loggedIn) {
     return (
-      <main style={{ ...wrap, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <main className="k-form" style={{ ...wrap, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <FormThemeStyle />
         <form
           onSubmit={async (e) => {
             e.preventDefault();
@@ -302,8 +304,8 @@ export default function ToursAdminPage() {
           style={cardStyle}
         >
           <Logo />
-          <h1 style={{ fontSize: '19px', margin: '4px 0 0', fontFamily: THEME.fontDisplay }}>Ture</h1>
-          <p style={{ margin: 0, fontSize: '14px', color: THEME.textSecondary }}>
+          <h1 style={{ fontSize: '19px', margin: '4px 0 0', fontFamily: FORM.fontDisplay }}>Ture</h1>
+          <p style={{ margin: 0, fontSize: '14px', color: FORM.textSecondary }}>
             Prijavite se administratorskim nalogom.
           </p>
           <input
@@ -324,7 +326,7 @@ export default function ToursAdminPage() {
             required
             style={inputStyle}
           />
-          {loginError && <p style={{ margin: 0, color: THEME.danger, fontSize: '13px' }}>{loginError}</p>}
+          {loginError && <p style={{ margin: 0, color: FORM.danger, fontSize: '13px' }}>{loginError}</p>}
           <button type="submit" disabled={loggingIn} style={primaryBtn}>
             {loggingIn ? 'Prijava...' : 'Prijavi se'}
           </button>
@@ -334,7 +336,8 @@ export default function ToursAdminPage() {
   }
 
   return (
-    <main style={wrap}>
+    <main className="k-form" style={wrap}>
+      <FormThemeStyle />
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
         <header
           style={{
@@ -348,20 +351,20 @@ export default function ToursAdminPage() {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <Logo />
-            <h1 style={{ fontSize: '20px', margin: 0, fontFamily: THEME.fontDisplay }}>Ture</h1>
+            <h1 style={{ fontSize: '20px', margin: 0, fontFamily: FORM.fontDisplay }}>Ture</h1>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <a href="/admin/analitika" style={{ ...btnStyle, padding: '7px 14px', fontSize: '13px', textDecoration: 'none' }}>
+            <a href="/admin/analitika" style={{ ...formBtnStyle, padding: '7px 14px', fontSize: '13px', textDecoration: 'none' }}>
               Analitika
             </a>
-            <button onClick={() => supabase.auth.signOut()} style={{ ...btnStyle, padding: '7px 14px', fontSize: '13px' }}>
+            <button onClick={() => supabase.auth.signOut()} style={{ ...formBtnStyle, padding: '7px 14px', fontSize: '13px' }}>
               Odjava
             </button>
           </div>
         </header>
 
         <form onSubmit={handleSave} style={{ ...cardStyle, maxWidth: 'none', marginBottom: '22px' }}>
-          <h2 style={{ fontSize: '15px', margin: 0, fontFamily: THEME.fontDisplay }}>
+          <h2 style={{ fontSize: '15px', margin: 0, fontFamily: FORM.fontDisplay }}>
             {editingSlug ? `Izmena ture: ${editingSlug}` : 'Nova tura'}
           </h2>
 
@@ -377,14 +380,14 @@ export default function ToursAdminPage() {
           </Field>
 
           {!editingSlug && form.title && (
-            <p style={{ margin: '-6px 0 0', fontSize: '12.5px', color: slugTaken ? THEME.danger : THEME.textSecondary }}>
+            <p style={{ margin: '-6px 0 0', fontSize: '12.5px', color: slugTaken ? FORM.danger : FORM.textSecondary }}>
               Link:&nbsp;
               <code style={{ fontFamily: 'monospace' }}>kvadrat360.com/tour/{previewSlug || '...'}</code>
               {slugTaken && ' — već postoji, dodaće se broj na kraj.'}
             </p>
           )}
           {editingSlug && (
-            <p style={{ margin: '-6px 0 0', fontSize: '12.5px', color: THEME.textSecondary }}>
+            <p style={{ margin: '-6px 0 0', fontSize: '12.5px', color: FORM.textSecondary }}>
               Link se ne menja pri izmeni — podeljeni linkovi i analitika ostaju vezani za njega.
             </p>
           )}
@@ -460,8 +463,8 @@ export default function ToursAdminPage() {
             />
           </Field>
 
-          {error && <p style={{ margin: 0, color: THEME.danger, fontSize: '13px' }}>{error}</p>}
-          {notice && <p style={{ margin: 0, color: THEME.success, fontSize: '13px' }}>{notice}</p>}
+          {error && <p style={{ margin: 0, color: FORM.danger, fontSize: '13px' }}>{error}</p>}
+          {notice && <p style={{ margin: 0, color: FORM.success, fontSize: '13px' }}>{notice}</p>}
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button type="submit" disabled={saving} style={primaryBtn}>
@@ -475,7 +478,7 @@ export default function ToursAdminPage() {
                   setForm(EMPTY_FORM);
                   setNotice('');
                 }}
-                style={{ ...btnStyle, padding: '11px 16px', fontSize: '14px' }}
+                style={{ ...formBtnStyle, padding: '11px 16px', fontSize: '14px' }}
               >
                 Otkaži
               </button>
@@ -483,14 +486,14 @@ export default function ToursAdminPage() {
           </div>
         </form>
 
-        {loading && <p style={{ color: THEME.textSecondary }}>Učitavanje...</p>}
+        {loading && <p style={{ color: FORM.textSecondary }}>Učitavanje...</p>}
 
         <div
           style={{
-            background: THEME.surface,
-            border: '1px solid ' + THEME.border,
+            background: FORM.surface,
+            border: '1px solid ' + FORM.border,
             borderRadius: '16px',
-            boxShadow: THEME.shadow,
+            boxShadow: FORM.shadow,
             overflowX: 'auto'
           }}
         >
@@ -507,8 +510,8 @@ export default function ToursAdminPage() {
                       fontWeight: 700,
                       letterSpacing: '0.3px',
                       textTransform: 'uppercase',
-                      color: THEME.textSecondary,
-                      borderBottom: '1px solid ' + THEME.border,
+                      color: FORM.textSecondary,
+                      borderBottom: '1px solid ' + FORM.border,
                       whiteSpace: 'nowrap'
                     }}
                   >
@@ -521,10 +524,10 @@ export default function ToursAdminPage() {
               {tours.map((tour) => {
                 const missingPanorama = tour.rooms > 0 && tour.roomsWithPanorama < tour.rooms;
                 return (
-                  <tr key={tour.slug} style={{ borderBottom: '1px solid ' + THEME.border }}>
+                  <tr key={tour.slug} style={{ borderBottom: '1px solid ' + FORM.border }}>
                     <td style={{ padding: '12px 14px' }}>
                       <div style={{ fontWeight: 600 }}>{pickTitle(tour)}</div>
-                      <div style={{ fontSize: '12px', color: THEME.textMuted, fontFamily: 'monospace' }}>
+                      <div style={{ fontSize: '12px', color: FORM.textMuted, fontFamily: 'monospace' }}>
                         /tour/{tour.slug}
                       </div>
                     </td>
@@ -538,9 +541,9 @@ export default function ToursAdminPage() {
                           fontWeight: 700,
                           letterSpacing: '0.2px',
                           whiteSpace: 'nowrap',
-                          color: tour.published ? THEME.success : THEME.textSecondary,
-                          background: tour.published ? '#eaf7ee' : THEME.surfaceAlt,
-                          border: '1px solid ' + (tour.published ? '#c7e8d1' : THEME.border)
+                          color: tour.published ? FORM.success : FORM.textSecondary,
+                          background: tour.published ? '#eaf7ee' : FORM.surfaceAlt,
+                          border: '1px solid ' + (tour.published ? '#c7e8d1' : FORM.border)
                         }}
                       >
                         {tour.published ? 'Objavljena' : 'U pripremi'}
@@ -557,9 +560,9 @@ export default function ToursAdminPage() {
                           fontSize: '12.5px',
                           fontWeight: 600,
                           cursor: 'pointer',
-                          color: tour.status === 'active' ? THEME.textPrimary : '#fff',
-                          background: tour.status === 'active' ? THEME.surface : THEME.danger,
-                          border: '1px solid ' + (tour.status === 'active' ? THEME.border : THEME.danger)
+                          color: tour.status === 'active' ? FORM.textPrimary : '#fff',
+                          background: tour.status === 'active' ? FORM.surface : FORM.danger,
+                          border: '1px solid ' + (tour.status === 'active' ? FORM.border : FORM.danger)
                         }}
                       >
                         {(Object.keys(STATUS_LABELS) as TourRow['status'][]).map((s) => (
@@ -567,7 +570,7 @@ export default function ToursAdminPage() {
                         ))}
                       </select>
                     </td>
-                    <td style={{ padding: '12px 14px', color: tour.agency_name ? THEME.textPrimary : THEME.textMuted }}>
+                    <td style={{ padding: '12px 14px', color: tour.agency_name ? FORM.textPrimary : FORM.textMuted }}>
                       {tour.agency_name || '—'}
                     </td>
                     <td style={{ padding: '12px 14px' }}>
@@ -575,9 +578,9 @@ export default function ToursAdminPage() {
                     </td>
                     <td style={{ padding: '12px 14px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                       {tour.rooms === 0 ? (
-                        <span style={{ color: THEME.danger, fontSize: '13px' }}>nema soba</span>
+                        <span style={{ color: FORM.danger, fontSize: '13px' }}>nema soba</span>
                       ) : missingPanorama ? (
-                        <span style={{ color: THEME.danger, fontSize: '13px' }}>
+                        <span style={{ color: FORM.danger, fontSize: '13px' }}>
                           {tour.roomsWithPanorama}/{tour.rooms}
                         </span>
                       ) : (
@@ -589,20 +592,20 @@ export default function ToursAdminPage() {
                         onClick={() => void togglePublished(tour)}
                         disabled={togglingSlug === tour.slug}
                         style={{
-                          ...btnStyle,
+                          ...formBtnStyle,
                           padding: '6px 12px',
                           fontSize: '12.5px',
                           marginRight: '6px',
                           ...(tour.published
                             ? {}
-                            : { background: THEME.accent, color: '#fff', borderColor: THEME.accent })
+                            : { background: FORM.accent, color: FORM.onAccent, borderColor: FORM.accent })
                         }}
                       >
                         {togglingSlug === tour.slug ? '…' : tour.published ? 'Skini' : 'Objavi'}
                       </button>
                       <button
                         onClick={() => startEdit(tour)}
-                        style={{ ...btnStyle, padding: '6px 12px', fontSize: '12.5px', marginRight: '6px' }}
+                        style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', marginRight: '6px' }}
                       >
                         Izmeni
                       </button>
@@ -610,7 +613,7 @@ export default function ToursAdminPage() {
                         href={`/tour/${tour.slug}?admin=1`}
                         target="_blank"
                         rel="noreferrer"
-                        style={{ ...btnStyle, padding: '6px 12px', fontSize: '12.5px', textDecoration: 'none' }}
+                        style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', textDecoration: 'none' }}
                       >
                         Uredi sadržaj
                       </a>
@@ -622,7 +625,7 @@ export default function ToursAdminPage() {
           </table>
         </div>
 
-        <p style={{ marginTop: '14px', fontSize: '12.5px', color: THEME.textMuted }}>
+        <p style={{ marginTop: '14px', fontSize: '12.5px', color: FORM.textMuted }}>
           „Uredi sadržaj" otvara turu u admin režimu, gde se dodaju sobe, panorame i hotspotovi.
           Crveno kod broja soba znači da neka soba nema panoramu. Nova tura kreće „u pripremi" —
           link radi samo tebi dok je ne objaviš.
@@ -643,21 +646,21 @@ function Field({
 }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-      <span style={{ fontSize: '12.5px', fontWeight: 600, color: THEME.textSecondary }}>{label}</span>
+      <span style={{ fontSize: '12.5px', fontWeight: 600, color: FORM.textSecondary }}>{label}</span>
       {children}
-      {hint && <span style={{ fontSize: '11.5px', color: THEME.textMuted }}>{hint}</span>}
+      {hint && <span style={{ fontSize: '11.5px', color: FORM.textMuted }}>{hint}</span>}
     </label>
   );
 }
 
 const cardStyle: React.CSSProperties = {
-  background: THEME.surface,
-  border: '1px solid ' + THEME.border,
+  background: FORM.surface,
+  border: '1px solid ' + FORM.border,
   borderRadius: '18px',
   padding: '22px',
   width: '100%',
   maxWidth: '380px',
-  boxShadow: THEME.shadow,
+  boxShadow: FORM.shadow,
   display: 'flex',
   flexDirection: 'column',
   gap: '14px'
@@ -672,19 +675,19 @@ const twoCol: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
   padding: '11px 12px',
   borderRadius: '10px',
-  border: '1px solid ' + THEME.border,
+  border: '1px solid ' + FORM.border,
   fontSize: '14px',
   fontFamily: 'inherit',
-  background: THEME.surfaceAlt,
-  color: THEME.textPrimary,
+  background: FORM.surfaceAlt,
+  color: FORM.textPrimary,
   width: '100%'
 };
 
 const primaryBtn: React.CSSProperties = {
-  ...btnStyle,
-  background: THEME.accent,
-  color: '#fff',
-  borderColor: THEME.accent,
+  ...formBtnStyle,
+  background: FORM.accent,
+  color: FORM.onAccent,
+  borderColor: FORM.accent,
   padding: '11px 18px',
   fontSize: '14px'
 };

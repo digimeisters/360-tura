@@ -2,7 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import { THEME, btnStyle } from '../../tour/[slug]/theme';
+import { FORM, FormThemeStyle, formBtnStyle } from '../../lib/formTheme';
 import { Logo } from '../../tour/[slug]/Logo';
 
 type RoomStat = {
@@ -202,43 +202,45 @@ export default function AnalyticsPage() {
 
   const wrap: React.CSSProperties = {
     minHeight: '100dvh',
-    background: THEME.bg,
-    color: THEME.textPrimary,
-    fontFamily: THEME.fontBody,
+    background: FORM.bg,
+    color: FORM.textPrimary,
+    fontFamily: FORM.fontBody,
     padding: '24px 20px 64px'
   };
 
   if (checkingSession) {
     return (
-      <main style={{ ...wrap, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: THEME.textSecondary }}>Provera pristupa...</p>
+      <main className="k-form" style={{ ...wrap, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <FormThemeStyle />
+        <p style={{ color: FORM.textSecondary }}>Provera pristupa...</p>
       </main>
     );
   }
 
   if (!loggedIn) {
     return (
-      <main style={{ ...wrap, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <main className="k-form" style={{ ...wrap, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <FormThemeStyle />
         <form
           onSubmit={handleLogin}
           style={{
-            background: THEME.surface,
-            border: '1px solid ' + THEME.border,
+            background: FORM.surface,
+            border: '1px solid ' + FORM.border,
             borderRadius: '18px',
             padding: '28px',
             width: '100%',
             maxWidth: '380px',
-            boxShadow: THEME.shadow,
+            boxShadow: FORM.shadow,
             display: 'flex',
             flexDirection: 'column',
             gap: '14px'
           }}
         >
           <Logo />
-          <h1 style={{ fontSize: '19px', margin: '4px 0 0', fontFamily: THEME.fontDisplay }}>
+          <h1 style={{ fontSize: '19px', margin: '4px 0 0', fontFamily: FORM.fontDisplay }}>
             Analitika
           </h1>
-          <p style={{ margin: 0, fontSize: '14px', color: THEME.textSecondary }}>
+          <p style={{ margin: 0, fontSize: '14px', color: FORM.textSecondary }}>
             Prijavite se administratorskim nalogom.
           </p>
           <input
@@ -260,16 +262,16 @@ export default function AnalyticsPage() {
             style={inputStyle}
           />
           {loginError && (
-            <p style={{ margin: 0, color: THEME.danger, fontSize: '13px' }}>{loginError}</p>
+            <p style={{ margin: 0, color: FORM.danger, fontSize: '13px' }}>{loginError}</p>
           )}
           <button
             type="submit"
             disabled={loggingIn}
             style={{
-              ...btnStyle,
-              background: THEME.accent,
-              color: '#fff',
-              borderColor: THEME.accent,
+              ...formBtnStyle,
+              background: FORM.accent,
+              color: FORM.onAccent,
+              borderColor: FORM.accent,
               padding: '11px',
               fontSize: '14px'
             }}
@@ -293,7 +295,8 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <main style={wrap}>
+    <main className="k-form" style={wrap}>
+      <FormThemeStyle />
       <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
         <header
           style={{
@@ -307,7 +310,7 @@ export default function AnalyticsPage() {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <Logo />
-            <h1 style={{ fontSize: '20px', margin: 0, fontFamily: THEME.fontDisplay }}>Analitika</h1>
+            <h1 style={{ fontSize: '20px', margin: 0, fontFamily: FORM.fontDisplay }}>Analitika</h1>
           </div>
 
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -316,12 +319,12 @@ export default function AnalyticsPage() {
                 key={p.days}
                 onClick={() => setDays(p.days)}
                 style={{
-                  ...btnStyle,
+                  ...formBtnStyle,
                   padding: '7px 14px',
                   fontSize: '13px',
-                  background: days === p.days ? THEME.accent : THEME.surface,
-                  color: days === p.days ? '#fff' : THEME.textPrimary,
-                  borderColor: days === p.days ? THEME.accent : THEME.border
+                  background: days === p.days ? FORM.accent : FORM.surface,
+                  color: days === p.days ? '#fff' : FORM.textPrimary,
+                  borderColor: days === p.days ? FORM.accent : FORM.border
                 }}
               >
                 {p.label}
@@ -329,7 +332,7 @@ export default function AnalyticsPage() {
             ))}
             <button
               onClick={() => supabase.auth.signOut()}
-              style={{ ...btnStyle, padding: '7px 14px', fontSize: '13px' }}
+              style={{ ...formBtnStyle, padding: '7px 14px', fontSize: '13px' }}
             >
               Odjava
             </button>
@@ -352,19 +355,19 @@ export default function AnalyticsPage() {
           <Metric label="Aktivnih tura" value={`${totals.activeTours}/${tours.length}`} />
         </section>
 
-        {loading && <p style={{ color: THEME.textSecondary }}>Učitavanje...</p>}
-        {error && <p style={{ color: THEME.danger }}>{error}</p>}
+        {loading && <p style={{ color: FORM.textSecondary }}>Učitavanje...</p>}
+        {error && <p style={{ color: FORM.danger }}>{error}</p>}
 
         {!loading && !error && !hasData && (
           <div
             style={{
-              background: THEME.surface,
-              border: '1px solid ' + THEME.border,
+              background: FORM.surface,
+              border: '1px solid ' + FORM.border,
               borderRadius: '16px',
               padding: '28px',
               textAlign: 'center',
-              color: THEME.textSecondary,
-              boxShadow: THEME.shadow
+              color: FORM.textSecondary,
+              boxShadow: FORM.shadow
             }}
           >
             Još nema zabeleženih poseta u ovom periodu. Podaci se pojavljuju čim neko otvori turu.
@@ -378,10 +381,10 @@ export default function AnalyticsPage() {
         {!loading && !error && hasData && (
           <div
             style={{
-              background: THEME.surface,
-              border: '1px solid ' + THEME.border,
+              background: FORM.surface,
+              border: '1px solid ' + FORM.border,
               borderRadius: '16px',
-              boxShadow: THEME.shadow,
+              boxShadow: FORM.shadow,
               overflowX: 'auto'
             }}
           >
@@ -400,10 +403,10 @@ export default function AnalyticsPage() {
                         fontWeight: 700,
                         letterSpacing: '0.3px',
                         textTransform: 'uppercase',
-                        color: sort.key === col.key ? THEME.accent : THEME.textSecondary,
+                        color: sort.key === col.key ? FORM.accent : FORM.textSecondary,
                         cursor: 'pointer',
                         whiteSpace: 'nowrap',
-                        borderBottom: '1px solid ' + THEME.border,
+                        borderBottom: '1px solid ' + FORM.border,
                         userSelect: 'none'
                       }}
                     >
@@ -422,14 +425,14 @@ export default function AnalyticsPage() {
                       <tr
                         onClick={() => setExpanded(isOpen ? null : tour.slug)}
                         style={{
-                          borderBottom: '1px solid ' + THEME.border,
+                          borderBottom: '1px solid ' + FORM.border,
                           cursor: 'pointer',
-                          background: isOpen ? THEME.accentSoft : 'transparent',
-                          color: quiet ? THEME.textMuted : THEME.textPrimary
+                          background: isOpen ? FORM.accentSoft : 'transparent',
+                          color: quiet ? FORM.textMuted : FORM.textPrimary
                         }}
                       >
                         <td style={{ padding: '12px 14px', fontWeight: 600 }}>
-                          <span style={{ color: THEME.textMuted, marginRight: '8px' }}>
+                          <span style={{ color: FORM.textMuted, marginRight: '8px' }}>
                             {isOpen ? '▾' : '▸'}
                           </span>
                           {tour.title || tour.slug}
@@ -448,8 +451,8 @@ export default function AnalyticsPage() {
                           <td colSpan={COLUMNS.length} style={{ padding: 0 }}>
                             <div
                               style={{
-                                background: THEME.surfaceAlt,
-                                borderBottom: '1px solid ' + THEME.border,
+                                background: FORM.surfaceAlt,
+                                borderBottom: '1px solid ' + FORM.border,
                                 padding: '16px 18px'
                               }}
                             >
@@ -469,14 +472,14 @@ export default function AnalyticsPage() {
                                   target="_blank"
                                   rel="noreferrer"
                                   onClick={(e) => e.stopPropagation()}
-                                  style={{ fontSize: '13px', color: THEME.accent, textDecoration: 'none' }}
+                                  style={{ fontSize: '13px', color: FORM.accent, textDecoration: 'none' }}
                                 >
                                   otvori turu →
                                 </a>
                               </div>
 
                               {tour.rooms.length === 0 ? (
-                                <p style={{ margin: 0, fontSize: '13px', color: THEME.textSecondary }}>
+                                <p style={{ margin: 0, fontSize: '13px', color: FORM.textSecondary }}>
                                   Niko još nije ušao u prostorije ove ture.
                                 </p>
                               ) : (
@@ -484,7 +487,7 @@ export default function AnalyticsPage() {
                                   style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}
                                 >
                                   <thead>
-                                    <tr style={{ color: THEME.textSecondary, textAlign: 'left' }}>
+                                    <tr style={{ color: FORM.textSecondary, textAlign: 'left' }}>
                                       <th style={subCell}>Prostorija</th>
                                       <th style={{ ...subCell, textAlign: 'right' }}>Pregleda</th>
                                       <th style={{ ...subCell, textAlign: 'right' }}>Ukupno</th>
@@ -495,7 +498,7 @@ export default function AnalyticsPage() {
                                     {tour.rooms.map((room) => (
                                       <tr
                                         key={room.roomId}
-                                        style={{ borderTop: '1px solid ' + THEME.border }}
+                                        style={{ borderTop: '1px solid ' + FORM.border }}
                                       >
                                         <td style={subCell}>{room.title}</td>
                                         <td style={{ ...subCell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
@@ -524,15 +527,15 @@ export default function AnalyticsPage() {
           </div>
         )}
 
-        <p style={{ marginTop: '14px', fontSize: '12.5px', color: THEME.textMuted }}>
+        <p style={{ marginTop: '14px', fontSize: '12.5px', color: FORM.textMuted }}>
           Klikni na red da vidiš prostorije. Klikni na zaglavlje kolone da sortiraš.
         </p>
 
         {!loading && !error && (
           <section style={{ marginTop: '34px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
-              <h2 style={{ fontSize: '17px', margin: 0, fontFamily: THEME.fontDisplay }}>Početna strana</h2>
-              <span style={{ fontSize: '13px', color: THEME.textSecondary }}>
+              <h2 style={{ fontSize: '17px', margin: 0, fontFamily: FORM.fontDisplay }}>Početna strana</h2>
+              <span style={{ fontSize: '13px', color: FORM.textSecondary }}>
                 posete kvadrat360.com i klikovi koji vode ka upitu
               </span>
             </div>
@@ -599,13 +602,13 @@ function Notice({ children, danger }: { children: React.ReactNode; danger?: bool
   return (
     <div
       style={{
-        background: THEME.surface,
-        border: '1px solid ' + THEME.border,
+        background: FORM.surface,
+        border: '1px solid ' + FORM.border,
         borderRadius: '16px',
         padding: '18px 20px',
-        color: danger ? THEME.danger : THEME.textSecondary,
+        color: danger ? FORM.danger : FORM.textSecondary,
         fontSize: '14px',
-        boxShadow: THEME.shadow
+        boxShadow: FORM.shadow
       }}
     >
       {children}
@@ -628,30 +631,30 @@ function BarCard({
   return (
     <div
       style={{
-        background: THEME.surface,
-        border: '1px solid ' + THEME.border,
+        background: FORM.surface,
+        border: '1px solid ' + FORM.border,
         borderRadius: '16px',
         padding: '16px 18px',
-        boxShadow: THEME.shadow
+        boxShadow: FORM.shadow
       }}
     >
       <strong style={{ fontSize: '13px', display: 'block', marginBottom: '10px' }}>{title}</strong>
       {items.length === 0 ? (
-        <p style={{ margin: 0, fontSize: '13px', color: THEME.textSecondary }}>{empty}</p>
+        <p style={{ margin: 0, fontSize: '13px', color: FORM.textSecondary }}>{empty}</p>
       ) : (
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '9px' }}>
           {items.map((item) => (
             <li key={item.label} style={{ fontSize: '13px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', marginBottom: '4px' }}>
-                <span style={{ color: THEME.textPrimary }}>{item.label}</span>
+                <span style={{ color: FORM.textPrimary }}>{item.label}</span>
                 <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{item.value}</span>
               </div>
-              <div style={{ height: '5px', borderRadius: '999px', background: THEME.border, overflow: 'hidden' }}>
+              <div style={{ height: '5px', borderRadius: '999px', background: FORM.border, overflow: 'hidden' }}>
                 <div
                   style={{
                     width: `${(item.value / max) * 100}%`,
                     height: '100%',
-                    background: THEME.accent,
+                    background: FORM.accent,
                     borderRadius: '999px'
                   }}
                 />
@@ -674,7 +677,7 @@ function StartRate({ value, muted }: { value: number; muted: boolean }) {
           width: '46px',
           height: '5px',
           borderRadius: '999px',
-          background: THEME.border,
+          background: FORM.border,
           overflow: 'hidden',
           display: 'inline-flex'
         }}
@@ -682,7 +685,7 @@ function StartRate({ value, muted }: { value: number; muted: boolean }) {
         <span
           style={{
             width: `${Math.min(value, 100)}%`,
-            background: muted ? THEME.textMuted : THEME.accent,
+            background: muted ? FORM.textMuted : FORM.accent,
             display: 'block'
           }}
         />
@@ -696,21 +699,21 @@ function Metric({ label, value }: { label: string; value: number | string }) {
   return (
     <div
       style={{
-        background: THEME.surface,
-        border: '1px solid ' + THEME.border,
+        background: FORM.surface,
+        border: '1px solid ' + FORM.border,
         borderRadius: '12px',
         padding: '12px 14px',
-        boxShadow: THEME.shadow
+        boxShadow: FORM.shadow
       }}
     >
-      <div style={{ fontSize: '11px', color: THEME.textSecondary, letterSpacing: '0.4px' }}>
+      <div style={{ fontSize: '11px', color: FORM.textSecondary, letterSpacing: '0.4px' }}>
         {label}
       </div>
       <div
         style={{
           fontSize: '22px',
           fontWeight: 800,
-          fontFamily: THEME.fontDisplay,
+          fontFamily: FORM.fontDisplay,
           fontVariantNumeric: 'tabular-nums'
         }}
       >
@@ -732,9 +735,9 @@ const subCell: React.CSSProperties = { padding: '7px 6px', fontWeight: 500 };
 const inputStyle: React.CSSProperties = {
   padding: '11px 12px',
   borderRadius: '10px',
-  border: '1px solid ' + THEME.border,
+  border: '1px solid ' + FORM.border,
   fontSize: '14px',
   fontFamily: 'inherit',
-  background: THEME.surfaceAlt,
-  color: THEME.textPrimary
+  background: FORM.surfaceAlt,
+  color: FORM.textPrimary
 };
