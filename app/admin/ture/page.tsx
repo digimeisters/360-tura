@@ -12,6 +12,7 @@ type TourRow = {
   title_i18n: unknown;
   agency_name: string | null;
   address: string | null;
+  city: string | null;
   category: string | null;
   property_type: string | null;
   agent_name: string | null;
@@ -37,6 +38,7 @@ type FormState = {
   title: string;
   agency_name: string;
   address: string;
+  city: string;
   property_type: string;
   category: string;
   agent_name: string;
@@ -48,6 +50,7 @@ const EMPTY_FORM: FormState = {
   title: '',
   agency_name: '',
   address: '',
+  city: '',
   property_type: '',
   category: 'rent',
   agent_name: '',
@@ -262,6 +265,7 @@ export default function ToursAdminPage() {
       title: pickTitle(tour),
       agency_name: tour.agency_name || '',
       address: tour.address || '',
+      city: tour.city || '',
       property_type: tour.property_type || '',
       category: tour.category || 'rent',
       agent_name: tour.agent_name || '',
@@ -424,6 +428,18 @@ export default function ToursAdminPage() {
                 style={inputStyle}
               />
             </Field>
+            <Field label="Grad" hint="Po njemu se filtrira spisak tura — isti grad mora svuda da bude isto napisan.">
+              <input
+                id="tour-city"
+                value={form.city}
+                onChange={(e) => setForm({ ...form, city: e.target.value })}
+                placeholder="npr. Kragujevac"
+                style={inputStyle}
+              />
+            </Field>
+          </div>
+
+          <div style={twoCol}>
             <Field label="Tip nekretnine" hint="npr. Dvosoban stan">
               <input
                 id="tour-property-type"

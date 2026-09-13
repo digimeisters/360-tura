@@ -21,6 +21,7 @@ const LIMITS: Record<string, number> = {
   title: 160,
   agency_name: 160,
   address: 200,
+  city: 80,
   property_type: 80,
   agent_name: 120,
   agent_phone: 60,
@@ -40,7 +41,7 @@ export async function GET(req: Request) {
     ctx.supabase
       .from('tours')
       .select(
-        'slug, title, title_i18n, agency_name, address, category, property_type, agent_name, agent_phone, agent_email, created_at, published, status' as '*'
+        'slug, title, title_i18n, agency_name, address, city, category, property_type, agent_name, agent_phone, agent_email, created_at, published, status' as '*'
       )
       .order('created_at', { ascending: false }),
     ctx.supabase.from('rooms').select('tour_slug, panorama_url, panorama_url_cf')
@@ -98,6 +99,7 @@ export async function POST(req: Request) {
     title_i18n: { sr: title },
     agency_name: clean(body.agency_name, 'agency_name') || null,
     address: clean(body.address, 'address') || null,
+    city: clean(body.city, 'city') || null,
     property_type: clean(body.property_type, 'property_type') || null,
     agent_name: clean(body.agent_name, 'agent_name') || null,
     agent_phone: clean(body.agent_phone, 'agent_phone') || null,
@@ -235,6 +237,7 @@ export async function PATCH(req: Request) {
       title_i18n: titleI18n,
       agency_name: clean(body.agency_name, 'agency_name') || null,
       address: clean(body.address, 'address') || null,
+      city: clean(body.city, 'city') || null,
       property_type: clean(body.property_type, 'property_type') || null,
       agent_name: clean(body.agent_name, 'agent_name') || null,
       agent_phone: clean(body.agent_phone, 'agent_phone') || null,

@@ -211,6 +211,25 @@ export default function UnosPage() {
             />
           </Field>
 
+          <Field label="Grad" required hint="Samo grad, bez ulice i poštanskog broja — po njemu se tura nalazi na spisku svih tura.">
+            <input
+              id="grad"
+              value={values['Grad'] || ''}
+              onChange={set('Grad')}
+              placeholder="npr. Kragujevac"
+              list="gradovi"
+              required
+              style={inputStyle}
+            />
+            {/* Predlozi da se isti grad ne bi pisao na tri načina - filter na
+                /ture grupiše ture po tačnom nazivu. */}
+            <datalist id="gradovi">
+              {['Beograd', 'Novi Sad', 'Niš', 'Kragujevac', 'Subotica', 'Čačak', 'Kraljevo', 'Novi Pazar', 'Zlatibor', 'Kopaonik', 'Wien'].map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
+          </Field>
+
           <Field label="Google Maps embed link" hint="Nije obavezno — mapa se sama postavlja po adresi. Popunite samo ako imate tačan embed link.">
             <input
               id="mapa"

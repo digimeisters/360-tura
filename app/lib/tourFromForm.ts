@@ -15,6 +15,8 @@ export type ProcessedTour = {
   agent_phone: string | null;
   agent_email: string | null;
   address: string | null;
+  /** Samo naziv grada - filter na /ture. Vidi migraciju 011. */
+  city: string | null;
   location_map_url: string | null;
   title: string;
   title_i18n: Record<string, string>;
@@ -134,7 +136,14 @@ PRAVILA:
 1. Čišćenje podataka:
    - agent_email: ispravi očigledne greške ("gmail.con" -> "gmail.com").
    - agent_name i agency_name: pravilno kapitalizuj ("marko MARKOVIC" -> "Marko Markovic").
-   - address: ispravi nazive ulica i gradova, sa našim slovima.
+   - address: ispravi domaće nazive ulica i gradova, sa našim slovima, i
+     zadrži pun oblik "Ulica i broj, Grad" - grad ostaje i u adresi, ne samo
+     u polju city. Strane adrese NE prevodi i NE preslovljavaj: ostaju kako
+     se pišu na licu mesta ("Stangasse 12, Wien", ne "Štangase 12, Beč"),
+     jer se po adresi pravi mapa nekretnine.
+   - city: SAMO naziv grada ("Kragujevac"), bez ulice, broja i poštanskog
+     broja, tačno onako kako je napisan u adresi. Ako grad nije upisan
+     zasebno, izvuci ga iz adrese. Ako ni tamo nije naveden, ostavi prazno.
    - title_i18n: profesionalan, sažet naslov oglasa na svakom ciljnom jeziku.
 
 2. about_text_i18n: kratak opis nekretnine (3-5 rečenica), na svakom ciljnom
@@ -166,6 +175,7 @@ ${faqList}
           agent_phone: { type: Type.STRING },
           agent_email: { type: Type.STRING },
           address: { type: Type.STRING },
+          city: { type: Type.STRING },
           title_i18n: textSchema,
           about_text_i18n: textSchema,
           faq_1_i18n: textSchema,
@@ -204,6 +214,7 @@ ${faqList}
     agent_phone: data.agent_phone || null,
     agent_email: data.agent_email || null,
     address: data.address || null,
+    city: data.city || null,
     location_map_url: buildMapEmbedUrl(data.address || null, pastedMap),
     title: primaryTitle,
     title_i18n: data.title_i18n,

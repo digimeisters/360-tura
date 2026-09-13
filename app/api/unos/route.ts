@@ -141,7 +141,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const { error } = await supabase.from('tours').insert({
+    const payload = {
       slug: processed.slug,
       // Agent je poslao samo podatke - sobe i panorame tek dolaze. Tura čeka
       // u pripremi dok je ti ne objaviš iz /admin/ture.
@@ -157,6 +157,7 @@ export async function POST(req: Request) {
       agent_phone: processed.agent_phone,
       agent_email: processed.agent_email,
       address: processed.address,
+      city: processed.city,
       location_map_url: processed.location_map_url,
       floorplan_url: floorplanUrl,
       faq_1_i18n: processed.faq_1_i18n,
@@ -165,7 +166,17 @@ export async function POST(req: Request) {
       faq_4_i18n: processed.faq_4_i18n,
       faq_5_i18n: processed.faq_5_i18n,
       target_languages: processed.target_languages
-    });
+    };
+
+    let { error } = await supabase.from('tours').insert(payload);
+
+    // Kolona `city` postoji tek posle migracije 011. Dok ona ne prođe, tura
+    // se upisuje bez grada - bolje nego da agentu propadne ceo unos.
+    if (error && /city/i.test(error.message)) {
+      console.warn('[api/unos] kolona city ne postoji (migracija 011) - upis bez grada');
+      const { city, ...bezGrada } = payload;
+      ({ error } = await supabase.from('tours').insert(bezGrada));
+    }
 
     if (error) {
       console.error('[api/unos] insert failed:', error.message);

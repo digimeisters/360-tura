@@ -51,15 +51,17 @@ type TourRow = {
   category: string | null;
   agency_name: string | null;
   address: string | null;
+  /** Postoji tek posle migracije 011; starije ture nemaju upisan grad. */
+  city?: string | null;
   created_at: string | null;
   /** Postoji tek posle migracije 010; ture bez nje se čitaju kao 'active'. */
   status?: string | null;
 };
 
 /**
- * Grad iz adrese: agent je kuca slobodno ("Janka Katića 17, Kragujevac"),
- * pa se uzima deo posle poslednjeg zareza. Bez zareza nema pouzdanog grada,
- * pa se tura prosto ne pojavljuje u filteru po gradu.
+ * Rezerva za ture unete pre migracije 011, kad grad nije bio zasebno polje:
+ * uzima se deo adrese posle poslednjeg zareza. Bez zareza nema pouzdanog
+ * grada, pa se tura prosto ne pojavljuje u filteru po gradu.
  */
 function cityFromAddress(address: string | null): string | null {
   if (!address) return null;
@@ -179,7 +181,7 @@ export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
       coverUrl: cover?.preview_url ?? null,
       coverRoomId: cover ? String(cover.id) : null,
       address: realValue(tour.address),
-      city: cityFromAddress(realValue(tour.address)),
+      city: realValue(tour.city ?? null) || cityFromAddress(realValue(tour.address)),
       rooms: tourRooms
         .filter((r) => r.preview_url)
         .map((r, i) => ({
