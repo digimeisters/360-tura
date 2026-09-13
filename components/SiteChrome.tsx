@@ -16,13 +16,16 @@ export function SiteNav({
   brandHref,
   brandAria,
   cta,
-  children
+  children,
+  logoSpin
 }: {
   /** Početna strana vodi na svoj vrh (#pocetna), ostale na "/". */
   brandHref: string;
   brandAria: string;
   cta: { href: string; label: string; track: string };
   children: ReactNode;
+  /** Jedan obrtaj znaka pri učitavanju - samo početna strana ovo prosleđuje. */
+  logoSpin?: boolean;
 }) {
   // Unutrašnje veze idu kroz Link (bez ponovnog učitavanja strane), a veza
   // ka delu iste strane (#kontakt) mora da ostane običan skok.
@@ -34,11 +37,11 @@ export function SiteNav({
         <div className="nav-bar">
           {brandHref.startsWith('#') ? (
             <a className="brand" href={brandHref} aria-label={brandAria}>
-              <Logo />
+              <Logo spin={logoSpin} />
             </a>
           ) : (
             <Link className="brand" href={brandHref} aria-label={brandAria}>
-              <Logo />
+              <Logo spin={logoSpin} />
             </Link>
           )}
           <ul className="navlinks">{children}</ul>

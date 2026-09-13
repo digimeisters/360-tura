@@ -80,6 +80,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
         brandHref="#pocetna"
         brandAria={nav.brandAria}
         cta={{ href: '#kontakt', label: nav.cta, track: 'cta:nav_book' }}
+        logoSpin
       >
         {tours.length > 0 && <li><a href="#primeri">{nav.examples}</a></li>}
         <li><a href="#kako-radimo">{nav.how}</a></li>

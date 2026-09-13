@@ -6,12 +6,41 @@ import { THEME } from './theme';
 const ACCENT = `var(--accent, ${THEME.accent})`;
 const INK = `var(--ink, ${THEME.textPrimary})`;
 
-export function Logo() {
+/**
+ * `spin`: jedan obrtaj znaka pri učitavanju - koristi se SAMO u zaglavlju
+ * početne strane (SiteChrome.tsx), da se brend predstavi na prvom prikazu.
+ * Svih ostalih 14 mesta (tura, admin, forme, podnožje) prosto ne prosleđuju
+ * ovaj prop, pa ostaju mirna - isti znak, bez pokreta.
+ *
+ * Poštuje prefers-reduced-motion: animacija postoji samo unutar
+ * `(prefers-reduced-motion: no-preference)`, pa ko je isključio pokrete u
+ * sistemu vidi znak odmah u mirnom položaju.
+ */
+export function Logo({ spin = false }: { spin?: boolean }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <div style={{ width: '32px', height: '32px', borderRadius: '9px', backgroundColor: ACCENT, color: '#fff', fontWeight: 800, fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: THEME.fontDisplay }}>
-        K
-      </div>
+      {spin && (
+        <style>{`
+          @keyframes k360-logo-spin {
+            from { transform: rotate(-315deg); }
+            to { transform: rotate(45deg); }
+          }
+          @media (prefers-reduced-motion: no-preference) {
+            .k360-logo-mark { animation: k360-logo-spin 900ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+          }
+        `}</style>
+      )}
+      <div
+        className={spin ? 'k360-logo-mark' : undefined}
+        style={{
+          width: '30px',
+          height: '30px',
+          borderRadius: '8px',
+          border: `3px solid ${ACCENT}`,
+          transform: 'rotate(45deg)',
+          flexShrink: 0
+        }}
+      />
       <div style={{ fontSize: '16px', fontWeight: 800, letterSpacing: '0.2px', fontFamily: THEME.fontDisplay }}>
         <b style={{ color: INK }}>Kvadrat</b>
         <b style={{ color: ACCENT }}>360</b>
