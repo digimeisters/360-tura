@@ -119,7 +119,15 @@ const TEXT: Record<
   }
 };
 
-export default function ContactForm({ lang = 'sr' }: { lang?: HomeLang }) {
+export default function ContactForm({
+  lang = 'sr',
+  // Strana za agencije unapred bira paket za agencije - posetilac tamo ne
+  // traži pojedinačnu turu, pa ne mora ništa da prepravlja.
+  defaultPackage = PACKAGES[0]
+}: {
+  lang?: HomeLang;
+  defaultPackage?: string;
+}) {
   const [status, setStatus] = useState<Status>({ kind: 'idle', text: '' });
   const t = TEXT[lang];
 
@@ -223,7 +231,7 @@ export default function ContactForm({ lang = 'sr' }: { lang?: HomeLang }) {
       <div className="row2">
         <div className="field">
           <label htmlFor="f-package">{t.pkg}</label>
-          <select className="input" id="f-package" name="package" defaultValue={PACKAGES[0]}>
+          <select className="input" id="f-package" name="package" defaultValue={defaultPackage}>
             {PACKAGES.map((value, i) => (
               <option key={value} value={value}>
                 {t.packages[i]}

@@ -23,6 +23,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       priority: 0.9,
       alternates: homeAlternates
+    },
+    // Prodajna strana za agencije - zasebna adresa da može da se šalje
+    // direktno agenciji i da je Google nađe po upitu za agencije.
+    {
+      url: `${SITE_URL}/za-agencije`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8
     }
   ];
 

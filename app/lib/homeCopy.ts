@@ -34,6 +34,9 @@ export type HomeCopy = {
     benefits: string;
     packages: string;
     faq: string;
+    // Strana za agencije postoji za sada samo na srpskom, pa link stoji
+    // samo u srpskom meniju (vidi HomePage.tsx).
+    agencies?: string;
     cta: string;
     // Link ka drugoj jezičkoj verziji strane.
     switchLabel: string;
@@ -92,6 +95,7 @@ const sr: HomeCopy = {
     benefits: 'Benefiti',
     packages: 'Paketi',
     faq: 'Pitanja',
+    agencies: 'Za agencije',
     cta: 'Zakažite snimanje',
     switchLabel: 'EN',
     switchAria: 'English version',
