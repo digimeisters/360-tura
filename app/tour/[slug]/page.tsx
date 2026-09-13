@@ -83,6 +83,12 @@ function disposeLayer(layer: { viewer: any; el: HTMLDivElement } | null) {
   layer.el.remove();
 }
 
+// Razmak od dna ekrana za SVE plutajuće elemente pri dnu (donji meni, info
+// kartica, obaveštenja) - jedna vrednost, da se ne razdvoje kad zamenjuju
+// jedno drugo na istom mestu. env(safe-area-inset-bottom) izbegava
+// home-indikator/traku pregledača (uz viewportFit:'cover' u layout.tsx).
+const SCREEN_BOTTOM = 'calc(env(safe-area-inset-bottom, 0px) + 6px)';
+
 export default function TourPage() {
   // Pri renderovanju na serveru ovo postaje <link rel="preload"> u <head>, pa
   // pregledač skida Pannellum paralelno sa ostatkom strane.
@@ -268,6 +274,14 @@ export default function TourPage() {
 
     const enableOrientation = () => {
       if (typeof viewerRef.current.startOrientation === 'function') {
+        // Žiroskop piše ugao kamere direktno na svaki event senzora (i do
+        // 60x/s); ako u isto vreme radi i naše automatsko okretanje sobe
+        // (startAutoRotate - uvodni pan ili mirno "lebdenje"), oba
+        // neprekidno prepisuju isti ugao jedno preko drugog - to je
+        // "sečkanje" koje se vidi. Žiroskop uvek ima prednost.
+        if (typeof viewerRef.current.stopAutoRotate === 'function') {
+          viewerRef.current.stopAutoRotate();
+        }
         viewerRef.current.startOrientation();
         setIsGyroActive(true);
         isGyroActiveRef.current = true;
@@ -1553,8 +1567,12 @@ export default function TourPage() {
       // (neprekidno, glatko okretanje) i ne pati od tog problema.
       if (viewerRef.current) {
         viewerRef.current.setHfov(pickHfov(DEFAULT_HFOV));
-        const idleRotateDegPerSec = 360 / 30; // 360° za 30 sekundi
-        viewerRef.current.startAutoRotate(idleRotateDegPerSec, targetEstablishPitch);
+        // Dok je žiroskop aktivan, posetilac već sam gleda pomeranjem
+        // telefona - naše okretanje bi se sudaralo sa tim (vidi startGyroscope).
+        if (!isGyroActiveRef.current) {
+          const idleRotateDegPerSec = 360 / 30; // 360° za 30 sekundi
+          viewerRef.current.startAutoRotate(idleRotateDegPerSec, targetEstablishPitch);
+        }
       }
     };
 
@@ -1661,16 +1679,20 @@ export default function TourPage() {
         const beginRotation = () => {
           if (!stillValid()) return resolve();
 
+          // Dok je žiroskop aktivan, ne pokrećemo i naše okretanje preko
+          // njega - posetilac sam okreće telefonom (vidi startGyroscope).
+          // Naracija i dalje traje puni durationPhase1 ispod, samo bez
+          // dodatnog kamerinog pomeranja koje bi se sudaralo sa senzorom.
           if (viewerRef.current) {
             if (entry) {
               // Ušli smo kroz vrata: okretanje kreće odatle gde posetilac
               // gleda, bez skoka na početni pogled sobe.
-              viewerRef.current.startAutoRotate(speed, startPitch);
+              if (!isGyroActiveRef.current) viewerRef.current.startAutoRotate(speed, startPitch);
             } else {
               if (!zoomedIn) viewerRef.current.setHfov(pickHfov(DEFAULT_HFOV));
               viewerRef.current.setYaw(targetEstablishYaw);
               viewerRef.current.setPitch(targetEstablishPitch);
-              viewerRef.current.startAutoRotate(speed, targetEstablishPitch);
+              if (!isGyroActiveRef.current) viewerRef.current.startAutoRotate(speed, targetEstablishPitch);
             }
           }
 
@@ -2237,7 +2259,7 @@ export default function TourPage() {
           style={{
             position: 'absolute',
             left: '50%',
-            bottom: '120px',
+            bottom: `calc(env(safe-area-inset-bottom, 0px) + 120px)`,
             transform: 'translateX(-50%)',
             zIndex: 15,
             display: 'flex',
@@ -2267,7 +2289,7 @@ export default function TourPage() {
           style={{
             position: 'absolute',
             left: '50%',
-            bottom: '120px',
+            bottom: `calc(env(safe-area-inset-bottom, 0px) + 120px)`,
             transform: 'translateX(-50%)',
             zIndex: 15,
             padding: '10px 18px',
@@ -2289,9 +2311,6 @@ export default function TourPage() {
 
 
       {!pendingCoords && isModalToolbarVisible && (() => {
-        // Maksimalno uz dno, ali iznad home-indicator/URL trake pregledača
-        // (env(safe-area-inset-bottom), uključeno preko viewportFit:'cover').
-        const MENU_BOTTOM = 'calc(env(safe-area-inset-bottom, 0px) + 6px)';
         return (
         <>
         {/* Deljenje stoji iznad menija, na sredini (iznad "Info"). */}
@@ -2300,7 +2319,7 @@ export default function TourPage() {
           style={{
             ...GLASS,
             position: 'absolute',
-            bottom: `calc(${MENU_BOTTOM} + 80px)`,
+            bottom: `calc(${SCREEN_BOTTOM} + 80px)`,
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 56,
@@ -2328,7 +2347,7 @@ export default function TourPage() {
         <div style={{
           ...GLASS,
           position: 'absolute',
-          bottom: MENU_BOTTOM,
+          bottom: SCREEN_BOTTOM,
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 55,
@@ -2554,7 +2573,7 @@ export default function TourPage() {
       {infoBoxData && !pendingCoords && !activeModal && (
         <div style={{
           position: 'absolute',
-          bottom: '12px',
+          bottom: SCREEN_BOTTOM,
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 30,
