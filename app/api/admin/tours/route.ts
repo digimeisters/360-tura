@@ -1,16 +1,7 @@
 import { NextResponse } from 'next/server';
-import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/app/lib/adminAuth';
 import { uniqueSlug } from '@/app/lib/slug';
-
-// Početna strana i sitemap prikazuju objavljene ture i keširani su do sat
-// vremena. Posle objave, skidanja ili izmene naziva osvežavaju se odmah, pri
-// sledećoj poseti.
-function refreshPublicPages() {
-  revalidatePath('/');
-  revalidatePath('/en');
-  revalidatePath('/sitemap.xml');
-}
+import { refreshPublicPages } from '@/app/lib/revalidatePublic';
 
 export const dynamic = 'force-dynamic';
 
@@ -161,6 +152,10 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ success: false, error: 'Stanje nije promenjeno.' }, { status: 500 });
     }
 
+    // Bez ovoga bi izdata nekretnina ostala na početnoj i na /ture do sat
+    // vremena, iako sama tura odmah pokazuje poruku - poenta je baš da
+    // nestane sa spiskova istog trena.
+    refreshPublicPages();
     return NextResponse.json({ success: true, status: body.status });
   }
 

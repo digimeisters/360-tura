@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
+import { SiteNav, SiteFooter } from '../components/SiteChrome';
 import HeroDevice from '../components/HeroDevice';
 import ContactForm from '../components/ContactForm';
 import SiteTracker from '../components/SiteTracker';
 import PriceCalculator from '../components/PriceCalculator';
-import { Logo } from './tour/[slug]/Logo';
-import { getShowcaseTours, pickHeroTour, type ShowcaseTour } from './lib/showcaseTours';
+import { getShowcaseTours, pickHeroTour } from './lib/showcaseTours';
 import { SITE_NAME, SITE_URL, CONTACT, CONTACT_LINKS, whatsappLink } from './lib/site';
-import { HOME_COPY, type HomeCopy, type HomeLang } from './lib/homeCopy';
+import { HOME_COPY, type HomeLang } from './lib/homeCopy';
 import { HOME_FAQ } from './lib/homeFaq';
 import { homeJsonLd, serializeJsonLd } from './lib/structuredData';
 import { SITE_STYLES } from './lib/siteStyles';
@@ -75,31 +76,25 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
       />
       <SiteTracker />
 
-      <header className="nav">
-        <div className="wrap">
-          <div className="nav-bar">
-            <a className="brand" href="#pocetna" aria-label={nav.brandAria}>
-              <Logo />
-            </a>
-            <ul className="navlinks">
-              {tours.length > 0 && <li><a href="#primeri">{nav.examples}</a></li>}
-              <li><a href="#kako-radimo">{nav.how}</a></li>
-              <li><a href="#benefiti">{nav.benefits}</a></li>
-              <li><a href="#paketi">{nav.packages}</a></li>
-              <li><a href="#pitanja">{nav.faq}</a></li>
-              {nav.agencies && (
-                <li><a href="/za-agencije" data-track="cta:nav_agencies">{nav.agencies}</a></li>
-              )}
-              <li className="nav-lang">
-                <a href={nav.switchHref} hrefLang={nav.switchLang} lang={nav.switchLang} aria-label={nav.switchAria}>
-                  {nav.switchLabel}
-                </a>
-              </li>
-            </ul>
-            <a className="btn btn-primary btn-sm" href="#kontakt" data-track="cta:nav_book">{nav.cta}</a>
-          </div>
-        </div>
-      </header>
+      <SiteNav
+        brandHref="#pocetna"
+        brandAria={nav.brandAria}
+        cta={{ href: '#kontakt', label: nav.cta, track: 'cta:nav_book' }}
+      >
+        {tours.length > 0 && <li><a href="#primeri">{nav.examples}</a></li>}
+        <li><a href="#kako-radimo">{nav.how}</a></li>
+        <li><a href="#benefiti">{nav.benefits}</a></li>
+        <li><a href="#paketi">{nav.packages}</a></li>
+        <li><a href="#pitanja">{nav.faq}</a></li>
+        {nav.agencies && (
+          <li><Link href="/za-agencije" data-track="cta:nav_agencies">{nav.agencies}</Link></li>
+        )}
+        <li className="nav-lang">
+          <a href={nav.switchHref} hrefLang={nav.switchLang} lang={nav.switchLang} aria-label={nav.switchAria}>
+            {nav.switchLabel}
+          </a>
+        </li>
+      </SiteNav>
 
       <main>
         <section className="hero" id="pocetna">
@@ -147,9 +142,9 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
               </div>
               {copy.examples.allTours && (
                 <p className="fine-print" style={{ textAlign: 'center' }}>
-                  <a className="btn btn-secondary btn-sm" href="/ture" data-track="cta:all_tours">
+                  <Link className="btn btn-secondary btn-sm" href="/ture" data-track="cta:all_tours">
                     {copy.examples.allTours}
-                  </a>
+                  </Link>
                 </p>
               )}
             </div>
@@ -344,12 +339,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
         </section>
       </main>
 
-      <footer>
-        <div className="wrap">
-          <Logo />
-          <p>{copy.footer}</p>
-        </div>
-      </footer>
+      <SiteFooter note={copy.footer} />
     </div>
   );
 }

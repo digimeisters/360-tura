@@ -173,8 +173,8 @@ export async function POST(req: Request) {
     // Kolona `city` postoji tek posle migracije 011. Dok ona ne prođe, tura
     // se upisuje bez grada - bolje nego da agentu propadne ceo unos.
     if (error && /city/i.test(error.message)) {
-      console.warn('[api/unos] kolona city ne postoji (migracija 011) - upis bez grada');
       const { city, ...bezGrada } = payload;
+      console.warn('[api/unos] kolona city ne postoji (migracija 011) - upis bez grada:', city);
       ({ error } = await supabase.from('tours').insert(bezGrada));
     }
 

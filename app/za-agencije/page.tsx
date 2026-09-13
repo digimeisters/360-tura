@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
+import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 import ContactForm from '../../components/ContactForm';
 import PriceCalculator from '../../components/PriceCalculator';
 import SiteTracker from '../../components/SiteTracker';
-import { Logo } from '../tour/[slug]/Logo';
 import { SITE_STYLES } from '../lib/siteStyles';
 import { AGENCY_COPY } from '../lib/agencyCopy';
 import { HOME_COPY } from '../lib/homeCopy';
@@ -78,22 +79,16 @@ export default function AgencyPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd()) }} />
       <SiteTracker />
 
-      <header className="nav">
-        <div className="wrap">
-          <div className="nav-bar">
-            <a className="brand" href="/" aria-label={nav.brandAria}>
-              <Logo />
-            </a>
-            <ul className="navlinks">
-              <li><a href="#dobijate">{nav.benefits}</a></li>
-              <li><a href="#paketi">{nav.packages}</a></li>
-              <li><a href="#pitanja">{nav.faq}</a></li>
-              <li className="nav-lang"><a href="/">{nav.home}</a></li>
-            </ul>
-            <a className="btn btn-primary btn-sm" href="#kontakt" data-track="cta:agency_nav">{nav.cta}</a>
-          </div>
-        </div>
-      </header>
+      <SiteNav
+        brandHref="/"
+        brandAria={nav.brandAria}
+        cta={{ href: '#kontakt', label: nav.cta, track: 'cta:agency_nav' }}
+      >
+        <li><a href="#dobijate">{nav.benefits}</a></li>
+        <li><a href="#paketi">{nav.packages}</a></li>
+        <li><a href="#pitanja">{nav.faq}</a></li>
+        <li className="nav-lang"><Link href="/">{nav.home}</Link></li>
+      </SiteNav>
 
       <main>
         <section className="hero hero-solo" id="pocetna">
@@ -239,12 +234,7 @@ export default function AgencyPage() {
         </section>
       </main>
 
-      <footer>
-        <div className="wrap">
-          <Logo />
-          <p>{copy.footer}</p>
-        </div>
-      </footer>
+      <SiteFooter note={copy.footer} />
     </div>
   );
 }

@@ -882,7 +882,7 @@ export default function TourPage() {
   const currentRoom = rooms[roomIdx];
   if (!currentRoom || !pendingCoords) return;
 
-  let updatedWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
+  const updatedWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
   let updatedEstablish = parseEstablish(currentRoom.establish_i18n);
 
   if (hotspotType === 'establish') {
@@ -959,7 +959,7 @@ export default function TourPage() {
     const currentRoom = rooms[roomIdx];
     if (!currentRoom) return;
 
-    let updatedWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
+    const updatedWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
     updatedWaypoints.splice(editingIndex, 1);
 
     try {
@@ -1157,7 +1157,7 @@ export default function TourPage() {
     trackEvent({ eventType: 'open', tourSlug: slug, lang: langRef.current });
     // lang namerno nije zavisnost: otvaranje se beleži jednom, sa jezikom
     // koji je tada bio aktivan.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [slug, tour, adminMode]);
 
   useEffect(() => {
@@ -2492,8 +2492,10 @@ export default function TourPage() {
               style={{ padding: '8px', borderRadius: '6px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '13px' }}
             >
               <option value="">{t.targetRoom}</option>
+              {/* `lang` (stanje), ne langRef: ref se ne sme čitati tokom
+                  iscrtavanja - spisak ne bi pratio promenu jezika. */}
               {rooms.map(r => (
-                <option key={r.id} value={r.id}>{getLocalizedText(r.title_i18n, langRef.current) || `Soba ${r.id}`}</option>
+                <option key={r.id} value={r.id}>{getLocalizedText(r.title_i18n, lang) || `Soba ${r.id}`}</option>
               ))}
             </select>
           )}

@@ -84,6 +84,15 @@ function visitSource(): string | null {
   }
 }
 
+/**
+ * Prelazak sa strane na stranu unutar sajta ne učitava dokument iznova
+ * (next/link), pa `document.referrer` i dalje pokazuje odakle je posetilac
+ * prvobitno došao. Bez ovoga bi svaka sledeća strana bila upisana kao nova
+ * poseta sa istog izvora - izvor se zato traži samo pri prvom prikazu u
+ * ovom dokumentu.
+ */
+let firstPageView = true;
+
 export function trackSiteEvent(eventType: SiteEventType, target?: string): void {
   if (typeof window === 'undefined' || isAdminBrowser()) return;
 
@@ -91,7 +100,8 @@ export function trackSiteEvent(eventType: SiteEventType, target?: string): void 
   if (target) payload.target = target;
   if (eventType === 'page_view') {
     payload.device = window.matchMedia('(max-width: 760px)').matches ? 'mobile' : 'desktop';
-    payload.source = visitSource();
+    payload.source = firstPageView ? visitSource() : null;
+    firstPageView = false;
   }
   send(payload);
 }

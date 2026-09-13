@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { revalidatePath } from 'next/cache';
 import { createClient } from '@supabase/supabase-js';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { r2Client } from '@/app/lib/r2';
+import { refreshPublicPages } from '@/app/lib/revalidatePublic';
 import { generatePanoramaPreview, convertPanoramaToWebp } from '@/app/lib/panoramaPreview';
 import { requireAdmin } from '@/app/lib/adminAuth';
 
@@ -169,10 +169,9 @@ export async function POST(req: Request) {
       throw new Error(`Supabase upis greška: ${updateError.message}`);
     }
 
-    // Nova sličica može biti naslovna slika ture na početnoj strani (obe
-    // jezičke verzije).
-    revalidatePath('/');
-    revalidatePath('/en');
+    // Nova sličica može biti naslovna slika ture na početnoj strani i na
+    // spisku svih tura.
+    refreshPublicPages();
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import SiteTracker from '../../components/SiteTracker';
 import TourList from '../../components/TourList';
+import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 
 import { Logo } from '../tour/[slug]/Logo';
 import { SITE_STYLES } from '../lib/siteStyles';
@@ -92,20 +94,14 @@ export default async function ToursPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <SiteTracker />
 
-      <header className="nav">
-        <div className="wrap">
-          <div className="nav-bar">
-            <a className="brand" href="/" aria-label={COPY.nav.brandAria}>
-              <Logo />
-            </a>
-            <ul className="navlinks">
-              <li><a href="/">{COPY.nav.home}</a></li>
-              <li><a href="/za-agencije">{COPY.nav.agencies}</a></li>
-            </ul>
-            <a className="btn btn-primary btn-sm" href="/#kontakt" data-track="cta:tours_nav">{COPY.nav.cta}</a>
-          </div>
-        </div>
-      </header>
+      <SiteNav
+        brandHref="/"
+        brandAria={COPY.nav.brandAria}
+        cta={{ href: '/#kontakt', label: COPY.nav.cta, track: 'cta:tours_nav' }}
+      >
+        <li><Link href="/">{COPY.nav.home}</Link></li>
+        <li><Link href="/za-agencije">{COPY.nav.agencies}</Link></li>
+      </SiteNav>
 
       <main>
         <section className="hero hero-solo" id="pocetna">
@@ -137,19 +133,14 @@ export default async function ToursPage() {
               <h2>{COPY.cta.title}</h2>
               <p className="note">{COPY.cta.note}</p>
               <p style={{ marginTop: '1.2rem' }}>
-                <a className="btn btn-primary" href="/#kontakt" data-track="cta:tours_bottom">{COPY.cta.button}</a>
+                <Link className="btn btn-primary" href="/#kontakt" data-track="cta:tours_bottom">{COPY.cta.button}</Link>
               </p>
             </div>
           </div>
         </section>
       </main>
 
-      <footer>
-        <div className="wrap">
-          <Logo />
-          <p>{COPY.footer}</p>
-        </div>
-      </footer>
+      <SiteFooter note={COPY.footer} />
     </div>
   );
 }

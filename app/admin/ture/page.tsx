@@ -642,8 +642,8 @@ export default function ToursAdminPage() {
         </div>
 
         <p style={{ marginTop: '14px', fontSize: '12.5px', color: FORM.textMuted }}>
-          „Uredi sadržaj" otvara turu u admin režimu, gde se dodaju sobe, panorame i hotspotovi.
-          Crveno kod broja soba znači da neka soba nema panoramu. Nova tura kreće „u pripremi" —
+          {"„Uredi sadržaj“"} otvara turu u admin režimu, gde se dodaju sobe, panorame i hotspotovi.
+          Crveno kod broja soba znači da neka soba nema panoramu. Nova tura kreće {"„u pripremi“"} —
           link radi samo tebi dok je ne objaviš.
         </p>
       </div>
