@@ -26,7 +26,9 @@ export function Logo({ spin = false }: { spin?: boolean }) {
             to { transform: rotate(45deg); }
           }
           @media (prefers-reduced-motion: no-preference) {
-            .k360-logo-mark { animation: k360-logo-spin 900ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+            /* Linear, ne ease-out: na 6 sekundi bi usporavanje pred kraj
+               izgledalo kao da se znak zaglavio, umesto mirnog obrtaja. */
+            .k360-logo-mark { animation: k360-logo-spin 6000ms linear both; }
           }
         `}</style>
       )}
