@@ -7,25 +7,22 @@ import { useParams } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 import { Language, Waypoint, Room, Tour, ActiveModal } from './types';
 import { translations, categoryQuestions } from './translations';
-import { THEME, GLASS, GLASS_ACCENT, btnStyle, overlayIconStyle, overlayNavButtonStyle, applyGlassHotspotStyle } from './theme';
+import { THEME, GLASS, applyGlassHotspotStyle } from './theme';
 import { SITE_URL } from '../../lib/site';
 import { trackEvent } from '../../lib/track';
 import { pickCoverRoom } from '../../lib/coverRoom';
 import { Logo } from './Logo';
 import { RoomNavBar, type RoomDot } from './RoomNavBar';
+import { WelcomeScreen } from './WelcomeScreen';
+import { InfoCard, LanguageChips, OverlayButtons, StatusNotice, TourTitleCard } from './TourControls';
+import { TourMenuBar } from './TourMenuBar';
+import { FaqAnswerModal, TourModals } from './TourModals';
+import { AdminLoginModal, HotspotForm } from './TourAdminPanels';
+import { useViewerControls } from './useViewerControls';
+import { useTourNarration } from './useTourNarration';
+import { LockedTourScreen } from './LockedTourScreen';
 import { FloorplanMiniMap } from './FloorplanMiniMap';
-import {
-  IconCollapse,
-  IconCompass,
-  IconExpand,
-  IconHand,
-  IconHeadphones,
-  IconLink,
-  IconMute,
-  IconSound,
-  MODAL_ICONS,
-  withoutEmoji
-} from './icons';
+import { withoutEmoji } from './icons';
 import { PANNELLUM_CSS, PANNELLUM_JS } from './pannellum';
 import {
   ARRIVE_HFOV,
@@ -83,11 +80,6 @@ function disposeLayer(layer: { viewer: any; el: HTMLDivElement } | null) {
   layer.el.remove();
 }
 
-// Razmak od dna ekrana za SVE plutajuće elemente pri dnu (donji meni, info
-// kartica, obaveštenja) - jedna vrednost, da se ne razdvoje kad zamenjuju
-// jedno drugo na istom mestu. env(safe-area-inset-bottom) izbegava
-// home-indikator/traku pregledača (uz viewportFit:'cover' u layout.tsx).
-const SCREEN_BOTTOM = 'calc(env(safe-area-inset-bottom, 0px) + 6px)';
 
 export default function TourPage() {
   // Pri renderovanju na serveru ovo postaje <link rel="preload"> u <head>, pa
@@ -208,41 +200,12 @@ export default function TourPage() {
   // kao fallback na desktopu). shareCopied prikazuje kratku potvrdu.
   const [shareCopied, setShareCopied] = useState(false);
 
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isGyroActive, setIsGyroActive] = useState(false);
-  const isGyroActiveRef = useRef(false);
 
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const [selectedFaq, setSelectedFaq] = useState<number | null>(null);
   const [isRoomTourFullyCompleted, setIsRoomTourFullyCompleted] = useState(false);
   const [isInfoboxManuallyClosed, setIsInfoboxManuallyClosed] = useState(false);
 
-  const activeAudioRef = useRef<HTMLAudioElement | null>(null);
-  // VAŽNO: lastAudioUrlRef sada čuva SIROV audio_url_i18n podatak (objekat ili
-  // string), NE već-razrešeni URL za jedan jezik - da bismo mogli ponovo da
-  // ga lokalizujemo kad se jezik promeni usred narracije.
-  const lastAudioUrlRef = useRef<unknown>(undefined);
-  const lastAudioTextRef = useRef<unknown | undefined>(undefined);
-  const lastAudioTitleRef = useRef<unknown | undefined>(undefined);
-  const lastAudioIndexRef = useRef<number | undefined>(undefined);
-  const audioCurrentTimeRef = useRef<number>(0);
-
-  // Čuva "resolve" funkciju TRENUTNO aktivnog Promise-a iz
-  // playAudioFileWithCompletion, da bismo mogli da završimo TAJ ISTI Promise
-  // čak i kad usred narracije ponovo učitamo audio (npr. zbog promene jezika
-  // ili unmute-a), umesto da pravimo potpuno nov, paralelan Promise koji bi
-  // ostavio prvobitni "obešen" (nikad rešen), čime bi cela sekvenca ture
-  // trajno zastala.
-  const activeResolveRef = useRef<(() => void) | null>(null);
-  const activePlaybackRawRef = useRef<{
-    audioUrlI18n: unknown;
-    textFallback: unknown;
-    title: unknown;
-    index?: number;
-  } | null>(null);
-
-  const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const guideCompleteTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [infoBoxData, setInfoBoxData] = useState<{ titleRaw?: unknown; textRaw: unknown; index?: number; audio_url?: unknown } | null>(null);
 
@@ -261,91 +224,14 @@ export default function TourPage() {
   const sequenceActiveRef = useRef<boolean>(false);
   const isInterruptedRef = useRef<boolean>(false);
 
-  const stopGyroscope = useCallback(() => {
-    if (viewerRef.current && typeof viewerRef.current.stopOrientation === 'function') {
-      viewerRef.current.stopOrientation();
-    }
-    setIsGyroActive(false);
-    isGyroActiveRef.current = false;
-  }, []);
-
-  const startGyroscope = useCallback(async () => {
-    if (!viewerRef.current) return;
-
-    const enableOrientation = () => {
-      if (typeof viewerRef.current.startOrientation === 'function') {
-        // Žiroskop piše ugao kamere direktno na svaki event senzora (i do
-        // 60x/s); ako u isto vreme radi i naše automatsko okretanje sobe
-        // (startAutoRotate - uvodni pan ili mirno "lebdenje"), oba
-        // neprekidno prepisuju isti ugao jedno preko drugog - to je
-        // "sečkanje" koje se vidi. Žiroskop uvek ima prednost.
-        if (typeof viewerRef.current.stopAutoRotate === 'function') {
-          viewerRef.current.stopAutoRotate();
-        }
-        viewerRef.current.startOrientation();
-        setIsGyroActive(true);
-        isGyroActiveRef.current = true;
-      }
-    };
-
-    if (
-      typeof DeviceOrientationEvent !== 'undefined' &&
-      typeof (DeviceOrientationEvent as any).requestPermission === 'function'
-    ) {
-      try {
-        const permissionState = await (DeviceOrientationEvent as any).requestPermission();
-        if (permissionState === 'granted') {
-          enableOrientation();
-        } else {
-          console.warn('Dozvola za giroskop nije odobrena.');
-        }
-      } catch (err) {
-        console.error('Greška pri traženju dozvole za giroskop:', err);
-      }
-    } else {
-      enableOrientation();
-    }
-  }, []);
-
-  const toggleGyroscope = useCallback(() => {
-    if (isGyroActive) {
-      stopGyroscope();
-    } else {
-      startGyroscope();
-    }
-  }, [isGyroActive, startGyroscope, stopGyroscope]);
-
-  const toggleFullscreen = useCallback(async () => {
-    if (!document.fullscreenElement) {
-      try {
-        await document.documentElement.requestFullscreen();
-        setIsFullscreen(true);
-        await startGyroscope();
-      } catch (err) {
-        console.error('Greška pri ulasku u Fullscreen:', err);
-      }
-    } else {
-      if (document.exitFullscreen) {
-        await document.exitFullscreen();
-      }
-    }
-  }, [startGyroscope]);
-
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      const isFS = Boolean(document.fullscreenElement);
-      setIsFullscreen(isFS);
-
-      if (!isFS) {
-        stopGyroscope();
-      }
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    };
-  }, [stopGyroscope]);
+  // Ceo ekran i žiroskop - vidi useViewerControls.ts
+  const {
+    isFullscreen,
+    isGyroActive,
+    isGyroActiveRef,
+    toggleGyroscope,
+    toggleFullscreen
+  } = useViewerControls(viewerRef);
 
   const handleStartEditWaypoint = useCallback((index: number) => {
     const currentRoom = rooms[roomIdx];
@@ -384,108 +270,16 @@ export default function TourPage() {
     }
   }, []);
 
-  const stopAudio = useCallback(() => {
-    if (activeAudioRef.current) {
-      audioCurrentTimeRef.current = activeAudioRef.current.currentTime;
-      activeAudioRef.current.pause();
-      activeAudioRef.current.onended = null;
-      activeAudioRef.current.onerror = null;
-      activeAudioRef.current = null;
-    }
-    if (hideTimerRef.current) {
-      clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = null;
-    }
-    if (guideCompleteTimerRef.current) {
-      clearTimeout(guideCompleteTimerRef.current);
-      guideCompleteTimerRef.current = null;
-    }
-  }, []);
-
-  // Učitava i pušta audio za TRENUTNI jezik (langRef.current), koristeći
-  // sirove i18n podatke sačuvane u activePlaybackRawRef. NE pravi nov
-  // Promise - završava (resolve) ISTI onaj Promise koji je napravljen kad je
-  // narracija prvi put pokrenuta (activeResolveRef). Ovo omogućava da se
-  // audio "presvuče" na drugi jezik usred narracije, ili da se nastavi posle
-  // unmute-a, a da sekvenca ture (koja čeka/await-uje taj Promise) nikad ne
-  // ostane zaglavljena.
-  const loadAndPlayLocalizedAudio = useCallback((startAt: number = 0) => {
-    const raw = activePlaybackRawRef.current;
-    if (!raw || !isMountedRef.current) return;
-
-    // Zaustavi trenutni <audio> element/tajmer, ali NE rešavaj Promise ovde
-    if (activeAudioRef.current) {
-      activeAudioRef.current.pause();
-      activeAudioRef.current.onended = null;
-      activeAudioRef.current.onerror = null;
-      activeAudioRef.current = null;
-    }
-    if (hideTimerRef.current) {
-      clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = null;
-    }
-
-    const resolvedAudioUrl = getLocalizedText(raw.audioUrlI18n, langRef.current);
-    const resolvedText = getLocalizedText(raw.textFallback, langRef.current);
-
-    const finish = () => {
-      activeAudioRef.current = null;
-      audioCurrentTimeRef.current = 0;
-      const resolveFn = activeResolveRef.current;
-      activeResolveRef.current = null;
-      activePlaybackRawRef.current = null;
-      if (isMountedRef.current && resolveFn) resolveFn();
-    };
-
-    if (isMutedRef.current || !resolvedAudioUrl) {
-      const readTime = Math.max(3000, resolvedText.length * 50);
-      hideTimerRef.current = setTimeout(() => {
-        if (isMountedRef.current) finish();
-      }, readTime);
-      return;
-    }
-
-    const audio = new Audio(resolvedAudioUrl);
-    activeAudioRef.current = audio;
-
-    audio.onloadedmetadata = () => {
-      if (!isMountedRef.current) return;
-      if (startAt > 0 && startAt < audio.duration) {
-        audio.currentTime = startAt;
-      }
-    };
-
-    audio.onended = finish;
-    audio.onerror = finish;
-
-    audio.play().catch(finish);
-  }, []);
-
-  const playAudioFileWithCompletion = useCallback((
-    audioUrlI18n?: unknown,
-    textFallback?: unknown,
-    title?: unknown,
-    index?: number,
-    startAt: number = 0
-  ): Promise<void> => {
-    return new Promise((resolve) => {
-      stopAudio();
-
-      if (!isMountedRef.current) return resolve();
-
-      activeResolveRef.current = resolve;
-      activePlaybackRawRef.current = { audioUrlI18n, textFallback, title, index };
-
-      lastAudioUrlRef.current = audioUrlI18n;
-      lastAudioTextRef.current = textFallback;
-      lastAudioTitleRef.current = title;
-      lastAudioIndexRef.current = index;
-
-      setInfoBoxData({ titleRaw: title, textRaw: textFallback, index, audio_url: audioUrlI18n });
-
-      loadAndPlayLocalizedAudio(startAt);
-    });
-  }, [stopAudio, loadAndPlayLocalizedAudio]);
+  // Naracija (audio + tekst) - vidi useTourNarration.ts
+  const {
+    stopAudio,
+    playNarration,
+    pauseForMute,
+    resumeAfterMute,
+    restartInCurrentLanguage,
+    resetPosition,
+    scheduleAfterNarration
+  } = useTourNarration({ isMountedRef, langRef, isMutedRef, onNarrationChange: setInfoBoxData });
 
   // Ručni klik (soba, tačka, tlocrt) uvek preuzima kontrolu od vodiča - kao
   // audio-vodič u muzeju: čim nešto sam pipneš, vodič ćuti. `transition.guided`
@@ -539,7 +333,7 @@ export default function TourPage() {
     roomSessionRef.current += 1;
     sequenceActiveRef.current = false;
     isInterruptedRef.current = true;
-    audioCurrentTimeRef.current = 0;
+    resetPosition();
     setIsRoomTourFullyCompleted(false);
     setIsInfoboxManuallyClosed(false);
     stopCurrentAnimation();
@@ -572,7 +366,7 @@ export default function TourPage() {
       setRoomLoading(true);
     }
     setRoomIdx(foundIndex);
-  }, [rooms, roomIdx, stopAudio, stopCurrentAnimation, takeManualControl]);
+  }, [rooms, roomIdx, resetPosition, stopAudio, stopCurrentAnimation, takeManualControl]);
 
   // Klik na navigacionu tačku: kamera se okrene ka tački i približi joj se,
   // za to vreme se skida sledeća soba, pa prelaz (vidi transition.ts).
@@ -819,14 +613,14 @@ export default function TourPage() {
           } else if (!isNav) {
             isInterruptedRef.current = true;
             stopCurrentAnimation();
-            audioCurrentTimeRef.current = 0;
+            resetPosition();
             if (viewerRef.current) viewerRef.current.setHfov(pickHfov(INFO_HFOV));
-            playAudioFileWithCompletion(wp.audio_url_i18n ?? wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
+            playNarration(wp.audio_url_i18n ?? wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
           }
         }
       });
     });
-  }, [rooms, handleStartEditWaypoint, walkToRoom, playAudioFileWithCompletion, stopCurrentAnimation]);
+  }, [rooms, handleStartEditWaypoint, resetPosition, walkToRoom, playNarration, stopCurrentAnimation]);
 
   const changeLanguage = useCallback((l: Language) => {
     setLang(l);
@@ -838,15 +632,11 @@ export default function TourPage() {
       refreshViewerHotspots(waypointsList, l);
     }
 
-    // Ako je trenutno u toku neka narracija (audio ili "reading" fallback),
-    // odmah je prebaci na NOVI jezik - od početka (dužine prevoda se
-    // razlikuju, pa nastavljanje od iste sekunde ne bi imalo smisla).
-    // Koristi loadAndPlayLocalizedAudio da NE napravi nov Promise, već
-    // završi isti onaj koji sekvenca ture već čeka.
-    if (activePlaybackRawRef.current) {
-      loadAndPlayLocalizedAudio(0);
-    }
-  }, [rooms, roomIdx, refreshViewerHotspots, loadAndPlayLocalizedAudio]);
+    // Naracija koja je u toku odmah prelazi na NOVI jezik, od početka (dužine
+    // prevoda se razlikuju, pa nastavljanje od iste sekunde nema smisla), a
+    // sekvenca ture i dalje čeka isto obećanje - vidi useTourNarration.
+    restartInCurrentLanguage();
+  }, [rooms, roomIdx, refreshViewerHotspots, restartInCurrentLanguage]);
 
   // ŽIVI PREVIEW POMERANJA: čim se pendingCoords promeni dok se edituje POSTOJEĆA
   // tačka (editingIndex !== null), odmah vizuelno pomeri marker na novu poziciju
@@ -1279,23 +1069,12 @@ export default function TourPage() {
     isMutedRef.current = nextMuteState;
     setIsMuted(nextMuteState);
 
+    // Pauza čuva mesto i obećanje, pa se ista naracija nastavlja kad se zvuk
+    // vrati - sekvenca ture se zbog isključenog zvuka ne prekida.
     if (nextMuteState) {
-      // Samo pauziraj - NE diramo activeResolveRef/activePlaybackRawRef,
-      // da bi se sekvenca mogla nastaviti kad se zvuk vrati.
-      if (activeAudioRef.current) {
-        audioCurrentTimeRef.current = activeAudioRef.current.currentTime;
-        activeAudioRef.current.pause();
-        activeAudioRef.current.onended = null;
-        activeAudioRef.current.onerror = null;
-        activeAudioRef.current = null;
-      }
-      if (hideTimerRef.current) {
-        clearTimeout(hideTimerRef.current);
-        hideTimerRef.current = null;
-      }
-    } else if (activePlaybackRawRef.current) {
-      // Nastavi ISTU narraciju (isti Promise) od tamo gde je stala
-      loadAndPlayLocalizedAudio(audioCurrentTimeRef.current);
+      pauseForMute();
+    } else {
+      resumeAfterMute();
     }
   };
 
@@ -1466,9 +1245,9 @@ export default function TourPage() {
           } else if (!isNav) {
             isInterruptedRef.current = true;
             stopCurrentAnimation();
-            audioCurrentTimeRef.current = 0;
+            resetPosition();
             if (viewerRef.current) viewerRef.current.setHfov(pickHfov(INFO_HFOV));
-            playAudioFileWithCompletion(wp.audio_url_i18n ?? wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
+            playNarration(wp.audio_url_i18n ?? wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
           }
         }
       };
@@ -1550,8 +1329,7 @@ export default function TourPage() {
         textRaw: translations[langRef.current].freeExplore
       });
 
-      if (guideCompleteTimerRef.current) clearTimeout(guideCompleteTimerRef.current);
-      guideCompleteTimerRef.current = setTimeout(() => {
+      scheduleAfterNarration(() => {
         if (!isMountedRef.current || currentSession !== roomSessionRef.current) return;
         setInfoBoxData(null);
         setIsRoomTourFullyCompleted(true);
@@ -1718,7 +1496,7 @@ export default function TourPage() {
 
       await Promise.all([
         rotatePromise,
-        playAudioFileWithCompletion(introAudioUrl, introTextRaw, currentRoom.title_i18n, undefined, 0)
+        playNarration(introAudioUrl, introTextRaw, currentRoom.title_i18n, undefined, 0)
       ]);
 
       if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
@@ -1743,7 +1521,7 @@ export default function TourPage() {
         if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
-        await playAudioFileWithCompletion(item.wp.audio_url_i18n ?? item.wp.audio_url, item.wp.text_i18n, item.wp.title_i18n, item.i, 0);
+        await playNarration(item.wp.audio_url_i18n ?? item.wp.audio_url, item.wp.text_i18n, item.wp.title_i18n, item.i, 0);
         if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
@@ -1798,7 +1576,7 @@ export default function TourPage() {
     stopCurrentAnimation,
     stopAudio,
     handleStartEditWaypoint,
-    playAudioFileWithCompletion
+    playNarration
   ]);
 
   // Isto za oba mesta gde se admin alati crtaju (prazna tura i puna tura).
@@ -1845,90 +1623,16 @@ export default function TourPage() {
   // uređuje turu preko ?admin=1 - adminRequested skloni bljesak ove poruke
   // dok se prijava ne prepozna (async).
   if (tour?.status && tour.status !== 'active' && !adminMode && !adminRequested) {
-    const lockedTitle =
-      tour.status === 'rented' ? t.lockedRentedTitle : tour.status === 'sold' ? t.lockedSoldTitle : t.lockedPausedTitle;
-    const hasContact = Boolean(tour.agent_name || tour.agent_phone || tour.agent_email);
-
     return (
-      <main style={{ position: 'relative', width: '100vw', height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', textAlign: 'center', color: '#fff', background: 'linear-gradient(160deg, #1e293b 0%, #0f172a 100%)', fontFamily: THEME.fontBody, ['--ink' as string]: '#fff', ['--accent' as string]: GLASS_ACCENT }}>
-        {welcomeCoverUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={welcomeCoverUrl} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'grayscale(0.35)' }} />
-        )}
-        <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.72)' }} />
-
-        <div style={{ position: 'absolute', top: '16px', left: 0, right: 0, display: 'flex', justifyContent: 'center' }}>
-          <Logo />
-        </div>
-
-        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: '440px' }}>
-          <div style={{ ...GLASS, display: 'flex', gap: '4px', borderRadius: '999px', padding: '4px', marginBottom: '24px' }}>
-            {availableLanguages
-              .filter((l) => isLanguageAvailable(l))
-              .map((l) => (
-                <button
-                  key={l}
-                  onClick={() => changeLanguage(l)}
-                  style={{
-                    background: lang === l ? GLASS_ACCENT : 'transparent',
-                    color: lang === l ? '#fff' : 'rgba(255, 255, 255, 0.78)',
-                    border: 'none',
-                    borderRadius: '999px',
-                    padding: '6px 14px',
-                    fontSize: '13px',
-                    fontWeight: lang === l ? 'bold' : 'normal',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {l.toUpperCase()}
-                </button>
-              ))}
-          </div>
-
-          <h1 style={{ color: '#fff', fontSize: 'clamp(22px, 4.5vw, 30px)', lineHeight: 1.2, margin: '0 0 10px', fontWeight: 700, fontFamily: THEME.fontDisplay, textWrap: 'balance' }}>
-            {lockedTitle}
-          </h1>
-          <p style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '14px', margin: '0 0 24px', lineHeight: 1.5 }}>
-            {fullTourTitle}{tour.agency_name ? ` — ${tour.agency_name}` : ''}
-          </p>
-
-          {hasContact && (
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'left' }}>
-              <p style={{ margin: '0 0 2px', fontSize: '12.5px', color: 'rgba(255, 255, 255, 0.65)', textAlign: 'center' }}>
-                {t.lockedIntro}
-              </p>
-              {tour.agent_name && (
-                <div style={{ ...GLASS, borderRadius: '12px', padding: '14px 16px' }}>
-                  <p style={{ margin: '0 0 4px', fontSize: '11px', color: 'rgba(255, 255, 255, 0.6)' }}>{t.agentLabel}</p>
-                  <p style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>{tour.agent_name}</p>
-                </div>
-              )}
-              {tour.agent_phone && (
-                <div style={{ ...GLASS, borderRadius: '12px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                  <div>
-                    <p style={{ margin: '0 0 4px', fontSize: '11px', color: 'rgba(255, 255, 255, 0.6)' }}>{t.phoneLabel}</p>
-                    <p style={{ margin: 0, fontSize: '15px', fontWeight: 600 }}>{tour.agent_phone}</p>
-                  </div>
-                  <a href={`tel:${tour.agent_phone}`} style={{ ...btnStyle, background: GLASS_ACCENT, color: '#fff', border: 'none', textDecoration: 'none', padding: '9px 16px', fontSize: '13px', flexShrink: 0 }}>
-                    {t.callBtn}
-                  </a>
-                </div>
-              )}
-              {tour.agent_email && (
-                <div style={{ ...GLASS, borderRadius: '12px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ minWidth: 0, overflow: 'hidden' }}>
-                    <p style={{ margin: '0 0 4px', fontSize: '11px', color: 'rgba(255, 255, 255, 0.6)' }}>{t.emailLabel}</p>
-                    <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>{tour.agent_email}</p>
-                  </div>
-                  <a href={`mailto:${tour.agent_email}`} style={{ ...btnStyle, background: GLASS_ACCENT, color: '#fff', border: 'none', textDecoration: 'none', padding: '9px 16px', fontSize: '13px', flexShrink: 0 }}>
-                    {t.emailBtn}
-                  </a>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </main>
+      <LockedTourScreen
+        tour={tour}
+        t={t}
+        title={fullTourTitle}
+        coverUrl={welcomeCoverUrl}
+        lang={lang}
+        languages={availableLanguages.filter((l) => isLanguageAvailable(l))}
+        onChangeLanguage={changeLanguage}
+      />
     );
   }
 
@@ -1989,102 +1693,17 @@ export default function TourPage() {
       `}</style>
 
       {!tourStarted && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 50,
-            overflow: 'hidden',
-            // Bez slike (tura još nema pregled) ostaje tamna pozadina, da
-            // beli tekst i stakleni meni i dalje izgledaju isto.
-            background: 'linear-gradient(160deg, #1e293b 0%, #0f172a 100%)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px 20px 140px',
-            textAlign: 'center',
-            color: '#fff',
-            // Logo na tamnoj pozadini: belo "Kvadrat", svetlija plava "360".
-            ['--ink' as string]: '#fff',
-            ['--accent' as string]: '#5B92D6'
-          }}
-        >
-          {welcomeCoverUrl && (
-            <>
-              <style>{'@keyframes k360WelcomeDrift{from{transform:scale(1.02)}to{transform:scale(1.1)}}@media (prefers-reduced-motion: reduce){.k360-welcome-cover{animation:none!important}}'}</style>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                className="k360-welcome-cover"
-                src={welcomeCoverUrl}
-                alt=""
-                aria-hidden="true"
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  animation: 'k360WelcomeDrift 24s ease-in-out infinite alternate'
-                }}
-              />
-            </>
-          )}
-          <div
-            aria-hidden="true"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.55) 0%, rgba(15, 23, 42, 0.35) 40%, rgba(15, 23, 42, 0.8) 100%)'
-            }}
-          />
-
-          <div style={{ position: 'absolute', top: '16px', left: 0, right: 0, display: 'flex', justifyContent: 'center' }}>
-            <Logo />
-          </div>
-
-          <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: '520px' }}>
-            <div style={{ ...GLASS, display: 'flex', gap: '4px', borderRadius: '999px', padding: '4px', marginBottom: '22px' }}>
-              {availableLanguages
-                .filter((l) => adminMode || isLanguageAvailable(l))
-                .map((l) => (
-                  <button
-                    key={l}
-                    onClick={() => changeLanguage(l)}
-                    style={{
-                      background: lang === l ? GLASS_ACCENT : 'transparent',
-                      color: lang === l ? '#fff' : 'rgba(255, 255, 255, 0.78)',
-                      border: 'none',
-                      borderRadius: '999px',
-                      padding: '6px 14px',
-                      fontSize: '13px',
-                      fontWeight: lang === l ? 'bold' : 'normal',
-                      cursor: 'pointer',
-                      transition: 'background 0.2s'
-                    }}
-                  >
-                    {l.toUpperCase()}
-                  </button>
-                ))}
-            </div>
-
-            {tour?.agency_name && (
-              <div style={{ color: GLASS_ACCENT, fontSize: '12px', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '10px' }}>
-                {tour.agency_name}
-              </div>
-            )}
-
-            <h1 style={{ color: '#fff', fontSize: 'clamp(26px, 5vw, 38px)', lineHeight: 1.15, margin: '0 0 12px', fontWeight: 700, fontFamily: THEME.fontDisplay, textWrap: 'balance', textShadow: '0 2px 12px rgba(0, 0, 0, 0.35)' }}>
-              {fullTourTitle}
-            </h1>
-            <p style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '16px', maxWidth: '440px', margin: '0 0 30px', lineHeight: 1.5, textShadow: '0 1px 8px rgba(0, 0, 0, 0.35)' }}>
-              {t.welcome}
-            </p>
-            <button onClick={startTour} style={{ padding: '15px 34px', fontSize: '17px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '999px', cursor: 'pointer', boxShadow: '0 8px 24px rgba(30, 90, 168, 0.45)' }}>
-              {guideRequested && hasGuide ? t.startGuidedTour : t.startTour}
-            </button>
-          </div>
-        </div>
+        <WelcomeScreen
+          coverUrl={welcomeCoverUrl}
+          agencyName={tour?.agency_name ?? null}
+          title={fullTourTitle}
+          lede={t.welcome}
+          startLabel={guideRequested && hasGuide ? t.startGuidedTour : t.startTour}
+          onStart={startTour}
+          lang={lang}
+          languages={availableLanguages.filter((l) => adminMode || isLanguageAvailable(l))}
+          onChangeLanguage={changeLanguage}
+        />
       )}
 
       {tourStarted && (
@@ -2103,22 +1722,7 @@ export default function TourPage() {
             pointerEvents: 'none'
           }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', rowGap: '4px', width: '100%' }}>
-              <div style={{
-                ...GLASS,
-                borderRadius: '12px',
-                padding: '6px 12px 7px',
-                pointerEvents: 'auto',
-                maxWidth: '55%'
-              }}>
-                {tour?.agency_name && (
-                  <div style={{ color: GLASS_ACCENT, fontSize: '12px', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {tour.agency_name}
-                  </div>
-                )}
-                <div style={{ color: '#fff', fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {fullTourTitle}
-                </div>
-              </div>
+              <TourTitleCard agencyName={tour?.agency_name ?? null} title={fullTourTitle} />
 
               <div style={{
                 ...GLASS,
@@ -2138,27 +1742,12 @@ export default function TourPage() {
                     su ovde napisana, sa istim razmakom kao ranije. */}
                 {adminMode && <span ref={setAdminToolbarSlot} style={{ display: 'contents' }} />}
 
-                {availableLanguages
-                  .filter((l) => adminMode || isLanguageAvailable(l))
-                  .map((l) => (
-                    <button
-                      key={l}
-                      onClick={() => changeLanguage(l)}
-                      style={{
-                        background: lang === l ? GLASS_ACCENT : 'transparent',
-                        color: lang === l ? '#fff' : 'rgba(255, 255, 255, 0.75)',
-                        border: 'none',
-                        borderRadius: '8px',
-                        padding: '3px 7px',
-                        fontSize: '11px',
-                        fontWeight: lang === l ? 'bold' : 'normal',
-                        cursor: 'pointer',
-                        transition: 'background 0.2s'
-                      }}
-                    >
-                      {l.toUpperCase()}
-                    </button>
-                  ))}
+                <LanguageChips
+                  lang={lang}
+                  languages={availableLanguages.filter((l) => adminMode || isLanguageAvailable(l))}
+                  onChange={changeLanguage}
+                  size="sm"
+                />
               </div>
             </div>
 
@@ -2179,58 +1768,17 @@ export default function TourPage() {
               />
             </div>
 
-          {/* U istom bloku kao traka sa sobama, ispod nje - nikad se ne
-              preklapaju, ni kad se gornji red prelomi zbog dugog naziva. */}
-          <div style={{
-            alignSelf: 'flex-end',
-            marginTop: '6px',
-            marginRight: '4px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
-            pointerEvents: 'auto'
-          }}>
-            <button
-              onClick={toggleFullscreen}
-              style={overlayIconStyle}
-              title={isFullscreen ? 'Napusti ceo ekran' : 'Ceo ekran'}
-              aria-label={isFullscreen ? 'Napusti ceo ekran' : 'Ceo ekran'}
-            >
-              {isFullscreen ? <IconCollapse size={19} /> : <IconExpand size={19} />}
-            </button>
-
-            {isFullscreen && (
-              <button
-                onClick={toggleGyroscope}
-                style={{ ...overlayIconStyle, background: isGyroActive ? 'rgba(91, 146, 214, 0.55)' : GLASS.background }}
-                title={isGyroActive ? 'Ugasi giroskop' : 'Upali giroskop'}
-                aria-label={isGyroActive ? 'Ugasi giroskop' : 'Upali giroskop'}
-              >
-                <IconCompass size={19} />
-              </button>
-            )}
-
-            <button
-              onClick={toggleMute}
-              style={overlayIconStyle}
-              title={isMuted ? 'Uključi zvuk' : 'Isključi zvuk'}
-              aria-label={isMuted ? 'Uključi zvuk' : 'Isključi zvuk'}
-            >
-              {isMuted ? <IconMute size={19} /> : <IconSound size={19} />}
-            </button>
-
-            {hasGuide && (
-              <button
-                onClick={toggleGuideMode}
-                style={{ ...overlayIconStyle, background: guideMode === 'auto' ? 'rgba(91, 146, 214, 0.55)' : GLASS.background }}
-                title={guideMode === 'auto' ? 'Vodič vodi - klikni da sam istražuješ' : 'Sami istražujete - klikni da vodič vodi'}
-                aria-label={guideMode === 'auto' ? 'Vodič vodi - klikni da sam istražuješ' : 'Sami istražujete - klikni da vodič vodi'}
-                aria-pressed={guideMode === 'auto'}
-              >
-                {guideMode === 'auto' ? <IconHeadphones size={19} /> : <IconHand size={19} />}
-              </button>
-            )}
-          </div>
+          <OverlayButtons
+            isFullscreen={isFullscreen}
+            onToggleFullscreen={toggleFullscreen}
+            isGyroActive={isGyroActive}
+            onToggleGyroscope={toggleGyroscope}
+            isMuted={isMuted}
+            onToggleMute={toggleMute}
+            hasGuide={hasGuide}
+            guideMode={guideMode}
+            onToggleGuideMode={toggleGuideMode}
+          />
           </div>
 
           {tour?.floorplan_url && !pendingCoords && (
@@ -2254,146 +1802,32 @@ export default function TourPage() {
 
       {slowRoomLoad && <style>{'@keyframes pulseDot{0%,80%,100%{transform:scale(0);opacity:.3}40%{transform:scale(1);opacity:1}}'}</style>}
       {slowRoomLoad && (
-        <div
-          role="status"
-          style={{
-            position: 'absolute',
-            left: '50%',
-            bottom: `calc(env(safe-area-inset-bottom, 0px) + 120px)`,
-            transform: 'translateX(-50%)',
-            zIndex: 15,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 14px',
-            borderRadius: '999px',
-            background: 'rgba(15, 23, 42, 0.55)',
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
-            border: '1px solid rgba(255, 255, 255, 0.6)',
-            color: '#fff',
-            fontSize: '13px',
-            fontFamily: THEME.fontBody,
-            whiteSpace: 'nowrap',
-            pointerEvents: 'none'
-          }}
-        >
+        <StatusNotice variant="loading">
           <span aria-hidden="true" style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#5B92D6', animation: 'pulseDot 1.4s infinite ease-in-out both' }} />
           {t.roomLoadingPrefix}<b>{currentRoomTitle}</b>
-        </div>
+        </StatusNotice>
       )}
 
-      {guideFinished && (
-        <div
-          role="status"
-          style={{
-            position: 'absolute',
-            left: '50%',
-            bottom: `calc(env(safe-area-inset-bottom, 0px) + 120px)`,
-            transform: 'translateX(-50%)',
-            zIndex: 15,
-            padding: '10px 18px',
-            borderRadius: '999px',
-            background: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
-            border: '1px solid rgba(255, 255, 255, 0.6)',
-            color: '#fff',
-            fontSize: '13px',
-            fontFamily: THEME.fontBody,
-            whiteSpace: 'nowrap',
-            textAlign: 'center'
+      {guideFinished && <StatusNotice variant="done">{t.guideAllSeen}</StatusNotice>}
+
+
+      {!pendingCoords && isModalToolbarVisible && (
+        <TourMenuBar
+          activeModal={activeModal}
+          onOpenModal={setActiveModal}
+          onShare={handleShareTour}
+          shareCopied={shareCopied}
+          shareLabel={t.shareTour}
+          copiedLabel={t.linkCopied}
+          labels={{
+            faq: t.btnFaq,
+            location: t.btnLocation,
+            about: t.btnAbout,
+            plan: t.btnPlan,
+            contact: t.btnContact
           }}
-        >
-          {t.guideAllSeen}
-        </div>
+        />
       )}
-
-
-      {!pendingCoords && isModalToolbarVisible && (() => {
-        return (
-        <>
-        {/* Deljenje stoji iznad menija, na sredini (iznad "Info"). */}
-        <button
-          onClick={handleShareTour}
-          style={{
-            ...GLASS,
-            position: 'absolute',
-            bottom: `calc(${SCREEN_BOTTOM} + 80px)`,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 56,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '7px',
-            padding: '7px 14px',
-            borderRadius: '999px',
-            color: shareCopied ? '#86efac' : '#fff',
-            fontSize: '13px',
-            fontWeight: 700,
-            fontFamily: THEME.fontBody,
-            cursor: 'pointer',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          {shareCopied ? t.linkCopied : (
-            <>
-              <IconLink size={16} color={GLASS_ACCENT} />
-              {withoutEmoji(t.shareTour)}
-            </>
-          )}
-        </button>
-
-        <div style={{
-          ...GLASS,
-          position: 'absolute',
-          bottom: SCREEN_BOTTOM,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 55,
-          display: 'flex',
-          gap: '2px',
-          width: 'calc(100% - 24px)',
-          maxWidth: '520px',
-          boxSizing: 'border-box',
-          padding: '5px',
-          borderRadius: '16px',
-          justifyContent: 'center'
-        }}>
-          {([
-            ['faq', t.btnFaq],
-            ['location', t.btnLocation],
-            ['about', t.btnAbout],
-            ['plan', t.btnPlan],
-            ['contact', t.btnContact]
-          ] as const).map(([modal, label]) => {
-            const Icon = MODAL_ICONS[modal];
-            const active = activeModal === modal;
-            return (
-              <button
-                key={modal}
-                onClick={() => setActiveModal(modal)}
-                style={{
-                  ...overlayNavButtonStyle,
-                  flex: 1,
-                  minWidth: 0,
-                  color: active ? GLASS_ACCENT : '#fff',
-                  background: active ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-                  fontSize: '12.5px',
-                  fontFamily: THEME.fontBody
-                }}
-              >
-                <Icon size={22} color={GLASS_ACCENT} />
-                <span style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {withoutEmoji(label)}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        </>
-        );
-      })()}
 
       {tourStarted && adminMode && (
         <div style={{
@@ -2415,132 +1849,26 @@ export default function TourPage() {
 
       {/* ADMIN EDIT / ADD HOTSPOT FORMA */}
       {pendingCoords && adminMode && (
-        <div style={{
-          position: 'absolute',
-          bottom: '12px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 60,
-          width: '92%',
-          maxWidth: '480px',
-          backgroundColor: THEME.surface,
-          border: '1px solid ' + THEME.border,
-          borderRadius: '16px',
-          padding: '16px',
-          color: THEME.textPrimary,
-          boxShadow: THEME.shadowLg,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px'
-        }}>
-          <h4 style={{ margin: 0, color: THEME.accent, fontSize: '15px' }}>
-            {editingIndex !== null ? t.editPoint : t.addPoint} (Yaw: {pendingCoords.yaw.toFixed(1)}, Pitch: {pendingCoords.pitch.toFixed(1)})
-          </h4>
-
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={() => setHotspotType('navigation')}
-              style={{
-                flex: 1,
-                padding: '6px',
-                borderRadius: '8px',
-                border: 'none',
-                background: hotspotType === 'navigation' ? THEME.accent : THEME.surfaceAlt,
-                color: hotspotType === 'navigation' ? '#fff' : THEME.textPrimary,
-                fontSize: '12px',
-                cursor: 'pointer'
-              }}
-            >
-              {t.navArrow}
-            </button>
-            <button
-              onClick={() => setHotspotType('info')}
-              style={{
-                flex: 1,
-                padding: '6px',
-                borderRadius: '8px',
-                border: 'none',
-                background: hotspotType === 'info' ? THEME.accent : THEME.surfaceAlt,
-                color: hotspotType === 'info' ? '#fff' : THEME.textPrimary,
-                fontSize: '12px',
-                cursor: 'pointer'
-              }}
-            >
-              {t.infoPoint}
-            </button>
-            <button
-              onClick={() => setHotspotType('establish')}
-              style={{
-                flex: 1,
-                padding: '6px',
-                borderRadius: '8px',
-                border: 'none',
-                background: hotspotType === 'establish' ? THEME.accent : THEME.surfaceAlt,
-                color: hotspotType === 'establish' ? '#fff' : THEME.textPrimary,
-                fontSize: '12px',
-                cursor: 'pointer'
-              }}
-            >
-              {t.introNarration}
-            </button>
-          </div>
-
-          {hotspotType === 'navigation' && (
-            <select
-              value={targetRoomId}
-              onChange={(e) => setTargetRoomId(e.target.value)}
-              style={{ padding: '8px', borderRadius: '6px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '13px' }}
-            >
-              <option value="">{t.targetRoom}</option>
-              {/* `lang` (stanje), ne langRef: ref se ne sme čitati tokom
-                  iscrtavanja - spisak ne bi pratio promenu jezika. */}
-              {rooms.map(r => (
-                <option key={r.id} value={r.id}>{getLocalizedText(r.title_i18n, lang) || `Soba ${r.id}`}</option>
-              ))}
-            </select>
-          )}
-
-          <input
-            type="text"
-            placeholder={t.titlePlaceholder}
-            value={hotspotTitle}
-            onChange={(e) => setHotspotTitle(e.target.value)}
-            style={{ padding: '8px', borderRadius: '6px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '13px' }}
-          />
-
-          <textarea
-            placeholder={t.descPlaceholder}
-            value={hotspotText}
-            onChange={(e) => setHotspotText(e.target.value)}
-            rows={2}
-            style={{ padding: '8px', borderRadius: '6px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '13px', resize: 'none' }}
-          />
-
-          <input
-            type="text"
-            placeholder={t.audioUrlPlaceholder}
-            value={hotspotAudioUrl}
-            onChange={(e) => setHotspotAudioUrl(e.target.value)}
-            style={{ padding: '8px', borderRadius: '6px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '13px' }}
-          />
-          <span style={{ fontSize: '11px', color: THEME.textSecondary, marginTop: '-6px' }}>
-            🌐 Ovaj link važi samo za jezik: <b style={{ color: THEME.textPrimary }}>{lang.toUpperCase()}</b> (ostali jezici ostaju netaknuti ako ostaviš prazno)
-          </span>
-
-          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-            <button onClick={handleSaveHotspot} style={{ ...btnStyle, flex: 1, backgroundColor: THEME.accent, color: '#fff', borderColor: THEME.accent }}>
-              {t.save}
-            </button>
-            {editingIndex !== null && (
-              <button onClick={handleDeleteHotspot} style={{ ...btnStyle, backgroundColor: THEME.danger, color: '#fff', borderColor: THEME.danger }}>
-                {t.delete}
-              </button>
-            )}
-            <button onClick={handleCancelEdit} style={{ ...btnStyle, backgroundColor: THEME.surfaceAlt, color: THEME.textPrimary, borderColor: THEME.border }}>
-              {t.cancel}
-            </button>
-          </div>
-        </div>
+        <HotspotForm
+          coords={pendingCoords}
+          editing={editingIndex !== null}
+          t={t}
+          lang={lang}
+          rooms={rooms}
+          type={hotspotType}
+          onType={setHotspotType}
+          targetRoomId={targetRoomId}
+          onTargetRoom={setTargetRoomId}
+          title={hotspotTitle}
+          onTitle={setHotspotTitle}
+          text={hotspotText}
+          onText={setHotspotText}
+          audioUrl={hotspotAudioUrl}
+          onAudioUrl={setHotspotAudioUrl}
+          onSave={handleSaveHotspot}
+          onDelete={handleDeleteHotspot}
+          onCancel={handleCancelEdit}
+        />
       )}
 
       {roomLoading && (
@@ -2573,121 +1901,31 @@ export default function TourPage() {
       )}
 
       {infoBoxData && !pendingCoords && !activeModal && (
-        <div style={{
-          position: 'absolute',
-          bottom: SCREEN_BOTTOM,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 30,
-          width: 'calc(100% - 24px)',
-          maxWidth: '520px',
-          boxSizing: 'border-box',
-          // Isto tamno staklo kao traka sa sobama (RoomNavBar), samo gušće -
-          // ovde se čita duži tekst preko svetlih delova fotografije.
-          background: 'rgba(15, 23, 42, 0.68)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255, 255, 255, 0.28)',
-          borderRadius: '16px',
-          padding: '14px 18px 16px',
-          color: '#fff',
-          boxShadow: '0 6px 20px rgba(0, 0, 0, 0.25)',
-          fontFamily: THEME.fontBody
-        }}>
-          <button
-            onClick={() => {
-              stopAudio();
-              setInfoBoxData(null);
-              setIsInfoboxManuallyClosed(true);
-            }}
-            style={{
-              position: 'absolute',
-              top: '10px',
-              right: '10px',
-              width: '28px',
-              height: '28px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'rgba(255, 255, 255, 0.1)',
-              border: 'none',
-              borderRadius: '50%',
-              color: 'rgba(255, 255, 255, 0.8)',
-              fontSize: '17px',
-              lineHeight: '1',
-              cursor: 'pointer',
-              transition: 'background 0.15s ease'
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.22)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')}
-            title={t.close}
-            aria-label={t.close}
-          >
-            ×
-          </button>
-
-          {displayedInfoTitle && (
-            <h3 style={{ margin: '0 0 7px', paddingRight: '34px', fontFamily: THEME.fontDisplay, fontSize: '17px', lineHeight: 1.2, fontWeight: 700, color: '#fff', textWrap: 'balance' }}>
-              {displayedInfoTitle}
-            </h3>
-          )}
-          <p style={{ margin: 0, fontSize: '13.5px', lineHeight: 1.55, color: 'rgba(255, 255, 255, 0.9)', paddingRight: '6px' }}>
-            {displayedInfoText}
-          </p>
-        </div>
+        <InfoCard
+          title={displayedInfoTitle}
+          text={displayedInfoText}
+          closeLabel={t.close}
+          onClose={() => {
+            stopAudio();
+            setInfoBoxData(null);
+            setIsInfoboxManuallyClosed(true);
+          }}
+        />
       )}
 
       {/* MODAL: ADMIN LOGIN (Supabase Auth - zamena za staru ?admin=... lozinku) */}
       {showAdminLogin && !adminMode && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <form
-            onSubmit={handleAdminLogin}
-            style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', width: '100%', maxWidth: '380px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px', boxShadow: THEME.shadowLg }}
-          >
-            <h2 style={{ color: THEME.textPrimary, fontSize: '18px', margin: 0, fontWeight: 700 }}>🔒 Admin prijava</h2>
-
-            <input
-              type="email"
-              placeholder="Email"
-              value={loginEmail}
-              onChange={(e) => setLoginEmail(e.target.value)}
-              autoComplete="username"
-              required
-              style={{ padding: '10px', borderRadius: '8px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '14px', boxSizing: 'border-box' }}
-            />
-
-            <input
-              type="password"
-              placeholder="Lozinka"
-              value={loginPassword}
-              onChange={(e) => setLoginPassword(e.target.value)}
-              autoComplete="current-password"
-              required
-              style={{ padding: '10px', borderRadius: '8px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '14px', boxSizing: 'border-box' }}
-            />
-
-            {loginError && (
-              <p style={{ color: THEME.danger, fontSize: '13px', margin: 0 }}>{loginError}</p>
-            )}
-
-            <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-              <button
-                type="submit"
-                disabled={loginLoading}
-                style={{ ...btnStyle, flex: 1, backgroundColor: THEME.accent, color: '#fff', borderColor: THEME.accent, padding: '10px' }}
-              >
-                {loginLoading ? 'Prijava...' : 'Prijavi se'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAdminLogin(false)}
-                style={{ ...btnStyle, backgroundColor: THEME.surfaceAlt, color: THEME.textPrimary, borderColor: THEME.border }}
-              >
-                {t.cancel}
-              </button>
-            </div>
-          </form>
-        </div>
+        <AdminLoginModal
+          email={loginEmail}
+          password={loginPassword}
+          onEmail={setLoginEmail}
+          onPassword={setLoginPassword}
+          onSubmit={handleAdminLogin}
+          onCancel={() => setShowAdminLogin(false)}
+          error={loginError}
+          loading={loginLoading}
+          cancelLabel={t.cancel}
+        />
       )}
 
       {/* ADMIN ALATI: AI draft, glas, jezici, napredak otpremanja. Modali su
@@ -2696,225 +1934,33 @@ export default function TourPage() {
       {adminMode && <TourAdminTools variant="full" {...adminToolsProps} />}
 
       {hasMounted && activeModal && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 80, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', width: '100%', maxWidth: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid ' + THEME.border }}>
-              <h2 style={{ color: THEME.textPrimary, fontSize: '20px', margin: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {(() => {
-                  const Icon = MODAL_ICONS[activeModal];
-                  return <Icon size={22} color={THEME.accent} />;
-                })()}
-                {withoutEmoji(
-                  {
-                    plan: t.btnPlan,
-                    location: t.btnLocation,
-                    about: t.btnAbout,
-                    faq: t.btnFaq,
-                    contact: t.btnContact
-                  }[activeModal]
-                )}
-              </h2>
-              <button
-                onClick={() => { setActiveModal(null); setSelectedFaq(null); }}
-                title={t.close}
-                style={{ background: 'transparent', border: 'none', color: THEME.textMuted, fontSize: '24px', fontWeight: 'bold', cursor: 'pointer', padding: '0 4px', lineHeight: '1', flexShrink: 0 }}
-              >
-                ×
-              </button>
-            </div>
-
-            <div style={{ padding: '20px', overflowY: 'auto', flex: 1, color: THEME.textPrimary, fontSize: '16px' }}>
-              {activeModal === 'plan' && (
-                tour?.floorplan_url ? (
-                  <div>
-                    {adminMode && (
-                      <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: THEME.accent, fontWeight: 600, textAlign: 'center' }}>
-                        🖊️ Klikni na skicu da postaviš oznaku za trenutnu sobu: <b>{currentRoomTitle}</b>
-                      </p>
-                    )}
-                    {/* Unutrašnji omotač je tačno veličine slike: oznake su u
-                        procentima slike, a spoljni okvir je širi kad je skica
-                        visoka - tada bi oznake stajale pomereno. */}
-                    <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <div style={{ position: 'relative', lineHeight: 0 }}>
-                      <img
-                        src={tour.floorplan_url}
-                        alt="Floorplan"
-                        onClick={adminMode ? handleSetFloorplanMarker : undefined}
-                        style={{ maxWidth: '100%', maxHeight: '60vh', borderRadius: '12px', cursor: adminMode ? 'crosshair' : 'default', display: 'block' }}
-                      />
-                      {rooms
-                        .filter((r) => typeof r.floorplan_x === 'number' && typeof r.floorplan_y === 'number')
-                        .map((r) => {
-                          const isCurrent = r.id === currentRoom?.id;
-                          return (
-                            <button
-                              key={r.id}
-                              title={getLocalizedText(r.title_i18n, lang)}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                changeRoomById(r.id);
-                                setActiveModal(null);
-                              }}
-                              style={{
-                                position: 'absolute',
-                                left: `${r.floorplan_x}%`,
-                                top: `${r.floorplan_y}%`,
-                                transform: 'translate(-50%, -50%)',
-                                width: isCurrent ? '18px' : '14px',
-                                height: isCurrent ? '18px' : '14px',
-                                borderRadius: '50%',
-                                backgroundColor: isCurrent ? THEME.accent : THEME.surface,
-                                border: '2px solid ' + (isCurrent ? '#fff' : THEME.accent),
-                                boxShadow: THEME.shadowLg,
-                                cursor: 'pointer',
-                                padding: 0
-                              }}
-                            />
-                          );
-                        })}
-                    </div>
-                    </div>
-                  </div>
-                ) : (
-                  <p style={{ textAlign: 'center', color: THEME.textMuted, fontSize: '16px' }}>{t.noPlan}</p>
-                )
-              )}
-
-              {activeModal === 'location' && (
-                tour?.location_map_url ? (
-                  <div style={{ width: '100%', height: '380px', borderRadius: '12px', overflow: 'hidden' }}>
-                    <iframe src={tour.location_map_url} width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
-                  </div>
-                ) : (
-                  <p style={{ textAlign: 'center', color: THEME.textMuted, fontSize: '16px' }}>{t.noLocation}</p>
-                )
-              )}
-
-              {activeModal === 'about' && (
-                aboutText ? (
-                  <p style={{ margin: 0, lineHeight: '1.6', color: THEME.textPrimary, whiteSpace: 'pre-wrap', fontSize: '16px' }}>{aboutText}</p>
-                ) : (
-                  <p style={{ textAlign: 'center', color: THEME.textMuted, fontSize: '16px' }}>{t.noAbout}</p>
-                )
-              )}
-
-              {activeModal === 'faq' && (
-                faqList.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {faqList.map((item, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setSelectedFaq(index)}
-                        style={{
-                          textAlign: 'left',
-                          backgroundColor: THEME.surfaceAlt,
-                          border: '1px solid ' + THEME.border,
-                          borderRadius: '12px',
-                          padding: '14px 16px',
-                          color: THEME.textPrimary,
-                          fontSize: '16px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          width: '100%',
-                          lineHeight: '1.4'
-                        }}
-                      >
-                        {item.question}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p style={{ textAlign: 'center', color: THEME.textMuted, fontSize: '16px' }}>{t.noFaq}</p>
-                )
-              )}
-
-              {activeModal === 'contact' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '4px' }}>
-                  {tour?.agent_name && (
-                    <div style={{ backgroundColor: THEME.surfaceAlt, padding: '16px', borderRadius: '12px', border: '1px solid ' + THEME.border }}>
-                      <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: THEME.textSecondary }}>{t.agentLabel}</p>
-                      <p style={{ margin: 0, fontSize: '17px', fontWeight: 'bold', color: THEME.textPrimary }}>{tour.agent_name}</p>
-                    </div>
-                  )}
-
-                  {tour?.agent_phone && (
-                    <div style={{ backgroundColor: THEME.surfaceAlt, padding: '16px', borderRadius: '12px', border: '1px solid ' + THEME.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: THEME.textSecondary }}>{t.phoneLabel}</p>
-                        <p style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: THEME.textPrimary }}>{tour.agent_phone}</p>
-                      </div>
-                      <a href={`tel:${tour.agent_phone}`} style={{ ...btnStyle, backgroundColor: THEME.accent, color: '#fff', borderColor: THEME.accent, textDecoration: 'none', padding: '10px 18px', fontSize: '14px' }}>
-                        {t.callBtn}
-                      </a>
-                    </div>
-                  )}
-
-                  {tour?.agent_email && (
-                    <div style={{ backgroundColor: THEME.surfaceAlt, padding: '16px', borderRadius: '12px', border: '1px solid ' + THEME.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ overflow: 'hidden', paddingRight: '8px' }}>
-                        <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: THEME.textSecondary }}>{t.emailLabel}</p>
-                        <p style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: THEME.textPrimary, textOverflow: 'ellipsis', overflow: 'hidden' }}>{tour.agent_email}</p>
-                      </div>
-                      <a href={`mailto:${tour.agent_email}`} style={{ ...btnStyle, backgroundColor: THEME.accent, color: '#fff', borderColor: THEME.accent, textDecoration: 'none', padding: '10px 18px', fontSize: '14px', flexShrink: 0 }}>
-                        {t.emailBtn}
-                      </a>
-                    </div>
-                  )}
-
-                  {tour?.agency_name && (
-                    <div style={{ backgroundColor: THEME.surfaceAlt, padding: '16px', borderRadius: '12px', border: '1px solid ' + THEME.border }}>
-                      <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: THEME.textSecondary }}>{t.agencyLabel}</p>
-                      <p style={{ margin: 0, fontSize: '17px', fontWeight: 'bold', color: THEME.textPrimary }}>{tour.agency_name}</p>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={handleShareTour}
-                    style={{
-                      ...btnStyle,
-                      backgroundColor: shareCopied ? THEME.success : THEME.surface,
-                      color: shareCopied ? '#fff' : THEME.textPrimary,
-                      borderColor: shareCopied ? THEME.success : THEME.border,
-                      padding: '12px',
-                      fontSize: '14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    {shareCopied ? t.linkCopied : t.shareTour}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <TourModals
+          activeModal={activeModal}
+          onClose={() => { setActiveModal(null); setSelectedFaq(null); }}
+          t={t}
+          tour={tour}
+          rooms={rooms}
+          currentRoom={currentRoom}
+          currentRoomTitle={currentRoomTitle}
+          lang={lang}
+          adminMode={adminMode}
+          aboutText={aboutText}
+          faqList={faqList}
+          onSelectFaq={setSelectedFaq}
+          onChangeRoom={(id) => changeRoomById(id)}
+          onFloorplanClick={handleSetFloorplanMarker}
+          onShare={handleShareTour}
+          shareCopied={shareCopied}
+        />
       )}
 
       {hasMounted && selectedFaq !== null && faqList[selectedFaq] && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 90, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', width: '100%', maxWidth: '520px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid ' + THEME.border }}>
-              <h3 style={{ color: THEME.textPrimary, fontSize: '17px', margin: 0, paddingRight: '12px', fontWeight: 600 }}>
-                {faqList[selectedFaq].question}
-              </h3>
-              <button
-                onClick={() => setSelectedFaq(null)}
-                title={t.close}
-                style={{ background: 'transparent', border: 'none', color: THEME.textMuted, fontSize: '24px', fontWeight: 'bold', cursor: 'pointer', padding: '0 4px', lineHeight: '1', flexShrink: 0 }}
-              >
-                ×
-              </button>
-            </div>
-            <div style={{ padding: '20px', overflowY: 'auto', flex: 1, color: THEME.textPrimary, fontSize: '16px' }}>
-              <p style={{ margin: 0, lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
-                {faqList[selectedFaq].answer || t.comingSoon}
-              </p>
-            </div>
-          </div>
-        </div>
+        <FaqAnswerModal
+          item={faqList[selectedFaq]}
+          onClose={() => setSelectedFaq(null)}
+          closeLabel={t.close}
+          comingSoon={t.comingSoon}
+        />
       )}
     </main>
   );

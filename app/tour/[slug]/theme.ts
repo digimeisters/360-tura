@@ -125,3 +125,9 @@ export const btnStyle: React.CSSProperties = {
   fontWeight: 650,
   boxShadow: THEME.shadow
 };
+
+// Razmak od dna ekrana za SVE plutajuće elemente pri dnu (donji meni, info
+// kartica, obaveštenja) - jedna vrednost, da se ne razdvoje kad zamenjuju
+// jedno drugo na istom mestu. env(safe-area-inset-bottom) izbegava
+// home-indikator/traku pregledača (uz viewportFit:'cover' u layout.tsx).
+export const SCREEN_BOTTOM = 'calc(env(safe-area-inset-bottom, 0px) + 6px)';
