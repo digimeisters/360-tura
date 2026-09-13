@@ -22,13 +22,14 @@ export function Logo({ spin = false }: { spin?: boolean }) {
       {spin && (
         <style>{`
           @keyframes k360-logo-spin {
-            from { transform: rotate(-315deg); }
+            from { transform: rotate(-675deg); }
             to { transform: rotate(45deg); }
           }
           @media (prefers-reduced-motion: no-preference) {
-            /* Linear, ne ease-out: na 6 sekundi bi usporavanje pred kraj
-               izgledalo kao da se znak zaglavio, umesto mirnog obrtaja. */
-            .k360-logo-mark { animation: k360-logo-spin 6000ms linear both; }
+            /* Linear, ne ease-out: usporavanje pred kraj bi izgledalo kao
+               da se znak zaglavio, umesto mirnog obrtaja. Ista brzina kao
+               pre (6s po krugu), sada dva kruga pa stane. */
+            .k360-logo-mark { animation: k360-logo-spin 12000ms linear both; }
           }
         `}</style>
       )}
