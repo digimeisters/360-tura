@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { FORM, FormThemeStyle, formBtnStyle } from '../../lib/formTheme';
 import { Logo } from '../../tour/[slug]/Logo';
 import { slugify } from '../../lib/slug';
+import { SITE_URL } from '../../lib/site';
 
 type TourRow = {
   slug: string;
@@ -64,6 +65,17 @@ const CATEGORY_LABELS: Record<string, string> = {
   booking: 'Kratkoročni smeštaj'
 };
 
+/**
+ * Kod za ugradnju ture na sajt agencije (obećano na sajtu i u ponudama -
+ * vidi HomePage.tsx, FAQ, agencyCopy.ts). `allow` sa senzorima je bitan:
+ * bez njega bi žiroskop i ceo ekran ćutali kad je tura ugrađena na TUĐEM
+ * domenu, jer pregledač po difoltu ne prosleđuje te dozvole u iframe.
+ */
+function embedSnippet(slug: string): string {
+  const url = `${SITE_URL}/tour/${slug}`;
+  return `<iframe src="${url}" width="100%" height="600" style="border:0;border-radius:12px;overflow:hidden" allow="fullscreen; accelerometer; gyroscope; magnetometer" allowfullscreen loading="lazy"></iframe>`;
+}
+
 function pickTitle(row: TourRow): string {
   const raw = row.title_i18n;
   let parsed: unknown = raw;
@@ -99,6 +111,7 @@ export default function ToursAdminPage() {
   const [togglingSlug, setTogglingSlug] = useState<string | null>(null);
   const [updatingStatusSlug, setUpdatingStatusSlug] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
+  const [copiedEmbedSlug, setCopiedEmbedSlug] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -255,6 +268,19 @@ export default function ToursAdminPage() {
     } finally {
       setUpdatingStatusSlug(null);
     }
+  };
+
+  const copyEmbedCode = async (tour: TourRow) => {
+    const snippet = embedSnippet(tour.slug);
+    try {
+      await navigator.clipboard.writeText(snippet);
+    } catch {
+      // Clipboard može biti nedostupan (starije okruženje, bez dozvole) -
+      // prompt sa selektovanim tekstom i dalje daje kopiranje preko Ctrl+C.
+      window.prompt('Kod za ugradnju (Ctrl+C, pa Enter):', snippet);
+    }
+    setCopiedEmbedSlug(tour.slug);
+    setTimeout(() => setCopiedEmbedSlug((cur) => (cur === tour.slug ? null : cur)), 1800);
   };
 
   const startEdit = (tour: TourRow) => {
@@ -629,10 +655,24 @@ export default function ToursAdminPage() {
                         href={`/tour/${tour.slug}?admin=1`}
                         target="_blank"
                         rel="noreferrer"
-                        style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', textDecoration: 'none' }}
+                        style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', textDecoration: 'none', marginRight: '6px' }}
                       >
                         Uredi sadržaj
                       </a>
+                      <button
+                        onClick={() => void copyEmbedCode(tour)}
+                        title="Kopira <iframe> kod za ugradnju ture na sajt agencije"
+                        style={{
+                          ...formBtnStyle,
+                          padding: '6px 12px',
+                          fontSize: '12.5px',
+                          ...(copiedEmbedSlug === tour.slug
+                            ? { background: FORM.success, color: '#fff', borderColor: FORM.success }
+                            : {})
+                        }}
+                      >
+                        {copiedEmbedSlug === tour.slug ? 'Kopirano ✓' : 'Iframe'}
+                      </button>
                     </td>
                   </tr>
                 );
@@ -643,6 +683,7 @@ export default function ToursAdminPage() {
 
         <p style={{ marginTop: '14px', fontSize: '12.5px', color: FORM.textMuted }}>
           {"„Uredi sadržaj“"} otvara turu u admin režimu, gde se dodaju sobe, panorame i hotspotovi.
+          {"„Iframe“"} kopira gotov kod za ugradnju ture na sajt agencije — radi tek kad je tura objavljena.
           Crveno kod broja soba znači da neka soba nema panoramu. Nova tura kreće {"„u pripremi“"} —
           link radi samo tebi dok je ne objaviš.
         </p>
