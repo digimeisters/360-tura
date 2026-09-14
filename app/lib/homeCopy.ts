@@ -106,8 +106,8 @@ const sr: HomeCopy = {
   },
   hero: {
     chip: 'Prodaja · Izdavanje · Smeštaj',
-    titleStart: 'Svaki kvadrat iz ',
-    titleEm: 'svakog ugla.',
+    titleStart: 'Pravi kvadrati, ',
+    titleEm: 'bez skrivenih ćoškova.',
     lede:
       'Virtuelna 360° tura i HDR fotografije pokazuju svaki ugao unapred, za ceo portfolio agencije ili pojedinačan oglas — dolaze samo ozbiljno zainteresovani kupci i zakupci, spremni da brzo donesu odluku.',
     ctaTour: '▶ Pogledajte primer ture',
@@ -267,8 +267,8 @@ const en: HomeCopy = {
   },
   hero: {
     chip: 'Sale · Rent · Short stays',
-    titleStart: 'Every square meter, ',
-    titleEm: 'from every angle.',
+    titleStart: 'Real square meters, ',
+    titleEm: 'no hidden corners.',
     lede:
       'A 360° virtual tour and HDR photos show every corner up front, for an agency’s whole portfolio or a single listing — only genuinely interested buyers and tenants come to viewings, ready to decide quickly.',
     ctaTour: '▶ View a sample tour',
