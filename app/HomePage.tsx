@@ -6,6 +6,7 @@ import ContactForm from '../components/ContactForm';
 import SiteTracker from '../components/SiteTracker';
 import PriceCalculator from '../components/PriceCalculator';
 import PromoBanner from '../components/PromoBanner';
+import NavScrollSpy from '../components/NavScrollSpy';
 import { getShowcaseTours, pickHeroTour } from './lib/showcaseTours';
 import { SITE_NAME, SITE_URL, CONTACT, CONTACT_LINKS, whatsappLink } from './lib/site';
 import { HOME_COPY, type HomeLang } from './lib/homeCopy';
@@ -76,6 +77,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(homeJsonLd(faq, lang)) }}
       />
       <SiteTracker />
+      <NavScrollSpy />
 
       <SiteNav
         brandHref="#pocetna"

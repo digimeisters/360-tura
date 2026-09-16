@@ -165,6 +165,9 @@ export const SITE_STYLES = `
   .navlinks a{display:block; text-decoration:none; font-size:.88rem; font-weight:600; color:var(--ink-soft); padding:.45rem .85rem; border-radius:999px; transition:background .15s ease, color .15s ease;}
   /* Samo gde postoji miš - na telefonu bi hover ostao "zalepljen" posle dodira. */
   @media (hover:hover){ .navlinks a:hover{background:var(--surface-2); color:var(--ink);} }
+  /* Sekcija kroz koju posetilac upravo prolazi (components/NavScrollSpy.tsx). */
+  .navlinks a[aria-current="true"]{background:var(--accent); border-color:var(--accent); color:var(--on-accent);}
+  @media (hover:hover){ .navlinks a[aria-current="true"]:hover{background:var(--accent); color:var(--on-accent);} }
   /* Druga jezička verzija: uokviren čip, da se ne čita kao još jedna sekcija. */
   .nav-lang a{border:1px solid var(--line-strong); color:var(--ink); font-weight:700; letter-spacing:.04em; margin-left:.35rem;}
 
@@ -333,6 +336,15 @@ export const SITE_STYLES = `
   .tier[aria-pressed="true"]{background:var(--accent); border-color:var(--accent);}
   .tier[aria-pressed="true"] small, .tier[aria-pressed="true"] b{color:var(--on-accent);}
   @media (hover:hover){ .tier:not([aria-pressed="true"]):hover{border-color:var(--accent);} }
+  /* Izbor paketa (Osnovni/Premium) - dva vidljiva dugmeta, ne prekidač:
+     to je odluka o tome ŠTA se dobija, ne sitno podešavanje. */
+  .pkg-choice{display:grid; grid-template-columns:repeat(2,1fr); gap:.4rem;}
+  .pkg-choice button{font:inherit; text-align:left; color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:.65rem .8rem; cursor:pointer; display:flex; flex-direction:column; gap:.15rem; box-shadow:var(--shadow); transition:background .15s ease, border-color .15s ease;}
+  .pkg-choice b{font-family:var(--font-display); font-size:.95rem;}
+  .pkg-choice small{font-size:.72rem; color:var(--ink-faint); line-height:1.35;}
+  .pkg-choice button[aria-pressed="true"]{background:var(--accent); border-color:var(--accent);}
+  .pkg-choice button[aria-pressed="true"] b, .pkg-choice button[aria-pressed="true"] small{color:var(--on-accent);}
+  @media (hover:hover){ .pkg-choice button:not([aria-pressed="true"]):hover{border-color:var(--accent);} }
   .switch-row{display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.8rem 1rem; border:1px solid var(--line); border-radius:14px; background:var(--surface-2); cursor:pointer;}
   .switch-row strong{display:block; font-size:.92rem; color:var(--ink);}
   .switch-row span span{font-size:.8rem; color:var(--ink-soft);}

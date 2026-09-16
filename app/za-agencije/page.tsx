@@ -5,6 +5,7 @@ import ContactForm from '../../components/ContactForm';
 import PriceCalculator from '../../components/PriceCalculator';
 import PromoBanner from '../../components/PromoBanner';
 import SiteTracker from '../../components/SiteTracker';
+import NavScrollSpy from '../../components/NavScrollSpy';
 import { SITE_STYLES } from '../lib/siteStyles';
 import { AGENCY_COPY } from '../lib/agencyCopy';
 import { HOME_COPY } from '../lib/homeCopy';
@@ -79,6 +80,7 @@ export default function AgencyPage() {
       <style dangerouslySetInnerHTML={{ __html: SITE_STYLES }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd()) }} />
       <SiteTracker />
+      <NavScrollSpy />
 
       <SiteNav
         brandHref="/"

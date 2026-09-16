@@ -42,9 +42,10 @@ type Text = {
   properties: (n: number) => string;
   tiersLabel: string;
   packageTitle: string;
-  packageBasic: string;
-  packagePremium: string;
-  premiumHint: (extra: string) => string;
+  basicName: string;
+  basicDesc: string;
+  premiumName: string;
+  premiumDesc: (extra: string) => string;
   resultLabel: string;
   forOne: string;
   totalFor: (per: string) => string;
@@ -79,9 +80,10 @@ const TEXT: Record<HomeLang, Text> = {
     properties: srProperties,
     tiersLabel: 'Cena po nekretnini (tura + HDR fotografije)',
     packageTitle: 'Paket',
-    packageBasic: 'Osnovni — SR + jezik po izboru',
-    packagePremium: 'Premium — sva 4 jezika (SR/EN/DE/RU)',
-    premiumHint: (extra) => `Premium: +${extra} po turi`,
+    basicName: 'Osnovni',
+    basicDesc: 'SR + jedan jezik po izboru (EN, DE ili RU)',
+    premiumName: 'Premium',
+    premiumDesc: (extra) => `Sva 4 jezika + izrada plana stana · +${extra} po turi`,
     resultLabel: 'Okvirna cena',
     forOne: 'za jednu nekretninu',
     totalFor: (per) => `ukupno · ${per} po nekretnini`,
@@ -115,9 +117,10 @@ const TEXT: Record<HomeLang, Text> = {
     properties: (n) => (n === 1 ? 'property' : 'properties'),
     tiersLabel: 'Price per property (tour + HDR photos)',
     packageTitle: 'Package',
-    packageBasic: 'Basic — SR + a language of your choice',
-    packagePremium: 'Premium — all 4 languages (SR/EN/DE/RU)',
-    premiumHint: (extra) => `Premium: +${extra} per tour`,
+    basicName: 'Basic',
+    basicDesc: 'SR + one language of your choice (EN, DE or RU)',
+    premiumName: 'Premium',
+    premiumDesc: (extra) => `All 4 languages + floor plan drawing · +${extra} per tour`,
     resultLabel: 'Indicative price',
     forOne: 'for one property',
     totalFor: (per) => `total · ${per} per property`,
@@ -237,21 +240,29 @@ export default function PriceCalculator({ lang = 'sr' }: { lang?: HomeLang }) {
           </div>
         </div>
 
-        <label className="switch-row">
-          <span>
-            <strong>{t.packageTitle}</strong>
-            <span>
-              {packageType === 'premium' ? t.packagePremium : t.packageBasic}
-              {packageType === 'basic' && ` · ${t.premiumHint(eur(PREMIUM_EXTRA))}`}
-            </span>
-          </span>
-          <input
-            type="checkbox"
-            className="switch"
-            checked={packageType === 'premium'}
-            onChange={(e) => setPackageType(e.target.checked ? 'premium' : 'basic')}
-          />
-        </label>
+        <div>
+          <div className="ctl-label">
+            <span>{t.packageTitle}</span>
+          </div>
+          <div className="pkg-choice" role="group" aria-label={t.packageTitle}>
+            <button
+              type="button"
+              aria-pressed={packageType === 'basic'}
+              onClick={() => setPackageType('basic')}
+            >
+              <b>{t.basicName}</b>
+              <small>{t.basicDesc}</small>
+            </button>
+            <button
+              type="button"
+              aria-pressed={packageType === 'premium'}
+              onClick={() => setPackageType('premium')}
+            >
+              <b>{t.premiumName}</b>
+              <small>{t.premiumDesc(eur(PREMIUM_EXTRA))}</small>
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="calc-result" aria-live="polite">
