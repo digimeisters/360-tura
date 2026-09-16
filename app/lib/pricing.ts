@@ -38,18 +38,24 @@ export const PREMIUM_EXTRA = 15;
 export const MAX_AREA_SQM = 50;
 
 /**
- * Uvodna promocija: HDR fotografije su gratis uz svaku turu, pa ulazna cena
- * ispada 50 € umesto 70 €. Cilj je što više kontakata sa agencijama i
- * dovoljno tura za bazu, ne marža. Samo Osnovni paket, do MAX_AREA_SQM,
- * 45 dana od lansiranja.
+ * Uvodna promocija: popust na SVE cene, i na turu i na fotografije, i u
+ * Osnovnom i u Premium paketu. Cilj je što više kontakata sa agencijama i
+ * dovoljno tura za bazu, ne marža. Do MAX_AREA_SQM, 45 dana od lansiranja.
+ *
+ * Popust, a ne "HDR gratis": ko hoće samo turu, bez fotografija, kod gratis
+ * fotografija ne bi dobio nikakav popust.
  */
 export const PROMO = {
-  packageType: 'basic' as PackageType,
-  /** Šta otpada tokom promocije - HDR fotografije. */
-  freeItem: 'hdr' as const,
+  /** 0.3 = −30%. */
+  discount: 0.3,
   startDate: '2026-09-17',
   endDate: '2026-11-01'
 } as const;
+
+/** Cena sa promo popustom, zaokružena na ceo evro. */
+export function withPromo(amount: number, promoActive: boolean): number {
+  return promoActive ? Math.round(amount * (1 - PROMO.discount)) : amount;
+}
 
 export function isPromoActive(now: Date = new Date()): boolean {
   const start = new Date(`${PROMO.startDate}T00:00:00`);
@@ -87,18 +93,21 @@ export function tierMax(index: number): number | null {
 }
 
 /** Cena same ture za dati paket (Premium nosi dodatak za jezike). */
-export function tourPrice(tier: PriceTier, pkg: PackageType): number {
-  return tier.tour + (pkg === 'premium' ? PREMIUM_EXTRA : 0);
+export function tourPrice(tier: PriceTier, pkg: PackageType, promoActive = false): number {
+  return withPromo(tier.tour + (pkg === 'premium' ? PREMIUM_EXTRA : 0), promoActive);
 }
 
-/** Cena HDR fotografija - 0 dok traje promocija za Osnovni paket. */
-export function hdrPrice(tier: PriceTier, pkg: PackageType, promoActive: boolean): number {
-  return promoActive && pkg === PROMO.packageType ? 0 : tier.hdr;
+/** Cena HDR fotografija po nekretnini. */
+export function hdrPrice(tier: PriceTier, promoActive = false): number {
+  return withPromo(tier.hdr, promoActive);
 }
 
-/** Tura + HDR po nekretnini. */
+/**
+ * Tura + HDR po nekretnini. Popust se računa po stavci, pa zbir prikazanih
+ * stavki uvek daje prikazani ukupan iznos (bez razlike od zaokruživanja).
+ */
 export function perProperty(tier: PriceTier, pkg: PackageType, promoActive = false): number {
-  return tourPrice(tier, pkg) + hdrPrice(tier, pkg, promoActive);
+  return tourPrice(tier, pkg, promoActive) + hdrPrice(tier, promoActive);
 }
 
 /** Ukupna cena za dati broj nekretnina (kartice paketa - uvek redovna cena). */
@@ -120,10 +129,8 @@ export type Quote = {
   tier: PriceTier;
   /** Cena same ture, po nekretnini. */
   tourPrice: number;
-  /** Cena HDR fotografija, po nekretnini (0 tokom promocije). */
+  /** Cena HDR fotografija, po nekretnini. */
   hdrPrice: number;
-  /** Koliko bi HDR koštao bez promocije - za prikaz "gratis (20 €)". */
-  hdrRegularPrice: number;
   perProperty: number;
   total: number;
   /** Da li je promocija primenjena na ovu ponudu. */
@@ -142,8 +149,8 @@ export function quote(count: number, pkg: PackageType = 'basic', promoActive = f
   const tierIndex = tierIndexFor(safeCount);
   const tier = PRICE_TIERS[tierIndex];
 
-  const tour = tourPrice(tier, pkg);
-  const hdr = hdrPrice(tier, pkg, promoActive);
+  const tour = tourPrice(tier, pkg, promoActive);
+  const hdr = hdrPrice(tier, promoActive);
   const price = tour + hdr;
   const total = safeCount * price;
 
@@ -159,10 +166,9 @@ export function quote(count: number, pkg: PackageType = 'basic', promoActive = f
     tier,
     tourPrice: tour,
     hdrPrice: hdr,
-    hdrRegularPrice: tier.hdr,
     perProperty: price,
     total,
-    promoApplied: hdr !== tier.hdr,
+    promoApplied: promoActive,
     regularTotal: safeCount * regularPrice,
     saving: fullPrice - safeCount * regularPrice,
     savingPercent: fullPrice ? Math.round(((fullPrice - safeCount * regularPrice) / fullPrice) * 100) : 0,

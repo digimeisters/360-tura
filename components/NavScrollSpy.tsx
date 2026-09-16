@@ -12,10 +12,12 @@ import { useEffect } from 'react';
  * stavka", a CSS se kači na isti atribut (vidi .navlinks a[aria-current] u
  * lib/siteStyles.ts).
  *
- * Aktivna je ona sekcija koja preseca zamišljenu liniju na trećini visine
- * ekrana. Linija, a ne "najveći vidljivi deo": kratke sekcije (npr. FAQ)
- * nikad ne zauzmu najveći deo ekrana, pa se sa procentima nikad ne bi
- * označile.
+ * Aktivna je POSLEDNJA sekcija čiji je vrh prošao zamišljenu liniju na
+ * trećini visine ekrana. Ne "sekcija koja preseca liniju", jer strana ima i
+ * sekcije bez pilule (npr. Tipovi oglasa) - kroz njih bi sve pilule bile
+ * ugašene; ovako ostaje označena poslednja kroz koju se prošlo. I ne
+ * "najveći vidljivi deo", jer kratke sekcije (FAQ) nikad ne zauzmu najveći
+ * deo ekrana, pa se nikad ne bi označile.
  */
 
 // Na kojoj visini ekrana stoji linija koja bira sekciju (0 = vrh, 1 = dno).
@@ -33,7 +35,10 @@ export default function NavScrollSpy() {
         const section = id ? document.getElementById(id) : null;
         return section ? { link, section } : null;
       })
-      .filter((pair): pair is { link: HTMLAnchorElement; section: HTMLElement } => pair !== null);
+      .filter((pair): pair is { link: HTMLAnchorElement; section: HTMLElement } => pair !== null)
+      // Redom kako sekcije stoje na strani, a ne kako su pilule poređane u
+      // meniju - da pogrešan redosled u meniju ne pokvari biranje sekcije.
+      .sort((a, b) => a.section.offsetTop - b.section.offsetTop);
 
     if (pairs.length === 0) return;
 
@@ -57,18 +62,9 @@ export default function NavScrollSpy() {
 
       let currentId: string | null = null;
       for (const { section } of pairs) {
-        const { top, bottom } = section.getBoundingClientRect();
-        if (top <= line && bottom > line) {
-          currentId = section.id;
-          break;
-        }
+        if (section.getBoundingClientRect().top > line) break;
+        currentId = section.id;
       }
-
-      // Dno strane: poslednja sekcija često nije dovoljno visoka da dohvati
-      // liniju, pa bi na kraju strane sve pilule ostale ugašene.
-      const atBottom =
-        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
-      if (!currentId && atBottom) currentId = pairs[pairs.length - 1].section.id;
 
       if (currentId === activeId) return;
       activeId = currentId;

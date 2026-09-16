@@ -85,9 +85,11 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
         cta={{ href: '#kontakt', label: nav.cta, track: 'cta:nav_book' }}
         logoSpin
       >
+        {/* Redosled pilula mora da prati redosled sekcija na strani - inače
+            scrollspy skače napred-nazad dok posetilac skroluje. */}
         {tours.length > 0 && <li><a href="#primeri">{nav.examples}</a></li>}
-        <li><a href="#kako-radimo">{nav.how}</a></li>
         <li><a href="#benefiti">{nav.benefits}</a></li>
+        <li><a href="#kako-radimo">{nav.how}</a></li>
         <li><a href="#paketi">{nav.packages}</a></li>
         <li><a href="#pitanja">{nav.faq}</a></li>
         {nav.agencies && (

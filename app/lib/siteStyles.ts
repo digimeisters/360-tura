@@ -260,8 +260,10 @@ export const SITE_STYLES = `
   .feat{padding:1.4rem 1.35rem; display:flex; flex-direction:column; gap:.55rem;}
   .feat h3{font-size:1.02rem; font-weight:700;}
   .feat p{color:var(--ink-soft); font-size:.9rem;}
-  @media (max-width:1000px){ .feat-grid{grid-template-columns:1fr 1fr;} }
-  @media (max-width:560px){ .feat-grid{grid-template-columns:1fr;} }
+  /* I .n-3 mora da se navede: ima veću specifičnost od samog .feat-grid, pa
+     bi inače ostao u tri kolone i na telefonu (strana za agencije). */
+  @media (max-width:1000px){ .feat-grid, .feat-grid.n-3{grid-template-columns:1fr 1fr;} }
+  @media (max-width:560px){ .feat-grid, .feat-grid.n-3{grid-template-columns:1fr;} }
 
   /* ---------- KORACI ---------- */
   .steps-row{display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:1.3rem;}
@@ -294,7 +296,9 @@ export const SITE_STYLES = `
   .price-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1.1rem; align-items:stretch;}
   /* Samo dva paketa (strana za agencije) - centrirano, da ne visi prazno mesto. */
   .price-grid.n-2{grid-template-columns:repeat(2,1fr); max-width:780px; margin-inline:auto;}
-  @media (max-width:920px){ .price-grid{grid-template-columns:1fr;} }
+  /* I .n-2 mora da se navede: ima veću specifičnost od samog .price-grid,
+     pa bi inače nadjačao ovo pravilo i ostao u dve kolone na telefonu. */
+  @media (max-width:920px){ .price-grid, .price-grid.n-2{grid-template-columns:1fr;} }
   .price-card{position:relative; padding:1.7rem 1.6rem; display:flex; flex-direction:column; gap:1.1rem;}
   .price-card.featured{border:2px solid var(--accent); box-shadow:0 12px 32px -10px var(--accent-glow);}
   .price-badge{position:absolute; top:-.8rem; left:1.5rem; background:var(--accent); color:var(--on-accent); font-family:var(--font-display); font-size:.66rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; padding:.35rem .75rem; border-radius:999px; box-shadow:0 4px 12px var(--accent-glow);}

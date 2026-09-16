@@ -53,7 +53,6 @@ type Text = {
   saving: (amount: string, percent: number) => string;
   lineTour: (n: number, price: string) => string;
   lineHdr: (n: number, price: string) => string;
-  free: (regular: string) => string;
   audio: string;
   audioBasic: string;
   audioPremium: string;
@@ -62,7 +61,7 @@ type Text = {
   next: (needed: number, price: string) => string;
   custom: string;
   areaNote: string;
-  promo: (until: string) => string;
+  promo: (percent: number, until: string) => string;
   send: string;
   fine: string;
   messagePrefix: string;
@@ -91,7 +90,6 @@ const TEXT: Record<HomeLang, Text> = {
     saving: (amount, percent) => `Popust na obim: ${amount} (−${percent}%)`,
     lineTour: (n, price) => `${n} × 360° tura sa audio vodičem (${price})`,
     lineHdr: (n, price) => `${n} × HDR fotografije, po prostoriji (${price})`,
-    free: (regular) => `gratis (${regular})`,
     audio: 'Audio vodič',
     audioBasic: 'SR + jezik po izboru',
     audioPremium: 'SR, EN, DE, RU',
@@ -100,7 +98,7 @@ const TEXT: Record<HomeLang, Text> = {
     next: (needed, price) => `Još ${needed} ${srProperties(needed)} i cena pada na ${price} po nekretnini.`,
     custom: 'Za 10 i više nekretnina mesečno pravimo i poseban predlog.',
     areaNote: `Cena važi za nekretnine do ${MAX_AREA_SQM}m². Za veću kvadraturu javite nam se za poseban dogovor.`,
-    promo: (until) => `🎉 Promocija do ${until}: HDR fotografije su gratis uz svaku turu (Osnovni paket).`,
+    promo: (percent, until) => `🎉 Uvodna promocija do ${until}: −${percent}% na sve cene, u oba paketa.`,
     send: 'Pošalji upit sa ovim →',
     fine: 'Cena je orijentaciona; tačnu potvrđujemo posle kratkog razgovora.',
     messagePrefix: 'Kalkulator:',
@@ -128,7 +126,6 @@ const TEXT: Record<HomeLang, Text> = {
     saving: (amount, percent) => `Volume discount: ${amount} (−${percent}%)`,
     lineTour: (n, price) => `${n} × 360° tour with audio guide (${price})`,
     lineHdr: (n, price) => `${n} × HDR photos, one per room (${price})`,
-    free: (regular) => `free (${regular})`,
     audio: 'Audio guide',
     audioBasic: 'SR + language of choice',
     audioPremium: 'SR, EN, DE, RU',
@@ -138,7 +135,7 @@ const TEXT: Record<HomeLang, Text> = {
       `${needed} more ${needed === 1 ? 'property' : 'properties'} and the price drops to ${price} per property.`,
     custom: 'For 10 or more properties a month we also put together a custom proposal.',
     areaNote: `Price applies to properties up to ${MAX_AREA_SQM}m². For larger properties, contact us for a custom quote.`,
-    promo: (until) => `🎉 Promo until ${until}: HDR photos are free with every tour (Basic package).`,
+    promo: (percent, until) => `🎉 Launch promo until ${until}: −${percent}% on every price, in both packages.`,
     send: 'Send a request with this →',
     fine: 'The price is indicative; we confirm the exact amount after a short call.',
     messagePrefix: 'Calculator:',
@@ -163,8 +160,9 @@ export default function PriceCalculator({ lang = 'sr' }: { lang?: HomeLang }) {
   const q = quote(count, packageType, promoActive);
 
   // Ručno, a ne Intl: server i pregledač umeju da stave različit razmak uz €,
-  // pa se prvi render ne bi poklopio.
-  const eur = (n: number) => (lang === 'sr' ? `${n} €` : `€${n}`);
+  // pa se prvi render ne bi poklopio. Razmak je nelomivi ( ), da se iznos
+  // nikad ne prelomi na kraju reda ("(20" u jednom redu, "€)" u sledećem).
+  const eur = (n: number) => (lang === 'sr' ? `${n} €` : `€${n}`);
 
   const promoEnd = new Date(`${PROMO.endDate}T00:00:00`);
   // Intl daje nominativ ("1. novembar") - posle "do" treba genitiv.
@@ -196,7 +194,7 @@ export default function PriceCalculator({ lang = 'sr' }: { lang?: HomeLang }) {
             className="calc-note"
             style={{ borderStyle: 'solid', borderColor: 'var(--accent)', color: 'var(--accent)', fontWeight: 700 }}
           >
-            {t.promo(promoUntil)}
+            {t.promo(Math.round(PROMO.discount * 100), promoUntil)}
           </p>
         )}
 
@@ -284,8 +282,8 @@ export default function PriceCalculator({ lang = 'sr' }: { lang?: HomeLang }) {
             <span>{eur(q.count * q.tourPrice)}</span>
           </li>
           <li>
-            <span>{t.lineHdr(q.count, q.promoApplied ? eur(q.hdrRegularPrice) : eur(q.hdrPrice))}</span>
-            <span>{q.promoApplied ? t.free(eur(q.count * q.hdrRegularPrice)) : eur(q.count * q.hdrPrice)}</span>
+            <span>{t.lineHdr(q.count, eur(q.hdrPrice))}</span>
+            <span>{eur(q.count * q.hdrPrice)}</span>
           </li>
           <li>
             <span>{t.audio}</span>
