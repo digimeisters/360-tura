@@ -304,6 +304,11 @@ export const SITE_STYLES = `
   .price-list li::before{content:"✓"; color:var(--accent); font-weight:700; flex:none;}
   .price-cta{width:100%;}
   .fine-print{margin-top:1.4rem; font-size:.85rem; color:var(--ink-faint); text-align:center;}
+  /* Traka uvodne promocije - crta se samo dok kampanja traje (PromoBanner). */
+  .promo-strip{max-width:720px; margin:0 auto 1.4rem; padding:.9rem 1.3rem; border-radius:16px; background:var(--accent); color:var(--on-accent); box-shadow:0 10px 26px -12px var(--accent-glow); display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:.4rem .9rem; text-align:center;}
+  .promo-strip b{font-family:var(--font-display); font-size:1.02rem; font-weight:800;}
+  .promo-strip span{font-size:.86rem; opacity:.92;}
+  .promo-days{flex:none; background:rgba(255,255,255,.2); border-radius:999px; padding:.2rem .7rem; font-size:.76rem; font-weight:700; letter-spacing:.02em;}
 
   /* ---------- KALKULATOR ---------- */
   /* Cene i stepeni su u lib/pricing.ts; ovde je samo izgled. */

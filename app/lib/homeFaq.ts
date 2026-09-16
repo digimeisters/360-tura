@@ -38,6 +38,11 @@ export const HOME_FAQ: Record<HomeLang, readonly FaqItem[]> = {
       question: 'Da li tura radi na telefonu?',
       answer:
         'Da. Tura se otvara u pretraživaču na telefonu, tabletu i računaru, bez preuzimanja aplikacije. Na telefonu prostor možete da razgledate i pomeranjem samog telefona.'
+    },
+    {
+      question: 'Mora li kupac da zna da se snalazi u 360° turi?',
+      answer:
+        'Ne mora. Na početku ture bira jedno od dva: „Automatsko vođenje“, gde ga vodič sam provede kroz sve prostorije i ispriča šta se gde nalazi — dovoljno je da gleda i sluša; ili „Istražite sami“, ako voli da razgleda svojim tempom. Vođenje može da prekine u svakom trenutku i nastavi sam.'
     }
   ],
   en: [
@@ -70,6 +75,11 @@ export const HOME_FAQ: Record<HomeLang, readonly FaqItem[]> = {
       question: 'Does the tour work on a phone?',
       answer:
         'Yes. The tour opens in the browser on a phone, tablet or computer, with no app to download. On a phone you can also look around the space simply by moving the phone.'
+    },
+    {
+      question: 'Does the buyer need to know how to use a 360° tour?',
+      answer:
+        'No. At the start of the tour they pick one of two options: “Guided tour”, where the guide walks them through every room and explains what is where — all they do is watch and listen; or “Explore on your own”, if they prefer their own pace. They can stop the guided walkthrough at any point and carry on by themselves.'
     }
   ]
 };

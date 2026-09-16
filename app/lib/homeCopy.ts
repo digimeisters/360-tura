@@ -1,11 +1,20 @@
 // Tekst početne strane na srpskom (/) i engleskom (/en). Raspored je jedan
 // (app/HomePage.tsx), pa se nova rečenica dodaje ovde u oba jezika.
 
-import { packagePrice, type PackageType } from './pricing';
+import { PRICE_TIERS, packagePrice, tierIndexFor, tourPrice, type PackageType } from './pricing';
 
-// Iznosi na karticama paketa se računaju iz cena (lib/pricing.ts).
+// Iznosi na karticama paketa se računaju iz cena (lib/pricing.ts). Kartice
+// uvek prikazuju REDOVNU cenu - promocija ide kroz PromoBanner, da traka
+// može sama da nestane kad kampanja istekne.
+const tierFor = (count: number) => PRICE_TIERS[tierIndexFor(count)];
 const srAmount = (count: number, pkg: PackageType = 'basic') => `${packagePrice(count, pkg)}€`;
 const enAmount = (count: number, pkg: PackageType = 'basic') => `€${packagePrice(count, pkg)}`;
+// Stavke se prikazuju odvojeno (tura 50€ + HDR 20€), da se ne čita kao da
+// cela cena ide na samu turu.
+const srTour = (count: number, pkg: PackageType = 'basic') => `${tourPrice(tierFor(count), pkg)}€`;
+const enTour = (count: number, pkg: PackageType = 'basic') => `€${tourPrice(tierFor(count), pkg)}`;
+const srHdr = (count: number) => `${tierFor(count).hdr}€`;
+const enHdr = (count: number) => `€${tierFor(count).hdr}`;
 
 export type HomeLang = 'sr' | 'en';
 
@@ -134,11 +143,11 @@ const sr: HomeCopy = {
       { title: 'Manje uzaludnih poseta', text: 'Kupci i zakupci prvo „prošetaju“ kroz stan online — na razgledanje dolaze samo ozbiljno zainteresovani.' },
       { title: 'Oglas koji se izdvaja', text: 'HDR fotografije i 360° tura odmah odvajaju oglas od onih sa slikama telefonom.' },
       { title: 'Doseg do inostranih kupaca', text: 'Audio vodič je dostupan na srpskom, engleskom, nemačkom i ruskom — bez potrebe za prevodiocem.' },
-      { title: 'Dostupno 24 sata', text: 'Nekretnina je „otvorena“ za razgledanje u svakom trenutku, bez usklađivanja termina.' },
+      { title: 'Vođena tura, bez klikanja', text: 'Posetilac bira: da ga vodič sam provede kroz sve prostorije i ispriča šta se gde nalazi, ili da razgleda sam, svojim tempom.' },
       { title: 'Brža odluka', text: 'Kupac ili zakupac koji je već „prošetao“ kroz stan dolazi na razgledanje sa manje pitanja i brže se odlučuje.' },
       { title: 'Sve na jednom mestu', text: 'Plan stana, lokacija i vaš kontakt dostupni su unutar iste ture — bez dodatnih poziva i mejlova.' },
       { title: 'Profesionalan prvi utisak', text: 'Kvalitetna fotografija i uređena tura grade poverenje pre prvog kontakta.' },
-      { title: 'Radi na svakom uređaju', text: 'Tura se otvara direktno u pretraživaču, na telefonu ili računaru — bez preuzimanja aplikacije.' }
+      { title: 'Otvoreno 24 sata, na svakom uređaju', text: 'Nekretnina je „otvorena“ za razgledanje u svakom trenutku, u pretraživaču na telefonu ili računaru — bez zakazivanja i bez preuzimanja aplikacije.' }
     ]
   },
   steps: {
@@ -155,6 +164,7 @@ const sr: HomeCopy = {
     deliver: [
       'Interaktivnu 360° turu sa navigacijom kroz sve prostorije',
       'HDR fotografije spremne za oglas i društvene mreže',
+      'Automatsko vođenje kroz prostor, uz mogućnost samostalnog razgledanja',
       'Audio vodič na srpskom, engleskom, nemačkom i ruskom',
       'Plan stana i lokaciju integrisane u turu',
       'Vašu kontakt karticu, vidljivu tokom cele ture'
@@ -183,8 +193,8 @@ const sr: HomeCopy = {
         amount: srAmount(1),
         unit: '/ nekretnina',
         items: [
-          '1 virtuelna 360° tura',
-          'HDR fotografije uz svaku sobu',
+          `360° tura sa audio vodičem — ${srTour(1)}`,
+          `HDR fotografije, jedna po prostoriji — ${srHdr(1)}`,
           'Audio vodič na srpskom + jeziku po izboru',
           'Isporuka za 48h'
         ],
@@ -198,16 +208,17 @@ const sr: HomeCopy = {
         amount: srAmount(5, 'premium'),
         unit: '/ mesečno (5 tura)',
         items: [
-          '5 virtuelnih tura mesečno',
-          'HDR fotografije uz svaku sobu',
+          `5 tura mesečno — ${srTour(5, 'premium')} po turi`,
+          `HDR fotografije, jedna po prostoriji — ${srHdr(5)} po nekretnini`,
           'Audio vodič na sva 4 jezika (SR/EN/DE/RU)',
           'Plan stana i lokacija uz svaku turu',
+          'Izrada plana stana ako ga nekretnina nema',
           'Prioritetno zakazivanje termina',
           'Stalni kontakt za agenciju'
         ],
         cta: 'Zatražite ponudu',
         track: 'price_premium',
-        badge: 'Za inostrano tržište'
+        badge: 'Za strane kupce'
       },
       {
         audience: 'Za agencije · Osnovni',
@@ -216,8 +227,8 @@ const sr: HomeCopy = {
         amount: srAmount(3, 'basic'),
         unit: '/ mesečno (3 ture)',
         items: [
-          '3 virtuelne ture mesečno',
-          'HDR fotografije uz svaku sobu',
+          `3 ture mesečno — ${srTour(3)} po turi`,
+          `HDR fotografije, jedna po prostoriji — ${srHdr(3)} po nekretnini`,
           'Audio vodič na srpskom + jeziku po izboru (EN/DE/RU)',
           'Plan stana uz svaku turu',
           'Isporuka za 48h'
@@ -300,11 +311,11 @@ const en: HomeCopy = {
       { title: 'Fewer wasted viewings', text: 'Buyers and tenants “walk” through the apartment online first — only the seriously interested come to see it in person.' },
       { title: 'A listing that stands out', text: 'HDR photos and a 360° tour instantly set your listing apart from ones shot on a phone.' },
       { title: 'Reach buyers abroad', text: 'The audio guide is available in Serbian, English, German and Russian — no interpreter needed.' },
-      { title: 'Open 24/7', text: 'The property is “open” for viewing at any time, with no appointments to coordinate.' },
+      { title: 'A guided walkthrough', text: 'Visitors choose: let the guide take them through every room and explain what is where, or explore on their own, at their own pace.' },
       { title: 'Faster decisions', text: 'A buyer or tenant who has already “walked” through the apartment comes to the viewing with fewer questions and decides faster.' },
       { title: 'Everything in one place', text: 'The floor plan, location and your contact details are inside the same tour — no extra calls or emails.' },
       { title: 'A professional first impression', text: 'Quality photography and a polished tour build trust before the first contact.' },
-      { title: 'Works on any device', text: 'The tour opens right in the browser, on a phone or a computer — no app to download.' }
+      { title: 'Open 24/7, on any device', text: 'The property is “open” for viewing at any time, in the browser on a phone or a computer — no appointments, no app to download.' }
     ]
   },
   steps: {
@@ -321,6 +332,7 @@ const en: HomeCopy = {
     deliver: [
       'An interactive 360° tour with navigation through every room',
       'HDR photos ready for listings and social media',
+      'An automatic guided walkthrough, with free exploring as an option',
       'An audio guide in Serbian, English, German and Russian',
       'The floor plan and location built into the tour',
       'Your contact card, visible throughout the tour'
@@ -349,8 +361,8 @@ const en: HomeCopy = {
         amount: enAmount(1),
         unit: '/ property',
         items: [
-          '1 virtual 360° tour',
-          'HDR photos for every room',
+          `360° tour with audio guide — ${enTour(1)}`,
+          `HDR photos, one per room — ${enHdr(1)}`,
           'Audio guide in Serbian + a language of your choice',
           'Delivery within 48 hours'
         ],
@@ -364,16 +376,17 @@ const en: HomeCopy = {
         amount: enAmount(5, 'premium'),
         unit: '/ month (5 tours)',
         items: [
-          '5 virtual tours a month',
-          'HDR photos for every room',
+          `5 tours a month — ${enTour(5, 'premium')} per tour`,
+          `HDR photos, one per room — ${enHdr(5)} per property`,
           'Audio guide in all 4 languages (SR/EN/DE/RU)',
           'Floor plan and location with every tour',
+          'We draw the floor plan if the property doesn’t have one',
           'Priority scheduling',
           'A dedicated contact for your agency'
         ],
         cta: 'Request a quote',
         track: 'price_premium',
-        badge: 'For international buyers'
+        badge: 'For foreign buyers'
       },
       {
         audience: 'For agencies · Basic',
@@ -382,8 +395,8 @@ const en: HomeCopy = {
         amount: enAmount(3, 'basic'),
         unit: '/ month (3 tours)',
         items: [
-          '3 virtual tours a month',
-          'HDR photos for every room',
+          `3 tours a month — ${enTour(3)} per tour`,
+          `HDR photos, one per room — ${enHdr(3)} per property`,
           'Audio guide in Serbian + a language of your choice (EN/DE/RU)',
           'Floor plan with every tour',
           'Delivery within 48 hours'

@@ -6,6 +6,7 @@ import {
   CALC_MAX_COUNT,
   CUSTOM_OFFER_FROM,
   MAX_AREA_SQM,
+  PREMIUM_EXTRA,
   PRICE_TIERS,
   PROMO,
   contactPackageFor,
@@ -26,6 +27,11 @@ function srProperties(n: number): string {
   return 'nekretnina';
 }
 
+const SR_MONTHS_GENITIVE = [
+  'januara', 'februara', 'marta', 'aprila', 'maja', 'juna',
+  'jula', 'avgusta', 'septembra', 'oktobra', 'novembra', 'decembra'
+];
+
 type Text = {
   title: string;
   sub: string;
@@ -38,25 +44,28 @@ type Text = {
   packageTitle: string;
   packageBasic: string;
   packagePremium: string;
+  premiumHint: (extra: string) => string;
   resultLabel: string;
   forOne: string;
   totalFor: (per: string) => string;
+  regularWas: (total: string) => string;
   saving: (amount: string, percent: number) => string;
   lineTour: (n: number, price: string) => string;
+  lineHdr: (n: number, price: string) => string;
+  free: (regular: string) => string;
   audio: string;
   audioBasic: string;
   audioPremium: string;
-  included: string;
   delivery: string;
   deliveryValue: string;
   next: (needed: number, price: string) => string;
   custom: string;
   areaNote: string;
-  promo: (price: string, until: string) => string;
+  promo: (until: string) => string;
   send: string;
   fine: string;
   messagePrefix: string;
-  message: (n: number, pkg: PackageType, total: string, per: string) => string;
+  message: (n: number, pkg: PackageType, total: string, per: string, promo: boolean) => string;
 };
 
 const TEXT: Record<HomeLang, Text> = {
@@ -68,30 +77,33 @@ const TEXT: Record<HomeLang, Text> = {
     less: 'Manje nekretnina',
     more: 'Više nekretnina',
     properties: srProperties,
-    tiersLabel: 'Cena po nekretnini, sa HDR fotografijama',
+    tiersLabel: 'Cena po nekretnini (tura + HDR fotografije)',
     packageTitle: 'Paket',
-    packageBasic: 'Osnovni (SR + jezik po izboru)',
-    packagePremium: 'Premium (SR/EN/DE/RU)',
+    packageBasic: 'Osnovni — SR + jezik po izboru',
+    packagePremium: 'Premium — sva 4 jezika (SR/EN/DE/RU)',
+    premiumHint: (extra) => `Premium: +${extra} po turi`,
     resultLabel: 'Okvirna cena',
     forOne: 'za jednu nekretninu',
     totalFor: (per) => `ukupno · ${per} po nekretnini`,
-    saving: (amount, percent) => `Ušteda ${amount} (−${percent}%)`,
-    lineTour: (n, price) => `${n} × 360° tura + HDR (${price})`,
+    regularWas: (total) => `redovno ${total}`,
+    saving: (amount, percent) => `Popust na obim: ${amount} (−${percent}%)`,
+    lineTour: (n, price) => `${n} × 360° tura sa audio vodičem (${price})`,
+    lineHdr: (n, price) => `${n} × HDR fotografije, po prostoriji (${price})`,
+    free: (regular) => `gratis (${regular})`,
     audio: 'Audio vodič',
     audioBasic: 'SR + jezik po izboru',
     audioPremium: 'SR, EN, DE, RU',
-    included: 'uključeno',
     delivery: 'Isporuka',
     deliveryValue: 'za 48h',
     next: (needed, price) => `Još ${needed} ${srProperties(needed)} i cena pada na ${price} po nekretnini.`,
     custom: 'Za 10 i više nekretnina mesečno pravimo i poseban predlog.',
     areaNote: `Cena važi za nekretnine do ${MAX_AREA_SQM}m². Za veću kvadraturu javite nam se za poseban dogovor.`,
-    promo: (price, until) => `🎉 Promo za Osnovni paket: ${price} do ${until} (nekretnine do ${MAX_AREA_SQM}m²).`,
+    promo: (until) => `🎉 Promocija do ${until}: HDR fotografije su gratis uz svaku turu (Osnovni paket).`,
     send: 'Pošalji upit sa ovim →',
     fine: 'Cena je orijentaciona; tačnu potvrđujemo posle kratkog razgovora.',
     messagePrefix: 'Kalkulator:',
-    message: (n, pkg, total, per) =>
-      `Kalkulator: ${n} ${srProperties(n)}, paket ${pkg === 'premium' ? 'Premium' : 'Osnovni'} — okvirno ${total} (${per} po nekretnini).`
+    message: (n, pkg, total, per, promo) =>
+      `Kalkulator: ${n} ${srProperties(n)}, paket ${pkg === 'premium' ? 'Premium' : 'Osnovni'}${promo ? ' (promo — HDR gratis)' : ''} — okvirno ${total} (${per} po nekretnini).`
   },
   en: {
     title: 'Work out an indicative price',
@@ -101,72 +113,67 @@ const TEXT: Record<HomeLang, Text> = {
     less: 'Fewer properties',
     more: 'More properties',
     properties: (n) => (n === 1 ? 'property' : 'properties'),
-    tiersLabel: 'Price per property, with HDR photos',
+    tiersLabel: 'Price per property (tour + HDR photos)',
     packageTitle: 'Package',
-    packageBasic: 'Basic (SR + language of choice)',
-    packagePremium: 'Premium (SR/EN/DE/RU)',
+    packageBasic: 'Basic — SR + a language of your choice',
+    packagePremium: 'Premium — all 4 languages (SR/EN/DE/RU)',
+    premiumHint: (extra) => `Premium: +${extra} per tour`,
     resultLabel: 'Indicative price',
     forOne: 'for one property',
     totalFor: (per) => `total · ${per} per property`,
-    saving: (amount, percent) => `You save ${amount} (−${percent}%)`,
-    lineTour: (n, price) => `${n} × 360° tour + HDR (${price})`,
+    regularWas: (total) => `regular ${total}`,
+    saving: (amount, percent) => `Volume discount: ${amount} (−${percent}%)`,
+    lineTour: (n, price) => `${n} × 360° tour with audio guide (${price})`,
+    lineHdr: (n, price) => `${n} × HDR photos, one per room (${price})`,
+    free: (regular) => `free (${regular})`,
     audio: 'Audio guide',
     audioBasic: 'SR + language of choice',
     audioPremium: 'SR, EN, DE, RU',
-    included: 'included',
     delivery: 'Delivery',
     deliveryValue: 'within 48h',
     next: (needed, price) =>
       `${needed} more ${needed === 1 ? 'property' : 'properties'} and the price drops to ${price} per property.`,
     custom: 'For 10 or more properties a month we also put together a custom proposal.',
     areaNote: `Price applies to properties up to ${MAX_AREA_SQM}m². For larger properties, contact us for a custom quote.`,
-    promo: (price, until) => `🎉 Launch promo for the Basic package: ${price} until ${until} (properties up to ${MAX_AREA_SQM}m²).`,
+    promo: (until) => `🎉 Promo until ${until}: HDR photos are free with every tour (Basic package).`,
     send: 'Send a request with this →',
     fine: 'The price is indicative; we confirm the exact amount after a short call.',
     messagePrefix: 'Calculator:',
-    message: (n, pkg, total, per) =>
-      `Calculator: ${n} ${n === 1 ? 'property' : 'properties'}, ${pkg === 'premium' ? 'Premium' : 'Basic'} package — approx. ${total} (${per} per property).`
+    message: (n, pkg, total, per, promo) =>
+      `Calculator: ${n} ${n === 1 ? 'property' : 'properties'}, ${pkg === 'premium' ? 'Premium' : 'Basic'} package${promo ? ' (promo — free HDR)' : ''} — approx. ${total} (${per} per property).`
   }
 };
 
-const PROMO_LOCALE: Record<HomeLang, string> = { sr: 'sr-RS', en: 'en-GB' };
-
-// Genitiv ("do 1. novembra") - Intl.DateTimeFormat za sr-RS vraća nominativ
-// ("1. novembar"), pogrešno posle predloga "do".
-const SR_MONTHS_GENITIVE = [
-  'januara', 'februara', 'marta', 'aprila', 'maja', 'juna',
-  'jula', 'avgusta', 'septembra', 'oktobra', 'novembra', 'decembra'
-];
-
 /**
- * Kalkulator okvirne cene ispod paketa na početnoj. Cene i stepeni su u
- * app/lib/pricing.ts; ovde je samo prikaz i prenos izbora u formu za kontakt.
+ * Kalkulator okvirne cene ispod paketa na početnoj. Cene, stepeni i uslovi
+ * promocije su u app/lib/pricing.ts; ovde je samo prikaz i prenos izbora u
+ * formu za kontakt.
  */
 export default function PriceCalculator({ lang = 'sr' }: { lang?: HomeLang }) {
   const t = TEXT[lang];
   const [count, setCount] = useState(1);
   const [packageType, setPackageType] = useState<PackageType>('basic');
 
-  const q = quote(count, packageType);
+  // Client-only poziv - traje samo dok kampanja traje, ne sme da se
+  // "zamrzne" na vrednost iz trenutka build-a/deploy-a (vidi PROMO).
+  const promoActive = isPromoActive();
+  const q = quote(count, packageType, promoActive);
+
   // Ručno, a ne Intl: server i pregledač umeju da stave različit razmak uz €,
   // pa se prvi render ne bi poklopio.
   const eur = (n: number) => (lang === 'sr' ? `${n} €` : `€${n}`);
 
-  // Client-only poziv - traje samo dok kampanja traje, ne sme da se
-  // "zamrzne" na vrednost iz trenutka build-a/deploy-a (vidi PROMO u pricing.ts).
-  const promoActive = isPromoActive();
-  const promoEndDate = new Date(`${PROMO.endDate}T00:00:00`);
-  // Intl daje nominativ ("1. novembar") - posle "do" treba genitiv
-  // ("do 1. novembra"), pa se za sr meseci ispisuju ručno.
+  const promoEnd = new Date(`${PROMO.endDate}T00:00:00`);
+  // Intl daje nominativ ("1. novembar") - posle "do" treba genitiv.
   const promoUntil =
     lang === 'sr'
-      ? `${promoEndDate.getDate()}. ${SR_MONTHS_GENITIVE[promoEndDate.getMonth()]} ${promoEndDate.getFullYear()}.`
-      : promoEndDate.toLocaleDateString(PROMO_LOCALE[lang], { day: 'numeric', month: 'long', year: 'numeric' });
+      ? `${promoEnd.getDate()}. ${SR_MONTHS_GENITIVE[promoEnd.getMonth()]} ${promoEnd.getFullYear()}.`
+      : promoEnd.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
   const sendToForm = () => {
     const detail: EstimateDetail = {
       packageValue: contactPackageFor(q.count, packageType),
-      message: t.message(q.count, packageType, eur(q.total), eur(q.perProperty)),
+      message: t.message(q.count, packageType, eur(q.total), eur(q.perProperty), q.promoApplied),
       prefix: t.messagePrefix
     };
     window.dispatchEvent(new CustomEvent<EstimateDetail>(ESTIMATE_EVENT, { detail }));
@@ -186,7 +193,7 @@ export default function PriceCalculator({ lang = 'sr' }: { lang?: HomeLang }) {
             className="calc-note"
             style={{ borderStyle: 'solid', borderColor: 'var(--accent)', color: 'var(--accent)', fontWeight: 700 }}
           >
-            {t.promo(eur(PROMO.price), promoUntil)}
+            {t.promo(promoUntil)}
           </p>
         )}
 
@@ -223,7 +230,7 @@ export default function PriceCalculator({ lang = 'sr' }: { lang?: HomeLang }) {
                   onClick={() => setCount(tier.min)}
                 >
                   <small>{max === null ? `${tier.min}+` : tier.min === max ? tier.min : `${tier.min}–${max}`}</small>
-                  <b>{eur(perProperty(tier, packageType))}</b>
+                  <b>{eur(perProperty(tier, packageType, promoActive))}</b>
                 </button>
               );
             })}
@@ -233,7 +240,10 @@ export default function PriceCalculator({ lang = 'sr' }: { lang?: HomeLang }) {
         <label className="switch-row">
           <span>
             <strong>{t.packageTitle}</strong>
-            <span>{packageType === 'premium' ? t.packagePremium : t.packageBasic}</span>
+            <span>
+              {packageType === 'premium' ? t.packagePremium : t.packageBasic}
+              {packageType === 'basic' && ` · ${t.premiumHint(eur(PREMIUM_EXTRA))}`}
+            </span>
           </span>
           <input
             type="checkbox"
@@ -250,18 +260,25 @@ export default function PriceCalculator({ lang = 'sr' }: { lang?: HomeLang }) {
           <b>{eur(q.total)}</b>
           <span>{q.count === 1 ? t.forOne : t.totalFor(eur(q.perProperty))}</span>
         </div>
+        {q.promoApplied && (
+          <span style={{ fontSize: '.85rem', color: 'var(--ink-soft)', textDecoration: 'line-through' }}>
+            {t.regularWas(eur(q.regularTotal))}
+          </span>
+        )}
         {q.saving > 0 && <span className="saving">{t.saving(eur(q.saving), q.savingPercent)}</span>}
 
         <ul className="breakdown">
           <li>
-            <span>{t.lineTour(q.count, eur(q.perProperty))}</span>
-            <span>{eur(q.total)}</span>
+            <span>{t.lineTour(q.count, eur(q.tourPrice))}</span>
+            <span>{eur(q.count * q.tourPrice)}</span>
+          </li>
+          <li>
+            <span>{t.lineHdr(q.count, q.promoApplied ? eur(q.hdrRegularPrice) : eur(q.hdrPrice))}</span>
+            <span>{q.promoApplied ? t.free(eur(q.count * q.hdrRegularPrice)) : eur(q.count * q.hdrPrice)}</span>
           </li>
           <li>
             <span>{t.audio}</span>
-            <span>
-              {packageType === 'premium' ? t.audioPremium : t.audioBasic} · {t.included}
-            </span>
+            <span>{packageType === 'premium' ? t.audioPremium : t.audioBasic}</span>
           </li>
           <li>
             <span>{t.delivery}</span>

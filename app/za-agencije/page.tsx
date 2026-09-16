@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 import ContactForm from '../../components/ContactForm';
 import PriceCalculator from '../../components/PriceCalculator';
+import PromoBanner from '../../components/PromoBanner';
 import SiteTracker from '../../components/SiteTracker';
 import { SITE_STYLES } from '../lib/siteStyles';
 import { AGENCY_COPY } from '../lib/agencyCopy';
@@ -135,6 +136,7 @@ export default function AgencyPage() {
               <h2>{copy.pricing.title}</h2>
               <p className="note">{copy.pricing.note}</p>
             </div>
+            <PromoBanner lang="sr" />
             <div className="price-grid n-2">
               {AGENCY_PLANS.map((plan) => (
                 <div key={plan.track} className={`card price-card${plan.badge ? ' featured' : ''}`}>

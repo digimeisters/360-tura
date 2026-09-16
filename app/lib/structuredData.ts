@@ -35,9 +35,9 @@ export function homeJsonLd(faq: readonly FaqItem[], lang: HomeLang = 'sr') {
         image: `${SITE_URL}/opengraph-image`,
         telephone: CONTACT.phoneE164,
         email: CONTACT.email,
-        // Bio je hardkodiran (60€, stara cena sa HDR kao dodatkom) - sad čita
-        // ulaznu cenu (1-2 nekretnine, Osnovni) direktno iz pricing.ts.
-        priceRange: lang === 'sr' ? `od ${PRICE_TIERS[0].basic} €` : `from €${PRICE_TIERS[0].basic}`,
+        // Bio je hardkodiran (60€, stara cena) - sad čita ulaznu cenu same
+        // ture (1-2 nekretnine, Osnovni paket) direktno iz pricing.ts.
+        priceRange: lang === 'sr' ? `od ${PRICE_TIERS[0].tour} €` : `from €${PRICE_TIERS[0].tour}`,
         address: {
           '@type': 'PostalAddress',
           streetAddress: CONTACT.street,

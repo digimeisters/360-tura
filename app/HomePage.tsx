@@ -5,6 +5,7 @@ import HeroDevice from '../components/HeroDevice';
 import ContactForm from '../components/ContactForm';
 import SiteTracker from '../components/SiteTracker';
 import PriceCalculator from '../components/PriceCalculator';
+import PromoBanner from '../components/PromoBanner';
 import { getShowcaseTours, pickHeroTour } from './lib/showcaseTours';
 import { SITE_NAME, SITE_URL, CONTACT, CONTACT_LINKS, whatsappLink } from './lib/site';
 import { HOME_COPY, type HomeLang } from './lib/homeCopy';
@@ -226,6 +227,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
               <h2>{copy.pricing.title}</h2>
               <p className="note">{copy.pricing.note}</p>
             </div>
+            <PromoBanner lang={lang} />
             <div className="price-grid">
               {copy.pricing.plans.map((plan) => (
                 <div key={plan.track} className={`card price-card${plan.badge ? ' featured' : ''}`}>

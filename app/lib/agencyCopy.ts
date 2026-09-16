@@ -61,7 +61,7 @@ export const AGENCY_COPY: AgencyCopy = {
     titleStart: 'Ceo portfolio ',
     titleEm: 'u 360°.',
     lede:
-      'Vaši agenti šalju nekretninu kroz upitnik, mi snimamo i za 48h vraćamo gotovu turu sa audio vodičem, linkom za oglas i kodom za vaš sajt. Kupci prošetaju kroz stan pre poziva, pa na razgledanje dolaze samo ozbiljno zainteresovani.',
+      'Vaši agenti šalju nekretninu kroz upitnik, mi snimamo i za 48h vraćamo gotovu turu sa audio vodičem, linkom za oglas i kodom za vaš sajt. Kupca kroz stan vodi automatski vodič — prošeta kroz sve prostorije pre nego što vas pozove, pa na razgledanje dolaze samo ozbiljno zainteresovani.',
     ctaContact: 'Zatražite ponudu',
     ctaPackages: 'Pogledajte pakete',
     trust: ['Isporuka za 48h', 'Do 4 jezika', 'Kontakt agenta u svakoj turi']
@@ -100,7 +100,7 @@ export const AGENCY_COPY: AgencyCopy = {
       {
         title: 'Praćenje poseta',
         text:
-          'Beležimo koliko je puta tura otvorena, koliko ljudi je ušlo i koje prostorije najduže gledaju. Bez ličnih podataka posetilaca. Kako se i koliko često izveštaj šalje, dogovaramo posebno.'
+          'Beležimo koliko je puta tura otvorena, koliko ljudi je ušlo i koje prostorije najduže gledaju — bez ličnih podataka posetilaca. Izveštaj šaljemo na zahtev, pa vidite koji oglas stvarno privlači pažnju.'
       }
     ]
   },
@@ -110,7 +110,7 @@ export const AGENCY_COPY: AgencyCopy = {
     note:
       'Mesečni paketi su za agencije sa stalnim prilivom oglasa. Ispod izračunajte cenu za svoj broj nekretnina.',
     fine:
-      '* Cene su orijentacione i potvrđuju se posle razgovora. Za veći obim pravimo poseban predlog.'
+      '* Cene su orijentacione i važe za nekretnine do 50m², u Kragujevcu i okolini. Za veću kvadraturu, druge gradove i veći obim pravimo poseban predlog.'
   },
   faq: {
     eyebrow: 'Pitanja agencija',
@@ -135,7 +135,7 @@ export const AGENCY_COPY: AgencyCopy = {
       {
         question: 'Koliko dugo tura ostaje online?',
         answer:
-          'Bez vremenskog ograničenja. Tura ostaje dostupna dok ne zatražite da je skinemo ili dok je ne zaključate kao izdatu ili prodatu.'
+          'Bez vremenskog ograničenja — link ostaje živ trajno. Kada se nekretnina proda, izda ili je privremeno pauzirate, menjamo joj status: posetilac umesto ture vidi kratku poruku, a ime agencije i telefon ostaju vidljivi, pa vas i dalje mogu kontaktirati za druge nekretnine.'
       },
       {
         question: 'Da li postoji obavezan ugovor ili minimalni period?',
