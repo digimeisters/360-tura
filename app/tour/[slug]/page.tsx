@@ -56,6 +56,7 @@ import {
   getLocalizedText,
   parseWaypoints,
   parseEstablish,
+  composeEstablishText,
   buildI18nObject,
   mergeAudioI18n,
   Centered
@@ -564,6 +565,16 @@ export default function TourPage() {
     setTourStarted(true);
   };
 
+  // Posetilac je na uvodnom ekranu sam izabrao "Automatsko vođenje" (za
+  // razliku od ?vodic=1, koji dolazi već odlučen iz linka). Isti efekat kao
+  // gore - guideRequested=true pokreće activateGuide() čim se tura pokrene.
+  const startTourGuided = () => {
+    const firstIdx = rooms.findIndex((r) => r.id === guideSteps[0].room.id);
+    if (firstIdx !== -1) setRoomIdx(firstIdx);
+    setGuideRequested(true);
+    setTourStarted(true);
+  };
+
   useEffect(() => {
     if (!guideRequested || !tourStarted || !hasGuide || guideAutoStartedRef.current) return;
     guideAutoStartedRef.current = true;
@@ -611,6 +622,10 @@ export default function TourPage() {
           } else if (isNav && wp.targetRoomId) {
             walkToRoom(wp);
           } else if (!isNav) {
+            // Ručni klik na info-tačku tokom automatskog vođenja: vodič je
+            // sve tačke već sam obilazio, pa ovo znači da je posetilac
+            // preuzeo kontrolu - vidi komentar uz takeManualControl.
+            takeManualControl();
             isInterruptedRef.current = true;
             stopCurrentAnimation();
             resetPosition();
@@ -620,7 +635,7 @@ export default function TourPage() {
         }
       });
     });
-  }, [rooms, handleStartEditWaypoint, resetPosition, walkToRoom, playNarration, stopCurrentAnimation]);
+  }, [rooms, handleStartEditWaypoint, resetPosition, walkToRoom, playNarration, stopCurrentAnimation, takeManualControl]);
 
   const changeLanguage = useCallback((l: Language) => {
     setLang(l);
@@ -1243,6 +1258,10 @@ export default function TourPage() {
           } else if (isNav && wp.targetRoomId) {
             walkToRoom(wp);
           } else if (!isNav) {
+            // Ručni klik na info-tačku tokom automatskog vođenja: vodič je
+            // sve tačke već sam obilazio, pa ovo znači da je posetilac
+            // preuzeo kontrolu - vidi komentar uz takeManualControl.
+            takeManualControl();
             isInterruptedRef.current = true;
             stopCurrentAnimation();
             resetPosition();
@@ -1441,7 +1460,7 @@ export default function TourPage() {
       }
       visitedGuideRoomsRef.current.add(roomKey);
 
-      const introTextRaw = establishData.text_i18n ||
+      const introTextRaw = composeEstablishText(establishData) ||
 `${translations[langRef.current].welcomePrefix}${getLocalizedText(currentRoom.title_i18n, langRef.current)}`;
       const introAudioUrl = establishData.audio_url_i18n ?? establishData.audio_url;
 
@@ -1576,7 +1595,8 @@ export default function TourPage() {
     stopCurrentAnimation,
     stopAudio,
     handleStartEditWaypoint,
-    playNarration
+    playNarration,
+    takeManualControl
   ]);
 
   // Isto za oba mesta gde se admin alati crtaju (prazna tura i puna tura).
@@ -1700,6 +1720,24 @@ export default function TourPage() {
           lede={t.welcome}
           startLabel={guideRequested && hasGuide ? t.startGuidedTour : t.startTour}
           onStart={startTour}
+          // ?vodic=1 (agent-link) već je odlučen - zadržava stari jednodelan
+          // CTA. Organski posetilac sa turom koja ima putanju vodiča ("hoću
+          // li sam da hodam ili da me neko vodi") dobija pravi izbor.
+          guideChoice={
+            hasGuide && !guideRequested
+              ? {
+                  guidedLabel: t.startGuidedTour,
+                  guidedHint: t.startGuidedTourHint,
+                  exploreLabel: t.exploreSelf,
+                  exploreHint: t.exploreSelfHint,
+                  onStartGuided: startTourGuided
+                }
+              : null
+          }
+          onShare={handleShareTour}
+          shareCopied={shareCopied}
+          shareLabel={t.shareShort}
+          shareCopiedLabel={t.linkCopied}
           lang={lang}
           languages={availableLanguages.filter((l) => adminMode || isLanguageAvailable(l))}
           onChangeLanguage={changeLanguage}
@@ -1819,6 +1857,8 @@ export default function TourPage() {
           shareCopied={shareCopied}
           shareLabel={t.shareTour}
           copiedLabel={t.linkCopied}
+          // Pre polaska deljenje već stoji gore desno na WelcomeScreen-u.
+          showShare={tourStarted}
           labels={{
             faq: t.btnFaq,
             location: t.btnLocation,

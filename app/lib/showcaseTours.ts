@@ -101,6 +101,16 @@ function hasText(i18n: unknown, lang: string): boolean {
   return typeof v === 'string' && v.trim().length > 0;
 }
 
+// Uvodna naracija sobe: namena + specifično, sa padom na stari jednodelan
+// text_i18n za sobe napravljene pre podele na dva polja.
+function establishNarration(establishI18n: unknown, lang: string): string {
+  const est = asObject(establishI18n);
+  const intro = pickLang(est.intro_i18n, lang).trim();
+  const detail = pickLang(est.detail_i18n, lang).trim();
+  if (intro || detail) return [intro, detail].filter(Boolean).join(' ');
+  return pickLang(est.text_i18n, lang);
+}
+
 // Skraćuje na granici reči, da info-kartica ne završi usred reči.
 function preview(text: string, max: number): string {
   const clean = text.replace(/\s+/g, ' ').trim();
@@ -164,7 +174,7 @@ export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
     const cover = pickCoverRoom(tourRooms);
 
     const languages = LANGUAGES.filter((l) =>
-      tourRooms.some((r) => hasText(r.title_i18n, l) || hasText(asObject(r.establish_i18n).text_i18n, l))
+      tourRooms.some((r) => hasText(r.title_i18n, l) || establishNarration(r.establish_i18n, l).length > 0)
     );
 
     const category = CATEGORIES.includes(tour.category as ShowcaseCategory)
@@ -188,7 +198,7 @@ export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
           id: String(r.id),
           title: realValue(pickLang(r.title_i18n, lang)) || realValue(r.title) || fallback.room(i + 1),
           previewUrl: r.preview_url as string,
-          narration: preview(pickLang(asObject(r.establish_i18n).text_i18n, lang), NARRATION_PREVIEW_CHARS)
+          narration: preview(establishNarration(r.establish_i18n, lang), NARRATION_PREVIEW_CHARS)
         }))
     };
   });

@@ -1,11 +1,22 @@
 import { THEME, GLASS, GLASS_ACCENT } from './theme';
 import { Logo } from './Logo';
 import { LanguageChips } from './TourControls';
+import { IconLink } from './icons';
 import type { Language } from './types';
 
 /**
  * Uvodni ekran ture: naslovna fotografija, izbor jezika i dugme za polazak.
  * Stoji preko panorame dok posetilac ne krene (`tourStarted`).
+ *
+ * Gornja traka nosi samo logo (levo) i deljenje linka (desno) - ostatak
+ * ekrana je slobodan za naslov i CTA. Izbor jezika stoji odmah ispod
+ * obaveštenja o pokretanju (lede), pre dugmadi za polazak - prirodan tok je
+ * da posetilac prvo izabere jezik, pa tek onda pusti turu.
+ *
+ * Kad tura ima putanju vodiča (`guideChoice`), umesto jednog dugmeta nudi
+ * pravi izbor: automatsko vođenje (agent priča i hoda kroz sve prostorije
+ * bez prekida) ili samostalno istraživanje (kao i do sada). Bez putanje
+ * ostaje stari jednodelan CTA.
  */
 export function WelcomeScreen({
   coverUrl,
@@ -14,6 +25,11 @@ export function WelcomeScreen({
   lede,
   startLabel,
   onStart,
+  guideChoice,
+  onShare,
+  shareCopied,
+  shareLabel,
+  shareCopiedLabel,
   lang,
   languages,
   onChangeLanguage
@@ -24,6 +40,17 @@ export function WelcomeScreen({
   lede: string;
   startLabel: string;
   onStart: () => void;
+  guideChoice?: {
+    guidedLabel: string;
+    guidedHint: string;
+    exploreLabel: string;
+    exploreHint: string;
+    onStartGuided: () => void;
+  } | null;
+  onShare: () => void;
+  shareCopied: boolean;
+  shareLabel: string;
+  shareCopiedLabel: string;
   lang: Language;
   /** Samo jezici koje tura zaista ima (admin vidi sve). */
   languages: Language[];
@@ -80,15 +107,34 @@ export function WelcomeScreen({
         }}
       />
 
-      <div style={{ position: 'absolute', top: '16px', left: 0, right: 0, display: 'flex', justifyContent: 'center' }}>
+      <div style={{ position: 'absolute', top: '16px', left: '16px', right: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Logo />
+        <button
+          onClick={onShare}
+          title={shareCopied ? shareCopiedLabel : shareLabel}
+          aria-label={shareCopied ? shareCopiedLabel : shareLabel}
+          style={{
+            ...GLASS,
+            background: shareCopied ? 'rgba(34, 197, 94, 0.55)' : GLASS.background,
+            color: shareCopied ? '#86efac' : '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            borderRadius: '999px',
+            padding: '8px 14px',
+            fontSize: '13px',
+            fontWeight: 700,
+            fontFamily: THEME.fontBody,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          <IconLink size={16} color={shareCopied ? '#86efac' : '#fff'} />
+          {shareCopied ? shareCopiedLabel : shareLabel}
+        </button>
       </div>
 
-      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: '520px' }}>
-        <div style={{ ...GLASS, display: 'flex', gap: '4px', borderRadius: '999px', padding: '4px', marginBottom: '22px' }}>
-          <LanguageChips lang={lang} languages={languages} onChange={onChangeLanguage} size="lg" />
-        </div>
-
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: '520px', marginTop: '70px' }}>
         {agencyName && (
           <div style={{ color: GLASS_ACCENT, fontSize: '12px', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '10px' }}>
             {agencyName}
@@ -98,12 +144,45 @@ export function WelcomeScreen({
         <h1 style={{ color: '#fff', fontSize: 'clamp(26px, 5vw, 38px)', lineHeight: 1.15, margin: '0 0 12px', fontWeight: 700, fontFamily: THEME.fontDisplay, textWrap: 'balance', textShadow: '0 2px 12px rgba(0, 0, 0, 0.35)' }}>
           {title}
         </h1>
-        <p style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '16px', maxWidth: '440px', margin: '0 0 30px', lineHeight: 1.5, textShadow: '0 1px 8px rgba(0, 0, 0, 0.35)' }}>
+        <p style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '16px', maxWidth: '440px', margin: '0 0 18px', lineHeight: 1.5, textShadow: '0 1px 8px rgba(0, 0, 0, 0.35)' }}>
           {lede}
         </p>
-        <button onClick={onStart} style={{ padding: '15px 34px', fontSize: '17px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '999px', cursor: 'pointer', boxShadow: '0 8px 24px rgba(30, 90, 168, 0.45)' }}>
-          {startLabel}
-        </button>
+
+        {/*
+          Odmah ispod obaveštenja ("Izaberite jezik i kliknite...") - prirodan
+          tok je da posetilac prvo izabere jezik, pa tek onda pusti turu.
+        */}
+        <div style={{ ...GLASS, display: 'flex', gap: '4px', borderRadius: '999px', padding: '4px', marginBottom: '26px' }}>
+          <LanguageChips lang={lang} languages={languages} onChange={onChangeLanguage} size="lg" selectedColor={THEME.accent} />
+        </div>
+
+        {guideChoice ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', width: '100%', maxWidth: '360px' }}>
+            <button
+              onClick={guideChoice.onStartGuided}
+              style={{ width: '100%', padding: '15px 28px', fontSize: '17px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '999px', cursor: 'pointer', boxShadow: '0 8px 24px rgba(30, 90, 168, 0.45)' }}
+            >
+              {guideChoice.guidedLabel}
+            </button>
+            <p style={{ margin: '0 0 6px', fontSize: '13px', lineHeight: 1.4, color: 'rgba(255, 255, 255, 0.75)', textShadow: '0 1px 6px rgba(0, 0, 0, 0.35)' }}>
+              {guideChoice.guidedHint}
+            </p>
+
+            <button
+              onClick={onStart}
+              style={{ width: '100%', padding: '13px 28px', fontSize: '15px', fontWeight: 700, background: 'rgba(255, 255, 255, 0.08)', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.35)', borderRadius: '999px', cursor: 'pointer' }}
+            >
+              {guideChoice.exploreLabel}
+            </button>
+            <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.4, color: 'rgba(255, 255, 255, 0.75)', textShadow: '0 1px 6px rgba(0, 0, 0, 0.35)' }}>
+              {guideChoice.exploreHint}
+            </p>
+          </div>
+        ) : (
+          <button onClick={onStart} style={{ padding: '15px 34px', fontSize: '17px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '999px', cursor: 'pointer', boxShadow: '0 8px 24px rgba(30, 90, 168, 0.45)' }}>
+            {startLabel}
+          </button>
+        )}
       </div>
     </div>
   );

@@ -19,7 +19,14 @@ export type Waypoint = {
 };
 
 export type EstablishData = {
+  // Stari, jednodelni format naracije - zadržan radi soba napravljenih pre
+  // podele na namenu/specifično (vidi intro_i18n/detail_i18n ispod) i radi
+  // ručnog "establish" hotspota u panorami, koji i dalje piše samo ovde.
   text_i18n?: Record<string, string> | string;
+  // Prvi deo uvodne naracije: namena/uloga sobe u ovom konkretnom domu.
+  intro_i18n?: Record<string, string> | string;
+  // Drugi deo: nešto specifično za OVU sobu (materijali, nameštaj, pogled).
+  detail_i18n?: Record<string, string> | string;
   fromYaw?: number;
   pitch?: number;
   audio_url?: string;

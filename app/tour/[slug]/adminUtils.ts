@@ -17,18 +17,26 @@ import { buildI18nObject, getLocalizedText } from './utils';
 export const translateRoomToLanguages = async (
   roomId: string | number,
   sourceTitle: string,
-  sourceNarration: string,
+  sourceNarrationIntro: string,
+  sourceNarrationDetail: string,
   baseTitleI18n: Record<string, string>,
-  baseEstablishTextI18n: Record<string, string>,
+  baseEstablishIntroI18n: Record<string, string>,
+  baseEstablishDetailI18n: Record<string, string>,
   baseWaypoints: Waypoint[],
   targetLangs: Language[]
 ): Promise<{
   titleI18n: Record<string, string>;
-  establishTextI18n: Record<string, string>;
+  establishIntroI18n: Record<string, string>;
+  establishDetailI18n: Record<string, string>;
   waypoints: Waypoint[];
 }> => {
   if (targetLangs.length === 0) {
-    return { titleI18n: baseTitleI18n, establishTextI18n: baseEstablishTextI18n, waypoints: baseWaypoints };
+    return {
+      titleI18n: baseTitleI18n,
+      establishIntroI18n: baseEstablishIntroI18n,
+      establishDetailI18n: baseEstablishDetailI18n,
+      waypoints: baseWaypoints
+    };
   }
 
   const responses = await Promise.all(
@@ -40,7 +48,12 @@ export const translateRoomToLanguages = async (
           roomId,
           action: 'translate_step',
           targetLang,
-          draft: { title: sourceTitle, narration: sourceNarration, waypoints: baseWaypoints }
+          draft: {
+            title: sourceTitle,
+            narrationIntro: sourceNarrationIntro,
+            narrationDetail: sourceNarrationDetail,
+            waypoints: baseWaypoints
+          }
         })
       });
       const result = await res.json();
@@ -49,13 +62,15 @@ export const translateRoomToLanguages = async (
   );
 
   const titleI18n: Record<string, string> = { ...baseTitleI18n };
-  let establishTextI18n: Record<string, string> = { ...baseEstablishTextI18n };
+  let establishIntroI18n: Record<string, string> = { ...baseEstablishIntroI18n };
+  let establishDetailI18n: Record<string, string> = { ...baseEstablishDetailI18n };
   let waypoints = baseWaypoints;
 
   for (const { targetLang, result } of responses) {
     if (result.success && result.translated) {
       titleI18n[targetLang] = result.translated.title;
-      establishTextI18n = { ...establishTextI18n, [targetLang]: result.translated.narration };
+      establishIntroI18n = { ...establishIntroI18n, [targetLang]: result.translated.narrationIntro };
+      establishDetailI18n = { ...establishDetailI18n, [targetLang]: result.translated.narrationDetail };
 
       if (Array.isArray(result.translated.waypoints)) {
         waypoints = waypoints.map((wp, idx) => ({
@@ -77,7 +92,7 @@ export const translateRoomToLanguages = async (
     }
   }
 
-  return { titleI18n, establishTextI18n, waypoints };
+  return { titleI18n, establishIntroI18n, establishDetailI18n, waypoints };
 };
 
 // Za razliku od getLocalizedText (koja pada nazad na 'sr' ako traženi jezik

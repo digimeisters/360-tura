@@ -23,15 +23,21 @@ export const dynamic = 'force-dynamic';
  * Rezultat: čistiji kod, bez tipskih greški, ista funkcionalnost.
  */
 
-const MIN_WAYPOINTS = 4;
-const MAX_WAYPOINTS = 6;
+// Manje tačaka, ali relevantnijih: na MIN=4 je model često "izmišljao"
+// četvrtu tačku (generički prekidač za svetlo i sl.) samo da ispuni kvotu.
+const MIN_WAYPOINTS = 2;
+const MAX_WAYPOINTS = 4;
 
 // Tekst tačke ide u mali tooltip u panorami, pa dužina mora da bude
 // ograničena već u generisanju - posle je kasno, admin bi morao ručno da
 // skraćuje svaku tačku.
 const MAX_WAYPOINT_TITLE_WORDS = 3;
 const MAX_WAYPOINT_TEXT_CHARS = 180;
-const MAX_NARRATION_CHARS = 320;
+// Uvodna naracija je podeljena na dva dela koja se čitaju jedan za drugim:
+// prvo namena sobe, pa nešto specifično za nju. Svaki deo ima sopstveni
+// limit da zbir ostane u ritmu prethodnog jednodelnog teksta (~320 znakova).
+const MAX_NARRATION_INTRO_CHARS = 140;
+const MAX_NARRATION_DETAIL_CHARS = 220;
 
 // Panorama pokriva punih 360°, pa na 1024px širine ispada ~2.8° po pikselu -
 // premalo da model prepozna materijal poda, tip klime ili pogled kroz prozor.
@@ -69,12 +75,27 @@ function buildDraftSchema(): Schema {
         },
         required: ['sr'],
       },
-      narration_i18n: {
+      narration_intro_i18n: {
         type: Type.OBJECT,
         properties: {
           sr: {
             type: Type.STRING,
-            description: `Uvodna naracija za sobu na srpskom (latinica), 2-4 rečenice, najviše ${MAX_NARRATION_CHARS} karaktera.`,
+            description:
+              `Prva rečenica uvodne naracije na srpskom (latinica): NAMENA/uloga ove sobe u OVOM konkretnom domu ` +
+              `(npr. kako se nadovezuje na ostatak stana, čemu služi ukućanima) - ne generička definicija tipa sobe. ` +
+              `1 rečenica, najviše ${MAX_NARRATION_INTRO_CHARS} karaktera.`,
+          },
+        },
+        required: ['sr'],
+      },
+      narration_detail_i18n: {
+        type: Type.OBJECT,
+        properties: {
+          sr: {
+            type: Type.STRING,
+            description:
+              `Drugi deo uvodne naracije na srpskom (latinica): nešto SPECIFIČNO za ovu sobu, vidljivo na slici ` +
+              `(materijal poda, nameštaj, pogled kroz prozor...). 1-2 rečenice, najviše ${MAX_NARRATION_DETAIL_CHARS} karaktera.`,
           },
         },
         required: ['sr'],
@@ -125,7 +146,7 @@ function buildDraftSchema(): Schema {
         },
       },
     },
-    required: ['title_i18n', 'narration_i18n', 'waypoints'],
+    required: ['title_i18n', 'narration_intro_i18n', 'narration_detail_i18n', 'waypoints'],
   };
 }
 
@@ -134,7 +155,8 @@ function buildTranslationSchema(waypointCount: number): Schema {
     type: Type.OBJECT,
     properties: {
       title: { type: Type.STRING },
-      narration: { type: Type.STRING },
+      narrationIntro: { type: Type.STRING },
+      narrationDetail: { type: Type.STRING },
       waypoints: {
         type: Type.ARRAY,
         description: `Mora imati TAČNO ${waypointCount} elemenata, istim redosledom kao ulaz.`,
@@ -148,7 +170,7 @@ function buildTranslationSchema(waypointCount: number): Schema {
         },
       },
     },
-    required: ['title', 'narration', 'waypoints'],
+    required: ['title', 'narrationIntro', 'narrationDetail', 'waypoints'],
   };
 }
 
@@ -182,6 +204,19 @@ STRICT INSTRUCTIONS FOR GENERATION:
   the flooring material, the type of appliance, what the window looks out on -
   instead of generic praise like "prostrana i svetla prostorija".
 
+INTRO NARRATION - TWO SEPARATE SENTENCES, PLAYED BACK TO BACK:
+- narration_intro_i18n = the room's PURPOSE in THIS specific home: how it relates
+  to the rest of the apartment/house, what it's for. NOT a generic dictionary
+  definition of the room type ("Dnevna soba je prostor za odmor..." is BAD).
+  Ground it in what the layout/photo actually shows, e.g. how it connects to
+  neighboring spaces.
+- narration_detail_i18n = one specific, concrete observation from the image
+  itself (material, furniture piece, view, light) that is NOT already covered
+  by a waypoint.
+- Never repeat the same phrasing pattern across rooms of the same type in a
+  tour - vary sentence structure so a visitor touring several similar rooms
+  doesn't hear the same opening every time.
+
 COORDINATE SYSTEM - READ CAREFULLY:
 The image is an equirectangular projection covering the full 360x180 degrees of the
 room. Every waypoint must carry the angles of the object it describes, converted
@@ -198,6 +233,10 @@ from that object's pixel position in the image:
 
 CRITICAL WAYPOINT RULES:
 - Generate EXACTLY between ${MIN_WAYPOINTS} and ${MAX_WAYPOINTS} waypoints.
+- Quality over quantity: only the most distinctive, worth-mentioning features.
+  Do NOT invent a waypoint just to reach the maximum - ${MIN_WAYPOINTS} strong
+  waypoints beat ${MAX_WAYPOINTS} where the last one is filler (a generic light
+  switch, an unremarkable wall).
 - EVERY single waypoint MUST be purely INFORMATIONAL.
 - Focus waypoints ONLY on interior design, furniture, lighting, flooring, appliances, window views, or materials in the room.
 - STRICTLY DO NOT place waypoints on doors, hallways, stairs, or exits intended for room navigation/transitions.
@@ -205,7 +244,8 @@ CRITICAL WAYPOINT RULES:
 LENGTH LIMITS - these strings are rendered in a small tooltip inside the panorama:
 - waypoint title: at most ${MAX_WAYPOINT_TITLE_WORDS} words, no trailing period.
 - waypoint text: 1-2 sentences, at most ${MAX_WAYPOINT_TEXT_CHARS} characters.
-- narration: 2-4 sentences, at most ${MAX_NARRATION_CHARS} characters.
+- narration_intro_i18n: 1 sentence, at most ${MAX_NARRATION_INTRO_CHARS} characters.
+- narration_detail_i18n: 1-2 sentences, at most ${MAX_NARRATION_DETAIL_CHARS} characters.
 
 - Output valid JSON matching the schema.
 `;
@@ -214,7 +254,8 @@ LENGTH LIMITS - these strings are rendered in a small tooltip inside the panoram
 function buildTranslationPrompt(
   targetLangName: string,
   title: string,
-  narration: string,
+  narrationIntro: string,
+  narrationDetail: string,
   waypoints: { title: string; text: string }[]
 ): string {
   return `
@@ -230,11 +271,14 @@ RULES:
   tooltip inside the panorama. Titles stay short (at most ${MAX_WAYPOINT_TITLE_WORDS} words).
 - Convert nothing: no unit conversions, no currency conversions, no rounding of
   numbers that appear in the text.
+- "narrationIntro" and "narrationDetail" are two SEPARATE sentences played back to
+  back - translate each on its own, do not merge or reorder them.
 
 Input:
 {
   "title": ${JSON.stringify(title)},
-  "narration": ${JSON.stringify(narration)},
+  "narrationIntro": ${JSON.stringify(narrationIntro)},
+  "narrationDetail": ${JSON.stringify(narrationDetail)},
   "waypoints": ${JSON.stringify(waypoints)}
 }
 
@@ -366,7 +410,12 @@ async function handleGenerateDraft(body: any) {
     label: 'AI draft sobe',
   });
 
-  if (!raw?.title_i18n?.sr || !raw?.narration_i18n?.sr || !Array.isArray(raw.waypoints)) {
+  if (
+    !raw?.title_i18n?.sr ||
+    !raw?.narration_intro_i18n?.sr ||
+    !raw?.narration_detail_i18n?.sr ||
+    !Array.isArray(raw.waypoints)
+  ) {
     throw new Error('Generisani draft ne sadrži sva obavezna polja.');
   }
 
@@ -383,7 +432,8 @@ async function handleGenerateDraft(body: any) {
   // Oblik koji frontend (handleAutoPopulateRoom -> aiDraft) očekuje:
   const draft = {
     title: raw.title_i18n.sr,
-    narration: raw.narration_i18n.sr,
+    narrationIntro: raw.narration_intro_i18n.sr,
+    narrationDetail: raw.narration_detail_i18n.sr,
     waypoints,
   };
 
@@ -428,7 +478,8 @@ async function handleTranslateStep(body: any) {
   const targetLangName = langNames[targetLang.toLowerCase()] || targetLang;
 
   const sourceTitle = extractText(draft.title, 'sr');
-  const sourceNarration = extractText(draft.narration, 'sr');
+  const sourceNarrationIntro = extractText(draft.narrationIntro, 'sr');
+  const sourceNarrationDetail = extractText(draft.narrationDetail, 'sr');
   const sourceWaypoints: { title: string; text: string }[] = Array.isArray(draft.waypoints)
     ? draft.waypoints.map((wp: any) => ({
         title: extractText(wp.title_i18n, 'sr'),
@@ -436,7 +487,13 @@ async function handleTranslateStep(body: any) {
       }))
     : [];
 
-  const prompt = buildTranslationPrompt(targetLangName, sourceTitle, sourceNarration, sourceWaypoints);
+  const prompt = buildTranslationPrompt(
+    targetLangName,
+    sourceTitle,
+    sourceNarrationIntro,
+    sourceNarrationDetail,
+    sourceWaypoints
+  );
   const schema = buildTranslationSchema(sourceWaypoints.length);
 
   const { data: raw, usedModel } = await generateJsonWithRetry<any>({
@@ -450,7 +507,12 @@ async function handleTranslateStep(body: any) {
     label: `Prevod na ${targetLangName}`,
   });
 
-  if (typeof raw?.title !== 'string' || typeof raw?.narration !== 'string' || !Array.isArray(raw.waypoints)) {
+  if (
+    typeof raw?.title !== 'string' ||
+    typeof raw?.narrationIntro !== 'string' ||
+    typeof raw?.narrationDetail !== 'string' ||
+    !Array.isArray(raw.waypoints)
+  ) {
     throw new Error('Prevod ne sadrži sva obavezna polja.');
   }
 
@@ -461,10 +523,11 @@ async function handleTranslateStep(body: any) {
   }));
 
   // Oblik koji frontend (handleConfirmDraftAndProcess) očekuje:
-  // result.translated.title / .narration / .waypoints[i].title_i18n / .text_i18n
+  // result.translated.title / .narrationIntro / .narrationDetail / .waypoints[i].title_i18n / .text_i18n
   const translated = {
     title: raw.title,
-    narration: raw.narration,
+    narrationIntro: raw.narrationIntro,
+    narrationDetail: raw.narrationDetail,
     waypoints,
   };
 

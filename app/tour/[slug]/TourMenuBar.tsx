@@ -19,7 +19,10 @@ export function TourMenuBar({
   shareCopied,
   labels,
   shareLabel,
-  copiedLabel
+  copiedLabel,
+  // Na uvodnom ekranu deljenje već stoji gore desno (WelcomeScreen), pa se
+  // ovde ne duplira - vidi showShare={tourStarted} u page.tsx.
+  showShare = true
 }: {
   activeModal: ActiveModal;
   onOpenModal: (modal: ActiveModal) => void;
@@ -28,10 +31,12 @@ export function TourMenuBar({
   labels: MenuLabels;
   shareLabel: string;
   copiedLabel: string;
+  showShare?: boolean;
 }) {
   return (
     <>
       {/* Deljenje stoji iznad menija, na sredini (iznad "Info"). */}
+      {showShare && (
       <button
         onClick={onShare}
         style={{
@@ -61,6 +66,7 @@ export function TourMenuBar({
           </>
         )}
       </button>
+      )}
 
       <div style={{
         ...GLASS,

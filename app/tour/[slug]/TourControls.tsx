@@ -13,12 +13,15 @@ export function LanguageChips({
   lang,
   languages,
   onChange,
-  size
+  size,
+  selectedColor = GLASS_ACCENT
 }: {
   lang: Language;
   languages: Language[];
   onChange: (l: Language) => void;
   size: 'lg' | 'sm';
+  /** Boja izabranog jezika - podrazumevano GLASS_ACCENT, uvodni ekran ture koristi THEME.accent da se poklopi sa dugmetom za polazak. */
+  selectedColor?: string;
 }) {
   const lg = size === 'lg';
   return (
@@ -28,7 +31,7 @@ export function LanguageChips({
           key={l}
           onClick={() => onChange(l)}
           style={{
-            background: lang === l ? GLASS_ACCENT : 'transparent',
+            background: lang === l ? selectedColor : 'transparent',
             color: lang === l ? '#fff' : `rgba(255, 255, 255, ${lg ? 0.78 : 0.75})`,
             border: 'none',
             borderRadius: lg ? '999px' : '8px',

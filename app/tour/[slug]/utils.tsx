@@ -57,6 +57,39 @@ export const parseEstablish = (establishData: unknown): EstablishData => {
   return {};
 };
 
+const toI18nRecord = (value: unknown): Record<string, string> => {
+  if (!value) return {};
+  let parsed: unknown = value;
+  if (typeof value === 'string') {
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      return {};
+    }
+  }
+  return parsed && typeof parsed === 'object' ? (parsed as Record<string, string>) : {};
+};
+
+/**
+ * Spaja dvodelnu uvodnu naraciju (namena + specifično) u JEDAN i18n objekat
+ * koji playNarration ume da čita - i dalje po jeziku, da promena jezika usred
+ * naracije radi kao i pre. Sobe napravljene pre podele imaju samo text_i18n,
+ * pa se on vraća nepromenjen; prazno (nijedno polje) vraća '' da pozivalac
+ * može da padne nazad na svoj podrazumevani tekst dobrodošlice.
+ */
+export const composeEstablishText = (establishData: EstablishData): Record<string, string> | string => {
+  const intro = toI18nRecord(establishData.intro_i18n);
+  const detail = toI18nRecord(establishData.detail_i18n);
+  if (Object.keys(intro).length === 0 && Object.keys(detail).length === 0) {
+    return establishData.text_i18n || '';
+  }
+  const combined: Record<string, string> = {};
+  for (const lang of ['sr', 'en', 'de', 'ru']) {
+    combined[lang] = [intro[lang], detail[lang]].filter((part) => part && part.trim()).join(' ');
+  }
+  return combined;
+};
+
 export const buildI18nObject = (
   textValue: string,
   existingData?: unknown,

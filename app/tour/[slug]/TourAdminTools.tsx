@@ -7,7 +7,7 @@ import { adminAuthHeader } from '../../lib/authFetch';
 import { Language, Waypoint, EstablishData, Room, Tour } from './types';
 import { translations } from './translations';
 import { THEME, btnStyle } from './theme';
-import { getLocalizedText, parseWaypoints, parseEstablish, buildI18nObject } from './utils';
+import { getLocalizedText, parseWaypoints, parseEstablish, composeEstablishText, buildI18nObject } from './utils';
 import { translateRoomToLanguages, hasExactLangText } from './adminUtils';
 import { describeGuidePathError, parseGuidePath, validateGuidePath } from './guidePath';
 
@@ -25,7 +25,7 @@ import { describeGuidePathError, parseGuidePath, validateGuidePath } from './gui
 
 const AVAILABLE_LANGUAGES: Language[] = ['sr', 'en', 'de', 'ru'];
 
-type AiDraft = { title: string; narration: string; waypoints: Waypoint[] };
+type AiDraft = { title: string; narrationIntro: string; narrationDetail: string; waypoints: Waypoint[] };
 
 export type TourAdminToolsProps = {
   /** 'full' = dugmad u traci i modali; 'empty' = samo dugme za prvu sobu. */
@@ -83,7 +83,9 @@ function roomHasLanguageContent(room: Room | undefined, l: Language): boolean {
   if (checkI18n(room.title_i18n)) return true;
 
   const establishData = parseEstablish(room.establish_i18n);
-  if (checkI18n(establishData.text_i18n)) return true;
+  if (checkI18n(establishData.intro_i18n) || checkI18n(establishData.detail_i18n) || checkI18n(establishData.text_i18n)) {
+    return true;
+  }
 
   const waypoints = parseWaypoints(room.waypoints_i18n);
   for (const wp of waypoints) {
@@ -343,6 +345,8 @@ export default function TourAdminTools({
     // tekst za izgovaranje (bez SR fallback-a - prazan 'en' ostaje prazan).
     const hasAnyText = voiceLanguages.some(
       (l) =>
+        hasExactLangText(establishData.intro_i18n, l) ||
+        hasExactLangText(establishData.detail_i18n, l) ||
         hasExactLangText(establishData.text_i18n, l) ||
         waypointsList.some((wp) => hasExactLangText(wp.text_i18n, l))
     );
@@ -369,7 +373,7 @@ export default function TourAdminTools({
           action: 'generate_voice',
           voiceLanguages,
           content: {
-            establishText: establishData.text_i18n,
+            establishText: composeEstablishText(establishData),
             waypoints: waypointsList.map((wp, idx) => ({ index: idx, text: wp.text_i18n }))
           }
         })
@@ -466,10 +470,12 @@ export default function TourAdminTools({
 
     const otherLangs = targetLanguages.filter((l) => l !== 'sr');
 
+    const baseEstablish = parseEstablish(currentRoom.establish_i18n);
     let currentTitleI18n: Record<string, string> = buildI18nObject(aiDraft.title, currentRoom.title_i18n, 'sr');
     const currentEstablishI18n: EstablishData = {
-      ...parseEstablish(currentRoom.establish_i18n),
-      text_i18n: buildI18nObject(aiDraft.narration, parseEstablish(currentRoom.establish_i18n).text_i18n, 'sr')
+      ...baseEstablish,
+      intro_i18n: buildI18nObject(aiDraft.narrationIntro, baseEstablish.intro_i18n, 'sr'),
+      detail_i18n: buildI18nObject(aiDraft.narrationDetail, baseEstablish.detail_i18n, 'sr')
     };
 
     let currentWaypoints: Waypoint[] = aiDraft.waypoints.map((wp) => ({
@@ -485,15 +491,18 @@ export default function TourAdminTools({
         const translated = await translateRoomToLanguages(
           currentRoom.id,
           aiDraft.title,
-          aiDraft.narration,
+          aiDraft.narrationIntro,
+          aiDraft.narrationDetail,
           currentTitleI18n,
-          typeof currentEstablishI18n.text_i18n === 'object' ? (currentEstablishI18n.text_i18n as Record<string, string>) : {},
+          typeof currentEstablishI18n.intro_i18n === 'object' ? (currentEstablishI18n.intro_i18n as Record<string, string>) : {},
+          typeof currentEstablishI18n.detail_i18n === 'object' ? (currentEstablishI18n.detail_i18n as Record<string, string>) : {},
           currentWaypoints,
           otherLangs
         );
 
         currentTitleI18n = translated.titleI18n;
-        currentEstablishI18n.text_i18n = translated.establishTextI18n;
+        currentEstablishI18n.intro_i18n = translated.establishIntroI18n;
+        currentEstablishI18n.detail_i18n = translated.establishDetailI18n;
         currentWaypoints = translated.waypoints;
       }
 
@@ -513,7 +522,7 @@ export default function TourAdminTools({
               action: 'generate_voice',
               voiceLanguages,
               content: {
-                establishText: currentEstablishI18n.text_i18n,
+                establishText: composeEstablishText(currentEstablishI18n),
                 waypoints: currentWaypoints.map((wp, idx) => ({ index: idx, text: wp.text_i18n }))
               }
             })
@@ -632,10 +641,15 @@ export default function TourAdminTools({
 
     const sourceTitle = getLocalizedText(currentRoom.title_i18n, 'sr');
     const establishData = parseEstablish(currentRoom.establish_i18n);
-    const sourceNarration = getLocalizedText(establishData.text_i18n, 'sr');
+    // Stara soba (pre podele polja) ima samo text_i18n - njen sadržaj se
+    // tretira kao "specifično", da prevod ipak krene sa nečim smislenim dok
+    // admin ne pokrene AI draft ponovo i popuni i namenu.
+    const legacyNarration = getLocalizedText(establishData.text_i18n, 'sr');
+    const sourceNarrationIntro = getLocalizedText(establishData.intro_i18n, 'sr');
+    const sourceNarrationDetail = getLocalizedText(establishData.detail_i18n, 'sr') || legacyNarration;
     const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
 
-    if (!sourceTitle && !sourceNarration && waypointsList.length === 0) {
+    if (!sourceTitle && !sourceNarrationIntro && !sourceNarrationDetail && waypointsList.length === 0) {
       alert('Ova soba još nema sadržaj na srpskom. Prvo pokreni "🤖 AI Popuni Sobu" da napraviš SR draft.');
       return;
     }
@@ -645,7 +659,8 @@ export default function TourAdminTools({
     let currentTitleI18n: Record<string, string> = buildI18nObject(sourceTitle, currentRoom.title_i18n, 'sr');
     const currentEstablishI18n: EstablishData = {
       ...establishData,
-      text_i18n: buildI18nObject(sourceNarration, establishData.text_i18n, 'sr')
+      intro_i18n: buildI18nObject(sourceNarrationIntro, establishData.intro_i18n, 'sr'),
+      detail_i18n: buildI18nObject(sourceNarrationDetail, establishData.detail_i18n, 'sr')
     };
     let currentWaypoints: Waypoint[] = waypointsList.map((wp) => ({
       ...wp,
@@ -659,15 +674,18 @@ export default function TourAdminTools({
       const translated = await translateRoomToLanguages(
         currentRoom.id,
         sourceTitle,
-        sourceNarration,
+        sourceNarrationIntro,
+        sourceNarrationDetail,
         currentTitleI18n,
-        typeof currentEstablishI18n.text_i18n === 'object' ? (currentEstablishI18n.text_i18n as Record<string, string>) : {},
+        typeof currentEstablishI18n.intro_i18n === 'object' ? (currentEstablishI18n.intro_i18n as Record<string, string>) : {},
+        typeof currentEstablishI18n.detail_i18n === 'object' ? (currentEstablishI18n.detail_i18n as Record<string, string>) : {},
         currentWaypoints,
         targets
       );
 
       currentTitleI18n = translated.titleI18n;
-      currentEstablishI18n.text_i18n = translated.establishTextI18n;
+      currentEstablishI18n.intro_i18n = translated.establishIntroI18n;
+      currentEstablishI18n.detail_i18n = translated.establishDetailI18n;
       currentWaypoints = translated.waypoints;
 
       setTranslationProgress('Upisivanje u bazu podataka...');
@@ -823,10 +841,20 @@ export default function TourAdminTools({
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', color: THEME.textSecondary, display: 'block', marginBottom: '4px', fontWeight: 600 }}>Uvodna naracija (SR):</label>
+                <label style={{ fontSize: '12px', color: THEME.textSecondary, display: 'block', marginBottom: '4px', fontWeight: 600 }}>Uvodna naracija - namena sobe (SR):</label>
                 <textarea
-                  value={aiDraft.narration}
-                  onChange={(e) => setAiDraft({ ...aiDraft, narration: e.target.value })}
+                  value={aiDraft.narrationIntro}
+                  onChange={(e) => setAiDraft({ ...aiDraft, narrationIntro: e.target.value })}
+                  rows={2}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '14px', resize: 'vertical', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', color: THEME.textSecondary, display: 'block', marginBottom: '4px', fontWeight: 600 }}>Uvodna naracija - specifično za sobu (SR):</label>
+                <textarea
+                  value={aiDraft.narrationDetail}
+                  onChange={(e) => setAiDraft({ ...aiDraft, narrationDetail: e.target.value })}
                   rows={3}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '14px', resize: 'vertical', boxSizing: 'border-box' }}
                 />
