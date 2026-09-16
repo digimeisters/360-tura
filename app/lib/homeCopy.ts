@@ -1,11 +1,11 @@
 // Tekst početne strane na srpskom (/) i engleskom (/en). Raspored je jedan
 // (app/HomePage.tsx), pa se nova rečenica dodaje ovde u oba jezika.
 
-import { packagePrice } from './pricing';
+import { packagePrice, type PackageType } from './pricing';
 
 // Iznosi na karticama paketa se računaju iz cena (lib/pricing.ts).
-const srAmount = (count: number) => `${packagePrice(count)}€`;
-const enAmount = (count: number) => `€${packagePrice(count)}`;
+const srAmount = (count: number, pkg: PackageType = 'basic') => `${packagePrice(count, pkg)}€`;
+const enAmount = (count: number, pkg: PackageType = 'basic') => `€${packagePrice(count, pkg)}`;
 
 export type HomeLang = 'sr' | 'en';
 
@@ -182,19 +182,24 @@ const sr: HomeCopy = {
         from: 'od',
         amount: srAmount(1),
         unit: '/ nekretnina',
-        items: ['1 virtuelna 360° tura', 'HDR fotografije za oglas', 'Audio vodič na srpskom', 'Isporuka za 48h'],
+        items: [
+          '1 virtuelna 360° tura',
+          'HDR fotografije uz svaku sobu',
+          'Audio vodič na srpskom + jeziku po izboru',
+          'Isporuka za 48h'
+        ],
         cta: 'Zatražite ponudu',
         track: 'price_single'
       },
       {
-        audience: 'Za agencije · 5 tura mesečno',
+        audience: 'Za agencije · Premium',
         title: 'Agencija Premium',
         from: 'od',
-        amount: srAmount(5),
-        unit: '/ mesečno',
+        amount: srAmount(5, 'premium'),
+        unit: '/ mesečno (5 tura)',
         items: [
           '5 virtuelnih tura mesečno',
-          'HDR fotografije uz svaku turu',
+          'HDR fotografije uz svaku sobu',
           'Audio vodič na sva 4 jezika (SR/EN/DE/RU)',
           'Plan stana i lokacija uz svaku turu',
           'Prioritetno zakazivanje termina',
@@ -202,26 +207,27 @@ const sr: HomeCopy = {
         ],
         cta: 'Zatražite ponudu',
         track: 'price_premium',
-        badge: 'Preporučeno za agencije'
+        badge: 'Za inostrano tržište'
       },
       {
-        audience: 'Za agencije · 3 ture mesečno',
+        audience: 'Za agencije · Osnovni',
         title: 'Agencija Osnovni',
         from: 'od',
-        amount: srAmount(3),
-        unit: '/ mesečno',
+        amount: srAmount(3, 'basic'),
+        unit: '/ mesečno (3 ture)',
         items: [
           '3 virtuelne ture mesečno',
-          'HDR fotografije uz svaku turu',
-          'Audio vodič na srpskom i engleskom',
+          'HDR fotografije uz svaku sobu',
+          'Audio vodič na srpskom + jeziku po izboru (EN/DE/RU)',
           'Plan stana uz svaku turu',
           'Isporuka za 48h'
         ],
         cta: 'Zatražite ponudu',
-        track: 'price_basic'
+        track: 'price_basic',
+        badge: 'Preporučeno za agencije'
       }
     ],
-    fine: '* Cene su orijentacione. Što više nekretnina mesečno, niža je cena po nekretnini — izračunajte je ispod.'
+    fine: '* Cene su orijentacione i važe za nekretnine do 50m² — izračunajte tačnu ispod. Za veću kvadraturu i druge gradove van Kragujevca javite nam se za ponudu.'
   },
   integration: {
     eyebrow: 'Integracija',
@@ -342,19 +348,24 @@ const en: HomeCopy = {
         from: 'from',
         amount: enAmount(1),
         unit: '/ property',
-        items: ['1 virtual 360° tour', 'HDR photos for the listing', 'Audio guide in Serbian', 'Delivery within 48 hours'],
+        items: [
+          '1 virtual 360° tour',
+          'HDR photos for every room',
+          'Audio guide in Serbian + a language of your choice',
+          'Delivery within 48 hours'
+        ],
         cta: 'Request a quote',
         track: 'price_single'
       },
       {
-        audience: 'For agencies · 5 tours a month',
+        audience: 'For agencies · Premium',
         title: 'Agency Premium',
         from: 'from',
-        amount: enAmount(5),
-        unit: '/ month',
+        amount: enAmount(5, 'premium'),
+        unit: '/ month (5 tours)',
         items: [
           '5 virtual tours a month',
-          'HDR photos with every tour',
+          'HDR photos for every room',
           'Audio guide in all 4 languages (SR/EN/DE/RU)',
           'Floor plan and location with every tour',
           'Priority scheduling',
@@ -362,26 +373,27 @@ const en: HomeCopy = {
         ],
         cta: 'Request a quote',
         track: 'price_premium',
-        badge: 'Recommended for agencies'
+        badge: 'For international buyers'
       },
       {
-        audience: 'For agencies · 3 tours a month',
+        audience: 'For agencies · Basic',
         title: 'Agency Basic',
         from: 'from',
-        amount: enAmount(3),
-        unit: '/ month',
+        amount: enAmount(3, 'basic'),
+        unit: '/ month (3 tours)',
         items: [
           '3 virtual tours a month',
-          'HDR photos with every tour',
-          'Audio guide in Serbian and English',
+          'HDR photos for every room',
+          'Audio guide in Serbian + a language of your choice (EN/DE/RU)',
           'Floor plan with every tour',
           'Delivery within 48 hours'
         ],
         cta: 'Request a quote',
-        track: 'price_basic'
+        track: 'price_basic',
+        badge: 'Recommended for agencies'
       }
     ],
-    fine: '* Prices are indicative. The more properties a month, the lower the price per property — work it out below.'
+    fine: '* Prices are indicative, for properties up to 50m² — work out the exact price below. For larger properties or other cities, contact us for a quote.'
   },
   integration: {
     eyebrow: 'Integration',

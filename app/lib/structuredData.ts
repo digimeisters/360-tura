@@ -1,4 +1,5 @@
 import { CONTACT, SITE_NAME, SITE_URL } from './site';
+import { PRICE_TIERS } from './pricing';
 import type { FaqItem } from './homeFaq';
 import type { HomeLang } from './homeCopy';
 
@@ -34,7 +35,9 @@ export function homeJsonLd(faq: readonly FaqItem[], lang: HomeLang = 'sr') {
         image: `${SITE_URL}/opengraph-image`,
         telephone: CONTACT.phoneE164,
         email: CONTACT.email,
-        priceRange: lang === 'sr' ? 'od 60 €' : 'from €60',
+        // Bio je hardkodiran (60€, stara cena sa HDR kao dodatkom) - sad čita
+        // ulaznu cenu (1-2 nekretnine, Osnovni) direktno iz pricing.ts.
+        priceRange: lang === 'sr' ? `od ${PRICE_TIERS[0].basic} €` : `from €${PRICE_TIERS[0].basic}`,
         address: {
           '@type': 'PostalAddress',
           streetAddress: CONTACT.street,

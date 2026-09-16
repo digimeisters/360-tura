@@ -88,7 +88,12 @@ const TEXT: Record<
     contact: 'Phone or email',
     contactPh: '+381 6x xxx xxxx or name@example.com',
     pkg: 'Package',
-    packages: ['Single tour', 'Agency — 3 tours a month', 'Agency — 5 tours a month', 'Larger volume (custom)'],
+    packages: [
+      'Single tour',
+      'Agency — Basic (SR + language of choice)',
+      'Agency — Premium (SR/EN/DE/RU)',
+      'Larger volume (custom)'
+    ],
     agency: 'Agency name',
     agencyPh: 'Optional, if you represent an agency',
     type: 'Listing type',

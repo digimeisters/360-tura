@@ -2,27 +2,53 @@
 // (lib/homeCopy.ts) i kalkulator (components/PriceCalculator.tsx) - kad se
 // cena promeni ovde, promeni se svuda. Bez uvoza, jer ga koristi i klijent.
 //
-// Cena po nekretnini pada sa brojem nekretnina (za agencije: mesečno).
-// Stepeni su izabrani tako da se poklope sa paketima: 3 nekretnine = paket
-// Osnovni (3 × 50 = 150 €), 5 nekretnina = paket Premium (5 × 44 = 220 €).
+// Paket (Basic/Premium) i obim (broj nekretnina mesečno) su NEZAVISNE ose:
+// Basic = SR + jedan dodatni jezik po izboru agencije; Premium = sva 4
+// jezika (SR/EN/DE/RU), fiksno +15€ po turi na svakom stepenu obima. HDR
+// fotografije (po sobi) su uvek uključene u cenu - nema više posebnog
+// prekidača. Cena važi za nekretnine do MAX_AREA_SQM; za veće ide poseban
+// dogovor (cenovnik za dodatnu kvadraturu još nije definisan).
+
+export type PackageType = 'basic' | 'premium';
 
 export type PriceTier = {
-  /** Od koliko nekretnina važi ovaj stepen. */
+  /** Od koliko nekretnina mesečno važi ovaj stepen. */
   min: number;
-  /** 360° tura, po nekretnini (€). */
-  tour: number;
-  /** HDR fotografije za oglas, po nekretnini (€). */
-  hdr: number;
-  /** Jezici audio vodiča uključeni u cenu - isto kao u paketima. */
-  languages: readonly string[];
+  /** Basic (SR + jezik po izboru), po nekretnini, sa HDR fotografijama (€). */
+  basic: number;
+  /** Premium (SR/EN/DE/RU), po nekretnini, sa HDR fotografijama (€). */
+  premium: number;
 };
 
 export const PRICE_TIERS: readonly PriceTier[] = [
-  { min: 1, tour: 40, hdr: 20, languages: ['SR'] },
-  { min: 3, tour: 34, hdr: 16, languages: ['SR', 'EN'] },
-  { min: 5, tour: 30, hdr: 14, languages: ['SR', 'EN', 'DE', 'RU'] },
-  { min: 10, tour: 27, hdr: 13, languages: ['SR', 'EN', 'DE', 'RU'] }
+  { min: 1, basic: 70, premium: 85 },
+  { min: 3, basic: 62, premium: 77 },
+  { min: 5, basic: 55, premium: 70 },
+  { min: 10, basic: 48, premium: 63 }
 ];
+
+/** Iznad ove kvadrature ide poseban dogovor - formula za dodatnu kvadraturu još nije definisana. */
+export const MAX_AREA_SQM = 50;
+
+/**
+ * Uvodna promocija: Basic paket po fiksnoj ceni, bez obzira na obim, dok
+ * traje kampanja - cilj je što više kontakata sa agencijama i dovoljno tura
+ * za bazu, ne marža. Basic-only (Premium ostaje po redovnoj ceni), do
+ * MAX_AREA_SQM. Trajanje 45 dana od lansiranja.
+ */
+export const PROMO = {
+  packageType: 'basic' as const,
+  price: 50,
+  maxAreaSqm: MAX_AREA_SQM,
+  startDate: '2026-09-17',
+  endDate: '2026-11-01'
+} as const;
+
+export function isPromoActive(now: Date = new Date()): boolean {
+  const start = new Date(`${PROMO.startDate}T00:00:00`);
+  const end = new Date(`${PROMO.endDate}T23:59:59`);
+  return now >= start && now <= end;
+}
 
 /** Najveći broj u kalkulatoru; preko toga je ionako poseban dogovor. */
 export const CALC_MAX_COUNT = 20;
@@ -34,8 +60,8 @@ export const CUSTOM_OFFER_FROM = 10;
 // srpskom, i na engleskoj strani (tamo se samo prikazuju prevedene).
 export const CONTACT_PACKAGES = [
   'Pojedinačna tura',
-  'Agencija — 3 ture mesečno',
-  'Agencija — 5 tura mesečno',
+  'Agencija — Osnovni (SR + jezik po izboru)',
+  'Agencija — Premium (SR/EN/DE/RU)',
   'Veći obim (dogovor)'
 ] as const;
 
@@ -53,26 +79,25 @@ export function tierMax(index: number): number | null {
   return next ? next.min - 1 : null;
 }
 
-export function perProperty(tier: PriceTier, withHdr: boolean): number {
-  return tier.tour + (withHdr ? tier.hdr : 0);
+export function perProperty(tier: PriceTier, pkg: PackageType): number {
+  return pkg === 'premium' ? tier.premium : tier.basic;
 }
 
-/** Ukupna cena za dati broj nekretnina, sa HDR fotografijama (kartice paketa). */
-export function packagePrice(count: number): number {
-  return count * perProperty(PRICE_TIERS[tierIndexFor(count)], true);
+/** Ukupna cena za dati broj nekretnina (kartice paketa). */
+export function packagePrice(count: number, pkg: PackageType = 'basic'): number {
+  return count * perProperty(PRICE_TIERS[tierIndexFor(count)], pkg);
 }
 
-/** Paket u formi za kontakt koji odgovara broju iz kalkulatora. */
-export function contactPackageFor(count: number): (typeof CONTACT_PACKAGES)[number] {
+/** Paket u formi za kontakt koji odgovara izboru iz kalkulatora. */
+export function contactPackageFor(count: number, pkg: PackageType): (typeof CONTACT_PACKAGES)[number] {
   if (count >= CUSTOM_OFFER_FROM) return CONTACT_PACKAGES[3];
-  if (count >= 5) return CONTACT_PACKAGES[2];
-  if (count >= 3) return CONTACT_PACKAGES[1];
-  return CONTACT_PACKAGES[0];
+  if (count <= 1) return CONTACT_PACKAGES[0];
+  return pkg === 'premium' ? CONTACT_PACKAGES[2] : CONTACT_PACKAGES[1];
 }
 
 export type Quote = {
   count: number;
-  withHdr: boolean;
+  packageType: PackageType;
   tierIndex: number;
   tier: PriceTier;
   perProperty: number;
@@ -84,18 +109,18 @@ export type Quote = {
   next: { needed: number; perProperty: number } | null;
 };
 
-export function quote(count: number, withHdr: boolean): Quote {
+export function quote(count: number, pkg: PackageType = 'basic'): Quote {
   const safeCount = Math.min(Math.max(Math.round(count), 1), CALC_MAX_COUNT);
   const tierIndex = tierIndexFor(safeCount);
   const tier = PRICE_TIERS[tierIndex];
-  const price = perProperty(tier, withHdr);
+  const price = perProperty(tier, pkg);
   const total = safeCount * price;
-  const fullPrice = safeCount * perProperty(PRICE_TIERS[0], withHdr);
+  const fullPrice = safeCount * perProperty(PRICE_TIERS[0], pkg);
   const nextTier = PRICE_TIERS[tierIndex + 1];
 
   return {
     count: safeCount,
-    withHdr,
+    packageType: pkg,
     tierIndex,
     tier,
     perProperty: price,
@@ -104,7 +129,7 @@ export function quote(count: number, withHdr: boolean): Quote {
     savingPercent: fullPrice ? Math.round(((fullPrice - total) / fullPrice) * 100) : 0,
     next:
       nextTier && nextTier.min <= CALC_MAX_COUNT
-        ? { needed: nextTier.min - safeCount, perProperty: perProperty(nextTier, withHdr) }
+        ? { needed: nextTier.min - safeCount, perProperty: perProperty(nextTier, pkg) }
         : null
   };
 }

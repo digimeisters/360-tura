@@ -18,7 +18,7 @@ export const HOME_FAQ: Record<HomeLang, readonly FaqItem[]> = {
     {
       question: 'Koliko dugo je tura dostupna online?',
       answer:
-        'Bez vremenskog ograničenja. Tura ostaje online dok ne zatražite da je skinemo, na primer kada se nekretnina proda ili izda.'
+        'Bez vremenskog ograničenja — link ostaje živ trajno. Kada se nekretnina proda, izda ili je privremeno pauzirate, samo nam javite da promenimo status: umesto ture, posetilac vidi kratku poruku (npr. "Ova nekretnina je izdata"), a ime agencije i telefon ostaju vidljivi, tako da vas i dalje mogu kontaktirati za druge nekretnine.'
     },
     {
       question: 'Kako da postavim turu na oglas?',
@@ -49,7 +49,7 @@ export const HOME_FAQ: Record<HomeLang, readonly FaqItem[]> = {
     {
       question: 'How long does the tour stay online?',
       answer:
-        'With no time limit. The tour stays online until you ask us to take it down, for example once the property is sold or rented.'
+        'With no time limit — the link stays live permanently. Once the property is sold, rented, or you pause it, just let us know to update its status: instead of the tour, visitors see a short notice (e.g. "This property has been rented"), while your agency name and phone number stay visible, so they can still reach you about other properties.'
     },
     {
       question: 'How do I add the tour to my listing?',
