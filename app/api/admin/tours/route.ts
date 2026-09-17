@@ -13,6 +13,8 @@ const LIMITS: Record<string, number> = {
   agency_name: 160,
   address: 200,
   city: 80,
+  district: 80,
+  structure: 80,
   property_type: 80,
   agent_name: 120,
   agent_phone: 60,
@@ -28,15 +30,27 @@ export async function GET(req: Request) {
   const ctx = await requireAdmin(req);
   if (!ctx.ok) return NextResponse.json({ success: false, error: ctx.error }, { status: ctx.status });
 
-  const [{ data: tours, error }, { data: rooms }] = await Promise.all([
+  const BASE_COLUMNS =
+    'slug, title, title_i18n, agency_name, address, city, category, property_type, agent_name, agent_phone, agent_email, created_at, published, status';
+  // `district` i `structure` postoje tek posle migracije 012. Nabrajanje
+  // kolone koje nema obara ceo upit, pa bi ceo spisak tura ostao prazan -
+  // zato se na tu grešku čita bez njih.
+  const readTours = (columns: string) =>
     ctx.supabase
       .from('tours')
-      .select(
-        'slug, title, title_i18n, agency_name, address, city, category, property_type, agent_name, agent_phone, agent_email, created_at, published, status' as '*'
-      )
-      .order('created_at', { ascending: false }),
+      .select(columns as '*')
+      .order('created_at', { ascending: false });
+
+  const [toursResult, { data: rooms }] = await Promise.all([
+    readTours(`${BASE_COLUMNS}, district, structure`),
     ctx.supabase.from('rooms').select('tour_slug, panorama_url, panorama_url_cf')
   ]);
+  let { data: tours, error } = toursResult;
+
+  if (error && /\b(district|structure)\b/i.test(error.message)) {
+    console.warn('[api/admin/tours] nedostaje migracija 012 - čitanje bez naselja i strukture.');
+    ({ data: tours, error } = await readTours(BASE_COLUMNS));
+  }
 
   if (error) {
     console.error('[api/admin/tours] read failed:', error.message);
@@ -91,6 +105,8 @@ export async function POST(req: Request) {
     agency_name: clean(body.agency_name, 'agency_name') || null,
     address: clean(body.address, 'address') || null,
     city: clean(body.city, 'city') || null,
+    district: clean(body.district, 'district') || null,
+    structure: clean(body.structure, 'structure') || null,
     property_type: clean(body.property_type, 'property_type') || null,
     agent_name: clean(body.agent_name, 'agent_name') || null,
     agent_phone: clean(body.agent_phone, 'agent_phone') || null,
@@ -233,6 +249,8 @@ export async function PATCH(req: Request) {
       agency_name: clean(body.agency_name, 'agency_name') || null,
       address: clean(body.address, 'address') || null,
       city: clean(body.city, 'city') || null,
+      district: clean(body.district, 'district') || null,
+      structure: clean(body.structure, 'structure') || null,
       property_type: clean(body.property_type, 'property_type') || null,
       agent_name: clean(body.agent_name, 'agent_name') || null,
       agent_phone: clean(body.agent_phone, 'agent_phone') || null,

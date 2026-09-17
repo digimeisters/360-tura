@@ -3,6 +3,12 @@
 import { useEffect, useState } from 'react';
 import { FORM, FormThemeStyle, formBtnStyle } from '../lib/formTheme';
 import { Logo } from '../tour/[slug]/Logo';
+import {
+  PROPERTY_TYPES,
+  STRUCTURES,
+  OTHER_NEIGHBOURHOOD,
+  neighbourhoodsFor
+} from '../lib/propertyTaxonomy';
 
 type Category = 'rent' | 'sale' | 'booking';
 
@@ -19,107 +25,6 @@ const CATEGORY_LABELS: Record<Category, string> = {
   rent: 'Izdavanje',
   sale: 'Prodaja',
   booking: 'Stan na dan'
-};
-
-const PROPERTY_TYPES = ['Stan', 'Kuća', 'Poslovni prostor', 'Vikendica', 'Apartman'] as const;
-
-/**
- * Struktura zavisi od tipa nekretnine - "dvoiposoban" nema smisla za lokal,
- * a "HoReCa" nema smisla za stan. Zato se drugi meni puni prema prvom.
- *
- * Zapisuje se kao slobodan tekst u odgovore ("Struktura nekretnine"), pa se
- * lista ovde može proširiti bez ijedne izmene u bazi.
- */
-const STRUCTURES: Record<string, string[]> = {
-  Stan: [
-    'Garsonjera',
-    'Jednosoban (1.0)',
-    'Jednoiposoban (1.5)',
-    'Dvosoban (2.0)',
-    'Dvoiposoban (2.5)',
-    'Trosoban (3.0)',
-    'Troiposoban (3.5)',
-    'Četvorosoban (4.0)',
-    'Petosoban i veći'
-  ],
-  // Apartman je po strukturi stan - razlikuje se samo namena (stan na dan).
-  Apartman: [
-    'Garsonjera',
-    'Jednosoban (1.0)',
-    'Jednoiposoban (1.5)',
-    'Dvosoban (2.0)',
-    'Dvoiposoban (2.5)',
-    'Trosoban (3.0)',
-    'Troiposoban (3.5)',
-    'Četvorosoban (4.0)',
-    'Petosoban i veći'
-  ],
-  Kuća: [
-    'Prizemna (Pr)',
-    'Spratna (Pr+1)',
-    'Višespratna (Pr+2 i više)',
-    'Dupleks / mezonet u kući'
-  ],
-  'Poslovni prostor': [
-    'Maloprodajni / trgovački',
-    'Uslužni / kancelarijski',
-    'Ugostiteljski (HoReCa)'
-  ],
-  Vikendica: ['Montažna', 'Zidana', 'Renovirana stara / etno kuća']
-};
-
-/**
- * Naselja po gradu, za predlog dok agent kuca. Ključ je grad malim slovima,
- * jer se poredi sa onim što je upisano u polju "Grad".
- *
- * Namerno je `datalist`, a ne `select`: grad koji ovde nema svoju listu i
- * dalje mora da primi upisano naselje. Novi grad se dodaje kao još jedan
- * ključ, bez ikakve izmene u formi.
- */
-/** Poslednja stavka u meniju naselja - otvara polje za ručni unos. */
-const OTHER_NEIGHBOURHOOD = '__drugo__';
-
-const NEIGHBOURHOODS: Record<string, string[]> = {
-  kragujevac: [
-    'Aerodrom',
-    'Bagdala',
-    'Bagremar',
-    'Beloševac',
-    'Bresnica',
-    'Centar',
-    'Centar preko Lepenice',
-    'Centralna radionica',
-    'Denino brdo',
-    'Erdeč',
-    'Erdoglija',
-    'Grošnica',
-    'Ilićevo',
-    'Ilina Voda',
-    'Jabučar',
-    'Kolonija',
-    'Korićani',
-    'Košutnjak',
-    'Kozujevo',
-    'Ljubine livade',
-    'Mala Vaga',
-    'Male Pčelice',
-    'Maršić',
-    'Metino brdo',
-    'Ozon',
-    'Paliluje',
-    'Petrovac',
-    'Pivara',
-    'Potok',
-    'Stanovo',
-    'Sušica',
-    'Šest Topola',
-    'Šumarice',
-    'Šumski Raj',
-    'Vašnjak',
-    'Vinogradi',
-    'Zvezda',
-    'Ždraljica'
-  ]
 };
 
 export default function UnosPage() {
@@ -167,7 +72,7 @@ export default function UnosPage() {
   const savedStructure = values['Struktura nekretnine'] || '';
   const structure = structureOptions.includes(savedStructure) ? savedStructure : '';
 
-  const neighbourhoods = NEIGHBOURHOODS[(values['Grad'] || '').trim().toLowerCase()] || [];
+  const neighbourhoods = neighbourhoodsFor(values['Grad']);
   const neighbourhood = values['Naselje'] || '';
   // Grad ima svoja naselja -> zatvoren meni. Naselje koje nije na spisku se
   // i dalje upisuje rukom, preko poslednje stavke u meniju.

@@ -6,6 +6,7 @@ import { FORM, FormThemeStyle, formBtnStyle } from '../../lib/formTheme';
 import { Logo } from '../../tour/[slug]/Logo';
 import { slugify } from '../../lib/slug';
 import { SITE_URL } from '../../lib/site';
+import { STRUCTURE_ORDER, neighbourhoodsFor } from '../../lib/propertyTaxonomy';
 
 type TourRow = {
   slug: string;
@@ -14,6 +15,9 @@ type TourRow = {
   agency_name: string | null;
   address: string | null;
   city: string | null;
+  /** Filteri na /ture (migracija 012); zatečene ture su prazne. */
+  district: string | null;
+  structure: string | null;
   category: string | null;
   property_type: string | null;
   agent_name: string | null;
@@ -40,6 +44,8 @@ type FormState = {
   agency_name: string;
   address: string;
   city: string;
+  district: string;
+  structure: string;
   property_type: string;
   category: string;
   agent_name: string;
@@ -52,6 +58,8 @@ const EMPTY_FORM: FormState = {
   agency_name: '',
   address: '',
   city: '',
+  district: '',
+  structure: '',
   property_type: '',
   category: 'rent',
   agent_name: '',
@@ -292,6 +300,8 @@ export default function ToursAdminPage() {
       agency_name: tour.agency_name || '',
       address: tour.address || '',
       city: tour.city || '',
+      district: tour.district || '',
+      structure: tour.structure || '',
       property_type: tour.property_type || '',
       category: tour.category || 'rent',
       agent_name: tour.agent_name || '',
@@ -300,6 +310,13 @@ export default function ToursAdminPage() {
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const districtOptions = neighbourhoodsFor(form.city);
+  // Zatečena struktura koje nema u listi (ručni unos, preimenovana stavka)
+  // ne sme tiho da se izgubi kad se tura sačuva iz ovog formulara.
+  const structureOptions = STRUCTURE_ORDER.includes(form.structure) || !form.structure
+    ? STRUCTURE_ORDER
+    : [form.structure, ...STRUCTURE_ORDER];
 
   const wrap: React.CSSProperties = {
     minHeight: '100dvh',
@@ -462,6 +479,39 @@ export default function ToursAdminPage() {
                 placeholder="npr. Kragujevac"
                 style={inputStyle}
               />
+            </Field>
+          </div>
+
+          <div style={twoCol}>
+            <Field label="Naselje" hint="Filter na spisku tura. Nudi se prema upisanom gradu.">
+              <input
+                id="tour-district"
+                value={form.district}
+                onChange={(e) => setForm({ ...form, district: e.target.value })}
+                placeholder={districtOptions[0] ? `npr. ${districtOptions[0]}` : 'npr. Centar'}
+                list="admin-naselja"
+                style={inputStyle}
+              />
+              {/* Slobodan unos, a ne meni: ovde se sređuju i ture iz gradova
+                  za koje spisak naselja još ne postoji. */}
+              <datalist id="admin-naselja">
+                {districtOptions.map((d) => (
+                  <option key={d} value={d} />
+                ))}
+              </datalist>
+            </Field>
+            <Field label="Struktura" hint="Filter na spisku tura — mora da bude iz ponuđene liste.">
+              <select
+                id="tour-structure"
+                value={form.structure}
+                onChange={(e) => setForm({ ...form, structure: e.target.value })}
+                style={inputStyle}
+              >
+                <option value="">— nije određena —</option>
+                {structureOptions.map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
             </Field>
           </div>
 

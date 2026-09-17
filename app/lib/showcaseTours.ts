@@ -40,6 +40,9 @@ export type ShowcaseTour = {
   /** Adresa nekretnine i grad izveden iz nje - filter na /ture. */
   address: string | null;
   city: string | null;
+  /** Naselje i struktura iz upitnika - filteri na /ture (migracija 012). */
+  district: string | null;
+  structure: string | null;
   /** Samo sobe koje imaju sličicu, redom obilaska. */
   rooms: ShowcaseRoom[];
 };
@@ -53,6 +56,9 @@ type TourRow = {
   address: string | null;
   /** Postoji tek posle migracije 011; starije ture nemaju upisan grad. */
   city?: string | null;
+  /** Postoje tek posle migracije 012; zatečene ture su prazne. */
+  district?: string | null;
+  structure?: string | null;
   created_at: string | null;
   /** Postoji tek posle migracije 010; ture bez nje se čitaju kao 'active'. */
   status?: string | null;
@@ -192,6 +198,8 @@ export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
       coverRoomId: cover ? String(cover.id) : null,
       address: realValue(tour.address),
       city: realValue(tour.city ?? null) || cityFromAddress(realValue(tour.address)),
+      district: realValue(tour.district ?? null),
+      structure: realValue(tour.structure ?? null),
       rooms: tourRooms
         .filter((r) => r.preview_url)
         .map((r, i) => ({

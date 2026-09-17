@@ -158,6 +158,11 @@ export async function POST(req: Request) {
       agent_email: processed.agent_email,
       address: processed.address,
       city: processed.city,
+      // Struktura i naselje se uzimaju direktno iz odgovora, a ne iz AI
+      // obrade: agent ih bira iz zatvorenog menija, pa su već tačno
+      // napisani - a filteri na /ture grupišu ture po doslovnom tekstu.
+      structure: String(answers['Struktura nekretnine'] || '').trim() || null,
+      district: String(answers['Naselje'] || '').trim() || null,
       location_map_url: processed.location_map_url,
       floorplan_url: floorplanUrl,
       faq_1_i18n: processed.faq_1_i18n,
@@ -170,12 +175,16 @@ export async function POST(req: Request) {
 
     let { error } = await supabase.from('tours').insert(payload);
 
-    // Kolona `city` postoji tek posle migracije 011. Dok ona ne prođe, tura
-    // se upisuje bez grada - bolje nego da agentu propadne ceo unos.
-    if (error && /city/i.test(error.message)) {
-      const { city, ...bezGrada } = payload;
-      console.warn('[api/unos] kolona city ne postoji (migracija 011) - upis bez grada:', city);
-      ({ error } = await supabase.from('tours').insert(bezGrada));
+    // `city` postoji tek posle migracije 011, `structure` i `district` tek
+    // posle 012. Dok neka od njih ne prođe, tura se upisuje bez tih polja -
+    // bolje nego da agentu propadne ceo unos. Popunjavaju se u /admin/ture.
+    if (error && /\b(city|structure|district)\b/i.test(error.message)) {
+      const { city, structure, district, ...bezFiltera } = payload;
+      console.warn(
+        '[api/unos] nedostaje kolona za filtere (migracije 011/012) - upis bez njih:',
+        { city, structure, district }
+      );
+      ({ error } = await supabase.from('tours').insert(bezFiltera));
     }
 
     if (error) {
