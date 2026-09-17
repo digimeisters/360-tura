@@ -46,7 +46,7 @@ export const AGENCY_COPY: AgencyCopy = {
   meta: {
     title: 'Kvadrat360 za agencije — 360° ture za ceo portfolio',
     description:
-      'Mesečni paketi virtuelnih 360° tura i HDR fotografija za agencije za nekretnine: kontakt agenta u svakoj turi, upitnik za agente, ugradnja na sajt agencije i isporuka za 48h.'
+      'Mesečni paketi 360° virtuelnih tura i HDR fotografija za agencije za nekretnine: upitnik koji agenti popune sami ili zajedno sa nama, kontakt agenta u svakoj turi, ugradnja na sajt agencije i isporuka za 48h.'
   },
   nav: {
     brandAria: 'Kvadrat360, početna strana',
@@ -61,41 +61,41 @@ export const AGENCY_COPY: AgencyCopy = {
     titleStart: 'Ceo portfolio ',
     titleEm: 'u 360°.',
     lede:
-      'Vaši agenti šalju nekretninu kroz upitnik, mi snimamo i za 48h vraćamo gotovu turu sa audio vodičem, linkom za oglas i kodom za vaš sajt. Kupca kroz stan vodi automatski vodič — prošeta kroz sve prostorije pre nego što vas pozove, pa na razgledanje dolaze samo ozbiljno zainteresovani.',
+      'Vaš agent pošalje osnovne podatke kroz upitnik — sam, ili ih popunimo zajedno sa njim. Mi snimamo i za 48h vraćamo gotovu turu, sa audio vodičem, linkom za oglas i kodom za vaš sajt. Kupca kroz stan provede automatski vodič, još pre nego što vas pozove — pa na razgledanje dolaze samo ozbiljno zainteresovani.',
     ctaContact: 'Zatražite ponudu',
     ctaPackages: 'Pogledajte pakete',
     trust: ['Isporuka za 48h', 'Do 4 jezika', 'Kontakt agenta u svakoj turi']
   },
   benefits: {
     eyebrow: 'Šta dobijate',
-    title: 'Napravljeno za rad agencije, ne samo za jedan oglas',
+    title: 'Napravljeno za rad agencije, a ne samo za jedan oglas',
     note:
-      'Sve što je agenciji potrebno da turu odmah pusti u opticaj — bez programera, bez dodatnih alata i bez obuke tima.',
+      'Sve što agenciji treba da turu odmah pusti u opticaj — bez programera, bez dodatnih alata i bez obuke tima.',
     items: [
       {
         title: 'Upitnik za vaše agente',
         text:
-          'Agencija dobija link i kod. Agent unese podatke o nekretnini i pošalje ih — opis i odgovori na česta pitanja se iz toga pripremaju sami, na svim izabranim jezicima. Niko ne mora isto da objašnjava telefonom.'
+          'Agencija dobija link i kod. Agent unese osnovne podatke o nekretnini i pošalje ih sam — ili ih popunimo zajedno sa njim, telefonom, ako mu tako brže ide. Opis i odgovori na česta pitanja se odatle pripremaju sami, na svim izabranim jezicima.'
       },
       {
         title: 'Kontakt agenta u svakoj turi',
         text:
-          'Ime i telefon agenta stoje u turi sve vreme. Poziv i mejl idu jednim dodirom, pa zainteresovani kupac ne mora da traži oglas ponovo da bi vas našao.'
+          'Ime i telefon agenta stoje u turi sve vreme. Poziv i mejl idu jednim dodirom, pa kupac ne mora ponovo da traži oglas da bi vas našao.'
       },
       {
         title: 'Ugradnja na sajt agencije',
         text:
-          'Uz turu ide gotov kod za ugradnju. Ubacite ga na stranicu nekretnine i tura radi odmah, u okviru vašeg sajta — bez dodatnog razvoja.'
+          'Uz turu ide gotov kod za ugradnju. Ubacite ga na stranicu nekretnine i tura odmah radi u okviru vašeg sajta — bez programera.'
       },
       {
         title: 'Link koji radi svuda',
         text:
-          'Isti link ide u oglas na portalu, u Viber ili WhatsApp poruku i u mejl. Otvara se u pregledaču na telefonu i računaru, bez preuzimanja aplikacije.'
+          'Isti link ide u oglas na portalu, u Viber ili WhatsApp poruku i u mejl. Otvara se u pretraživaču na telefonu i računaru, bez instaliranja aplikacije.'
       },
       {
         title: 'Do četiri jezika',
         text:
-          'Tekst i audio vodič na srpskom, engleskom, nemačkom i ruskom. Stranom kupcu se šalje link koji se odmah otvara na njegovom jeziku — broj jezika zavisi od paketa.'
+          'Tekst i audio vodič na srpskom, engleskom, nemačkom i ruskom. Stranom kupcu šaljete link koji se odmah otvara na njegovom jeziku — broj jezika zavisi od paketa.'
       },
       {
         title: 'Praćenje poseta',
@@ -108,9 +108,9 @@ export const AGENCY_COPY: AgencyCopy = {
     eyebrow: 'Paketi',
     title: 'Više nekretnina mesečno — niža cena po nekretnini',
     note:
-      'Mesečni paketi su za agencije sa stalnim prilivom oglasa. Ispod izračunajte cenu za svoj broj nekretnina.',
+      'Mesečni paketi su za agencije sa stalnim prilivom oglasa. Ispod pogledajte cenu za svoj broj nekretnina.',
     fine:
-      '* Cene su orijentacione i važe za nekretnine do 50m², u Kragujevcu i okolini. Za veću kvadraturu, druge gradove i veći obim pravimo poseban predlog.'
+      '* Cene su prosečne, za stan od oko 50m², u Kragujevcu i okolini. Za manje i veće stanove cenu formiramo prema broju prostorija. Za druge gradove i veći obim pravimo poseban predlog.'
   },
   faq: {
     eyebrow: 'Pitanja agencija',
@@ -120,32 +120,32 @@ export const AGENCY_COPY: AgencyCopy = {
       {
         question: 'Da li neko iz agencije mora da bude prisutan tokom snimanja?',
         answer:
-          'Ne mora. Dovoljno je da nam neko otvori stan. Snimanje traje 30–60 minuta i tokom njega u prostoriji ne treba da bude nikoga, jer 360° kamera vidi ceo prostor. Pomaže ako su pre toga upaljena svetla, razgrnute zavese i sklonjene lične stvari.'
+          'Ne mora — dovoljno je da nam neko otvori stan. Snimanje traje 30–60 minuta i tokom njega u prostoriji ne treba da bude nikoga, jer 360° kamera vidi ceo prostor. Pomaže ako su pre toga upaljena svetla, razgrnute zavese i sklonjene lične stvari.'
       },
       {
         question: 'Šta se dešava kada se nekretnina izda ili proda?',
         answer:
-          'Turu zaključavamo jednim klikom. Posetilac koji otvori stari link ne vidi više stan, nego kratku poruku da nekretnina više nije dostupna, sa kontaktom agenta — pa taj poziv često završi na nekoj vašoj drugoj nekretnini. Kad ista nekretnina ponovo ide u ponudu, tura se vraća jednim klikom, bez novog snimanja.'
+          'Turu zaključavamo jednim klikom. Ko otvori stari link, umesto stana vidi kratku poruku da nekretnina više nije dostupna — ali sa kontaktom agenta, pa taj poziv često završi na nekoj vašoj drugoj nekretnini. Kad se ista nekretnina vrati u ponudu, tura se otključava jednim klikom, bez novog snimanja.'
       },
       {
         question: 'Šta ako se nešto u stanu promeni posle snimanja?',
         answer:
-          'Ponovo snimamo samo prostorije koje su se promenile i menjamo ih u postojećoj turi. Link ostaje isti, pa oglasi i poruke koje ste već poslali nastavljaju da rade. Cenu dodatnog snimanja dogovaramo prema broju prostorija.'
+          'Ponovo snimamo samo prostorije koje su se promenile i zamenjujemo ih u postojećoj turi. Link ostaje isti, pa oglasi i poruke koje ste već poslali nastavljaju da rade. Cenu dodatnog snimanja dogovaramo prema broju prostorija.'
       },
       {
         question: 'Koliko dugo tura ostaje online?',
         answer:
-          'Bez vremenskog ograničenja — link ostaje živ trajno. Kada se nekretnina proda, izda ili je privremeno pauzirate, menjamo joj status: posetilac umesto ture vidi kratku poruku, a ime agencije i telefon ostaju vidljivi, pa vas i dalje mogu kontaktirati za druge nekretnine.'
+          'Bez vremenskog ograničenja — link ostaje živ trajno. Kada se nekretnina proda, izda ili je privremeno pauzirate, menjamo joj status: posetilac umesto ture vidi kratku poruku, a ime agencije i telefon ostaju vidljivi — pa vas i dalje može pozvati za neku drugu nekretninu.'
       },
       {
         question: 'Da li postoji obavezan ugovor ili minimalni period?',
         answer:
-          'Mesečni paket dogovaramo za onaj broj nekretnina koji vam stvarno treba tog meseca. Uslove i period potvrđujemo u razgovoru pre prve saradnje.'
+          'Mesečni paket dogovaramo za onoliko nekretnina koliko vam stvarno treba tog meseca. Uslove i period potvrđujemo u razgovoru pre prve saradnje.'
       },
       {
         question: 'U kojim gradovima snimate?',
         answer:
-          'U Kragujevcu i okolini. Za druge gradove dolazak je moguć po dogovoru — javite koliko nekretnina imate i gde, pa ćemo reći šta je izvodljivo.'
+          'U Kragujevcu i okolini. Za druge gradove dolazimo po dogovoru — javite koliko nekretnina imate i gde, pa ćemo reći šta je izvodljivo.'
       }
     ]
   },
@@ -153,7 +153,7 @@ export const AGENCY_COPY: AgencyCopy = {
     eyebrow: 'Kontakt',
     title: 'Zatražite ponudu za svoju agenciju',
     note:
-      'Javite koliko nekretnina mesečno oglašavate i u kom gradu, pa šaljemo konkretan predlog. Odgovaramo u roku od 24h radnim danima — ili se javite odmah:',
+      'Javite koliko nekretnina mesečno oglašavate i u kom gradu, pa šaljemo konkretan predlog. Odgovaramo za 24h radnim danima — ili se javite odmah:',
     call: 'Pozovite',
     labels: { phone: 'Telefon', email: 'E-mail', address: 'Adresa', hours: 'Radno vreme' },
     hours: 'Pon–Sub, 08–20h'

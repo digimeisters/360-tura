@@ -49,6 +49,7 @@ export type HomeCopy = {
     // Strana za agencije postoji za sada samo na srpskom, pa link stoji
     // samo u srpskom meniju (vidi HomePage.tsx).
     agencies?: string;
+    contact: string;
     cta: string;
     // Link ka drugoj jezičkoj verziji strane.
     switchLabel: string;
@@ -81,6 +82,16 @@ export type HomeCopy = {
     items: { eyebrow: string; title: string; focus: string; faq: string }[];
   };
   pricing: { eyebrow: string; title: string; note: string; plans: PricePlan[]; fine: string };
+  // Putokaz ka strani za agencije (/za-agencije), odmah ispod paketa. Ta
+  // strana postoji za sada samo na srpskom, pa se i sekcija pojavljuje samo
+  // tamo - isto pravilo kao nav.agencies.
+  agencyBridge?: {
+    eyebrow: string;
+    title: string;
+    text: string;
+    points: string[];
+    cta: string;
+  };
   integration: { eyebrow: string; title: string; desc: string };
   faq: { eyebrow: string; title: string; note: string };
   contact: {
@@ -98,9 +109,9 @@ export type HomeCopy = {
 const sr: HomeCopy = {
   locale: 'sr-RS',
   meta: {
-    title: 'Kvadrat360 — Virtuelne ture i HDR fotografija nekretnina',
+    title: 'Kvadrat360 — Virtuelne ture i HDR fotografije nekretnina',
     description:
-      'Profesionalne 360° virtuelne ture i HDR fotografije za agencije za nekretnine i vlasnike koji prodaju ili izdaju. Audio vodič na srpskom, engleskom, nemačkom i ruskom.'
+      'Profesionalne 360° virtuelne ture i HDR fotografije nekretnina — za agencije i vlasnike koji prodaju ili izdaju. Audio vodič na srpskom, engleskom, nemačkom i ruskom.'
   },
   nav: {
     brandAria: 'Kvadrat360, početak strane',
@@ -110,6 +121,7 @@ const sr: HomeCopy = {
     packages: 'Paketi',
     faq: 'Pitanja',
     agencies: 'Za agencije',
+    contact: 'Kontakt',
     cta: 'Zakažite snimanje',
     switchLabel: 'EN',
     switchAria: 'English version',
@@ -121,7 +133,7 @@ const sr: HomeCopy = {
     titleStart: 'Pravi kvadrati, ',
     titleEm: 'bez skrivenih ćoškova.',
     lede:
-      'Virtuelna 360° tura i HDR fotografije pokazuju svaki ugao unapred, za ceo portfolio agencije ili pojedinačan oglas — dolaze samo ozbiljno zainteresovani kupci i zakupci, spremni da brzo donesu odluku.',
+      'Virtuelna 360° tura i HDR fotografije pokazuju svaki ugao pre prvog dolaska — bilo da agencija vodi ceo portfolio ili vlasnik oglašava jedan stan. Na razgledanje tako dolaze samo ozbiljno zainteresovani, spremni da brzo odluče.',
     ctaTour: '▶ Pogledajte primer ture',
     ctaPackages: 'Paketi za agencije',
     trust: ['🎧 Audio vodič SR · EN · DE · RU', '⏱ Isporuka za 48h'],
@@ -135,59 +147,59 @@ const sr: HomeCopy = {
   examples: {
     eyebrow: 'Primeri tura',
     title: 'Prošetajte kroz pravu turu',
-    note: 'Ture koje su trenutno objavljene — otvaraju se u pretraživaču, na telefonu ili računaru, bez preuzimanja aplikacije.',
+    note: 'Ture koje su trenutno objavljene — otvaraju se u pretraživaču, na telefonu ili računaru, bez instaliranja aplikacije.',
     allTours: 'Pogledajte sve ture →'
   },
   benefits: {
     eyebrow: 'Benefiti',
     title: 'Zašto virtuelna tura prodaje bolje',
-    note: 'Ono što tura i HDR fotografije donose vama i vašim klijentima — ne tehnologija iza toga.',
+    note: 'Ono što tura i HDR fotografije donose vama i vašim klijentima — a ne tehnologija iza njih.',
     items: [
-      { title: 'Manje uzaludnih poseta', text: 'Kupci i zakupci prvo „prošetaju“ kroz stan online — na razgledanje dolaze samo ozbiljno zainteresovani.' },
-      { title: 'Oglas koji se izdvaja', text: 'HDR fotografije i 360° tura odmah odvajaju oglas od onih sa slikama telefonom.' },
-      { title: 'Doseg do inostranih kupaca', text: 'Audio vodič je dostupan na srpskom, engleskom, nemačkom i ruskom — bez potrebe za prevodiocem.' },
-      { title: 'Vođena tura, bez klikanja', text: 'Posetilac bira: da ga vodič sam provede kroz sve prostorije i ispriča šta se gde nalazi, ili da razgleda sam, svojim tempom.' },
-      { title: 'Brža odluka', text: 'Kupac ili zakupac koji je već „prošetao“ kroz stan dolazi na razgledanje sa manje pitanja i brže se odlučuje.' },
-      { title: 'Sve na jednom mestu', text: 'Plan stana, lokacija i vaš kontakt dostupni su unutar iste ture — bez dodatnih poziva i mejlova.' },
-      { title: 'Profesionalan prvi utisak', text: 'Kvalitetna fotografija i uređena tura grade poverenje pre prvog kontakta.' },
-      { title: 'Otvoreno 24 sata, na svakom uređaju', text: 'Nekretnina je „otvorena“ za razgledanje u svakom trenutku, u pretraživaču na telefonu ili računaru — bez zakazivanja i bez preuzimanja aplikacije.' }
+      { title: 'Manje uzaludnih razgledanja', text: 'Kupci i zakupci prvo „prošetaju“ kroz stan online. Na razgledanje dolaze samo oni koje stan zaista zanima.' },
+      { title: 'Oglas koji se izdvaja', text: 'HDR fotografije i 360° tura odmah izdvajaju vaš oglas među stotinama onih slikanih telefonom.' },
+      { title: 'Strani kupci bez prevodioca', text: 'Audio vodič govori srpski, engleski, nemački i ruski — kupac iz inostranstva čuje sve na svom jeziku.' },
+      { title: 'Vođena tura, bez klikanja', text: 'Posetilac bira: da ga vodič provede kroz sve prostorije i ispriča šta se gde nalazi, ili da razgleda sam, svojim tempom.' },
+      { title: 'Brža odluka', text: 'Ko je već „prošetao“ kroz stan, na razgledanje dolazi sa manje pitanja i brže se odlučuje.' },
+      { title: 'Sve na jednom mestu', text: 'Plan stana, lokacija i vaš kontakt stoje u samoj turi — bez dodatnih poziva i mejlova.' },
+      { title: 'Profesionalan prvi utisak', text: 'Kvalitetna fotografija i uredna tura grade poverenje i pre prvog poziva.' },
+      { title: 'Otvoreno 24 sata, na svakom uređaju', text: 'Stan je otvoren za razgledanje u svako doba — u pretraživaču na telefonu ili računaru, bez zakazivanja i bez instaliranja aplikacije.' }
     ]
   },
   steps: {
     eyebrow: 'Kako radimo',
     title: 'Od poziva do gotove ture',
-    note: 'Jednostavan proces sa vaše strane — mi vodimo računa o ostatku.',
+    note: 'Vaš deo je jednostavan — sve ostalo je na nama.',
     items: [
-      { title: 'Zakazivanje', text: 'Dogovorite termin telefonom ili preko forme — dolazimo sa opremom u ugovoreno vreme, bez ometanja stanara ili zakupaca.' },
+      { title: 'Zakazivanje', text: 'Javite se telefonom ili preko forme i dogovorimo termin. Dolazimo sa opremom, bez ometanja stanara.' },
       { title: 'Snimanje', text: '30–60 minuta po nekretnini: 360° panorame svake prostorije i HDR fotografije za oglas.' },
-      { title: 'Obrada', text: 'Spajanje panorame, kalibracija boja i priprema audio vodiča na jezicima koji su vam potrebni.' },
-      { title: 'Isporuka', text: 'Link za gotovu turu i fotografije stiže za 48h — spremno za postavljanje na oglas istog dana.' }
+      { title: 'Obrada', text: 'Spajanje panorama, kalibracija boja i priprema audio vodiča na jezicima koje ste izabrali.' },
+      { title: 'Isporuka', text: 'Link ka gotovoj turi i fotografije stižu za 48h — možete ih postaviti na oglas istog dana.' }
     ],
     deliverTitle: 'Šta dobijate',
     deliver: [
-      'Interaktivnu 360° turu sa navigacijom kroz sve prostorije',
+      'Interaktivnu 360° turu sa prolazom kroz sve prostorije',
       'HDR fotografije spremne za oglas i društvene mreže',
-      'Automatsko vođenje kroz prostor, uz mogućnost samostalnog razgledanja',
+      'Automatsko vođenje kroz stan, ili samostalno razgledanje — posetilac bira',
       'Audio vodič na srpskom, engleskom, nemačkom i ruskom',
-      'Plan stana i lokaciju integrisane u turu',
+      'Plan stana i lokaciju, ugrađene u turu',
       'Vašu kontakt karticu, vidljivu tokom cele ture'
     ]
   },
   types: {
     eyebrow: 'Tipovi oglasa',
     title: 'Ista tura, drugačiji fokus',
-    note: 'Bilo da agencija vodi ceo portfolio ili vlasnik oglašava jednu nekretninu, naglasak i pitanja u turi prate namenu oglasa.',
+    note: 'Bilo da agencija vodi ceo portfolio ili vlasnik oglašava jedan stan, tura naglašava ono što je za taj oglas najvažnije.',
     faqLabel: 'Tipično pitanje',
     items: [
-      { eyebrow: 'Prodaja', title: 'Dugoročna vrednost', focus: 'Fokus na kvadraturu, stanje objekta i vlasništvo — informacije koje su bitne za odluku o kupovini.', faq: '„Da li je nekretnina uknjižena i kakvo je vlasništvo?“' },
-      { eyebrow: 'Izdavanje', title: 'Svakodnevna praktičnost', focus: 'Fokus na mesečne troškove, uslove ugovora i datum useljenja — ono što zanima budućeg stanara.', faq: '„Koliki su prosečni mesečni troškovi i kakvo je grejanje?“' },
-      { eyebrow: 'Kratkoročni smeštaj', title: 'Utisak gosta', focus: 'Fokus na atmosferu, kapacitet i uslove boravka — ono što gost proverava pre rezervacije.', faq: '„Koje je tačno vreme za check-in i check-out?“' }
+      { eyebrow: 'Prodaja', title: 'Dugoročna vrednost', focus: 'Naglasak na kvadraturi, stanju objekta i vlasništvu — ono što presuđuje pri kupovini.', faq: '„Da li je nekretnina uknjižena i kakvo je vlasništvo?“' },
+      { eyebrow: 'Izdavanje', title: 'Svakodnevna praktičnost', focus: 'Naglasak na mesečnim troškovima, uslovima ugovora i datumu useljenja — ono što zanima budućeg stanara.', faq: '„Koliki su prosečni mesečni troškovi i kakvo je grejanje?“' },
+      { eyebrow: 'Kratkoročni smeštaj', title: 'Utisak gosta', focus: 'Naglasak na atmosferi, kapacitetu i uslovima boravka — ono što gost proverava pre rezervacije.', faq: '„Koje je tačno vreme za check-in i check-out?“' }
     ]
   },
   pricing: {
     eyebrow: 'Paketi',
     title: 'Osmišljeno za agencije, otvoreno i za pojedince',
-    note: 'Mesečni paketi su zamišljeni za agencije sa stalnim prilivom oglasa; vlasnici koji prodaju ili izdaju samostalno biraju pojedinačnu turu.',
+    note: 'Mesečni paketi su za agencije sa stalnim prilivom oglasa. Ako sami prodajete ili izdajete jedan stan, uzmite pojedinačnu turu.',
     plans: [
       {
         audience: 'Za pojedinačne vlasnike',
@@ -199,7 +211,7 @@ const sr: HomeCopy = {
         items: [
           `360° tura sa audio vodičem — ${srTour(1)}`,
           `HDR fotografije, jedna po prostoriji — ${srHdr(1)}`,
-          'Audio vodič na srpskom + jeziku po izboru',
+          'Audio vodič na srpskom + jednom jeziku po izboru',
           'Isporuka za 48h'
         ],
         cta: 'Zatražite ponudu',
@@ -243,22 +255,30 @@ const sr: HomeCopy = {
         badge: 'Za strane kupce'
       }
     ],
-    fine: '* Cene su orijentacione i važe za nekretnine do 50m² — izračunajte tačnu ispod. Za veću kvadraturu i druge gradove van Kragujevca javite nam se za ponudu.'
+    fine: '* Cene su prosečne, za stan od oko 50m². Za manje i veće stanove cenu formiramo prema broju prostorija — javite kvadraturu i broj soba, pa šaljemo tačnu ponudu. Za gradove van Kragujevca dogovaramo posebno.'
+  },
+  agencyBridge: {
+    eyebrow: 'Za agencije',
+    title: 'Vodite više oglasa odjednom?',
+    text:
+      'Za agencije smo napravili posebnu stranu. Tamo piše kako agenti šalju osnovne podatke kroz upitnik — sami ili zajedno sa nama — kako tura ide na sajt agencije i šta sve dobijate uz mesečni paket.',
+    points: ['Upitnik — sami ili zajedno sa nama', 'Kontakt agenta u svakoj turi', 'Praćenje poseta po oglasu'],
+    cta: 'Pogledajte stranu za agencije →'
   },
   integration: {
     eyebrow: 'Integracija',
     title: 'Ugradnja na vaš sajt u jednom koraku',
-    desc: 'Isporučujemo gotov iframe kod. Ubacite ga na stranicu nekretnine i tura je odmah dostupna posetiocima — bez dodatnog razvoja.'
+    desc: 'Dobijate gotov kod za ugradnju. Ubacite ga na stranicu nekretnine i tura odmah radi u okviru vašeg sajta — bez programera.'
   },
   faq: {
     eyebrow: 'Česta pitanja',
     title: 'Pre nego što zakažete',
-    note: 'Šta agencije i vlasnici najčešće pitaju pre prvog snimanja. Ako vašeg pitanja nema, javite nam se.'
+    note: 'Ono što agencije i vlasnici najčešće pitaju pre prvog snimanja. Ako vašeg pitanja nema, javite nam se.'
   },
   contact: {
     eyebrow: 'Kontakt',
     title: 'Zakažite snimanje',
-    note: 'Odgovaramo u roku od 24h radnim danima — ili se javite odmah, pozivom ili porukom:',
+    note: 'Odgovaramo za 24h radnim danima — ili se javite odmah, pozivom ili porukom:',
     call: 'Pozovite',
     labels: { phone: 'Telefon', email: 'E-mail', address: 'Adresa', hours: 'Radno vreme' },
     hours: 'Pon–Sub, 08–20h',
@@ -281,6 +301,7 @@ const en: HomeCopy = {
     benefits: 'Benefits',
     packages: 'Packages',
     faq: 'FAQ',
+    contact: 'Contact',
     cta: 'Book a shoot',
     switchLabel: 'SR',
     switchAria: 'Srpska verzija',
@@ -413,7 +434,7 @@ const en: HomeCopy = {
         badge: 'For foreign buyers'
       }
     ],
-    fine: '* Prices are indicative, for properties up to 50m² — work out the exact price below. For larger properties or other cities, contact us for a quote.'
+    fine: '* Prices are averages, for a flat of about 50m². For smaller and larger flats we quote by the number of rooms — tell us the size and room count and we will send an exact quote. Cities outside Kragujevac are arranged separately.'
   },
   integration: {
     eyebrow: 'Integration',

@@ -92,10 +92,12 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
         <li><a href="#benefiti">{nav.benefits}</a></li>
         <li><a href="#kako-radimo">{nav.how}</a></li>
         <li><a href="#paketi">{nav.packages}</a></li>
-        <li><a href="#pitanja">{nav.faq}</a></li>
+        {/* Ide odmah iza paketa, jer je tu i sekcija koja vodi na tu stranu. */}
         {nav.agencies && (
           <li><Link href="/za-agencije" data-track="cta:nav_agencies">{nav.agencies}</Link></li>
         )}
+        <li><a href="#pitanja">{nav.faq}</a></li>
+        <li><a href="#kontakt">{nav.contact}</a></li>
         <li className="nav-lang">
           <a href={nav.switchHref} hrefLang={nav.switchLang} lang={nav.switchLang} aria-label={nav.switchAria}>
             {nav.switchLabel}
@@ -266,6 +268,26 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
             <PriceCalculator lang={lang} />
           </div>
         </section>
+
+        {copy.agencyBridge && (
+          <section className="agency-bridge" id="agencije">
+            <div className="wrap">
+              <div className="section-head left">
+                <span className="eyebrow">{copy.agencyBridge.eyebrow}</span>
+                <h2>{copy.agencyBridge.title}</h2>
+                <p className="note">{copy.agencyBridge.text}</p>
+                <ul className="bridge-points">
+                  {copy.agencyBridge.points.map((point) => (
+                    <li key={point}>{point}</li>
+                  ))}
+                </ul>
+              </div>
+              <Link className="btn btn-primary" href="/za-agencije" data-track="cta:agency_bridge">
+                {copy.agencyBridge.cta}
+              </Link>
+            </div>
+          </section>
+        )}
 
         <section className="integration">
           <div className="wrap">

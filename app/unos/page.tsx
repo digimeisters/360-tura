@@ -162,8 +162,9 @@ export default function UnosPage() {
             Unos nekretnine
           </h1>
           <p style={{ margin: 0, color: FORM.textSecondary, fontSize: '14.5px', lineHeight: 1.6 }}>
-            Popunite podatke o nekretnini. Na osnovu njih se automatski pripremaju opis i
-            odgovori na česta pitanja, na svim izabranim jezicima.
+            Popunite osnovne podatke o nekretnini — sami, ili zajedno sa nama, telefonom. Na
+            osnovu njih se automatski pripremaju opis i odgovori na česta pitanja, na svim
+            izabranim jezicima.
           </p>
           <p
             style={{

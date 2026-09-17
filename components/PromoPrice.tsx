@@ -1,24 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import type { HomeLang } from '../app/lib/homeCopy';
-import { PROMO, isPromoActive, packagePrice, type PackageType } from '../app/lib/pricing';
+import { PROMO, packagePrice, type PackageType } from '../app/lib/pricing';
+import { usePromoActive } from './usePromoActive';
 
 /**
  * Cena na kartici paketa i nalepnica sa popustom, dok traje promocija.
  *
  * Zašto klijentski, a ne odmah u tekstu kartice (homeCopy): tekst kartica se
  * računa jednom, pri učitavanju modula, pa bi promo cena ostala na strani i
- * posle isteka kampanje - do sledećeg deploy-a. Ovako stranu koja stigne sa
- * servera uvek prati REDOVNA cena, a promo se uključi tek pošto klijent
- * proveri datum - pa se sam i isključi kad kampanja prođe.
+ * posle isteka kampanje - do sledećeg deploy-a. Vidi usePromoActive.
  */
-
-function usePromoActive(): boolean {
-  const [active, setActive] = useState(false);
-  useEffect(() => setActive(isPromoActive()), []);
-  return active;
-}
 
 const DISCOUNT_LABEL = `−${Math.round(PROMO.discount * 100)}%`;
 

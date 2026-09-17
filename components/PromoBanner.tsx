@@ -1,7 +1,8 @@
 'use client';
 
 import type { HomeLang } from '../app/lib/homeCopy';
-import { MAX_AREA_SQM, PRICE_TIERS, PROMO, isPromoActive, perProperty } from '../app/lib/pricing';
+import { REFERENCE_AREA_SQM, PRICE_TIERS, PROMO, perProperty } from '../app/lib/pricing';
+import { usePromoActive, usePromoDaysLeft } from './usePromoActive';
 
 /**
  * Traka uvodne promocije iznad kartica paketa. Datum se proverava na
@@ -23,21 +24,23 @@ const TEXT = {
   sr: {
     headline: (percent: number, promoPrice: string, regularPrice: string) =>
       `Uvodna promocija: −${percent}% na sve pakete — tura od ${promoPrice} umesto ${regularPrice}`,
-    terms: `Nekretnine do ${MAX_AREA_SQM}m².`,
+    terms: `Cene za stan od oko ${REFERENCE_AREA_SQM}m².`,
     until: (date: string) => `do ${date}`,
     daysLeft: (n: number) => (n <= 0 ? 'poslednji dan' : `još ${n} ${srDays(n)}`)
   },
   en: {
     headline: (percent: number, promoPrice: string, regularPrice: string) =>
       `Launch promo: −${percent}% on every package — tours from ${promoPrice} instead of ${regularPrice}`,
-    terms: `Properties up to ${MAX_AREA_SQM}m².`,
+    terms: `Prices for a flat of about ${REFERENCE_AREA_SQM}m².`,
     until: (date: string) => `until ${date}`,
     daysLeft: (n: number) => (n <= 0 ? 'last day' : `${n} ${n === 1 ? 'day' : 'days'} left`)
   }
 } as const;
 
 export default function PromoBanner({ lang = 'sr' }: { lang?: HomeLang }) {
-  if (!isPromoActive()) return null;
+  const active = usePromoActive();
+  const daysLeft = usePromoDaysLeft();
+  if (!active) return null;
 
   const t = TEXT[lang];
   const entryTier = PRICE_TIERS[0];
@@ -51,7 +54,6 @@ export default function PromoBanner({ lang = 'sr' }: { lang?: HomeLang }) {
   const percent = Math.round(PROMO.discount * 100);
 
   const end = new Date(`${PROMO.endDate}T23:59:59`);
-  const daysLeft = Math.ceil((end.getTime() - Date.now()) / 86_400_000);
   const endLabel =
     lang === 'sr'
       ? `${end.getDate()}. ${SR_MONTHS_GENITIVE[end.getMonth()]}`

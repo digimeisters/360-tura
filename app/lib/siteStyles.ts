@@ -322,11 +322,9 @@ export const SITE_STYLES = `
   .promo-strip span{font-size:.86rem; opacity:.92;}
   .promo-days{flex:none; background:rgba(255,255,255,.2); border-radius:999px; padding:.2rem .7rem; font-size:.76rem; font-weight:700; letter-spacing:.02em;}
 
-  /* ---------- KALKULATOR ---------- */
+  /* ---------- CENOVNIK ---------- */
   /* Cene i stepeni su u lib/pricing.ts; ovde je samo izgled. */
-  .calc{margin-top:1.1rem; display:grid; grid-template-columns:1.1fr .9fr; overflow:hidden; scroll-margin-top:90px;}
-  .calc > *{min-width:0;}
-  @media (max-width:820px){ .calc{grid-template-columns:1fr;} }
+  .calc{margin-top:1.1rem; overflow:hidden; scroll-margin-top:90px;}
   .calc-inputs{padding:1.5rem; display:flex; flex-direction:column; gap:1.3rem;}
   .calc h3{font-size:1.2rem;}
   .calc-sub{margin-top:.3rem; color:var(--ink-soft); font-size:.9rem;}
@@ -354,26 +352,7 @@ export const SITE_STYLES = `
   .pkg-choice button[aria-pressed="true"]{background:var(--accent); border-color:var(--accent);}
   .pkg-choice button[aria-pressed="true"] b, .pkg-choice button[aria-pressed="true"] small{color:var(--on-accent);}
   @media (hover:hover){ .pkg-choice button:not([aria-pressed="true"]):hover{border-color:var(--accent);} }
-  .switch-row{display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.8rem 1rem; border:1px solid var(--line); border-radius:14px; background:var(--surface-2); cursor:pointer;}
-  .switch-row strong{display:block; font-size:.92rem; color:var(--ink);}
-  .switch-row span span{font-size:.8rem; color:var(--ink-soft);}
-  .switch{appearance:none; -webkit-appearance:none; flex:none; margin:0; width:2.6rem; height:1.5rem; border-radius:999px; background:var(--line-strong); position:relative; cursor:pointer; transition:background .15s ease;}
-  .switch::after{content:""; position:absolute; top:3px; left:3px; width:calc(1.5rem - 6px); height:calc(1.5rem - 6px); border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:transform .15s ease;}
-  .switch:checked{background:var(--accent);}
-  .switch:checked::after{transform:translateX(1.1rem);}
-  .calc-result{background:var(--accent-soft); padding:1.5rem; display:flex; flex-direction:column; gap:.7rem; border-left:1px solid var(--line);}
-  @media (max-width:820px){ .calc-result{border-left:0; border-top:1px solid var(--line);} }
-  .result-label{font-family:var(--font-display); font-size:.72rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-faint);}
-  .result-price{display:flex; align-items:baseline; gap:.3rem .6rem; flex-wrap:wrap;}
-  .result-price b{font-family:var(--font-display); font-size:2.7rem; font-weight:800; line-height:1; color:var(--ink); font-variant-numeric:tabular-nums;}
-  .result-price span{color:var(--ink-soft); font-size:.92rem;}
-  .saving{align-self:flex-start; font-size:.8rem; font-weight:700; color:var(--ok); background:color-mix(in srgb, var(--ok) 14%, transparent); border-radius:999px; padding:.25rem .75rem;}
-  .breakdown{list-style:none; margin:0; padding:0;}
-  .breakdown li{display:flex; justify-content:space-between; gap:1rem; padding:.45rem 0; font-size:.86rem; color:var(--ink-soft); border-top:1px solid color-mix(in srgb, var(--accent) 18%, transparent);}
-  .breakdown li span:last-child{color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums; text-align:right;}
   .calc-note{font-size:.84rem; color:var(--ink); background:var(--surface); border:1px dashed var(--line-strong); border-radius:12px; padding:.6rem .8rem;}
-  .calc-result .btn{margin-top:.2rem;}
-  .calc-fine{font-size:.75rem; color:var(--ink-faint);}
 
   /* ---------- PRIMERI TURA ---------- */
   .tours-grid{display:grid; gap:1.2rem;}
@@ -394,6 +373,16 @@ export const SITE_STYLES = `
   .tour-open{margin-top:auto; align-self:flex-start;}
 
   /* ---------- INTEGRACIJA ---------- */
+  /* ---------- PUTOKAZ KA STRANI ZA AGENCIJE ---------- */
+  /* Tekst levo, dugme desno; na užem ekranu jedno ispod drugog. */
+  .agency-bridge .wrap{display:grid; grid-template-columns:1fr auto; gap:clamp(1.4rem,4vw,3rem); align-items:center;}
+  @media (max-width:820px){ .agency-bridge .wrap{grid-template-columns:1fr; justify-items:start;} }
+  .agency-bridge h2{font-size:clamp(1.5rem,2.4vw,2rem);}
+  .bridge-points{list-style:none; margin:.3rem 0 0; padding:0; display:flex; flex-wrap:wrap; gap:.5rem 1.4rem;}
+  .bridge-points li{display:flex; align-items:center; gap:.5rem; font-size:.9rem; color:var(--ink-soft);}
+  .bridge-points li::before{content:"✓"; color:var(--accent); font-weight:700; flex:none;}
+  .agency-bridge .btn{white-space:nowrap;}
+
   .integration{background:var(--dark-bg); color:var(--dark-ink);}
   .integration .wrap{display:grid; grid-template-columns:1fr 1.1fr; gap:clamp(2rem,5vw,3.5rem); align-items:center;}
   @media (max-width:880px){ .integration .wrap{grid-template-columns:1fr;} }
