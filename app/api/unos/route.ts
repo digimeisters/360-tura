@@ -168,7 +168,7 @@ export async function POST(req: Request) {
       // Kad se broj ne vidi jasno, ostaje prazno - tura tada prolazi kroz
       // klizače bez ograničenja, umesto da upadne u pogrešan raspon.
       area_sqm: parseArea(answers['Kvadratura']),
-      price: priceFromAnswers(answers),
+      price: priceFromAnswers(answers, processed.category),
       location_map_url: processed.location_map_url,
       floorplan_url: floorplanUrl,
       faq_1_i18n: processed.faq_1_i18n,

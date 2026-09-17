@@ -27,6 +27,91 @@ const CATEGORY_LABELS: Record<Category, string> = {
   booking: 'Stan na dan'
 };
 
+/**
+ * Pitanja koja pripadaju odeljku jedne vrste oglasa.
+ *
+ * Upitnik pamti sve što je agent otkucao, i to preživljava promenu vrste
+ * oglasa: ko otvori "Prodaja", upiše cenu, pa pređe na "Izdavanje", poslao
+ * bi i prodajnu cenu. Odatle su dolazile rečenice o prodaji u opisu stana
+ * za izdavanje. Zato se pri slanju odbacuju odgovori TUĐEG odeljka.
+ *
+ * "Kvadratura" stoji u sve tri liste, jer je pitaju sva tri odeljka.
+ *
+ * Pitanje kojeg nema ni u jednoj listi se NE dira - ako se odeljku doda
+ * polje a ovde se zaboravi, odgovor se čuva umesto da tiho nestane.
+ */
+const CATEGORY_FIELDS: Record<Category, string[]> = {
+  rent: [
+    'Kvadratura',
+    'Mesečna zakupnina',
+    'Depozit',
+    'Minimalni period zakupa',
+    'Dostupno od',
+    'Režije',
+    'Grejanje',
+    'Kućni ljubimci',
+    'Dodatni uslovi ugovora'
+  ],
+  sale: [
+    'Kvadratura',
+    'Prodajna cena',
+    'Vlasništvo',
+    'Uknjiženost',
+    'Stanje objekta',
+    'Mogućnost kupovine na kredit',
+    'Porezi i provizija',
+    'Pripadajući prostor'
+  ],
+  booking: [
+    'Kvadratura',
+    'Cena po noćenju',
+    'Minimalan broj noćenja',
+    'Maksimalan broj gostiju',
+    'Check-in i check-out',
+    'Taksa za čišćenje',
+    'Pravila kuće',
+    'Dostupne pogodnosti',
+    'Pravila otkazivanja'
+  ]
+};
+
+/**
+ * Podrazumevane vrednosti menija sa zatvorenom listom.
+ *
+ * Stoje OVDE, a ne kao `values['Grejanje'] || 'Centralno grejanje'` u samom
+ * polju: ključ u `values` nastaje tek kad agent pipne meni, pa je vrednost
+ * napisana u polju bila samo ono što se crta - agent je gledao "Centralno
+ * grejanje", a na server nije odlazilo ništa. Odgovor je zato ispadao
+ * "informacija nije navedena", i to je završavalo u turi.
+ *
+ * Sad se čitaju na oba mesta: meni ih prikazuje, a slanje ih upisuje ispod
+ * onoga što je agent stvarno izabrao.
+ */
+const SELECT_DEFAULTS: Record<string, string> = {
+  'Oglašivač': 'Vlasnik',
+  'Grejanje': 'Centralno grejanje',
+  'Kućni ljubimci': 'Po dogovoru',
+  'Vlasništvo': '1/1',
+  'Uknjiženost': 'Da',
+  'Stanje objekta': 'Novogradnja',
+  'Mogućnost kupovine na kredit': 'Da',
+  'Porezi i provizija': 'Uključeni u cenu'
+};
+
+/** Odgovori bez onih koji pripadaju nekoj drugoj vrsti oglasa. */
+function forCategory(values: Record<string, string>, category: Category): Record<string, string> {
+  const mine = new Set(CATEGORY_FIELDS[category]);
+  const others = new Set(
+    (Object.keys(CATEGORY_FIELDS) as Category[])
+      .filter((c) => c !== category)
+      .flatMap((c) => CATEGORY_FIELDS[c])
+  );
+
+  return Object.fromEntries(
+    Object.entries(values).filter(([key]) => mine.has(key) || !others.has(key))
+  );
+}
+
 export default function UnosPage() {
   const [values, setValues] = useState<Record<string, string>>({});
   const [languages, setLanguages] = useState<string[]>(['Srpski']);
@@ -64,6 +149,9 @@ export default function UnosPage() {
 
   const set = (key: string) => (e: { target: { value: string } }) =>
     setValues((prev) => ({ ...prev, [key]: e.target.value }));
+
+  /** Vrednost menija: ono što je agent izabrao, inače podrazumevana. */
+  const pick = (key: string) => values[key] || SELECT_DEFAULTS[key];
 
   const propertyType = values['Tip nekretnine'] || 'Stan';
   const structureOptions = STRUCTURES[propertyType] || [];
@@ -120,9 +208,14 @@ export default function UnosPage() {
     setSending(true);
     try {
       const answers: Record<string, string> = {
-        ...values,
         // Meniji koje agent nije dirao ostaju van `values`, pa se njihove
-        // podrazumevane vrednosti ovde upisuju eksplicitno.
+        // podrazumevane vrednosti podmeću ISPOD onoga što je izabrao -
+        // inače bi na server otišlo da grejanje ili uknjiženost nisu
+        // navedeni, iako ih je agent sve vreme gledao u formularu.
+        //
+        // Odgovori napuštenog odeljka (npr. prodajna cena na oglasu za
+        // izdavanje) tek onda ispadaju - ni u bazu, ni u AI obradu.
+        ...forCategory({ ...SELECT_DEFAULTS, ...values }, category),
         'Tip nekretnine': propertyType,
         'Struktura nekretnine': structure,
         'Kategorija oglasa': CATEGORY_LABELS[category],
@@ -397,7 +490,7 @@ export default function UnosPage() {
           <Field label="Svojstvo oglašivača" required>
             <select
               id="oglasivac"
-              value={values['Oglašivač'] || 'Vlasnik'}
+              value={pick('Oglašivač')}
               onChange={set('Oglašivač')}
               style={inputStyle}
             >
@@ -518,14 +611,14 @@ export default function UnosPage() {
               <input id="rezije" value={values['Režije'] || ''} onChange={set('Režije')} placeholder="npr. oko 60 EUR" style={inputStyle} />
             </Field>
             <Field label="Grejanje" required>
-              <select id="grejanje" value={values['Grejanje'] || 'Centralno grejanje'} onChange={set('Grejanje')} style={inputStyle}>
+              <select id="grejanje" value={pick('Grejanje')} onChange={set('Grejanje')} style={inputStyle}>
                 {['Centralno grejanje', 'Gas', 'Struja', 'Klima', 'Čvrsto gorivo', 'Podno grejanje'].map((t) => (
                   <option key={t}>{t}</option>
                 ))}
               </select>
             </Field>
             <Field label="Kućni ljubimci" required>
-              <select id="ljubimci" value={values['Kućni ljubimci'] || 'Po dogovoru'} onChange={set('Kućni ljubimci')} style={inputStyle}>
+              <select id="ljubimci" value={pick('Kućni ljubimci')} onChange={set('Kućni ljubimci')} style={inputStyle}>
                 {['Da', 'Ne', 'Po dogovoru'].map((t) => (
                   <option key={t}>{t}</option>
                 ))}
@@ -553,35 +646,35 @@ export default function UnosPage() {
               <input id="cena" value={values['Prodajna cena'] || ''} onChange={set('Prodajna cena')} required style={inputStyle} />
             </Field>
             <Field label="Vlasništvo" required>
-              <select id="vlasnistvo" value={values['Vlasništvo'] || '1/1'} onChange={set('Vlasništvo')} style={inputStyle}>
+              <select id="vlasnistvo" value={pick('Vlasništvo')} onChange={set('Vlasništvo')} style={inputStyle}>
                 {['1/1', 'Suvlasništvo', 'Pravno lice'].map((t) => (
                   <option key={t}>{t}</option>
                 ))}
               </select>
             </Field>
             <Field label="Uknjiženost" required>
-              <select id="uknjizenost" value={values['Uknjiženost'] || 'Da'} onChange={set('Uknjiženost')} style={inputStyle}>
+              <select id="uknjizenost" value={pick('Uknjiženost')} onChange={set('Uknjiženost')} style={inputStyle}>
                 {['Da', 'Ne', 'U procesu'].map((t) => (
                   <option key={t}>{t}</option>
                 ))}
               </select>
             </Field>
             <Field label="Stanje objekta" required>
-              <select id="stanje" value={values['Stanje objekta'] || 'Novogradnja'} onChange={set('Stanje objekta')} style={inputStyle}>
+              <select id="stanje" value={pick('Stanje objekta')} onChange={set('Stanje objekta')} style={inputStyle}>
                 {['Novogradnja', 'Starogradnja', 'Renoviran', 'Siva gradnja'].map((t) => (
                   <option key={t}>{t}</option>
                 ))}
               </select>
             </Field>
             <Field label="Kupovina na kredit" required>
-              <select id="kredit" value={values['Mogućnost kupovine na kredit'] || 'Da'} onChange={set('Mogućnost kupovine na kredit')} style={inputStyle}>
+              <select id="kredit" value={pick('Mogućnost kupovine na kredit')} onChange={set('Mogućnost kupovine na kredit')} style={inputStyle}>
                 {['Da', 'Ne'].map((t) => (
                   <option key={t}>{t}</option>
                 ))}
               </select>
             </Field>
             <Field label="Porezi i provizija" required>
-              <select id="porezi" value={values['Porezi i provizija'] || 'Uključeni u cenu'} onChange={set('Porezi i provizija')} style={inputStyle}>
+              <select id="porezi" value={pick('Porezi i provizija')} onChange={set('Porezi i provizija')} style={inputStyle}>
                 {['Uključeni u cenu', 'Dodatni'].map((t) => (
                   <option key={t}>{t}</option>
                 ))}
@@ -602,6 +695,9 @@ export default function UnosPage() {
 
         {category === 'booking' && (
           <Section title="Stan na dan">
+            <Field label="Kvadratura (m²)" required hint="Po njoj se tura nalazi kroz klizač za kvadraturu na spisku tura.">
+              <input id="b-kvadratura" value={values['Kvadratura'] || ''} onChange={set('Kvadratura')} required style={inputStyle} />
+            </Field>
             <Field label="Cena po noćenju" required>
               <input id="b-cena" value={values['Cena po noćenju'] || ''} onChange={set('Cena po noćenju')} required style={inputStyle} />
             </Field>

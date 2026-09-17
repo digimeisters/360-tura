@@ -72,12 +72,22 @@ export function parsePrice(raw: string | null | undefined): number | null {
 }
 
 /** Odgovor iz upitnika koji nosi cenu - zavisi od vrste oglasa. */
-export const PRICE_ANSWER_KEYS = ['Prodajna cena', 'Mesečna zakupnina', 'Cena po noćenju'];
+export const PRICE_ANSWER_KEY: Record<string, string> = {
+  sale: 'Prodajna cena',
+  rent: 'Mesečna zakupnina',
+  booking: 'Cena po noćenju'
+};
 
-export function priceFromAnswers(answers: Record<string, string>): number | null {
-  for (const key of PRICE_ANSWER_KEYS) {
-    const price = parsePrice(answers[key]);
-    if (price !== null) return price;
-  }
-  return null;
+/**
+ * Cena se čita iz odgovora IZABRANE vrste oglasa, a ne iz prvog polja koje
+ * ima broj: upitnik pamti sve što je agent otkucao, pa i cenu iz odeljka
+ * koji je pre toga otvorio i napustio. Bez ovoga bi prodajna cena iz
+ * napuštenog odeljka pregazila mesečnu zakupninu.
+ */
+export function priceFromAnswers(
+  answers: Record<string, string>,
+  category: string
+): number | null {
+  const key = PRICE_ANSWER_KEY[category];
+  return key ? parsePrice(answers[key]) : null;
 }
