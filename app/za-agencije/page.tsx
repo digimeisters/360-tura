@@ -4,6 +4,7 @@ import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 import ContactForm from '../../components/ContactForm';
 import PriceCalculator from '../../components/PriceCalculator';
 import PromoBanner from '../../components/PromoBanner';
+import { PlanPrice, SaleSticker } from '../../components/PromoPrice';
 import SiteTracker from '../../components/SiteTracker';
 import NavScrollSpy from '../../components/NavScrollSpy';
 import { SITE_STYLES } from '../lib/siteStyles';
@@ -143,9 +144,16 @@ export default function AgencyPage() {
               {AGENCY_PLANS.map((plan) => (
                 <div key={plan.track} className={`card price-card${plan.badge ? ' featured' : ''}`}>
                   {plan.badge && <span className="price-badge">{plan.badge}</span>}
+                  <SaleSticker />
                   <span className="price-audience">{plan.audience}</span>
                   <h3>{plan.title}</h3>
-                  <div className="price-value">{plan.from} <b>{plan.amount}</b><span>{plan.unit}</span></div>
+                  <PlanPrice
+                    count={plan.count}
+                    packageType={plan.packageType}
+                    from={plan.from}
+                    unit={plan.unit}
+                    lang="sr"
+                  />
                   <ul className="price-list">
                     {plan.items.map((item) => (
                       <li key={item}>{item}</li>

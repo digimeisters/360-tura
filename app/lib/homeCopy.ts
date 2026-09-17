@@ -1,16 +1,16 @@
 // Tekst početne strane na srpskom (/) i engleskom (/en). Raspored je jedan
 // (app/HomePage.tsx), pa se nova rečenica dodaje ovde u oba jezika.
 
-import { PREMIUM_EXTRA, PRICE_TIERS, packagePrice, tierIndexFor, tourPrice, type PackageType } from './pricing';
+import { PREMIUM_EXTRA, PRICE_TIERS, tierIndexFor, tourPrice, type PackageType } from './pricing';
 
-// Iznosi na karticama paketa se računaju iz cena (lib/pricing.ts). Kartice
-// uvek prikazuju REDOVNU cenu - promocija ide kroz PromoBanner, da traka
-// može sama da nestane kad kampanja istekne.
+// Veliki iznos na kartici NIJE ovde - računa ga components/PromoPrice.tsx na
+// klijentu, da bi mogao da pokaže promo cenu dok kampanja traje, a da posle
+// isteka sam prestane, bez novog deploy-a.
+//
+// Stavke u spisku jesu ovde, i prikazuju se odvojeno (tura 50€ + HDR 20€),
+// da se cena ne čita kao da cela ide na samu turu. To su REDOVNE cene -
+// popust na njih objašnjavaju nalepnica i traka iznad kartica.
 const tierFor = (count: number) => PRICE_TIERS[tierIndexFor(count)];
-const srAmount = (count: number, pkg: PackageType = 'basic') => `${packagePrice(count, pkg)}€`;
-const enAmount = (count: number, pkg: PackageType = 'basic') => `€${packagePrice(count, pkg)}`;
-// Stavke se prikazuju odvojeno (tura 50€ + HDR 20€), da se ne čita kao da
-// cela cena ide na samu turu.
 const srTour = (count: number, pkg: PackageType = 'basic') => `${tourPrice(tierFor(count), pkg)}€`;
 const enTour = (count: number, pkg: PackageType = 'basic') => `€${tourPrice(tierFor(count), pkg)}`;
 const srHdr = (count: number) => `${tierFor(count).hdr}€`;
@@ -24,7 +24,10 @@ export type PricePlan = {
   audience: string;
   title: string;
   from: string;
-  amount: string;
+  /** Iznos se ne upisuje ovde: računa ga PlanPrice, da bi mogao da prikaže
+      promo cenu dok kampanja traje (vidi components/PromoPrice.tsx). */
+  count: number;
+  packageType: PackageType;
   unit: string;
   items: string[];
   cta: string;
@@ -190,7 +193,8 @@ const sr: HomeCopy = {
         audience: 'Za pojedinačne vlasnike',
         title: 'Pojedinačna tura',
         from: 'od',
-        amount: srAmount(1),
+        count: 1,
+        packageType: 'basic',
         unit: '/ nekretnina',
         items: [
           `360° tura sa audio vodičem — ${srTour(1)}`,
@@ -205,7 +209,8 @@ const sr: HomeCopy = {
         audience: 'Za agencije · Osnovni paket',
         title: 'Agencija Osnovni',
         from: 'od',
-        amount: srAmount(3, 'basic'),
+        count: 3,
+        packageType: 'basic',
         unit: '/ mesečno (3 ture)',
         items: [
           `360° tura sa audio vodičem — ${srTour(3)} po turi`,
@@ -222,7 +227,8 @@ const sr: HomeCopy = {
         audience: 'Za agencije · Premium paket',
         title: 'Agencija Premium',
         from: 'od',
-        amount: srAmount(3, 'premium'),
+        count: 3,
+        packageType: 'premium',
         unit: '/ mesečno (3 ture)',
         items: [
           'Sve iz Osnovnog paketa, plus:',
@@ -357,7 +363,8 @@ const en: HomeCopy = {
         audience: 'For individual owners',
         title: 'Single tour',
         from: 'from',
-        amount: enAmount(1),
+        count: 1,
+        packageType: 'basic',
         unit: '/ property',
         items: [
           `360° tour with audio guide — ${enTour(1)}`,
@@ -372,7 +379,8 @@ const en: HomeCopy = {
         audience: 'For agencies · Basic package',
         title: 'Agency Basic',
         from: 'from',
-        amount: enAmount(3, 'basic'),
+        count: 3,
+        packageType: 'basic',
         unit: '/ month (3 tours)',
         items: [
           `360° tour with audio guide — ${enTour(3)} per tour`,
@@ -389,7 +397,8 @@ const en: HomeCopy = {
         audience: 'For agencies · Premium package',
         title: 'Agency Premium',
         from: 'from',
-        amount: enAmount(3, 'premium'),
+        count: 3,
+        packageType: 'premium',
         unit: '/ month (3 tours)',
         items: [
           'Everything in Basic, plus:',

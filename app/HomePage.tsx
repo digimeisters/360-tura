@@ -6,6 +6,7 @@ import ContactForm from '../components/ContactForm';
 import SiteTracker from '../components/SiteTracker';
 import PriceCalculator from '../components/PriceCalculator';
 import PromoBanner from '../components/PromoBanner';
+import { PlanPrice, SaleSticker } from '../components/PromoPrice';
 import NavScrollSpy from '../components/NavScrollSpy';
 import { getShowcaseTours, pickHeroTour } from './lib/showcaseTours';
 import { SITE_NAME, SITE_URL, CONTACT, CONTACT_LINKS, whatsappLink } from './lib/site';
@@ -236,9 +237,16 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
               {copy.pricing.plans.map((plan) => (
                 <div key={plan.track} className={`card price-card${plan.badge ? ' featured' : ''}`}>
                   {plan.badge && <span className="price-badge">{plan.badge}</span>}
+                  <SaleSticker />
                   <span className="price-audience">{plan.audience}</span>
                   <h3>{plan.title}</h3>
-                  <div className="price-value">{plan.from} <b>{plan.amount}</b><span>{plan.unit}</span></div>
+                  <PlanPrice
+                    count={plan.count}
+                    packageType={plan.packageType}
+                    from={plan.from}
+                    unit={plan.unit}
+                    lang={lang}
+                  />
                   <ul className="price-list">
                     {plan.items.map((item) => (
                       <li key={item}>{item}</li>

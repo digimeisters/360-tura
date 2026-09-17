@@ -302,6 +302,11 @@ export const SITE_STYLES = `
   .price-card{position:relative; padding:1.7rem 1.6rem; display:flex; flex-direction:column; gap:1.1rem;}
   .price-card.featured{border:2px solid var(--accent); box-shadow:0 12px 32px -10px var(--accent-glow);}
   .price-badge{position:absolute; top:-.8rem; left:1.5rem; background:var(--accent); color:var(--on-accent); font-family:var(--font-display); font-size:.66rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; padding:.35rem .75rem; border-radius:999px; box-shadow:0 4px 12px var(--accent-glow);}
+  /* Nalepnica sa popustom, u uglu kartice - kao pečat u prospektu. Crvena, da
+     se ne stopi sa plavim čipom u suprotnom uglu (components/PromoPrice.tsx). */
+  .price-sale{position:absolute; top:-.85rem; right:1.1rem; z-index:2; width:3.5rem; height:3.5rem; border-radius:50%; display:grid; place-items:center; background:var(--danger); color:#fff; border:2px solid var(--surface); font-family:var(--font-display); font-weight:800; font-size:.95rem; font-variant-numeric:tabular-nums; transform:rotate(9deg); box-shadow:0 6px 16px color-mix(in srgb, var(--danger) 35%, transparent);}
+  @media (prefers-reduced-motion:no-preference){ .price-card:hover .price-sale{transform:rotate(9deg) scale(1.06); transition:transform .18s ease;} }
+  .price-was{color:var(--ink-faint); font-size:1rem; font-weight:600; text-decoration-thickness:2px; font-variant-numeric:tabular-nums;}
   .price-audience{font-family:var(--font-display); font-size:.7rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint);}
   .price-card h3{font-size:1.4rem;}
   .price-value{display:flex; align-items:baseline; gap:.35rem; font-size:.92rem; color:var(--ink-soft);}

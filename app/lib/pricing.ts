@@ -110,9 +110,9 @@ export function perProperty(tier: PriceTier, pkg: PackageType, promoActive = fal
   return tourPrice(tier, pkg, promoActive) + hdrPrice(tier, promoActive);
 }
 
-/** Ukupna cena za dati broj nekretnina (kartice paketa - uvek redovna cena). */
-export function packagePrice(count: number, pkg: PackageType = 'basic'): number {
-  return count * perProperty(PRICE_TIERS[tierIndexFor(count)], pkg);
+/** Ukupna cena za dati broj nekretnina (kartice paketa). */
+export function packagePrice(count: number, pkg: PackageType = 'basic', promoActive = false): number {
+  return count * perProperty(PRICE_TIERS[tierIndexFor(count)], pkg, promoActive);
 }
 
 /** Paket u formi za kontakt koji odgovara izboru iz kalkulatora. */
