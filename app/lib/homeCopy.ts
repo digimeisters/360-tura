@@ -86,9 +86,19 @@ export type HomeCopy = {
   };
   categories: Record<'sale' | 'rent' | 'booking', string>;
   tourCard: { rooms: (count: number) => string; open: string };
-  // allTours: link ka spisku svih tura (/ture); strana je za sada samo na
-  // srpskom, pa se dugme prikazuje samo tamo.
-  examples: { eyebrow: string; title: string; note: string; allTours?: string };
+  examples: {
+    eyebrow: string;
+    title: string;
+    note: string;
+    /**
+     * Traka posle mreže kartica, koja najavljuje da postoji ceo spisak tura
+     * sa filterima (/ture) - inače ova sekcija i taj spisak danas prikazuju
+     * ISTO (nema odsecanja na par tura), pa razlika nije očigledna dok baza
+     * ne naraste. Strana je za sada samo na srpskom, pa traka postoji samo
+     * tamo (kao ranije allTours).
+     */
+    database?: { text: string; filters: string[]; cta: string };
+  };
   benefits: { eyebrow: string; title: string; note: string; items: Titled[] };
   steps: { eyebrow: string; title: string; note: string; items: Titled[]; deliverTitle: string; deliver: string[] };
   types: {
@@ -176,7 +186,11 @@ const sr: HomeCopy = {
     eyebrow: 'Ture',
     title: 'Prošetajte kroz pravu turu',
     note: 'Ture koje su trenutno objavljene — otvaraju se u pretraživaču, na telefonu ili računaru, bez instaliranja aplikacije.',
-    allTours: 'Pogledajte sve ture →'
+    database: {
+      text: 'Ovo su samo neke od tura. Kompletna baza ima filtere po gradu, naselju, strukturi, kvadraturi i ceni.',
+      filters: ['Grad', 'Naselje', 'Struktura', 'Kvadratura', 'Cena'],
+      cta: 'Otvorite spisak tura →'
+    }
   },
   benefits: {
     eyebrow: 'Benefiti',
@@ -186,7 +200,7 @@ const sr: HomeCopy = {
       { title: 'Manje uzaludnih razgledanja', text: 'Kupci i zakupci prvo „prošetaju“ kroz stan online. Na razgledanje dolaze samo oni koje stan zaista zanima.' },
       { title: 'Oglas koji se izdvaja', text: 'HDR fotografije i 360° tura odmah izdvajaju vaš oglas među stotinama onih slikanih telefonom.' },
       { title: 'Strani kupci bez prevodioca', text: 'Audio vodič govori srpski, engleski, nemački i ruski — kupac iz inostranstva čuje sve na svom jeziku.' },
-      { title: 'Vođena tura, bez klikanja', text: 'Posetilac bira: da ga vodič provede kroz sve prostorije i ispriča šta se gde nalazi, ili da razgleda sam, svojim tempom.' },
+      { title: 'Vođena tura, bez kliktanja', text: 'Posetilac bira: da ga vodič provede kroz sve prostorije i ispriča šta se gde nalazi, ili da razgleda sam, svojim tempom.' },
       { title: 'Brža odluka', text: 'Ko je već „prošetao“ kroz stan, na razgledanje dolazi sa manje pitanja i brže se odlučuje.' },
       { title: 'Sve na jednom mestu', text: 'Plan stana, lokacija i vaš kontakt stoje u samoj turi — bez dodatnih poziva i mejlova.' },
       { title: 'Profesionalan prvi utisak', text: 'Kvalitetna fotografija i uredna tura grade poverenje i pre prvog poziva.' },

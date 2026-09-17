@@ -88,7 +88,16 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
       >
         {/* Redosled pilula mora da prati redosled sekcija na strani - inače
             scrollspy skače napred-nazad dok posetilac skroluje. */}
-        {tours.length > 0 && <li><a href="#primeri">{nav.examples}</a></li>}
+        {tours.length > 0 && (
+          <li>
+            {/* Vodi na spisak svih tura, ne na sekciju ovde - "primeri" na
+                početnoj su i dalje samo izbor. Obeležava se dok se prolazi
+                kroz tu sekciju (data-section), isto kao "Za agencije". */}
+            <Link href="/ture" data-section="primeri" data-track="cta:nav_tours">
+              {nav.examples}
+            </Link>
+          </li>
+        )}
         <li><a href="#benefiti">{nav.benefits}</a></li>
         <li><a href="#kako-radimo">{nav.how}</a></li>
         <li><a href="#cenovnik">{nav.packages}</a></li>
@@ -155,12 +164,21 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
                   <TourCard key={tour.slug} tour={tour} labels={tourCardLabels(copy)} lang={lang} />
                 ))}
               </div>
-              {copy.examples.allTours && (
-                <p className="fine-print" style={{ textAlign: 'center' }}>
-                  <Link className="btn btn-primary btn-sm" href="/ture" data-track="cta:all_tours">
-                    {copy.examples.allTours}
+              {copy.examples.database && (
+                <div className="db-teaser">
+                  <span className="db-teaser-icon" aria-hidden="true">🔍</span>
+                  <div className="db-teaser-body">
+                    <p className="db-teaser-text">{copy.examples.database.text}</p>
+                    <div className="db-teaser-filters">
+                      {copy.examples.database.filters.map((f) => (
+                        <span key={f} className="chip">{f}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <Link className="btn btn-primary db-teaser-cta" href="/ture" data-track="cta:all_tours">
+                    {copy.examples.database.cta}
                   </Link>
-                </p>
+                </div>
               )}
             </div>
           </section>

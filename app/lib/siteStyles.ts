@@ -474,6 +474,18 @@ export const SITE_STYLES = `
   .tours-grid.n-3{grid-template-columns:repeat(3,1fr);}
   @media (max-width:900px){ .tours-grid.n-3{grid-template-columns:1fr 1fr;} }
   @media (max-width:620px){ .tours-grid.n-2, .tours-grid.n-3{grid-template-columns:1fr;} }
+  /* Traka posle mreže kartica - najavljuje ceo spisak tura sa filterima
+     (/ture). Isprekidan okvir kao .calc-note ("ovo je samo napomena", ne
+     promo ponuda), a NE akcentna boja iz .promo-strip - lako bi se pročitalo
+     kao popust umesto kao putokaz. */
+  .db-teaser{margin-top:1.6rem; padding:1.1rem 1.4rem; border-radius:16px; background:var(--surface-2); border:1px dashed var(--line-strong); display:flex; flex-wrap:wrap; align-items:center; gap:1rem 1.2rem;}
+  .db-teaser-icon{flex:none; display:grid; place-items:center; width:2.4rem; height:2.4rem; border-radius:50%; background:var(--accent-soft); font-size:1.15rem;}
+  .db-teaser-body{flex:1 1 16rem; min-width:0; display:flex; flex-direction:column; gap:.55rem;}
+  .db-teaser-text{font-size:.9rem; color:var(--ink-soft); line-height:1.5;}
+  .db-teaser-filters{display:flex; flex-wrap:wrap; gap:.4rem;}
+  .db-teaser-filters .chip{font-size:.76rem; padding:.25rem .65rem; font-weight:650;}
+  .db-teaser-cta{flex:none;}
+  @media (max-width:640px){ .db-teaser{flex-direction:column; text-align:center; padding:1.2rem;} .db-teaser-body{align-items:center;} .db-teaser-filters{justify-content:center;} .db-teaser-cta{width:100%;} }
   .tour-card{overflow:hidden; display:flex; flex-direction:column; text-decoration:none; color:inherit; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;}
   @media (hover:hover){ .tour-card:hover{transform:translateY(-3px); box-shadow:var(--shadow-lg);} .tour-card:hover .tour-open{border-color:var(--accent); color:var(--accent);} }
   .tour-photo{position:relative; aspect-ratio:1200/630; background:var(--surface-2);}
