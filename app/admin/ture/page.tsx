@@ -18,6 +18,8 @@ type TourRow = {
   /** Filteri na /ture (migracija 012); zatečene ture su prazne. */
   district: string | null;
   structure: string | null;
+  area_sqm: number | string | null;
+  price: number | string | null;
   category: string | null;
   property_type: string | null;
   agent_name: string | null;
@@ -46,6 +48,8 @@ type FormState = {
   city: string;
   district: string;
   structure: string;
+  area_sqm: string;
+  price: string;
   property_type: string;
   category: string;
   agent_name: string;
@@ -60,6 +64,8 @@ const EMPTY_FORM: FormState = {
   city: '',
   district: '',
   structure: '',
+  area_sqm: '',
+  price: '',
   property_type: '',
   category: 'rent',
   agent_name: '',
@@ -302,6 +308,8 @@ export default function ToursAdminPage() {
       city: tour.city || '',
       district: tour.district || '',
       structure: tour.structure || '',
+      area_sqm: tour.area_sqm === null || tour.area_sqm === undefined ? '' : String(tour.area_sqm),
+      price: tour.price === null || tour.price === undefined ? '' : String(tour.price),
       property_type: tour.property_type || '',
       category: tour.category || 'rent',
       agent_name: tour.agent_name || '',
@@ -512,6 +520,38 @@ export default function ToursAdminPage() {
                   <option key={s}>{s}</option>
                 ))}
               </select>
+            </Field>
+          </div>
+
+          <div style={twoCol}>
+            <Field label="Kvadratura (m²)" hint="Klizač na spisku tura. Prazno = tura prolazi kroz klizač bez ograničenja.">
+              <input
+                id="tour-area"
+                inputMode="decimal"
+                value={form.area_sqm}
+                onChange={(e) => setForm({ ...form, area_sqm: e.target.value })}
+                placeholder="npr. 58"
+                style={inputStyle}
+              />
+            </Field>
+            <Field
+              label="Cena (EUR)"
+              hint={
+                form.category === 'sale'
+                  ? 'Ukupna prodajna cena.'
+                  : form.category === 'booking'
+                    ? 'Cena po noćenju.'
+                    : 'Mesečna zakupnina.'
+              }
+            >
+              <input
+                id="tour-price"
+                inputMode="decimal"
+                value={form.price}
+                onChange={(e) => setForm({ ...form, price: e.target.value })}
+                placeholder={form.category === 'sale' ? 'npr. 72000' : 'npr. 450'}
+                style={inputStyle}
+              />
             </Field>
           </div>
 

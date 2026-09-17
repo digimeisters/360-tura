@@ -26,15 +26,31 @@ function clean(value: unknown, field: string): string {
   return value.trim().slice(0, LIMITS[field] ?? 200);
 }
 
+/**
+ * Kvadratura i cena (migracija 013) su brojevi, a iz formulara stižu kao
+ * tekst iz polja. Prazno polje znači "nije poznato", a ne nula: tura tada
+ * prolazi kroz klizače na /ture bez ograničenja.
+ */
+function cleanNumber(value: unknown, max: number): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) && value > 0 ? value : null;
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const parsed = Number(value.trim().replace(',', '.'));
+  if (!Number.isFinite(parsed) || parsed <= 0 || parsed > max) return null;
+  return Math.round(parsed * 100) / 100;
+}
+
+const MAX_AREA_SQM = 10_000;
+const MAX_PRICE_EUR = 100_000_000;
+
 export async function GET(req: Request) {
   const ctx = await requireAdmin(req);
   if (!ctx.ok) return NextResponse.json({ success: false, error: ctx.error }, { status: ctx.status });
 
   const BASE_COLUMNS =
     'slug, title, title_i18n, agency_name, address, city, category, property_type, agent_name, agent_phone, agent_email, created_at, published, status';
-  // `district` i `structure` postoje tek posle migracije 012. Nabrajanje
-  // kolone koje nema obara ceo upit, pa bi ceo spisak tura ostao prazan -
-  // zato se na tu grešku čita bez njih.
+  // `district` i `structure` postoje tek posle migracije 012, `area_sqm` i
+  // `price` posle 013. Nabrajanje kolone koje nema obara ceo upit, pa bi
+  // ceo spisak tura ostao prazan - zato se na tu grešku čita bez njih.
   const readTours = (columns: string) =>
     ctx.supabase
       .from('tours')
@@ -42,13 +58,13 @@ export async function GET(req: Request) {
       .order('created_at', { ascending: false });
 
   const [toursResult, { data: rooms }] = await Promise.all([
-    readTours(`${BASE_COLUMNS}, district, structure`),
+    readTours(`${BASE_COLUMNS}, district, structure, area_sqm, price`),
     ctx.supabase.from('rooms').select('tour_slug, panorama_url, panorama_url_cf')
   ]);
   let { data: tours, error } = toursResult;
 
-  if (error && /\b(district|structure)\b/i.test(error.message)) {
-    console.warn('[api/admin/tours] nedostaje migracija 012 - čitanje bez naselja i strukture.');
+  if (error && /\b(district|structure|area_sqm|price)\b/i.test(error.message)) {
+    console.warn('[api/admin/tours] nedostaju migracije 012/013 - čitanje bez naselja, strukture, kvadrature i cene.');
     ({ data: tours, error } = await readTours(BASE_COLUMNS));
   }
 
@@ -107,6 +123,8 @@ export async function POST(req: Request) {
     city: clean(body.city, 'city') || null,
     district: clean(body.district, 'district') || null,
     structure: clean(body.structure, 'structure') || null,
+    area_sqm: cleanNumber(body.area_sqm, MAX_AREA_SQM),
+    price: cleanNumber(body.price, MAX_PRICE_EUR),
     property_type: clean(body.property_type, 'property_type') || null,
     agent_name: clean(body.agent_name, 'agent_name') || null,
     agent_phone: clean(body.agent_phone, 'agent_phone') || null,
@@ -251,6 +269,8 @@ export async function PATCH(req: Request) {
       city: clean(body.city, 'city') || null,
       district: clean(body.district, 'district') || null,
       structure: clean(body.structure, 'structure') || null,
+      area_sqm: cleanNumber(body.area_sqm, MAX_AREA_SQM),
+      price: cleanNumber(body.price, MAX_PRICE_EUR),
       property_type: clean(body.property_type, 'property_type') || null,
       agent_name: clean(body.agent_name, 'agent_name') || null,
       agent_phone: clean(body.agent_phone, 'agent_phone') || null,

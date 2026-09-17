@@ -260,6 +260,25 @@ export const SITE_STYLES = `
   .filter-opt:hover{background:var(--surface-2);}
   .filter-opt input{accent-color:var(--accent); width:1rem; height:1rem; flex:none; margin:0;}
   .filter-panel-clear{display:block; width:100%; margin-top:.2rem; padding:.45rem .55rem; background:none; border:none; border-top:1px solid var(--line); font:inherit; font-size:.84rem; color:var(--accent); font-weight:650; text-align:left; cursor:pointer;}
+  /* Klizači (kvadratura, cena) - dva <input type=range> jedan preko drugog. */
+  .filter-ranges{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem 1.6rem; margin-bottom:1.1rem;}
+  .range-filter{min-width:0;}
+  .range-head{display:flex; align-items:baseline; justify-content:space-between; gap:.6rem; margin-bottom:.5rem;}
+  .range-label{font-family:var(--font-display); font-size:.72rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint);}
+  .range-value{font-size:.88rem; font-weight:650; color:var(--ink-soft);}
+  .range-filter.on .range-value{color:var(--accent);}
+  .range-track{position:relative; height:1.4rem;}
+  /* Šina i popunjeni deo se crtaju ispod, a same ručice hvataju klik. */
+  .range-track::before{content:""; position:absolute; left:0; right:0; top:50%; height:4px; margin-top:-2px; border-radius:999px; background:var(--line-strong);}
+  .range-fill{position:absolute; top:50%; height:4px; margin-top:-2px; border-radius:999px; background:var(--accent);}
+  .range-input{position:absolute; left:0; width:100%; top:0; height:1.4rem; margin:0; background:none; pointer-events:none; appearance:none; -webkit-appearance:none;}
+  .range-input:focus{outline:none;}
+  .range-input::-webkit-slider-thumb{pointer-events:auto; appearance:none; -webkit-appearance:none; width:1.1rem; height:1.1rem; border-radius:50%; background:var(--surface); border:2px solid var(--accent); box-shadow:var(--shadow); cursor:grab;}
+  .range-input::-moz-range-thumb{pointer-events:auto; width:1.1rem; height:1.1rem; border-radius:50%; background:var(--surface); border:2px solid var(--accent); box-shadow:var(--shadow); cursor:grab;}
+  .range-input:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px var(--accent-glow);}
+  .range-input:focus-visible::-moz-range-thumb{box-shadow:0 0 0 3px var(--accent-glow);}
+  .range-note{margin:.35rem 0 0; font-size:.76rem; color:var(--ink-faint);}
+  @media (max-width:560px){ .filter-ranges{grid-template-columns:1fr; gap:1.1rem;} }
   .filter-count{margin:.2rem 0 1.2rem; font-size:.88rem; color:var(--ink-soft); display:flex; align-items:center; gap:.6rem; flex-wrap:wrap;}
   .filter-reset{background:none; border:none; padding:0; font:inherit; color:var(--accent); font-weight:650; cursor:pointer; text-decoration:underline;}
   /* Na telefonu meni ide preko cele širine kartice, da duga imena naselja

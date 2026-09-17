@@ -43,6 +43,13 @@ export type ShowcaseTour = {
   /** Naselje i struktura iz upitnika - filteri na /ture (migracija 012). */
   district: string | null;
   structure: string | null;
+  /**
+   * Kvadratura u m² i cena u evrima - klizači na /ture (migracija 013).
+   * Šta je cena zavisi od `category`: ukupna (prodaja), mesečna (izdavanje)
+   * ili po noćenju (smeštaj). Null = tura prolazi kroz klizač bez granica.
+   */
+  areaSqm: number | null;
+  price: number | null;
   /** Samo sobe koje imaju sličicu, redom obilaska. */
   rooms: ShowcaseRoom[];
 };
@@ -59,6 +66,9 @@ type TourRow = {
   /** Postoje tek posle migracije 012; zatečene ture su prazne. */
   district?: string | null;
   structure?: string | null;
+  /** Postoje tek posle migracije 013; stižu kao broj ili numeric-tekst. */
+  area_sqm?: number | string | null;
+  price?: number | string | null;
   created_at: string | null;
   /** Postoji tek posle migracije 010; ture bez nje se čitaju kao 'active'. */
   status?: string | null;
@@ -100,6 +110,13 @@ function asObject(value: unknown): Record<string, unknown> {
     }
   }
   return {};
+}
+
+// Postgres `numeric` stiže kao tekst kroz PostgREST, pa se ovde vraća u broj.
+function asNumber(value: number | string | null | undefined): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
 }
 
 function hasText(i18n: unknown, lang: string): boolean {
@@ -200,6 +217,8 @@ export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
       city: realValue(tour.city ?? null) || cityFromAddress(realValue(tour.address)),
       district: realValue(tour.district ?? null),
       structure: realValue(tour.structure ?? null),
+      areaSqm: asNumber(tour.area_sqm),
+      price: asNumber(tour.price),
       rooms: tourRooms
         .filter((r) => r.preview_url)
         .map((r, i) => ({

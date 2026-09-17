@@ -6,6 +6,7 @@ import { r2Client } from '@/app/lib/r2';
 import { processTourForm, FormAnswers } from '@/app/lib/tourFromForm';
 import { uniqueSlug } from '@/app/lib/slug';
 import { rateLimit, tooManyRequests } from '@/app/lib/rateLimit';
+import { parseArea, priceFromAnswers } from '@/app/lib/tourNumbers';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -163,6 +164,11 @@ export async function POST(req: Request) {
       // napisani - a filteri na /ture grupišu ture po doslovnom tekstu.
       structure: String(answers['Struktura nekretnine'] || '').trim() || null,
       district: String(answers['Naselje'] || '').trim() || null,
+      // Kvadratura i cena se čitaju iz slobodnog teksta ("58 m²", "450 EUR").
+      // Kad se broj ne vidi jasno, ostaje prazno - tura tada prolazi kroz
+      // klizače bez ograničenja, umesto da upadne u pogrešan raspon.
+      area_sqm: parseArea(answers['Kvadratura']),
+      price: priceFromAnswers(answers),
       location_map_url: processed.location_map_url,
       floorplan_url: floorplanUrl,
       faq_1_i18n: processed.faq_1_i18n,
@@ -175,14 +181,15 @@ export async function POST(req: Request) {
 
     let { error } = await supabase.from('tours').insert(payload);
 
-    // `city` postoji tek posle migracije 011, `structure` i `district` tek
-    // posle 012. Dok neka od njih ne prođe, tura se upisuje bez tih polja -
-    // bolje nego da agentu propadne ceo unos. Popunjavaju se u /admin/ture.
-    if (error && /\b(city|structure|district)\b/i.test(error.message)) {
-      const { city, structure, district, ...bezFiltera } = payload;
+    // `city` postoji tek posle migracije 011, `structure`/`district` posle
+    // 012, `area_sqm`/`price` posle 013. Dok neka od njih ne prođe, tura se
+    // upisuje bez tih polja - bolje nego da agentu propadne ceo unos.
+    // Popunjavaju se u /admin/ture.
+    if (error && /\b(city|structure|district|area_sqm|price)\b/i.test(error.message)) {
+      const { city, structure, district, area_sqm, price, ...bezFiltera } = payload;
       console.warn(
-        '[api/unos] nedostaje kolona za filtere (migracije 011/012) - upis bez njih:',
-        { city, structure, district }
+        '[api/unos] nedostaje kolona za filtere (migracije 011/012/013) - upis bez njih:',
+        { city, structure, district, area_sqm, price }
       );
       ({ error } = await supabase.from('tours').insert(bezFiltera));
     }
