@@ -63,6 +63,18 @@ export type Tour = {
   location_map_url?: string;
   about_text_i18n?: Record<string, string> | string;
   floorplan_url?: string;
+  /**
+   * Tabela osnovnih podataka u Info modalu (migracije 012/013/014). Nijedno
+   * od ovih nema i18n kolonu - vrednosti su brojevi ili sa zatvorene liste,
+   * pa ih prevodi sama aplikacija (translations.ts FACT_LABELS/
+   * HEATING_LABELS), ne AI. Prazno = taj red se ne prikazuje.
+   */
+  district?: string | null;
+  area_sqm?: number | string | null;
+  floor?: string | null;
+  has_elevator?: string | null;
+  has_basement?: string | null;
+  heating?: string | null;
   faq_1_i18n?: Record<string, string> | string;
   faq_2_i18n?: Record<string, string> | string;
   faq_3_i18n?: Record<string, string> | string;

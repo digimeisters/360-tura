@@ -59,6 +59,7 @@ import {
   composeEstablishText,
   buildI18nObject,
   mergeAudioI18n,
+  buildFactList,
   Centered
 } from './utils';
 import {
@@ -1685,6 +1686,7 @@ export default function TourPage() {
   }));
 
   const aboutText = getLocalizedText(tour?.about_text_i18n, lang);
+  const factList = buildFactList(tour, lang);
 
   const currentRoomTitle = getLocalizedText(currentRoom?.title_i18n, lang) || `Soba ${roomIdx + 1}`;
 
@@ -1985,6 +1987,7 @@ export default function TourPage() {
           lang={lang}
           adminMode={adminMode}
           aboutText={aboutText}
+          factList={factList}
           faqList={faqList}
           onSelectFaq={setSelectedFaq}
           onChangeRoom={(id) => changeRoomById(id)}

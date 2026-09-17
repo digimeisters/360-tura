@@ -1,5 +1,6 @@
-import { Language, Waypoint, EstablishData } from './types';
+import { Language, Waypoint, EstablishData, Tour } from './types';
 import { THEME } from './theme';
+import { FACT_LABELS, HEATING_LABELS } from './translations';
 
 export const normalizeYaw = (yaw: number): number => {
   let res = (yaw + 180) % 360;
@@ -89,6 +90,47 @@ export const composeEstablishText = (establishData: EstablishData): Record<strin
   }
   return combined;
 };
+
+export type FactRow = { label: string; value: string };
+
+// Postgres `numeric` (area_sqm) stiže kao tekst kroz PostgREST.
+function asNumber(value: number | string | null | undefined): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Tabela osnovnih podataka u Info modalu (migracije 012/013/014) - naselje,
+ * kvadratura, sprat, lift, podrum, grejanje. Nijedan red ovde ne prolazi
+ * kroz AI: vrednost je ili slobodan tekst koji je agent otkucao (naselje,
+ * sprat), ili broj (kvadratura), ili prevod jedne zatvorene vrednosti
+ * (lift/podrum da-ne, grejanje sa liste) - prevodi ga FACT_LABELS/
+ * HEATING_LABELS, statički rečnik u aplikaciji.
+ *
+ * Prazno polje se prosto ne pojavljuje kao red - bolje nego prazan ili
+ * izmišljen podatak.
+ */
+export function buildFactList(tour: Tour | null | undefined, lang: Language): FactRow[] {
+  if (!tour) return [];
+  const t = FACT_LABELS[lang] ?? FACT_LABELS.sr;
+  const yesNo = (v: string | null | undefined) => (v === 'Da' ? t.yes : v === 'Ne' ? t.no : v || '');
+  const area = asNumber(tour.area_sqm);
+
+  const rows: FactRow[] = [
+    { label: t.neighbourhood, value: tour.district?.trim() || '' },
+    { label: t.area, value: area !== null ? `${area} m²` : '' },
+    { label: t.floor, value: tour.floor?.trim() || '' },
+    { label: t.elevator, value: yesNo(tour.has_elevator) },
+    { label: t.basement, value: yesNo(tour.has_basement) },
+    {
+      label: t.heating,
+      value: tour.heating ? (HEATING_LABELS[tour.heating]?.[lang] ?? tour.heating) : ''
+    }
+  ];
+
+  return rows.filter((row) => row.value !== '');
+}
 
 export const buildI18nObject = (
   textValue: string,

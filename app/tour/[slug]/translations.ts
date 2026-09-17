@@ -1,95 +1,187 @@
 import { Language } from './types';
 
+/**
+ * Pet kratkih pitanja po kategoriji, jedno-dva polja iz upitnika po pitanju
+ * (vidi FAQ_CONTEXT u app/lib/tourFromForm.ts - mora da prati ISTO uparivanje,
+ * inače AI odgovara na pitanje koje posetilac ne vidi). Ranije spojena
+ * pitanja ("...i kakvo je...") su razdvojena na jedan fokus, da odgovor
+ * može da bude jedna kratka rečenica umesto pasusa.
+ */
 export const categoryQuestions: Record<string, Record<Language, string[]>> = {
   rent: {
     sr: [
-      'Kolika je mesečna zakupnina i kakvi su uslovi za depozit?',
-      'Koji je minimalni period zakupa i od kog datuma je stan useljiv?',
-      'Koliki su prosečni mesečni troškovi (režije i informatika) i kakvo je grejanje?',
-      'Da li su dozvoljeni kućni ljubimci (pet friendly)?',
-      'Kakvi su dodatni uslovi ugovora i obaveze zakupca?'
+      'Kolika je zakupnina i mesečni troškovi?',
+      'Koliki je depozit?',
+      'Koji je minimalni period zakupa?',
+      'Da li su dozvoljeni kućni ljubimci?',
+      'Kakvi su dodatni uslovi ugovora?'
     ],
     en: [
-      'What is the monthly rent and what are the deposit conditions?',
-      'What is the minimum lease period and from what date is the apartment available?',
-      'What are the average monthly utilities and heating costs?',
-      'Are pets allowed (pet friendly)?',
-      'What are the additional contract terms and tenant obligations?'
+      "What's the rent and monthly costs?",
+      'How much is the deposit?',
+      "What's the minimum lease period?",
+      'Are pets allowed?',
+      'What are the extra contract terms?'
     ],
     de: [
-      'Wie hoch ist die monatliche Miete und wie sind die Kautionsbedingungen?',
-      'Wie lange ist die Mindestmietdauer und ab welchem Datum ist die Wohnung verfügbar?',
-      'Wie hoch sind die durchschnittlichen Nebenkosten und die Heizungsart?',
-      'Sind Haustiere erlaubt (haustierfreundlich)?',
-      'Wie lauten die zusätzlichen Vertragsbedingungen und Pflichten des Mieters?'
+      'Wie hoch sind Miete und Nebenkosten?',
+      'Wie hoch ist die Kaution?',
+      'Wie lange ist die Mindestmietdauer?',
+      'Sind Haustiere erlaubt?',
+      'Welche zusätzlichen Vertragsbedingungen gibt es?'
     ],
     ru: [
-      'Какова ежемесячная арендная плата и каковы условия залога?',
-      'Каков минимальный срок аренды и с какой даты квартира свободна для заселения?',
-      'Каковы средние ежемесячные коммунальные расходы и тип отопления?',
-      'Разрешено ли проживание с домашними животными?',
-      'Каковы дополнительные условия договора и обязанности арендатора?'
+      'Какова аренда и коммунальные расходы?',
+      'Какой размер залога?',
+      'Каков минимальный срок аренды?',
+      'Разрешены ли домашние животные?',
+      'Какие дополнительные условия договора?'
     ]
   },
   sale: {
     sr: [
-      'Kolika je prodajna cena i da li postoji mogućnost kupovine na kredit?',
-      'Kolika je kvadratura i kakvo je stanje objekta (novogradnja, starogradnja, renoviran)?',
-      'Da li je nekretnina uknjižena i kakvo je vlasništvo (1/1, suvlasništvo)?',
-      'Da li su porezi i agencijska provizija uključeni u cenu ili su dodatni?',
-      'Da li nekretnina ima pripadajući podrum, terasu ili garažno mesto?'
+      'Kolika je cena i da li je moguć kredit?',
+      'Kakvo je stanje objekta?',
+      'Da li je uknjižena i kakvo je vlasništvo?',
+      'Da li su porezi i provizija uključeni?',
+      'Šta sve ide uz stan?'
     ],
     en: [
-      'What is the selling price and is mortgage purchase possible?',
-      'What is the square footage and property condition (new build, old build, renovated)?',
-      'Is the property registered and what is the ownership type (1/1, co-ownership)?',
-      'Are taxes and agency commission included in the price or additional?',
-      'Does the property include a basement, terrace, or garage space?'
+      "What's the price, and is a mortgage possible?",
+      "What's the property's condition?",
+      "Is it registered, and what's the ownership?",
+      'Are taxes and commission included?',
+      'What comes with the property?'
     ],
     de: [
-      'Wie hoch ist der Verkaufspreis und ist ein Kreditkauf möglich?',
-      'Wie groß ist die Fläche und wie ist der Zustand des Objekts (Neubau, Altbau, renoviert)?',
-      'Ist die Immobilie im Grundbuch eingetragen und wie ist die Eigentumsverhältnisse (1/1)?',
-      'Sind Steuern und Maklerprovision im Preis inbegriffen oder zusätzlich?',
-      'Verfügt die Immobilie über einen Keller, eine Terrasse oder einen Garagenplatz?'
+      'Wie hoch ist der Preis, ist ein Kredit möglich?',
+      'Wie ist der Zustand der Immobilie?',
+      'Ist sie im Grundbuch eingetragen, wie ist das Eigentum?',
+      'Sind Steuern und Provision inbegriffen?',
+      'Was gehört zur Immobilie dazu?'
     ],
     ru: [
-      'Какова цена продажи и возможна ли покупка в ипотеку?',
-      'Какова площадь и состояние объекта (новостройка, вторичное жилье, ремонт)?',
-      'Зарегистрирована ли недвижимость в кадастре и каков тип собственности?',
-      'Включены ли налоги и комиссия агентства в стоимость или оплачиваются отдельно?',
-      'Есть ли у недвижимости подвал, терраса или парковочное место?'
+      'Какова цена и возможна ли ипотека?',
+      'В каком состоянии объект?',
+      'Зарегистрирована ли недвижимость и какая форма собственности?',
+      'Включены ли налоги и комиссия?',
+      'Что входит в состав недвижимости?'
     ]
   },
   booking: {
     sr: [
-      'Kolika je cena po noćenju i koliki je minimalni boravak?',
-      'Koliki je maksimalan broj gostiju (kapacitet) i kakva su pravila kuće?',
-      'Koje je tačno vreme za check-in i check-out?',
-      'Koliki je iznos takse za čišćenje po boravku?',
-      'Da li je obezbeđen parking, Wi-Fi i kakva su pravila otkazivanja?'
+      'Kolika je cena i minimalan boravak?',
+      'Koliki je kapacitet i koja su pravila kuće?',
+      'Koje je vreme za check-in i check-out?',
+      'Kolika je taksa za čišćenje?',
+      'Koje su pogodnosti i pravila otkazivanja?'
     ],
     en: [
-      'What is the price per night and what is the minimum stay?',
-      'What is the maximum number of guests (capacity) and what are the house rules?',
-      'What are the exact check-in and check-out times?',
-      'What is the cleaning fee amount per stay?',
-      'Is parking and Wi-Fi provided, and what are the cancellation policies?'
+      "What's the price and minimum stay?",
+      "What's the capacity and house rules?",
+      'What are check-in and check-out times?',
+      "What's the cleaning fee?",
+      'What amenities and cancellation policy?'
     ],
     de: [
-      'Wie hoch ist der Preis pro Nacht und wie lang ist der Mindestaufenthalt?',
-      'Was ist die maximale Gästeanzahl (Kapazität) und wie lauten die Hausregeln?',
-      'Um wie viel Uhr ist Check-in und Check-out?',
-      'Wie hoch ist die Reinigungsgebühr pro Aufenthalt?',
-      'Sind Parkplätze und WLAN vorhanden und wie lauten die Stornierungsbedingungen?'
+      'Wie hoch sind Preis und Mindestaufenthalt?',
+      'Wie viele Gäste und welche Hausregeln?',
+      'Wann sind Check-in und Check-out?',
+      'Wie hoch ist die Reinigungsgebühr?',
+      'Welche Annehmlichkeiten und Stornobedingungen?'
     ],
     ru: [
-      'Какова стоимость за ночь и каков минимальный срок проживания?',
-      'Какова максимальное количество гостей (вместимость) и каковы правила дома?',
-      'Каково точное время заезда (check-in) и выезда (check-out)?',
-      'Какова сумма платы за уборку за всё время проживания?',
-      'Предоставляется ли парковка, Wi-Fi и каковы правила отмены бронирования?'
+      'Какова цена и минимальный срок проживания?',
+      'Какова вместимость и правила дома?',
+      'Во сколько заезд и выезд?',
+      'Какова плата за уборку?',
+      'Какие удобства и условия отмены?'
     ]
+  }
+};
+
+/**
+ * Nazivi redova u tabeli osnovnih podataka (Info modal, vidi TourModals.tsx)
+ * i prevodi vrednosti sa zatvorenih lista (grejanje, da/ne). AI ovo ne
+ * dodiruje - vrednost stiže iz upitnika na srpskom (propertyTaxonomy.ts) i
+ * ovde se samo prevodi, isto kao "Prodaja/Izdavanje/Smeštaj" na sajtu.
+ */
+export const FACT_LABELS: Record<
+  Language,
+  {
+    neighbourhood: string;
+    area: string;
+    floor: string;
+    elevator: string;
+    basement: string;
+    heating: string;
+    yes: string;
+    no: string;
+  }
+> = {
+  sr: {
+    neighbourhood: 'Naselje',
+    area: 'Kvadratura',
+    floor: 'Sprat',
+    elevator: 'Lift',
+    basement: 'Podrum',
+    heating: 'Grejanje',
+    yes: 'Da',
+    no: 'Ne'
+  },
+  en: {
+    neighbourhood: 'Neighbourhood',
+    area: 'Floor area',
+    floor: 'Floor',
+    elevator: 'Elevator',
+    basement: 'Basement',
+    heating: 'Heating',
+    yes: 'Yes',
+    no: 'No'
+  },
+  de: {
+    neighbourhood: 'Viertel',
+    area: 'Wohnfläche',
+    floor: 'Etage',
+    elevator: 'Aufzug',
+    basement: 'Keller',
+    heating: 'Heizung',
+    yes: 'Ja',
+    no: 'Nein'
+  },
+  ru: {
+    neighbourhood: 'Район',
+    area: 'Площадь',
+    floor: 'Этаж',
+    elevator: 'Лифт',
+    basement: 'Подвал',
+    heating: 'Отопление',
+    yes: 'Да',
+    no: 'Нет'
+  }
+};
+
+/**
+ * Vrednosti grejanja sa zatvorene liste (HEATING_OPTIONS u
+ * app/lib/propertyTaxonomy.ts), prevedene. Ključ je TAČNO ono što agent
+ * bira u upitniku - ako se lista tamo proširi, dodati novi ključ i ovde.
+ */
+export const HEATING_LABELS: Record<string, Record<Language, string>> = {
+  'Centralno grejanje': {
+    sr: 'Centralno grejanje',
+    en: 'Central heating',
+    de: 'Zentralheizung',
+    ru: 'Центральное отопление'
+  },
+  Gas: { sr: 'Gas', en: 'Gas', de: 'Gas', ru: 'Газ' },
+  Struja: { sr: 'Struja', en: 'Electric', de: 'Strom', ru: 'Электричество' },
+  Klima: { sr: 'Klima', en: 'AC unit', de: 'Klimaanlage', ru: 'Кондиционер' },
+  'Čvrsto gorivo': { sr: 'Čvrsto gorivo', en: 'Solid fuel', de: 'Feststoff', ru: 'Твёрдое топливо' },
+  'Podno grejanje': {
+    sr: 'Podno grejanje',
+    en: 'Underfloor heating',
+    de: 'Fußbodenheizung',
+    ru: 'Тёплый пол'
   }
 };
 

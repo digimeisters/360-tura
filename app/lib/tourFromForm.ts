@@ -59,27 +59,35 @@ export function detectLanguages(text: string): Language[] {
   return list.length ? list : ['sr', 'en'];
 }
 
-const FAQ_CONTEXT: Record<string, string[]> = {
-  sale: [
-    'prodajna cena i mogućnost kupovine na kredit',
-    'kvadratura i stanje objekta (novogradnja, starogradnja, renoviran)',
-    'uknjiženost i vlasništvo (1/1, suvlasništvo, pravno lice)',
-    'da li su porezi i agencijska provizija uključeni u cenu',
-    'pripadajući prostor: podrum, terasa, garažno ili parking mesto'
-  ],
+/**
+ * Pet FAQ tema po kategoriji, svaka vezana za TAČNO određena polja iz
+ * upitnika (odgovori[] je spisak ključeva odgovora - vidi FormAnswers).
+ *
+ * MORA da prati pitanja u app/tour/[slug]/translations.ts (categoryQuestions)
+ * redosledom i temom 1:1 - to je pitanje koje posetilac vidi na dugmetu, pa
+ * odgovor koji AI napiše mora da odgovara BAŠ na njega, ne na nešto šire.
+ */
+const FAQ_CONTEXT: Record<string, { topic: string; fields: string[] }[]> = {
   rent: [
-    'mesečna zakupnina i uslovi za depozit',
-    'minimalni period zakupa i datum useljenja',
-    'prosečni mesečni troškovi (režije) i tip grejanja',
-    'da li su dozvoljeni kućni ljubimci',
-    'dodatni uslovi ugovora i obaveze zakupca'
+    { topic: 'zakupnina i mesečni troškovi (režije)', fields: ['Mesečna zakupnina', 'Režije'] },
+    { topic: 'depozit', fields: ['Depozit'] },
+    { topic: 'minimalni period zakupa i datum useljenja', fields: ['Minimalni period zakupa', 'Dostupno od'] },
+    { topic: 'da li su dozvoljeni kućni ljubimci', fields: ['Kućni ljubimci'] },
+    { topic: 'dodatni uslovi ugovora', fields: ['Dodatni uslovi ugovora'] }
+  ],
+  sale: [
+    { topic: 'prodajna cena i mogućnost kupovine na kredit', fields: ['Prodajna cena', 'Mogućnost kupovine na kredit'] },
+    { topic: 'stanje objekta (novogradnja, starogradnja, renoviran)', fields: ['Stanje objekta'] },
+    { topic: 'uknjiženost i vlasništvo (1/1, suvlasništvo, pravno lice)', fields: ['Uknjiženost', 'Vlasništvo'] },
+    { topic: 'da li su porezi i agencijska provizija uključeni u cenu', fields: ['Porezi i provizija'] },
+    { topic: 'šta sve ide uz stan (podrum, terasa, garažno mesto)', fields: ['Pripadajući prostor'] }
   ],
   booking: [
-    'cena po noćenju i minimalan broj noćenja',
-    'kapacitet (broj gostiju) i pravila kuće',
-    'vreme za check-in i check-out',
-    'taksa za čišćenje i eventualne doplate',
-    'dostupne pogodnosti (parking, Wi-Fi) i pravila otkazivanja'
+    { topic: 'cena po noćenju i minimalan broj noćenja', fields: ['Cena po noćenju', 'Minimalan broj noćenja'] },
+    { topic: 'kapacitet (broj gostiju) i pravila kuće', fields: ['Maksimalan broj gostiju', 'Pravila kuće'] },
+    { topic: 'vreme za check-in i check-out', fields: ['Check-in i check-out'] },
+    { topic: 'taksa za čišćenje', fields: ['Taksa za čišćenje'] },
+    { topic: 'dostupne pogodnosti i pravila otkazivanja', fields: ['Dostupne pogodnosti', 'Pravila otkazivanja'] }
   ]
 };
 
@@ -116,8 +124,12 @@ export async function processTourForm(
   if (/sale|prodaj|kupovin/.test(categoryRaw)) category = 'sale';
   else if (/booking|na dan|kratkoro/.test(categoryRaw)) category = 'booking';
 
+  // Za svaku FAQ temu se eksplicitno navodi IZ KOJIH polja odgovor sme da se
+  // sastavi - to je ono što posetilac čita kao odgovor na kratko pitanje
+  // ("Kolika je zakupnina i mesečni troškovi?"), pa odgovor mora da bude
+  // isto tako uzak: brojevi/vrednosti tih polja, bez širenja na drugo.
   const faqList = FAQ_CONTEXT[category]
-    .map((q, i) => `- faq_${i + 1}_i18n: odgovor na pitanje o: ${q}`)
+    .map((q, i) => `- faq_${i + 1}_i18n: ${q.topic}. Koristi ISKLJUČIVO polja: ${q.fields.join(', ')}.`)
     .join('\n');
 
   const prompt = `
@@ -154,14 +166,22 @@ PRAVILA:
      na svakom jeziku u njegovom uobičajenom obliku ("2-room apartment",
      "Zweizimmerwohnung") - nikad srpska oznaka u stranom naslovu.
 
-2. about_text_i18n: kratak opis nekretnine (3-5 rečenica), na svakom ciljnom
-   jeziku, sastavljen isključivo od podataka iz upitnika.
+2. about_text_i18n: NAJVIŠE 2 kratke rečenice, na svakom ciljnom jeziku,
+   isključivo iz polja "Kratak opis nekretnine". Ako to polje nije popunjeno,
+   vrati prazan string - ne izmišljaj rečenicu ni iz čega drugog. Naselje,
+   kvadratura, sprat, lift, podrum i grejanje NE idu ovde: posetilac ih već
+   vidi kao zasebnu tabelu u turi, pa bi ponavljanje bilo suvišno.
 
-3. FAQ odgovori - piši SAMO odgovor, bez ponavljanja pitanja:
+3. FAQ odgovori - TELEGRAFSKI kratko, kao SMS, ne kao rečenica u pasusu:
+   brojevi i ključne reči, bez uvodnih fraza ("Zakupnina iznosi..."). Jedan
+   red, najviše 10-12 reči. Piši SAMO odgovor, bez ponavljanja pitanja.
+   Primer dobrog odgovora: "450 €/mesečno, režije oko 60 €." Primer lošeg
+   odgovora (predugačak): "Mesečna zakupnina za ovu nekretninu iznosi 450
+   evra, dok prosečni mesečni troškovi za režije iznose oko 60 evra."
 ${faqList}
 
 4. NAJVAŽNIJE - ne izmišljaj. Ako u upitniku nema podatka za neki odgovor,
-   napiši da informacija nije navedena i da se dobija na upit kod agenta.
+   napiši kratko da nije navedeno (npr. "Nije navedeno, pitajte agenta.").
    Nikad ne navodi cenu, površinu, datum ili uslov koji ne postoji u ulazu.
 `;
 

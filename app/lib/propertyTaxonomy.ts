@@ -106,3 +106,24 @@ export const NEIGHBOURHOODS: Record<string, string[]> = {
 export function neighbourhoodsFor(city: string | null | undefined): string[] {
   return NEIGHBOURHOODS[(city || '').trim().toLowerCase()] ?? [];
 }
+
+/**
+ * Grejanje - zatvorena lista, ista logika kao struktura: upitnik je nudi,
+ * a tura je prevodi (vidi app/tour/[slug]/translations.ts HEATING_LABELS)
+ * bez ijednog poziva AI-ju - to je samo prevod jedne od šest vrednosti.
+ */
+export const HEATING_OPTIONS = [
+  'Centralno grejanje',
+  'Gas',
+  'Struja',
+  'Klima',
+  'Čvrsto gorivo',
+  'Podno grejanje'
+];
+
+/**
+ * Da/Ne za polja gde je pogrešan podatak gori od praznog (Lift, Podrum) -
+ * upitnik ih zato NE otvara na podrazumevanoj vrednosti, kao Grejanje, nego
+ * traži da agent stvarno klikne odgovor.
+ */
+export const YES_NO = ['Da', 'Ne'] as const;

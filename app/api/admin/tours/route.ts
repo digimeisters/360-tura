@@ -15,6 +15,10 @@ const LIMITS: Record<string, number> = {
   city: 80,
   district: 80,
   structure: 80,
+  floor: 40,
+  has_elevator: 10,
+  has_basement: 10,
+  heating: 40,
   property_type: 80,
   agent_name: 120,
   agent_phone: 60,
@@ -49,8 +53,9 @@ export async function GET(req: Request) {
   const BASE_COLUMNS =
     'slug, title, title_i18n, agency_name, address, city, category, property_type, agent_name, agent_phone, agent_email, created_at, published, status';
   // `district` i `structure` postoje tek posle migracije 012, `area_sqm` i
-  // `price` posle 013. Nabrajanje kolone koje nema obara ceo upit, pa bi
-  // ceo spisak tura ostao prazan - zato se na tu grešku čita bez njih.
+  // `price` posle 013, `floor`/`has_elevator`/`has_basement`/`heating`
+  // posle 014. Nabrajanje kolone koje nema obara ceo upit, pa bi ceo spisak
+  // tura ostao prazan - zato se na tu grešku čita bez njih.
   const readTours = (columns: string) =>
     ctx.supabase
       .from('tours')
@@ -58,13 +63,16 @@ export async function GET(req: Request) {
       .order('created_at', { ascending: false });
 
   const [toursResult, { data: rooms }] = await Promise.all([
-    readTours(`${BASE_COLUMNS}, district, structure, area_sqm, price`),
+    readTours(`${BASE_COLUMNS}, district, structure, area_sqm, price, floor, has_elevator, has_basement, heating`),
     ctx.supabase.from('rooms').select('tour_slug, panorama_url, panorama_url_cf')
   ]);
   let { data: tours, error } = toursResult;
 
-  if (error && /\b(district|structure|area_sqm|price)\b/i.test(error.message)) {
-    console.warn('[api/admin/tours] nedostaju migracije 012/013 - čitanje bez naselja, strukture, kvadrature i cene.');
+  if (
+    error &&
+    /\b(district|structure|area_sqm|price|floor|has_elevator|has_basement|heating)\b/i.test(error.message)
+  ) {
+    console.warn('[api/admin/tours] nedostaju migracije 012/013/014 - čitanje bez tih polja.');
     ({ data: tours, error } = await readTours(BASE_COLUMNS));
   }
 
@@ -125,6 +133,10 @@ export async function POST(req: Request) {
     structure: clean(body.structure, 'structure') || null,
     area_sqm: cleanNumber(body.area_sqm, MAX_AREA_SQM),
     price: cleanNumber(body.price, MAX_PRICE_EUR),
+    floor: clean(body.floor, 'floor') || null,
+    has_elevator: clean(body.has_elevator, 'has_elevator') || null,
+    has_basement: clean(body.has_basement, 'has_basement') || null,
+    heating: clean(body.heating, 'heating') || null,
     property_type: clean(body.property_type, 'property_type') || null,
     agent_name: clean(body.agent_name, 'agent_name') || null,
     agent_phone: clean(body.agent_phone, 'agent_phone') || null,
@@ -271,6 +283,10 @@ export async function PATCH(req: Request) {
       structure: clean(body.structure, 'structure') || null,
       area_sqm: cleanNumber(body.area_sqm, MAX_AREA_SQM),
       price: cleanNumber(body.price, MAX_PRICE_EUR),
+      floor: clean(body.floor, 'floor') || null,
+      has_elevator: clean(body.has_elevator, 'has_elevator') || null,
+      has_basement: clean(body.has_basement, 'has_basement') || null,
+      heating: clean(body.heating, 'heating') || null,
       property_type: clean(body.property_type, 'property_type') || null,
       agent_name: clean(body.agent_name, 'agent_name') || null,
       agent_phone: clean(body.agent_phone, 'agent_phone') || null,

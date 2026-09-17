@@ -1,6 +1,6 @@
 import { THEME, btnStyle } from './theme';
 import { MODAL_ICONS, withoutEmoji } from './icons';
-import { getLocalizedText } from './utils';
+import { getLocalizedText, type FactRow } from './utils';
 import { translations } from './translations';
 import type { ActiveModal, Language, Room, Tour } from './types';
 
@@ -25,6 +25,7 @@ export function TourModals({
   lang,
   adminMode,
   aboutText,
+  factList,
   faqList,
   onSelectFaq,
   onChangeRoom,
@@ -43,6 +44,7 @@ export function TourModals({
   lang: Language;
   adminMode: boolean;
   aboutText: string;
+  factList: FactRow[];
   faqList: FaqItem[];
   onSelectFaq: (index: number | null) => void;
   onChangeRoom: (id: string | number) => void;
@@ -149,8 +151,32 @@ export function TourModals({
           )}
 
           {activeModal === 'about' && (
-            aboutText ? (
-              <p style={{ margin: 0, lineHeight: '1.6', color: THEME.textPrimary, whiteSpace: 'pre-wrap', fontSize: '16px' }}>{aboutText}</p>
+            factList.length > 0 || aboutText ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                {factList.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', borderRadius: '12px', overflow: 'hidden', border: '1px solid ' + THEME.border }}>
+                    {factList.map((row, i) => (
+                      <div
+                        key={row.label}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          gap: '12px',
+                          padding: '11px 14px',
+                          backgroundColor: i % 2 === 0 ? THEME.surfaceAlt : 'transparent',
+                          borderTop: i === 0 ? 'none' : '1px solid ' + THEME.border
+                        }}
+                      >
+                        <span style={{ color: THEME.textSecondary, fontSize: '14.5px' }}>{row.label}</span>
+                        <span style={{ color: THEME.textPrimary, fontSize: '14.5px', fontWeight: 600, textAlign: 'right' }}>{row.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {aboutText && (
+                  <p style={{ margin: 0, lineHeight: '1.6', color: THEME.textPrimary, whiteSpace: 'pre-wrap', fontSize: '15px' }}>{aboutText}</p>
+                )}
+              </div>
             ) : empty(t.noAbout)
           )}
 

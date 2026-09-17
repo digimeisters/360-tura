@@ -169,6 +169,13 @@ export async function POST(req: Request) {
       // klizače bez ograničenja, umesto da upadne u pogrešan raspon.
       area_sqm: parseArea(answers['Kvadratura']),
       price: priceFromAnswers(answers, processed.category),
+      // Tabela činjenica u Info modalu (migracija 014) - isto kao struktura
+      // i naselje, direktno iz odgovora, bez AI: agent bira sa zatvorene
+      // liste ili kuca broj, aplikacija sama prevodi labelu i vrednost.
+      floor: String(answers['Sprat'] || '').trim() || null,
+      has_elevator: String(answers['Lift'] || '').trim() || null,
+      has_basement: String(answers['Podrum'] || '').trim() || null,
+      heating: String(answers['Grejanje'] || '').trim() || null,
       location_map_url: processed.location_map_url,
       floorplan_url: floorplanUrl,
       faq_1_i18n: processed.faq_1_i18n,
@@ -182,14 +189,21 @@ export async function POST(req: Request) {
     let { error } = await supabase.from('tours').insert(payload);
 
     // `city` postoji tek posle migracije 011, `structure`/`district` posle
-    // 012, `area_sqm`/`price` posle 013. Dok neka od njih ne prođe, tura se
+    // 012, `area_sqm`/`price` posle 013, `floor`/`has_elevator`/
+    // `has_basement`/`heating` posle 014. Dok neka od njih ne prođe, tura se
     // upisuje bez tih polja - bolje nego da agentu propadne ceo unos.
     // Popunjavaju se u /admin/ture.
-    if (error && /\b(city|structure|district|area_sqm|price)\b/i.test(error.message)) {
-      const { city, structure, district, area_sqm, price, ...bezFiltera } = payload;
+    if (
+      error &&
+      /\b(city|structure|district|area_sqm|price|floor|has_elevator|has_basement|heating)\b/i.test(
+        error.message
+      )
+    ) {
+      const { city, structure, district, area_sqm, price, floor, has_elevator, has_basement, heating, ...bezFiltera } =
+        payload;
       console.warn(
-        '[api/unos] nedostaje kolona za filtere (migracije 011/012/013) - upis bez njih:',
-        { city, structure, district, area_sqm, price }
+        '[api/unos] nedostaje kolona za filtere (migracije 011/012/013/014) - upis bez njih:',
+        { city, structure, district, area_sqm, price, floor, has_elevator, has_basement, heating }
       );
       ({ error } = await supabase.from('tours').insert(bezFiltera));
     }

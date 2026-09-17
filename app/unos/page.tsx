@@ -7,6 +7,8 @@ import {
   PROPERTY_TYPES,
   STRUCTURES,
   OTHER_NEIGHBOURHOOD,
+  HEATING_OPTIONS,
+  YES_NO,
   neighbourhoodsFor
 } from '../lib/propertyTaxonomy';
 
@@ -48,7 +50,6 @@ const CATEGORY_FIELDS: Record<Category, string[]> = {
     'Minimalni period zakupa',
     'Dostupno od',
     'Režije',
-    'Grejanje',
     'Kućni ljubimci',
     'Dodatni uslovi ugovora'
   ],
@@ -428,6 +429,42 @@ export default function UnosPage() {
             )}
           </Field>
 
+          <Field label="Sprat" hint="npr. „3/6“, „Prizemlje“, „Potkrovlje“. Red u tabeli osnovnih podataka u turi.">
+            <input
+              id="sprat"
+              value={values['Sprat'] || ''}
+              onChange={set('Sprat')}
+              placeholder="npr. 3/6"
+              style={inputStyle}
+            />
+          </Field>
+
+          <Field label="Lift" required hint="Bira se ručno, bez podrazumevanog odgovora — pogrešno „da“ ili „ne“ je gore od praznog polja.">
+            <select id="lift" value={values['Lift'] || ''} onChange={set('Lift')} required style={inputStyle}>
+              <option value="">Izaberite</option>
+              {YES_NO.map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Podrum" required hint="Isto pravilo kao Lift — bez podrazumevanog odgovora.">
+            <select id="podrum" value={values['Podrum'] || ''} onChange={set('Podrum')} required style={inputStyle}>
+              <option value="">Izaberite</option>
+              {YES_NO.map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Grejanje" required>
+            <select id="grejanje" value={pick('Grejanje')} onChange={set('Grejanje')} style={inputStyle}>
+              {HEATING_OPTIONS.map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+          </Field>
+
           <Field label="Google Maps embed link" hint="Nije obavezno — mapa se sama postavlja po adresi. Popunite samo ako imate tačan embed link.">
             <input
               id="mapa"
@@ -438,13 +475,16 @@ export default function UnosPage() {
             />
           </Field>
 
-          <Field label="Kratak opis nekretnine" hint="3–5 rečenica. Ovo se prikazuje u sekciji „Info“.">
+          <Field
+            label="Kratak opis nekretnine"
+            hint="1–2 rečenice, opciono. Sprat, kvadratura, lift i grejanje već stoje u tabeli iznad — ovde ide ono što tabela ne pokriva: orijentacija, pogled, nedavna renoviranja..."
+          >
             <textarea
               id="opis"
               value={values['Kratak opis nekretnine'] || ''}
               onChange={set('Kratak opis nekretnine')}
-              rows={4}
-              placeholder="Šta izdvaja ovu nekretninu — orijentacija, sprat, okruženje, nedavna renoviranja..."
+              rows={3}
+              placeholder="npr. Južna orijentacija, pogled na park, kompletno renoviran 2024."
               style={{ ...inputStyle, resize: 'vertical' }}
             />
           </Field>
@@ -610,13 +650,8 @@ export default function UnosPage() {
             <Field label="Režije (prosečan mesečni trošak)">
               <input id="rezije" value={values['Režije'] || ''} onChange={set('Režije')} placeholder="npr. oko 60 EUR" style={inputStyle} />
             </Field>
-            <Field label="Grejanje" required>
-              <select id="grejanje" value={pick('Grejanje')} onChange={set('Grejanje')} style={inputStyle}>
-                {['Centralno grejanje', 'Gas', 'Struja', 'Klima', 'Čvrsto gorivo', 'Podno grejanje'].map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
-            </Field>
+            {/* Grejanje je sad u "Osnovni podaci" - relevantno je i za
+                Prodaju i za Stan na dan, ne samo za izdavanje. */}
             <Field label="Kućni ljubimci" required>
               <select id="ljubimci" value={pick('Kućni ljubimci')} onChange={set('Kućni ljubimci')} style={inputStyle}>
                 {['Da', 'Ne', 'Po dogovoru'].map((t) => (

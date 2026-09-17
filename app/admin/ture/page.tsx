@@ -6,7 +6,7 @@ import { FORM, FormThemeStyle, formBtnStyle } from '../../lib/formTheme';
 import { Logo } from '../../tour/[slug]/Logo';
 import { slugify } from '../../lib/slug';
 import { SITE_URL } from '../../lib/site';
-import { STRUCTURE_ORDER, neighbourhoodsFor } from '../../lib/propertyTaxonomy';
+import { STRUCTURE_ORDER, HEATING_OPTIONS, YES_NO, neighbourhoodsFor } from '../../lib/propertyTaxonomy';
 
 type TourRow = {
   slug: string;
@@ -20,6 +20,11 @@ type TourRow = {
   structure: string | null;
   area_sqm: number | string | null;
   price: number | string | null;
+  /** Tabela osnovnih podataka u Info modalu (migracija 014); zatečene ture su prazne. */
+  floor: string | null;
+  has_elevator: string | null;
+  has_basement: string | null;
+  heating: string | null;
   category: string | null;
   property_type: string | null;
   agent_name: string | null;
@@ -50,6 +55,10 @@ type FormState = {
   structure: string;
   area_sqm: string;
   price: string;
+  floor: string;
+  has_elevator: string;
+  has_basement: string;
+  heating: string;
   property_type: string;
   category: string;
   agent_name: string;
@@ -66,6 +75,10 @@ const EMPTY_FORM: FormState = {
   structure: '',
   area_sqm: '',
   price: '',
+  floor: '',
+  has_elevator: '',
+  has_basement: '',
+  heating: '',
   property_type: '',
   category: 'rent',
   agent_name: '',
@@ -310,6 +323,10 @@ export default function ToursAdminPage() {
       structure: tour.structure || '',
       area_sqm: tour.area_sqm === null || tour.area_sqm === undefined ? '' : String(tour.area_sqm),
       price: tour.price === null || tour.price === undefined ? '' : String(tour.price),
+      floor: tour.floor || '',
+      has_elevator: tour.has_elevator || '',
+      has_basement: tour.has_basement || '',
+      heating: tour.heating || '',
       property_type: tour.property_type || '',
       category: tour.category || 'rent',
       agent_name: tour.agent_name || '',
@@ -552,6 +569,60 @@ export default function ToursAdminPage() {
                 placeholder={form.category === 'sale' ? 'npr. 72000' : 'npr. 450'}
                 style={inputStyle}
               />
+            </Field>
+          </div>
+
+          <div style={twoCol}>
+            <Field label="Sprat" hint="Red u tabeli osnovnih podataka u turi (Info modal).">
+              <input
+                id="tour-floor"
+                value={form.floor}
+                onChange={(e) => setForm({ ...form, floor: e.target.value })}
+                placeholder="npr. 3/6"
+                style={inputStyle}
+              />
+            </Field>
+            <Field label="Grejanje">
+              <select
+                id="tour-heating"
+                value={form.heating}
+                onChange={(e) => setForm({ ...form, heating: e.target.value })}
+                style={inputStyle}
+              >
+                <option value="">— nije određeno —</option>
+                {HEATING_OPTIONS.map((h) => (
+                  <option key={h}>{h}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          <div style={twoCol}>
+            <Field label="Lift">
+              <select
+                id="tour-elevator"
+                value={form.has_elevator}
+                onChange={(e) => setForm({ ...form, has_elevator: e.target.value })}
+                style={inputStyle}
+              >
+                <option value="">— nije određeno —</option>
+                {YES_NO.map((v) => (
+                  <option key={v}>{v}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Podrum">
+              <select
+                id="tour-basement"
+                value={form.has_basement}
+                onChange={(e) => setForm({ ...form, has_basement: e.target.value })}
+                style={inputStyle}
+              >
+                <option value="">— nije određeno —</option>
+                {YES_NO.map((v) => (
+                  <option key={v}>{v}</option>
+                ))}
+              </select>
             </Field>
           </div>
 
