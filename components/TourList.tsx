@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ShowcaseTour } from '../app/lib/showcaseTours';
 import { STRUCTURE_ORDER } from '../app/lib/propertyTaxonomy';
 import FilterMenu from './FilterMenu';
@@ -39,6 +39,18 @@ const FILTER_CATEGORY_LABELS: Record<string, string> = {
   booking: 'Stan na dan'
 };
 
+/**
+ * Srpska množina uz broj: 1 tura, 2-4 ture, 5+ tura - ali 11-14 idu kao
+ * 5+, a 21 opet kao 1. Bez ovoga bi na dugmetu pisalo "Prikaži 21 tura".
+ */
+function tourWord(n: number): string {
+  const last = n % 10;
+  const lastTwo = n % 100;
+  if (last === 1 && lastTwo !== 11) return 'turu';
+  if (last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14)) return 'ture';
+  return 'tura';
+}
+
 const LABELS = {
   all: 'Sve',
   category: 'Vrsta oglasa',
@@ -54,6 +66,9 @@ const LABELS = {
   reset: 'Poništi filtere',
   clearOne: 'Poništi',
   confirmOne: 'Potvrdi',
+  filters: 'Filteri',
+  close: 'Zatvori',
+  show: (n: number) => `Prikaži ${n} ${tourWord(n)}`,
   missing: (n: number, what: string) =>
     n === 1
       ? `Jedna tura nema upisanu ${what} i ostaje na spisku.`
@@ -151,6 +166,58 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
   const labels = LABELS;
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [ranges, setRanges] = useState<Ranges>(NO_RANGES);
+  const [scrolledPast, setScrolledPast] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [navHeight, setNavHeight] = useState<number | null>(null);
+  const blockRef = useRef<HTMLDivElement>(null);
+
+  // Pilula mora da stane ISPOD gornje trake, a traka nije uvek iste visine -
+  // na uskom ekranu joj se linkovi prelome u dva reda. Zato se meri, umesto
+  // da se visina pogađa brojem u CSS-u.
+  useEffect(() => {
+    const nav = document.querySelector('.nav');
+    if (!nav) return;
+
+    // ResizeObserver javi i zatečenu visinu čim počne da posmatra, pa se
+    // ovde ništa ne meri ručno.
+    const observer = new ResizeObserver(() => setNavHeight(nav.getBoundingClientRect().height));
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, []);
+
+  // Pilula se pali tek kad ceo blok filtera ode iznad ekrana. Posmatra se
+  // sam blok, pa prag prati njegovu stvarnu visinu - a ona se menja sa
+  // brojem filtera koje ture uopšte nude.
+  useEffect(() => {
+    const block = blockRef.current;
+    if (!block) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setScrolledPast(!entry.isIntersecting && entry.boundingClientRect.top < 0),
+      { threshold: 0 }
+    );
+    observer.observe(block);
+    return () => observer.disconnect();
+  }, []);
+
+  // Dok je prozor otvoren, strana iza njega ne sme da se pomera - inače se
+  // na telefonu ispod prsta skrola spisak umesto sadržaja prozora.
+  useEffect(() => {
+    if (!sheetOpen) return;
+
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSheetOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previous;
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [sheetOpen]);
 
   // Adresa se čita tek u pregledaču: server pravi isti HTML za sve posetioce
   // (zbog keširanja strane), pa filter iz podeljenog linka stiže ovde.
@@ -380,10 +447,87 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
     slider('cena', labels.price, (v) => `${v.toLocaleString('sr-RS')} €`, 'cenu')
   ].filter(Boolean);
 
-  return (
+  // Broj UKLJUČENIH filtera, ne izabranih vrednosti: posetioca zanima
+  // koliko uslova sužava spisak, a ne koliko je naselja štiklirao.
+  const activeCount =
+    FILTER_KEYS.filter((key) => filters[key].length).length +
+    RANGE_KEYS.filter((key) => ranges[key]).length;
+
+  const controls = (
     <>
       {menus.length > 0 && <div className="filters">{menus}</div>}
       {sliders.length > 0 && <div className="filter-ranges">{sliders}</div>}
+    </>
+  );
+
+  const hasControls = menus.length > 0 || sliders.length > 0;
+
+  return (
+    <>
+      <div ref={blockRef}>{controls}</div>
+
+      {/* Pilula se pojavljuje tek kad filteri odu iznad ekrana, i otvara ih
+          na licu mesta - bez nje je posetilac morao da se vrati na vrh
+          strane da bi promenio izbor usred razgledanja. */}
+      {hasControls && (
+        <div
+          className={`filter-bar${scrolledPast ? ' show' : ''}`}
+          aria-hidden={!scrolledPast}
+          style={navHeight !== null ? { top: `${Math.round(navHeight) + 4}px` } : undefined}
+        >
+          <button
+            type="button"
+            className={`filter-bar-btn${activeCount ? ' on' : ''}`}
+            onClick={() => setSheetOpen(true)}
+            tabIndex={scrolledPast ? 0 : -1}
+          >
+            {labels.filters}
+            {activeCount > 0 && <span className="filter-bar-count">{activeCount}</span>}
+          </button>
+        </div>
+      )}
+
+      {sheetOpen && (
+        <div className="filter-sheet" role="dialog" aria-modal="true" aria-label={labels.filters}>
+          <button
+            type="button"
+            className="filter-sheet-scrim"
+            aria-label={labels.close}
+            onClick={() => setSheetOpen(false)}
+          />
+          <div className="filter-sheet-panel">
+            <div className="filter-sheet-head">
+              <h2>{labels.filters}</h2>
+              <button
+                type="button"
+                className="filter-sheet-close"
+                aria-label={labels.close}
+                onClick={() => setSheetOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="filter-sheet-body">{controls}</div>
+            <div className="filter-sheet-foot">
+              <button
+                type="button"
+                className="filter-reset"
+                onClick={() => apply(NO_FILTERS, NO_RANGES)}
+                disabled={!anyFilter}
+              >
+                {labels.reset}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => setSheetOpen(false)}
+              >
+                {labels.show(shown.length)}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <p className="filter-count" role="status">
         {labels.count(shown.length, tours.length)}

@@ -244,18 +244,21 @@ export const SITE_STYLES = `
 
   /* ---------- BENEFITI ---------- */
   /* Filteri na spisku tura (/ture). */
-  .filters{display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1.1rem;}
-  .filter-menu{position:relative;}
-  .filter-toggle{display:flex; align-items:center; gap:.5rem; cursor:pointer; font:inherit; color:var(--ink); background:var(--surface); border:1px solid var(--line-strong); border-radius:999px; padding:.5rem .9rem; line-height:1.2;}
+  /* Svaki filter u svom redu, iste širine: dok su stajali jedan do drugog,
+     meni krajnjeg desnog se otvarao preko desne margine strane. Ovako se
+     panel uvek otvara ispod svog dugmeta i staje u istu širinu. */
+  .filters{display:flex; flex-direction:column; align-items:flex-start; gap:.5rem; margin-bottom:1.1rem;}
+  .filter-menu{position:relative; width:min(100%, 22rem);}
+  .filter-toggle{display:flex; width:100%; align-items:center; gap:.5rem; cursor:pointer; font:inherit; color:var(--ink); background:var(--surface); border:1px solid var(--line-strong); border-radius:999px; padding:.5rem .9rem; line-height:1.2;}
   .filter-toggle:hover{border-color:var(--accent);}
   .filter-toggle-label{font-family:var(--font-display); font-size:.72rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint);}
-  .filter-toggle-value{font-size:.88rem; font-weight:650; max-width:11rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .filter-toggle-value{margin-left:auto; font-size:.88rem; font-weight:650; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right;}
   .filter-toggle.on{background:var(--accent); color:var(--on-accent); border-color:var(--accent);}
   .filter-toggle.on .filter-toggle-label{color:var(--on-accent); opacity:.75;}
   /* Strelica se crta, da meni ne zavisi od fonta za emodži. */
   .filter-caret{width:0; height:0; border-left:.3rem solid transparent; border-right:.3rem solid transparent; border-top:.34rem solid currentColor; opacity:.65;}
   .filter-toggle[aria-expanded="true"] .filter-caret{transform:rotate(180deg);}
-  .filter-panel{position:absolute; z-index:30; top:calc(100% + .4rem); left:0; min-width:13rem; max-width:min(20rem,calc(100vw - 2.5rem)); max-height:17rem; overflow-y:auto; background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-lg); padding:.35rem;}
+  .filter-panel{position:absolute; z-index:30; top:calc(100% + .4rem); left:0; right:0; max-width:100%; max-height:17rem; overflow-y:auto; background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-lg); padding:.35rem;}
   .filter-opt{display:flex; align-items:center; gap:.6rem; padding:.45rem .55rem; border-radius:9px; cursor:pointer; font-size:.9rem; line-height:1.3;}
   .filter-opt:hover{background:var(--surface-2);}
   .filter-opt input{accent-color:var(--accent); width:1rem; height:1rem; flex:none; margin:0;}
@@ -287,16 +290,49 @@ export const SITE_STYLES = `
   .range-input:focus-visible::-moz-range-thumb{box-shadow:0 0 0 3px var(--accent-glow);}
   .range-note{margin:.35rem 0 0; font-size:.76rem; color:var(--ink-faint);}
   @media (max-width:560px){ .filter-ranges{grid-template-columns:1fr; gap:1.1rem;} }
+  /* Lebdeća pilula: pali se tek kad filteri odu iznad ekrana, pa posetilac
+     usred spiska ne mora da se vraća na vrh da bi promenio izbor.
+     Iznad gornje trake (z-index 40), jer joj tačan razmak ispod trake
+     postavlja TourList tek pošto izmeri njenu visinu - dok ta mera ne
+     stigne, ovaj broj je samo gruba rezerva i ne sme da je proguta. */
+  .filter-bar{position:fixed; z-index:45; top:76px; left:0; right:0; display:flex; justify-content:center; pointer-events:none; opacity:0; transform:translateY(-.5rem); transition:opacity .18s ease, transform .18s ease;}
+  .filter-bar.show{opacity:1; transform:none;}
+  .filter-bar.show .filter-bar-btn{pointer-events:auto;}
+  .filter-bar-btn{display:inline-flex; align-items:center; gap:.5rem; font-family:var(--font-display); font-size:.86rem; font-weight:700; color:var(--ink); background:color-mix(in srgb, var(--surface) 92%, transparent); -webkit-backdrop-filter:saturate(140%) blur(10px); backdrop-filter:saturate(140%) blur(10px); border:1px solid var(--line-strong); border-radius:999px; padding:.5rem 1.1rem; box-shadow:var(--shadow-lg); cursor:pointer;}
+  .filter-bar-btn.on{background:var(--accent); color:var(--on-accent); border-color:var(--accent);}
+  .filter-bar-count{display:inline-grid; place-items:center; min-width:1.35rem; height:1.35rem; padding:0 .35rem; border-radius:999px; background:var(--accent); color:var(--on-accent); font-size:.76rem; font-variant-numeric:tabular-nums;}
+  .filter-bar-btn.on .filter-bar-count{background:var(--on-accent); color:var(--accent);}
+
+  /* Prozor sa filterima - isti kontrolori, samo dostupni usred spiska. */
+  .filter-sheet{position:fixed; inset:0; z-index:60; display:flex; align-items:flex-start; justify-content:center; padding:1.25rem;}
+  .filter-sheet-scrim{position:absolute; inset:0; border:none; padding:0; background:rgba(15,23,42,.45); cursor:pointer;}
+  .filter-sheet-panel{position:relative; display:flex; flex-direction:column; width:min(100%, 30rem); max-height:min(80vh, 44rem); margin-top:4.5rem; background:var(--surface); border:1px solid var(--line); border-radius:20px; box-shadow:var(--shadow-lg); overflow:hidden;}
+  .filter-sheet-head{display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1rem 1.1rem .8rem; border-bottom:1px solid var(--line);}
+  .filter-sheet-head h2{font-size:1.05rem;}
+  .filter-sheet-close{background:none; border:none; font-size:1.6rem; line-height:1; color:var(--ink-faint); cursor:pointer; padding:0 .25rem;}
+  .filter-sheet-close:hover{color:var(--ink);}
+  .filter-sheet-body{padding:1.1rem; overflow-y:auto;}
+  .filter-sheet-body .filter-ranges{margin-bottom:0;}
+  .filter-sheet-body .filter-menu{width:100%;}
+  .filter-sheet-body .filter-ranges{grid-template-columns:1fr;}
+  /* U prozoru meni se otvara U TOKU, a ne lebdeći: panel koji lebdi bi ga
+     odsekao donji rub prozora čim je spisak duži od preostalog mesta. */
+  .filter-sheet-body .filter-panel{position:static; max-height:none; margin-top:.35rem; background:var(--surface-2); box-shadow:none;}
+  .filter-sheet-foot{display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.85rem 1.1rem; border-top:1px solid var(--line); background:var(--surface);}
+  .filter-sheet-foot .filter-reset:disabled{color:var(--ink-faint); cursor:default; text-decoration:none;}
+  @media (max-width:560px){
+    /* Na telefonu prozor sedi uz donju ivicu, nadohvat palca. */
+    .filter-sheet{padding:0; align-items:flex-end;}
+    .filter-sheet-panel{width:100%; max-height:88vh; margin-top:auto; border-radius:20px 20px 0 0;}
+  }
+
   .filter-count{margin:.2rem 0 1.2rem; font-size:.88rem; color:var(--ink-soft); display:flex; align-items:center; gap:.6rem; flex-wrap:wrap;}
   .filter-reset{background:none; border:none; padding:0; font:inherit; color:var(--accent); font-weight:650; cursor:pointer; text-decoration:underline;}
   /* Na telefonu meni ide preko cele širine kartice, da duga imena naselja
      ne isteraju panel van ekrana. */
   @media (max-width:560px){
     .filters{gap:.4rem;}
-    .filter-menu{flex:1 1 9rem;}
-    .filter-toggle{width:100%; justify-content:space-between;}
-    .filter-toggle-value{max-width:none;}
-    .filter-panel{left:0; right:auto; min-width:min(16rem,calc(100vw - 2.5rem));}
+    .filter-menu{width:100%;}
   }
 
   .feat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:1rem;}
