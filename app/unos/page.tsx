@@ -76,6 +76,9 @@ const STRUCTURES: Record<string, string[]> = {
  * dalje mora da primi upisano naselje. Novi grad se dodaje kao još jedan
  * ključ, bez ikakve izmene u formi.
  */
+/** Poslednja stavka u meniju naselja - otvara polje za ručni unos. */
+const OTHER_NEIGHBOURHOOD = '__drugo__';
+
 const NEIGHBOURHOODS: Record<string, string[]> = {
   kragujevac: [
     'Aerodrom',
@@ -124,6 +127,7 @@ export default function UnosPage() {
   const [languages, setLanguages] = useState<string[]>(['Srpski']);
   const [category, setCategory] = useState<Category>('rent');
   const [floorplan, setFloorplan] = useState<File | null>(null);
+  const [pickedOther, setPickedOther] = useState(false);
   const [code, setCode] = useState('');
 
   const [sending, setSending] = useState(false);
@@ -164,6 +168,22 @@ export default function UnosPage() {
   const structure = structureOptions.includes(savedStructure) ? savedStructure : '';
 
   const neighbourhoods = NEIGHBOURHOODS[(values['Grad'] || '').trim().toLowerCase()] || [];
+  const neighbourhood = values['Naselje'] || '';
+  // Grad ima svoja naselja -> zatvoren meni. Naselje koje nije na spisku se
+  // i dalje upisuje rukom, preko poslednje stavke u meniju.
+  const customNeighbourhood =
+    pickedOther || (neighbourhood !== '' && !neighbourhoods.includes(neighbourhood));
+
+  const changeNeighbourhood = (e: { target: { value: string } }) => {
+    const picked = e.target.value;
+    if (picked === OTHER_NEIGHBOURHOOD) {
+      setPickedOther(true);
+      setValues((prev) => ({ ...prev, Naselje: '' }));
+      return;
+    }
+    setPickedOther(false);
+    setValues((prev) => ({ ...prev, Naselje: picked }));
+  };
 
   const changePropertyType = (e: { target: { value: string } }) => {
     const type = e.target.value;
@@ -262,6 +282,7 @@ export default function UnosPage() {
               setDone(null);
               setValues({});
               setFloorplan(null);
+              setPickedOther(false);
               setCode('');
               setLanguages(['Srpski']);
               setCategory('rent');
@@ -377,25 +398,36 @@ export default function UnosPage() {
             label="Naselje"
             hint={
               neighbourhoods.length
-                ? 'Počnite da kucate — nude se naselja izabranog grada. Možete upisati i naselje kojeg nema na spisku.'
-                : 'Deo grada ili naselje — npr. Aerodrom, Centar, Šumarice.'
+                ? 'Naselja se nude prema izabranom gradu. Ako ga nema na spisku, izaberite „Drugo naselje“.'
+                : 'Za ovaj grad još nemamo spisak naselja — upišite ga rukom.'
             }
           >
-            <input
-              id="naselje"
-              value={values['Naselje'] || ''}
-              onChange={set('Naselje')}
-              placeholder={neighbourhoods[0] ? `npr. ${neighbourhoods[0]}` : 'npr. Centar'}
-              list="naselja"
-              style={inputStyle}
-            />
-            {/* Lista se menja zajedno sa gradom - grad bez svoje liste
-                ostavlja polje kao običan unos teksta. */}
-            <datalist id="naselja">
-              {neighbourhoods.map((n) => (
-                <option key={n} value={n} />
-              ))}
-            </datalist>
+            {/* Grad sa spiskom dobija meni; ostali gradovi ostaju na
+                slobodnom unosu, dok im se spisak ne doda. */}
+            {neighbourhoods.length > 0 && (
+              <select
+                id="naselje"
+                value={customNeighbourhood ? OTHER_NEIGHBOURHOOD : neighbourhood}
+                onChange={changeNeighbourhood}
+                style={inputStyle}
+              >
+                <option value="">Izaberite naselje</option>
+                {neighbourhoods.map((n) => (
+                  <option key={n}>{n}</option>
+                ))}
+                <option value={OTHER_NEIGHBOURHOOD}>Drugo naselje…</option>
+              </select>
+            )}
+
+            {(customNeighbourhood || neighbourhoods.length === 0) && (
+              <input
+                id={neighbourhoods.length ? 'naselje-drugo' : 'naselje'}
+                value={neighbourhood}
+                onChange={set('Naselje')}
+                placeholder={neighbourhoods[0] ? `npr. ${neighbourhoods[0]}` : 'npr. Centar'}
+                style={inputStyle}
+              />
+            )}
           </Field>
 
           <Field label="Google Maps embed link" hint="Nije obavezno — mapa se sama postavlja po adresi. Popunite samo ako imate tačan embed link.">
