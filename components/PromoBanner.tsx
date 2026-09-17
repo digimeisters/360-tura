@@ -23,10 +23,11 @@ function srDays(n: number): string {
 const TEXT = {
   sr: {
     eyebrow: 'Uvodna promocija',
-    headline: (percent: number) => `Tura je jeftinija za ${percent}%`,
+    headline: (percent: number) => `Paketi su jeftiniji za ${percent}%`,
     until: (date: string) => `Važi do ${date}.`,
-    // "Paket", ne "tura" - iznos je tura + HDR fotografije zajedno, a HDR
-    // u popust ne ide (vidi hdrPrice u lib/pricing.ts).
+    // "Paket", ne "tura" - iznos je tura + HDR fotografije zajedno.
+    // Samostalne fotografije (bez ture) u popust ne idu - vidi
+    // standaloneHdrPrice u lib/pricing.ts.
     example: (promoPrice: string, regularPrice: string) =>
       `Paket (tura + HDR fotografije) već od ${promoPrice}, umesto ${regularPrice}.`,
     terms: `Cene za stan od oko ${REFERENCE_AREA_SQM}m².`,
@@ -34,10 +35,10 @@ const TEXT = {
   },
   en: {
     eyebrow: 'Launch promo',
-    headline: (percent: number) => `The tour is ${percent}% cheaper`,
+    headline: (percent: number) => `Packages are ${percent}% cheaper`,
     until: (date: string) => `Through ${date}.`,
     example: (promoPrice: string, regularPrice: string) =>
-      `The package (tour + HDR photos) already from ${promoPrice}, instead of ${regularPrice}.`,
+      `Package (tour + HDR photos) already from ${promoPrice}, instead of ${regularPrice}.`,
     terms: `Prices for a flat of about ${REFERENCE_AREA_SQM}m².`,
     daysLeft: (n: number) => (n <= 0 ? 'Last day' : `${n} ${n === 1 ? 'day' : 'days'} left`)
   }

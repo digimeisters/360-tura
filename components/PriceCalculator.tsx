@@ -60,9 +60,10 @@ const TEXT: Record<HomeLang, Text> = {
     basicDesc: 'SR + jedan jezik po izboru (EN, DE ili RU)',
     premiumName: 'Premium',
     premiumDesc: (extra) => `Sva 4 jezika + izrada plana stana · +${extra} po turi`,
-    // HDR fotografije ne idu u popust (vidi hdrPrice u lib/pricing.ts) -
-    // "cena ture" mora ostati precizno, ne "sve cene".
-    promo: (percent, until) => `🎉 Uvodna promocija: cena ture je niža za ${percent}%, u oba paketa — do ${until}`
+    // Popust ide na ceo paket (tura + HDR) - samostalne fotografije, bez
+    // ture, u popust ne idu (vidi standaloneHdrPrice u lib/pricing.ts), ali
+    // ovaj kalkulator računa samo pakete, pa taj izuzetak ovde nije bitan.
+    promo: (percent, until) => `🎉 Uvodna promocija: −${percent}% na cenu po nekretnini, u oba paketa — do ${until}`
   },
   en: {
     title: 'Price by number of properties',
@@ -78,7 +79,7 @@ const TEXT: Record<HomeLang, Text> = {
     basicDesc: 'SR + one language of your choice (EN, DE or RU)',
     premiumName: 'Premium',
     premiumDesc: (extra) => `All 4 languages + floor plan drawing · +${extra} per tour`,
-    promo: (percent, until) => `🎉 Launch promo until ${until}: the tour price is ${percent}% lower, in both packages.`
+    promo: (percent, until) => `🎉 Launch promo until ${until}: −${percent}% on the price per property, in both packages.`
   }
 };
 

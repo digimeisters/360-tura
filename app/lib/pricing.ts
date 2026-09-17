@@ -42,12 +42,14 @@ export const PREMIUM_EXTRA = 15;
 export const REFERENCE_AREA_SQM = 50;
 
 /**
- * Uvodna promocija: popust na turu, u Osnovnom i u Premium paketu. Cilj je
- * što više kontakata sa agencijama i dovoljno tura za bazu, ne marža. Traje
- * 45 dana od lansiranja.
+ * Uvodna promocija: popust na CEO PAKET (tura + HDR fotografije zajedno), u
+ * Osnovnom i u Premium paketu. Cilj je što više kontakata sa agencijama i
+ * dovoljno tura za bazu, ne marža. Traje 45 dana od lansiranja.
  *
- * HDR fotografije NISU deo popusta - vidi hdrPrice(). Cena paketa (tura +
- * HDR) zato pada manje od 30%, jer se popust računa samo na turu.
+ * HDR fotografije NARUČENE SAME, bez ture, u popust ne idu - vidi
+ * standaloneHdrPrice(). Bez ovoga bi -30% spustilo samostalnu fotografiju
+ * na 14€, dovoljno nisko da agencija poruči samo fotografije umesto cele
+ * ture - a to nije cilj promocije.
  */
 export const PROMO = {
   /** 0.3 = −30%. */
@@ -99,19 +101,27 @@ export function tourPrice(tier: PriceTier, pkg: PackageType, promoActive = false
 }
 
 /**
- * Cena HDR fotografija po nekretnini. `promoActive` se namerno prima i
- * ignoriše: HDR ne ide u promo popust (vidi PROMO), ali poziv ostaje isti
- * kao za tourPrice() na svim mestima koja zovu obe funkcije zajedno.
+ * Cena HDR fotografija po nekretnini, KAO DEO PAKETA (uz turu). Ide u promo
+ * popust isto kao tura - vidi standaloneHdrPrice() za cenu kad se
+ * fotografije naručuju SAME, koja u popust ne ide.
  */
 export function hdrPrice(tier: PriceTier, promoActive = false): number {
-  void promoActive;
+  return withPromo(tier.hdr, promoActive);
+}
+
+/**
+ * Cena HDR fotografija kad se naručuju SAME, bez ture - uvek redovna, bez
+ * obzira na promociju (vidi PROMO). Koristi je isključivo cenovnik po
+ * stavci (komponente/PromoPrice.tsx), gde je fotografija zasebna ponuda, a
+ * ne deo paketa.
+ */
+export function standaloneHdrPrice(tier: PriceTier): number {
   return tier.hdr;
 }
 
 /**
- * Tura + HDR po nekretnini. Popust ide samo na turu, pa zbir stavki i dalje
- * daje tačan ukupan iznos, ali paket sad pada manje od 30% - koliko tačno
- * zavisi od odnosa cene ture i HDR-a u datom stepenu.
+ * Tura + HDR po nekretnini, kao PAKET - oba idu u popust, pa ceo paket
+ * padne za PROMO.discount (zaokruženo po stavci).
  */
 export function perProperty(tier: PriceTier, pkg: PackageType, promoActive = false): number {
   return tourPrice(tier, pkg, promoActive) + hdrPrice(tier, promoActive);
@@ -123,11 +133,11 @@ export function packagePrice(count: number, pkg: PackageType = 'basic', promoAct
 }
 
 /**
- * Stvarni popust na CEO paket (tura + HDR), zaokružen na ceo procenat.
- * Manji je od PROMO.discount (30%), jer HDR ne ide u popust - koliko manji
- * zavisi od odnosa cene ture i HDR-a u datom stepenu. Koristi ga nalepnica
- * na kartici paketa (SaleSticker), da ne tvrdi "−30%" na cenu koja realno
- * padne manje.
+ * Stvarni popust na CEO paket (tura + HDR), zaokružen na ceo procenat. Blizu
+ * je PROMO.discount (30%), ali ume malo da odstupi (npr. 29%) jer se
+ * zaokruživanje dešava po stavci (tura i HDR svaka za sebe), pre zbira.
+ * Koristi ga nalepnica na kartici paketa (SaleSticker), da uvek pokaže tačan
+ * broj za taj paket, ne paušalnih "−30%" na svakom.
  */
 export function packageDiscountPercent(count: number, pkg: PackageType = 'basic'): number {
   const regular = packagePrice(count, pkg, false);

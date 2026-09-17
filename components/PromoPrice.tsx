@@ -3,9 +3,9 @@
 import type { HomeLang, RateAmount } from '../app/lib/homeCopy';
 import {
   PRICE_TIERS,
-  hdrPrice,
   packageDiscountPercent,
   packagePrice,
+  standaloneHdrPrice,
   tourPrice,
   type PackageType
 } from '../app/lib/pricing';
@@ -21,9 +21,9 @@ import { usePromoActive } from './usePromoActive';
 
 /**
  * Okrugla nalepnica u uglu kartice, kao u prospektu. Procenat se računa PO
- * PAKETU (count + packageType), a ne piše se paušalno "−30%": HDR fotografije
- * ne idu u popust (vidi hdrPrice), pa paket koji ih sadrži padne manje od
- * 30% - koliko manje zavisi od odnosa cene ture i HDR-a u datom stepenu.
+ * PAKETU (count + packageType), a ne piše se paušalno "−30%": zbog
+ * zaokruživanja po stavci (tura i HDR svaka za sebe) stvarni pad zna da
+ * bude 29% umesto 30%, pogotovo kod Premium paketa.
  */
 export function SaleSticker({
   count,
@@ -49,10 +49,13 @@ export function SaleSticker({
  * Cena jedne stavke cenovnika, za jednu nekretninu (prvi stepen obima).
  * Za više nekretnina mesečno cena pada - to pokazuju kartice paketa i
  * kalkulator ispod njih.
+ *
+ * HDR ovde je uvek standardna cena, bez popusta: ovaj red predstavlja
+ * fotografije naručene SAME, ne kao deo paketa - vidi standaloneHdrPrice.
  */
 function rateAmount(amount: RateAmount, promoActive: boolean): number {
   const tier = PRICE_TIERS[0];
-  if (amount === 'hdr') return hdrPrice(tier, promoActive);
+  if (amount === 'hdr') return standaloneHdrPrice(tier);
   return tourPrice(tier, amount === 'tourPremium' ? 'premium' : 'basic', promoActive);
 }
 
