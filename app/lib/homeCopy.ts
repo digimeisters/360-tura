@@ -143,7 +143,7 @@ const sr: HomeCopy = {
   },
   nav: {
     brandAria: 'Kvadrat360, početak strane',
-    examples: 'Primeri tura',
+    examples: 'Ture',
     how: 'Kako radimo',
     benefits: 'Benefiti',
     packages: 'Cenovnik',
