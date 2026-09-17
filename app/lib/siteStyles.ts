@@ -72,7 +72,13 @@ export const SITE_STYLES = `
   }
 
   *{box-sizing:border-box;}
-  html{scroll-behavior:smooth;}
+  /* NEMA scroll-behavior:smooth na html: to je važilo za CEO dokument, pa i
+     za prelaz na drugu stranu - Next pozove skok na vrh, animacija krene sa
+     dna duge strane, a kraća strana je u međuvremenu već iscrtana, pa se
+     animacija prekine na pola i posetilac otvori /ture usred spiska umesto
+     na vrhu. Meko klizanje ka sidrima (#pitanja, #cenovnik...) sad radi
+     preko JS-a (vidi components/NavScrollSpy.tsx), ne preko ovog pravila -
+     tako ne može da procuri na navigaciju između strana. */
   body{
     margin:0;
     background:var(--bg);
@@ -105,7 +111,7 @@ export const SITE_STYLES = `
     color:var(--accent);
   }
   :focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:6px;}
-  @media (prefers-reduced-motion: reduce){ *{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important;} html{scroll-behavior:auto;} }
+  @media (prefers-reduced-motion: reduce){ *{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important;} }
 
   /* ---------- KOMPONENTE ---------- */
   .btn{

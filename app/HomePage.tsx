@@ -94,7 +94,13 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
         <li><a href="#cenovnik">{nav.packages}</a></li>
         {/* Ide odmah iza paketa, jer je tu i sekcija koja vodi na tu stranu. */}
         {nav.agencies && (
-          <li><Link href="/za-agencije" data-track="cta:nav_agencies">{nav.agencies}</Link></li>
+          <li>
+            {/* Vodi na drugu stranu, ali se označava dok se prolazi kroz
+                sekciju #agencije na ovoj - vidi NavScrollSpy. */}
+            <Link href="/za-agencije" data-section="agencije" data-track="cta:nav_agencies">
+              {nav.agencies}
+            </Link>
+          </li>
         )}
         <li><a href="#pitanja">{nav.faq}</a></li>
         <li><a href="#kontakt">{nav.contact}</a></li>

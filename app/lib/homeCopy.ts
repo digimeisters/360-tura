@@ -173,7 +173,7 @@ const sr: HomeCopy = {
     open: 'Otvori turu →'
   },
   examples: {
-    eyebrow: 'Primeri tura',
+    eyebrow: 'Ture',
     title: 'Prošetajte kroz pravu turu',
     note: 'Ture koje su trenutno objavljene — otvaraju se u pretraživaču, na telefonu ili računaru, bez instaliranja aplikacije.',
     allTours: 'Pogledajte sve ture →'
@@ -369,7 +369,7 @@ const en: HomeCopy = {
   },
   nav: {
     brandAria: 'Kvadrat360, top of the page',
-    examples: 'Sample tours',
+    examples: 'Tours',
     how: 'How it works',
     benefits: 'Benefits',
     packages: 'Price list',
@@ -398,7 +398,7 @@ const en: HomeCopy = {
     open: 'Open the tour →'
   },
   examples: {
-    eyebrow: 'Sample tours',
+    eyebrow: 'Tours',
     title: 'Walk through a real tour',
     note: 'Tours that are live right now — they open in the browser, on a phone or computer, with no app to download.'
   },

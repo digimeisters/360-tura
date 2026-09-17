@@ -18,20 +18,67 @@ import { useEffect } from 'react';
  * ugašene; ovako ostaje označena poslednja kroz koju se prošlo. I ne
  * "najveći vidljivi deo", jer kratke sekcije (FAQ) nikad ne zauzmu najveći
  * deo ekrana, pa se nikad ne bi označile.
+ *
+ * Uz to, ista komponenta preuzima klik na SVAKO sidro na strani (ne samo
+ * pilule u meniju - i dugmad kao "Pogledajte pakete") i sama klizi do njega
+ * preko scrollIntoView. Ovo NIJE ukras: meko klizanje nekad je stajalo kao
+ * scroll-behavior:smooth na <html>, pa je važilo i za prelaz na DRUGU
+ * stranu - Next pozove skok na vrh nove strane, taj skok krene da se
+ * animira sa dna duge polazne strane, a kraća nova strana je u
+ * međuvremenu već iscrtana, pa se animacija prekine na pola i posetilac
+ * otvori /ture ili /za-agencije usred spiska umesto na vrhu. Klizanje sad
+ * ide samo za sidra NA OVOJ strani, pa ne može da procuri na navigaciju.
  */
 
 // Na kojoj visini ekrana stoji linija koja bira sekciju (0 = vrh, 1 = dno).
 const LINE_RATIO = 0.3;
 
 export default function NavScrollSpy() {
+  // Meko klizanje ka sidrima, na klik - vidi napomenu iznad. Odvojen efekat
+  // od scrollspy-ja ispod: ovaj hvata SVAKU vezu na sidro (i dugmad izvan
+  // .navlinks), ne samo pilule u meniju.
   useEffect(() => {
+    const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const anchors = Array.from(
+      document.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')
+    ).filter((a) => document.getElementById(a.getAttribute('href')!.slice(1)));
+
+    const onClick = (link: HTMLAnchorElement) => (e: MouseEvent) => {
+      // Klik sa modifikatorom (nov tab, novi prozor...) ide default putem.
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+        return;
+      }
+      const id = link.getAttribute('href')!.slice(1);
+      const target = document.getElementById(id);
+      if (!target) return;
+
+      e.preventDefault();
+      target.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+      history.pushState(null, '', `#${id}`);
+    };
+
+    const offs = anchors.map((a) => {
+      const handler = onClick(a);
+      a.addEventListener('click', handler);
+      return () => a.removeEventListener('click', handler);
+    });
+
+    return () => offs.forEach((off) => off());
+  }, []);
+
+  useEffect(() => {
+    // Uz veze na deo iste strane (#nesto) i one koje vode na DRUGU stranu,
+    // a odgovaraju sekciji ovde - "Za agencije" vodi na /za-agencije, ali
+    // na početnoj postoji i sekcija koja na tu stranu upućuje. Takva veza
+    // sama kaže kojoj sekciji pripada, preko data-section.
     const links = Array.from(
-      document.querySelectorAll<HTMLAnchorElement>('.navlinks a[href^="#"]')
+      document.querySelectorAll<HTMLAnchorElement>('.navlinks a[href^="#"], .navlinks a[data-section]')
     );
 
     const pairs = links
       .map((link) => {
-        const id = link.getAttribute('href')?.slice(1) ?? '';
+        const id = link.dataset.section || link.getAttribute('href')?.slice(1) || '';
         const section = id ? document.getElementById(id) : null;
         return section ? { link, section } : null;
       })

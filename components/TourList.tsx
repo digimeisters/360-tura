@@ -473,7 +473,7 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
         <div
           className={`filter-bar${scrolledPast ? ' show' : ''}`}
           aria-hidden={!scrolledPast}
-          style={navHeight !== null ? { top: `${Math.round(navHeight) + 4}px` } : undefined}
+          style={navHeight !== null ? { top: `${Math.round(navHeight) + 2}px` } : undefined}
         >
           <button
             type="button"
