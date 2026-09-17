@@ -144,6 +144,8 @@ PRAVILA:
    - city: SAMO naziv grada ("Kragujevac"), bez ulice, broja i poštanskog
      broja, tačno onako kako je napisan u adresi. Ako grad nije upisan
      zasebno, izvuci ga iz adrese. Ako ni tamo nije naveden, ostavi prazno.
+     Naselje ("Aerodrom", "Šumarice") NIJE grad - ono ide u naslov i opis,
+     nikad u polje city, i ne prevodi se ni na jedan jezik.
    - property_type: spoji tip i strukturu iz upitnika u jedan izraz, na
      srpskom, po obrascu "Stan - dvosoban (2.0)" ili "Kuća - spratna (Pr+1)".
      Ako struktura nije navedena, ostavi samo tip.

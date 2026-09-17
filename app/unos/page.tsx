@@ -68,6 +68,57 @@ const STRUCTURES: Record<string, string[]> = {
   Vikendica: ['Montažna', 'Zidana', 'Renovirana stara / etno kuća']
 };
 
+/**
+ * Naselja po gradu, za predlog dok agent kuca. Ključ je grad malim slovima,
+ * jer se poredi sa onim što je upisano u polju "Grad".
+ *
+ * Namerno je `datalist`, a ne `select`: grad koji ovde nema svoju listu i
+ * dalje mora da primi upisano naselje. Novi grad se dodaje kao još jedan
+ * ključ, bez ikakve izmene u formi.
+ */
+const NEIGHBOURHOODS: Record<string, string[]> = {
+  kragujevac: [
+    'Aerodrom',
+    'Bagdala',
+    'Bagremar',
+    'Beloševac',
+    'Bresnica',
+    'Centar',
+    'Centar preko Lepenice',
+    'Centralna radionica',
+    'Denino brdo',
+    'Erdeč',
+    'Erdoglija',
+    'Grošnica',
+    'Ilićevo',
+    'Ilina Voda',
+    'Jabučar',
+    'Kolonija',
+    'Korićani',
+    'Košutnjak',
+    'Kozujevo',
+    'Ljubine livade',
+    'Mala Vaga',
+    'Male Pčelice',
+    'Maršić',
+    'Metino brdo',
+    'Ozon',
+    'Paliluje',
+    'Petrovac',
+    'Pivara',
+    'Potok',
+    'Stanovo',
+    'Sušica',
+    'Šest Topola',
+    'Šumarice',
+    'Šumski Raj',
+    'Vašnjak',
+    'Vinogradi',
+    'Zvezda',
+    'Ždraljica'
+  ]
+};
+
 export default function UnosPage() {
   const [values, setValues] = useState<Record<string, string>>({});
   const [languages, setLanguages] = useState<string[]>(['Srpski']);
@@ -111,6 +162,8 @@ export default function UnosPage() {
   // tada se meni vraća na prazno, da agent ne pošalje "HoReCa" za stan.
   const savedStructure = values['Struktura nekretnine'] || '';
   const structure = structureOptions.includes(savedStructure) ? savedStructure : '';
+
+  const neighbourhoods = NEIGHBOURHOODS[(values['Grad'] || '').trim().toLowerCase()] || [];
 
   const changePropertyType = (e: { target: { value: string } }) => {
     const type = e.target.value;
@@ -316,6 +369,31 @@ export default function UnosPage() {
             <datalist id="gradovi">
               {['Beograd', 'Novi Sad', 'Niš', 'Kragujevac', 'Subotica', 'Čačak', 'Kraljevo', 'Novi Pazar', 'Zlatibor', 'Kopaonik', 'Wien'].map((c) => (
                 <option key={c} value={c} />
+              ))}
+            </datalist>
+          </Field>
+
+          <Field
+            label="Naselje"
+            hint={
+              neighbourhoods.length
+                ? 'Počnite da kucate — nude se naselja izabranog grada. Možete upisati i naselje kojeg nema na spisku.'
+                : 'Deo grada ili naselje — npr. Aerodrom, Centar, Šumarice.'
+            }
+          >
+            <input
+              id="naselje"
+              value={values['Naselje'] || ''}
+              onChange={set('Naselje')}
+              placeholder={neighbourhoods[0] ? `npr. ${neighbourhoods[0]}` : 'npr. Centar'}
+              list="naselja"
+              style={inputStyle}
+            />
+            {/* Lista se menja zajedno sa gradom - grad bez svoje liste
+                ostavlja polje kao običan unos teksta. */}
+            <datalist id="naselja">
+              {neighbourhoods.map((n) => (
+                <option key={n} value={n} />
               ))}
             </datalist>
           </Field>
