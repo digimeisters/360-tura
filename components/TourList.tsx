@@ -3,17 +3,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ShowcaseTour } from '../app/lib/showcaseTours';
 import { STRUCTURE_ORDER } from '../app/lib/propertyTaxonomy';
+import FilterMenu from './FilterMenu';
 import TourCard, { type TourCardLabels } from './TourCard';
 
 /**
  * Spisak tura sa filterima (/ture). Sve ture stižu sa servera i već su u
  * HTML-u (zbog Google-a); filteri samo skrivaju kartice u pregledaču.
  *
- * Izabrani filteri se upisuju u adresu strane, pa agencija može da podeli
- * link samo sa svojim turama: /ture?agencija=Ime · /ture?grad=Kragujevac
+ * Svaki filter je padajući meni sa kvačicama i prima VIŠE vrednosti, koje
+ * rade kao "ili": izborom dva naselja se vide ture iz oba. Više izabranih
+ * vrednosti u adresi stoji razdvojeno zarezom, a zarez se ni u jednom
+ * naselju ni strukturi ne pojavljuje (vidi app/lib/propertyTaxonomy.ts).
  *
- * Red filtera se ne prikazuje ako nema šta da se bira (npr. sve ture su u
- * istom gradu) - prazan filter samo zbunjuje.
+ * Izabrani filteri se upisuju u adresu strane, pa agencija može da podeli
+ * link samo sa svojim turama: /ture?agencija=Ime · /ture?naselje=Aerodrom,Pivara
+ *
+ * Meni se ne prikazuje ako ne može ništa da suzi (npr. sve ture su u istom
+ * gradu) - prazan filter samo zbunjuje.
  */
 
 /**
@@ -37,33 +43,61 @@ const LABELS = {
   count: (shown: number, total: number) =>
     shown === total ? `Prikazano ${total} tura` : `Prikazano ${shown} od ${total} tura`,
   empty: 'Za izabrane filtere nema tura. Sklonite neki filter da vidite ostale.',
-  reset: 'Poništi filtere'
+  reset: 'Poništi filtere',
+  clearOne: 'Poništi izbor'
 };
 
 type FilterKey = 'kategorija' | 'grad' | 'naselje' | 'struktura' | 'agencija';
 
 const FILTER_KEYS: FilterKey[] = ['kategorija', 'grad', 'naselje', 'struktura', 'agencija'];
 
-const NO_FILTERS = Object.fromEntries(FILTER_KEYS.map((k) => [k, null])) as Record<
-  FilterKey,
-  string | null
->;
+type Filters = Record<FilterKey, string[]>;
+
+const NO_FILTERS: Filters = {
+  kategorija: [],
+  grad: [],
+  naselje: [],
+  struktura: [],
+  agencija: []
+};
 
 const CATEGORY_ORDER: NonNullable<ShowcaseTour['category']>[] = ['sale', 'rent', 'booking'];
 
+/** Vrednost po kojoj filter poredi ture. */
+const VALUE_OF: Record<FilterKey, (tour: ShowcaseTour) => string | null> = {
+  kategorija: (t) => t.category,
+  grad: (t) => t.city,
+  naselje: (t) => t.district,
+  struktura: (t) => t.structure,
+  agencija: (t) => t.agency
+};
+
+function sortSr(values: string[]): string[] {
+  return [...values].sort((a, b) => a.localeCompare(b, 'sr'));
+}
+
+function unique(values: (string | null)[]): string[] {
+  return [...new Set(values.filter((v): v is string => Boolean(v)))];
+}
+
 export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]; lang?: string }) {
   const labels = LABELS;
-  const [filters, setFilters] = useState<Record<FilterKey, string | null>>(NO_FILTERS);
+  const [filters, setFilters] = useState<Filters>(NO_FILTERS);
 
   // Adresa se čita tek u pregledaču: server pravi isti HTML za sve posetioce
   // (zbog keširanja strane), pa filter iz podeljenog linka stiže ovde.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setFilters(
-      Object.fromEntries(FILTER_KEYS.map((k) => [k, params.get(k)])) as Record<
-        FilterKey,
-        string | null
-      >
+      Object.fromEntries(
+        FILTER_KEYS.map((key) => [
+          key,
+          (params.get(key) || '')
+            .split(',')
+            .map((v) => v.trim())
+            .filter(Boolean)
+        ])
+      ) as Filters
     );
   }, []);
 
@@ -73,12 +107,11 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
    * učitavanju ponovo pokreće komponentu, koja onda pročita već obrisanu
    * adresu - i filter iz podeljenog linka nestane.
    */
-  const apply = (next: Record<FilterKey, string | null>) => {
+  const apply = (next: Filters) => {
     setFilters(next);
     const params = new URLSearchParams();
-    (Object.keys(next) as FilterKey[]).forEach((key) => {
-      const value = next[key];
-      if (value) params.set(key, value);
+    FILTER_KEYS.forEach((key) => {
+      if (next[key].length) params.set(key, next[key].join(','));
     });
     const query = params.toString();
     window.history.replaceState(null, '', query ? `?${query}` : window.location.pathname);
@@ -88,116 +121,122 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
     () => CATEGORY_ORDER.filter((c) => tours.some((t) => t.category === c)),
     [tours]
   );
-  const cities = useMemo(
-    () => [...new Set(tours.map((t) => t.city).filter((c): c is string => Boolean(c)))].sort((a, b) => a.localeCompare(b, 'sr')),
-    [tours]
-  );
-  const agencies = useMemo(
-    () => [...new Set(tours.map((t) => t.agency).filter((a): a is string => Boolean(a)))].sort((a, b) => a.localeCompare(b, 'sr')),
-    [tours]
-  );
+  const cities = useMemo(() => sortSr(unique(tours.map((t) => t.city))), [tours]);
+  const agencies = useMemo(() => sortSr(unique(tours.map((t) => t.agency))), [tours]);
+
   // Naselja se vezuju za izabran grad: "Aerodrom" pored Beograda nema smisla,
   // a isto ime naselja ume da postoji u dva grada.
   const districts = useMemo(
     () =>
-      [
-        ...new Set(
+      sortSr(
+        unique(
           tours
-            .filter((t) => !filters.grad || t.city === filters.grad)
+            .filter((t) => !filters.grad.length || (t.city && filters.grad.includes(t.city)))
             .map((t) => t.district)
-            .filter((d): d is string => Boolean(d))
         )
-      ].sort((a, b) => a.localeCompare(b, 'sr')),
+      ),
     [tours, filters.grad]
   );
+
   // Struktura ide redom kojim se nudi u upitniku - po azbuci bi garsonjera
   // upala između četvorosobnog i dvosobnog stana.
   const structures = useMemo(
     () =>
-      [...new Set(tours.map((t) => t.structure).filter((s): s is string => Boolean(s)))].sort(
-        (a, b) => {
-          const ia = STRUCTURE_ORDER.indexOf(a);
-          const ib = STRUCTURE_ORDER.indexOf(b);
-          if (ia === -1 || ib === -1) return ia === ib ? a.localeCompare(b, 'sr') : ia === -1 ? 1 : -1;
-          return ia - ib;
-        }
-      ),
+      unique(tours.map((t) => t.structure)).sort((a, b) => {
+        const ia = STRUCTURE_ORDER.indexOf(a);
+        const ib = STRUCTURE_ORDER.indexOf(b);
+        if (ia === -1 || ib === -1) return ia === ib ? a.localeCompare(b, 'sr') : ia === -1 ? 1 : -1;
+        return ia - ib;
+      }),
     [tours]
   );
 
-  const shown = tours.filter(
-    (tour) =>
-      (!filters.kategorija || tour.category === filters.kategorija) &&
-      (!filters.grad || tour.city === filters.grad) &&
-      (!filters.naselje || tour.district === filters.naselje) &&
-      (!filters.struktura || tour.structure === filters.struktura) &&
-      (!filters.agencija || tour.agency === filters.agencija)
+  const shown = tours.filter((tour) =>
+    FILTER_KEYS.every((key) => {
+      const picked = filters[key];
+      if (!picked.length) return true;
+      const value = VALUE_OF[key](tour);
+      return value !== null && picked.includes(value);
+    })
   );
 
-  // Ponovni klik na izabran filter ga isključuje. Promena grada poništava
-  // naselje - naselje iz prethodnog grada bi ostavilo prazan spisak.
-  const pick = (key: FilterKey, value: string | null) => {
-    const next = { ...filters, [key]: filters[key] === value ? null : value };
-    if (key === 'grad') next.naselje = null;
+  /**
+   * Kvačica se dodaje ili sklanja. Promena grada izbacuje naselja koja u
+   * novom izboru gradova više ne postoje - inače bi naselje iz prethodnog
+   * grada ostavilo prazan spisak, a posetilac ne bi video zašto.
+   */
+  const toggle = (key: FilterKey, value: string) => {
+    const picked = filters[key];
+    const next: Filters = {
+      ...filters,
+      [key]: picked.includes(value) ? picked.filter((v) => v !== value) : [...picked, value]
+    };
+
+    if (key === 'grad') {
+      const allowed = new Set(
+        unique(
+          tours
+            .filter((t) => !next.grad.length || (t.city && next.grad.includes(t.city)))
+            .map((t) => t.district)
+        )
+      );
+      next.naselje = next.naselje.filter((d) => allowed.has(d));
+    }
+
     apply(next);
   };
 
-  const row = (key: FilterKey, title: string, values: string[], label: (value: string) => string) => {
-    // Jedna vrednost znači da se nema šta birati - red se ne prikazuje.
-    if (values.length < 2) return null;
+  const clear = (key: FilterKey) => apply({ ...filters, [key]: [] });
+
+  const menu = (
+    key: FilterKey,
+    title: string,
+    options: string[],
+    optionLabel?: (value: string) => string
+  ) => {
+    // Filter se prikazuje samo ako može nešto da suzi: ili ima bar dve
+    // vrednosti, ili neka tura tu vrednost nema pa je izbor izbacuje.
+    const narrows = options.length > 1 || tours.some((t) => !VALUE_OF[key](t));
+    if (!options.length || !narrows) return null;
+
     return (
-      <div className="filter-row" key={key}>
-        <span className="filter-label">{title}</span>
-        <div className="filter-chips" role="group" aria-label={title}>
-          <button
-            type="button"
-            className={`chip filter-chip${filters[key] === null ? ' on' : ''}`}
-            aria-pressed={filters[key] === null}
-            onClick={() => pick(key, null)}
-          >
-            {labels.all}
-          </button>
-          {values.map((value) => (
-            <button
-              key={value}
-              type="button"
-              className={`chip filter-chip${filters[key] === value ? ' on' : ''}`}
-              aria-pressed={filters[key] === value}
-              onClick={() => pick(key, value)}
-            >
-              {label(value)}
-            </button>
-          ))}
-        </div>
-      </div>
+      <FilterMenu
+        key={key}
+        label={title}
+        options={options}
+        optionLabel={optionLabel}
+        selected={filters[key]}
+        onToggle={(value) => toggle(key, value)}
+        onClear={() => clear(key)}
+        clearLabel={labels.clearOne}
+        allLabel={labels.all}
+      />
     );
   };
 
-  const anyFilter = FILTER_KEYS.some((key) => filters[key]);
+  const anyFilter = FILTER_KEYS.some((key) => filters[key].length);
 
   // Dok su sve ture iste vrste, u istom gradu, iste strukture i iste
-  // agencije, nema nijednog reda - tada se ni okvir ne iscrtava, da ne
+  // agencije, nema nijednog menija - tada se ni okvir ne iscrtava, da ne
   // ostane prazan razmak.
-  const rows = [
-    row('kategorija', labels.category, categories, (v) => CARD_LABELS.category(v as NonNullable<ShowcaseTour['category']>)),
-    row('grad', labels.city, cities, (v) => v),
-    row('naselje', labels.district, districts, (v) => v),
-    row('struktura', labels.structure, structures, (v) => v),
-    row('agencija', labels.agency, agencies, (v) => v)
+  const menus = [
+    menu('kategorija', labels.category, categories, (v) =>
+      CARD_LABELS.category(v as NonNullable<ShowcaseTour['category']>)
+    ),
+    menu('grad', labels.city, cities),
+    menu('naselje', labels.district, districts),
+    menu('struktura', labels.structure, structures),
+    menu('agencija', labels.agency, agencies)
   ].filter(Boolean);
 
   return (
     <>
-      {rows.length > 0 && <div className="filters">{rows}</div>}
+      {menus.length > 0 && <div className="filters">{menus}</div>}
 
       <p className="filter-count" role="status">
         {labels.count(shown.length, tours.length)}
         {anyFilter && (
-          <button
-            type="button"
-            className="filter-reset"
-            onClick={() => apply(NO_FILTERS)}
-          >
+          <button type="button" className="filter-reset" onClick={() => apply(NO_FILTERS)}>
             {labels.reset}
           </button>
         )}

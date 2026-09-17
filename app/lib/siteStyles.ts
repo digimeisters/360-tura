@@ -244,15 +244,33 @@ export const SITE_STYLES = `
 
   /* ---------- BENEFITI ---------- */
   /* Filteri na spisku tura (/ture). */
-  .filters{display:flex; flex-direction:column; gap:.7rem; margin-bottom:1.1rem;}
-  .filter-row{display:flex; align-items:baseline; gap:.7rem; flex-wrap:wrap;}
-  .filter-label{font-family:var(--font-display); font-size:.72rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); min-width:5.5rem;}
-  .filter-chips{display:flex; flex-wrap:wrap; gap:.4rem;}
-  .filter-chip{cursor:pointer; font-family:inherit;}
-  .filter-chip.on{background:var(--accent); color:var(--on-accent); border-color:var(--accent);}
+  .filters{display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1.1rem;}
+  .filter-menu{position:relative;}
+  .filter-toggle{display:flex; align-items:center; gap:.5rem; cursor:pointer; font:inherit; color:var(--ink); background:var(--surface); border:1px solid var(--line-strong); border-radius:999px; padding:.5rem .9rem; line-height:1.2;}
+  .filter-toggle:hover{border-color:var(--accent);}
+  .filter-toggle-label{font-family:var(--font-display); font-size:.72rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint);}
+  .filter-toggle-value{font-size:.88rem; font-weight:650; max-width:11rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .filter-toggle.on{background:var(--accent); color:var(--on-accent); border-color:var(--accent);}
+  .filter-toggle.on .filter-toggle-label{color:var(--on-accent); opacity:.75;}
+  /* Strelica se crta, da meni ne zavisi od fonta za emodži. */
+  .filter-caret{width:0; height:0; border-left:.3rem solid transparent; border-right:.3rem solid transparent; border-top:.34rem solid currentColor; opacity:.65;}
+  .filter-toggle[aria-expanded="true"] .filter-caret{transform:rotate(180deg);}
+  .filter-panel{position:absolute; z-index:30; top:calc(100% + .4rem); left:0; min-width:13rem; max-width:min(20rem,calc(100vw - 2.5rem)); max-height:17rem; overflow-y:auto; background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-lg); padding:.35rem;}
+  .filter-opt{display:flex; align-items:center; gap:.6rem; padding:.45rem .55rem; border-radius:9px; cursor:pointer; font-size:.9rem; line-height:1.3;}
+  .filter-opt:hover{background:var(--surface-2);}
+  .filter-opt input{accent-color:var(--accent); width:1rem; height:1rem; flex:none; margin:0;}
+  .filter-panel-clear{display:block; width:100%; margin-top:.2rem; padding:.45rem .55rem; background:none; border:none; border-top:1px solid var(--line); font:inherit; font-size:.84rem; color:var(--accent); font-weight:650; text-align:left; cursor:pointer;}
   .filter-count{margin:.2rem 0 1.2rem; font-size:.88rem; color:var(--ink-soft); display:flex; align-items:center; gap:.6rem; flex-wrap:wrap;}
   .filter-reset{background:none; border:none; padding:0; font:inherit; color:var(--accent); font-weight:650; cursor:pointer; text-decoration:underline;}
-  @media (max-width:560px){ .filter-label{min-width:0; width:100%;} }
+  /* Na telefonu meni ide preko cele širine kartice, da duga imena naselja
+     ne isteraju panel van ekrana. */
+  @media (max-width:560px){
+    .filters{gap:.4rem;}
+    .filter-menu{flex:1 1 9rem;}
+    .filter-toggle{width:100%; justify-content:space-between;}
+    .filter-toggle-value{max-width:none;}
+    .filter-panel{left:0; right:auto; min-width:min(16rem,calc(100vw - 2.5rem));}
+  }
 
   .feat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:1rem;}
   /* Šest kartica: 3+3, da poslednji red ne ostane napola prazan. */
