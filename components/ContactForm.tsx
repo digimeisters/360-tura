@@ -12,7 +12,7 @@ type Status = { kind: 'idle' | 'sending' | 'ok' | 'error'; text: string };
 // Vrednosti opcija ostaju na srpskom na obe strane - tako stižu u bazu i na
 // Telegram, pa vlasnik uvek čita isto. Menja se samo ono što posetilac vidi.
 const PACKAGES: readonly string[] = CONTACT_PACKAGES;
-const LISTING_TYPES = ['Prodaja', 'Izdavanje', 'Kratkoročni smeštaj'];
+const LISTING_TYPES = ['Prodaja', 'Izdavanje', 'Stan na dan'];
 
 const TEXT: Record<
   HomeLang,
@@ -89,7 +89,7 @@ const TEXT: Record<
     contactPh: '+381 6x xxx xxxx or name@example.com',
     pkg: 'Package',
     packages: [
-      'Single tour',
+      'Tour + photos',
       'Agency — Basic (SR + language of choice)',
       'Agency — Premium (SR/EN/DE/RU)',
       'Larger volume (custom)'
@@ -127,7 +127,7 @@ const TEXT: Record<
 export default function ContactForm({
   lang = 'sr',
   // Strana za agencije unapred bira paket za agencije - posetilac tamo ne
-  // traži pojedinačnu turu, pa ne mora ništa da prepravlja.
+  // traži paket za jednu nekretninu, pa ne mora ništa da prepravlja.
   defaultPackage = PACKAGES[0]
 }: {
   lang?: HomeLang;

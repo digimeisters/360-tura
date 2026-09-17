@@ -23,6 +23,8 @@ export type FilterMenuProps = {
   onToggle: (value: string) => void;
   onClear: () => void;
   clearLabel: string;
+  /** Zatvara meni - izbor je već primenjen, ovo je "gotov sam ovde". */
+  confirmLabel: string;
   allLabel: string;
 };
 
@@ -34,6 +36,7 @@ export default function FilterMenu({
   onToggle,
   onClear,
   clearLabel,
+  confirmLabel,
   allLabel
 }: FilterMenuProps) {
   const [open, setOpen] = useState(false);
@@ -94,11 +97,27 @@ export default function FilterMenu({
             </label>
           ))}
 
-          {selected.length > 0 && (
-            <button type="button" className="filter-panel-clear" onClick={onClear}>
+          {/* Kvačice se primenjuju odmah, pa je "Potvrdi" zapravo "gotov sam
+              ovde" - zatvara meni da posetilac ide na sledeći filter ili na
+              same ture. "Poništi" briše izbor, ali ostavlja meni otvoren,
+              da može odmah da izabere drugo. */}
+          <div className="filter-panel-foot">
+            <button
+              type="button"
+              className="filter-panel-clear"
+              onClick={onClear}
+              disabled={selected.length === 0}
+            >
               {clearLabel}
             </button>
-          )}
+            <button
+              type="button"
+              className="filter-panel-done"
+              onClick={() => setOpen(false)}
+            >
+              {confirmLabel}
+            </button>
+          </div>
         </div>
       )}
     </div>

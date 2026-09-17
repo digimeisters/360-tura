@@ -30,7 +30,7 @@ const COPY = {
   meta: {
     title: 'Virtuelne ture — Kvadrat360',
     description:
-      'Sve objavljene 360° virtuelne ture nekretnina: prodaja, izdavanje i kratkoročni smeštaj. Prošetajte kroz stan iz pretraživača, bez instaliranja aplikacije.'
+      'Sve objavljene 360° virtuelne ture nekretnina: prodaja, izdavanje i stanovi na dan. Prošetajte kroz stan iz pretraživača, bez instaliranja aplikacije.'
   },
   nav: { brandAria: 'Kvadrat360, početna strana', home: 'Početna', agencies: 'Za agencije', cta: 'Zakažite snimanje' },
   hero: {

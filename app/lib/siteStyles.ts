@@ -259,7 +259,15 @@ export const SITE_STYLES = `
   .filter-opt{display:flex; align-items:center; gap:.6rem; padding:.45rem .55rem; border-radius:9px; cursor:pointer; font-size:.9rem; line-height:1.3;}
   .filter-opt:hover{background:var(--surface-2);}
   .filter-opt input{accent-color:var(--accent); width:1rem; height:1rem; flex:none; margin:0;}
-  .filter-panel-clear{display:block; width:100%; margin-top:.2rem; padding:.45rem .55rem; background:none; border:none; border-top:1px solid var(--line); font:inherit; font-size:.84rem; color:var(--accent); font-weight:650; text-align:left; cursor:pointer;}
+  /* "Potvrdi" samo zatvara meni - kvačice se primenjuju odmah. Stoji tu da
+     posetilac ima gde da klikne kad je gotov, umesto da pogađa da meni
+     zatvara klik izvan njega. */
+  .filter-panel-foot{display:flex; align-items:center; gap:.5rem; margin-top:.3rem; padding-top:.45rem; border-top:1px solid var(--line);}
+  .filter-panel-clear{flex:1; padding:.45rem .55rem; background:none; border:none; border-radius:9px; font:inherit; font-size:.84rem; color:var(--accent); font-weight:650; text-align:left; cursor:pointer;}
+  .filter-panel-clear:hover:not(:disabled){background:var(--surface-2);}
+  .filter-panel-clear:disabled{color:var(--ink-faint); cursor:default;}
+  .filter-panel-done{flex:none; padding:.45rem 1rem; background:var(--accent); color:var(--on-accent); border:1px solid var(--accent); border-radius:999px; font:inherit; font-size:.84rem; font-weight:700; cursor:pointer;}
+  .filter-panel-done:hover{background:var(--accent-strong); border-color:var(--accent-strong);}
   /* Klizači (kvadratura, cena) - dva <input type=range> jedan preko drugog. */
   .filter-ranges{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem 1.6rem; margin-bottom:1.1rem;}
   .range-filter{min-width:0;}
@@ -329,7 +337,21 @@ export const SITE_STYLES = `
   .cat-faq span{display:block; font-family:var(--font-display); font-size:.68rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:.3rem;}
   .cat-faq p{font-size:.9rem; color:var(--ink); font-style:italic;}
 
-  /* ---------- PAKETI ---------- */
+  /* ---------- CENOVNIK ---------- */
+  /* Cena po stavci: tura i fotografije stoje napisane odvojeno, pre paketa
+     koji ih spajaju u jednu cenu po nekretnini. Lakše kartice od paketa -
+     ovde nema dugmeta ni nalepnice, samo cena i šta za nju ulazi. */
+  .rate-head{max-width:720px; margin:0 auto 1.1rem; text-align:center;}
+  .rate-head h3{font-size:1.25rem; margin:0 0 .35rem;}
+  .rate-head + .rate-grid, .rate-head + .price-grid{margin-bottom:2.2rem;}
+  .rate-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1.1rem; align-items:stretch;}
+  @media (max-width:920px){ .rate-grid{grid-template-columns:1fr;} }
+  .rate-card{padding:1.4rem 1.35rem; display:flex; flex-direction:column; gap:.7rem;}
+  .rate-card h4{font-family:var(--font-display); font-size:1.05rem; font-weight:700; margin:0;}
+  .rate-price{display:flex; align-items:baseline; flex-wrap:wrap; gap:.35rem; margin:0; font-size:.86rem; color:var(--ink-soft);}
+  .rate-price b{font-family:var(--font-display); font-size:1.7rem; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums;}
+  .rate-price .price-was{font-size:.92rem;}
+
   .price-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1.1rem; align-items:stretch;}
   /* Samo dva paketa (strana za agencije) - centrirano, da ne visi prazno mesto. */
   .price-grid.n-2{grid-template-columns:repeat(2,1fr); max-width:780px; margin-inline:auto;}

@@ -73,7 +73,7 @@ export const CALC_MAX_COUNT = 20;
 // Vrednosti polja "Paket" u formi za kontakt. Stižu u bazu i na Telegram na
 // srpskom, i na engleskoj strani (tamo se samo prikazuju prevedene).
 export const CONTACT_PACKAGES = [
-  'Pojedinačna tura',
+  'Tura + fotografije',
   'Agencija — Osnovni (SR + jezik po izboru)',
   'Agencija — Premium (SR/EN/DE/RU)',
   'Veći obim (dogovor)'

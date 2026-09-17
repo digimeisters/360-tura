@@ -6,7 +6,7 @@ import ContactForm from '../components/ContactForm';
 import SiteTracker from '../components/SiteTracker';
 import PriceCalculator from '../components/PriceCalculator';
 import PromoBanner from '../components/PromoBanner';
-import { PlanPrice, SaleSticker } from '../components/PromoPrice';
+import { ItemPrice, PlanPrice, SaleSticker } from '../components/PromoPrice';
 import NavScrollSpy from '../components/NavScrollSpy';
 import { getShowcaseTours, pickHeroTour } from './lib/showcaseTours';
 import { SITE_NAME, SITE_URL, CONTACT, CONTACT_LINKS, whatsappLink } from './lib/site';
@@ -91,7 +91,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
         {tours.length > 0 && <li><a href="#primeri">{nav.examples}</a></li>}
         <li><a href="#benefiti">{nav.benefits}</a></li>
         <li><a href="#kako-radimo">{nav.how}</a></li>
-        <li><a href="#paketi">{nav.packages}</a></li>
+        <li><a href="#cenovnik">{nav.packages}</a></li>
         {/* Ide odmah iza paketa, jer je tu i sekcija koja vodi na tu stranu. */}
         {nav.agencies && (
           <li><Link href="/za-agencije" data-track="cta:nav_agencies">{nav.agencies}</Link></li>
@@ -120,7 +120,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
                 >
                   {hero.ctaTour}
                 </a>
-                <a className="btn btn-secondary" href="#paketi" data-track="cta:hero_packages">{hero.ctaPackages}</a>
+                <a className="btn btn-secondary" href="#cenovnik" data-track="cta:hero_packages">{hero.ctaPackages}</a>
               </div>
               <div className="trust">
                 {hero.trust.map((item) => (
@@ -227,7 +227,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
           </div>
         </section>
 
-        <section className="band" id="paketi">
+        <section className="band" id="cenovnik">
           <div className="wrap">
             <div className="section-head">
               <span className="eyebrow">{copy.pricing.eyebrow}</span>
@@ -235,6 +235,32 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
               <p className="note">{copy.pricing.note}</p>
             </div>
             <PromoBanner lang={lang} />
+
+            {/* Prvi deo cenovnika: šta koliko košta samo za sebe. Kartice
+                paketa ispod nose zbir, pa bez ovoga cena ture i cena
+                fotografija nisu stajale nigde napisane odvojeno. */}
+            <div className="rate-head">
+              <h3>{copy.pricing.rates.title}</h3>
+              <p className="note">{copy.pricing.rates.note}</p>
+            </div>
+            <div className="rate-grid">
+              {copy.pricing.rates.items.map((rate) => (
+                <div key={rate.title} className="card rate-card">
+                  <h4>{rate.title}</h4>
+                  <ItemPrice amount={rate.amount} unit={rate.unit} lang={lang} />
+                  <ul className="price-list">
+                    {rate.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+
+            <div className="rate-head">
+              <h3>{copy.pricing.plansTitle}</h3>
+              <p className="note">{copy.pricing.plansNote}</p>
+            </div>
             <div className="price-grid">
               {copy.pricing.plans.map((plan) => (
                 <div key={plan.track} className={`card price-card${plan.badge ? ' featured' : ''}`}>

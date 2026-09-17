@@ -76,7 +76,7 @@ const EMPTY_FORM: FormState = {
 const CATEGORY_LABELS: Record<string, string> = {
   rent: 'Izdavanje',
   sale: 'Prodaja',
-  booking: 'Kratkoročni smeštaj'
+  booking: 'Stan na dan'
 };
 
 /**
@@ -465,7 +465,7 @@ export default function ToursAdminPage() {
               >
                 <option value="rent">Izdavanje</option>
                 <option value="sale">Prodaja</option>
-                <option value="booking">Kratkoročni smeštaj</option>
+                <option value="booking">Stan na dan</option>
               </select>
             </Field>
           </div>

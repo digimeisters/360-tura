@@ -46,9 +46,9 @@ type SiteStatus = 'ok' | 'missing' | 'error';
 const TARGET_LABELS: Record<string, string> = {
   hero_tour: '„Pogledajte primer ture“ (vrh strane)',
   hero_device_tour: '„Otvori turu“ u kadru ture',
-  hero_packages: '„Paketi za agencije“ (vrh strane)',
+  hero_packages: '„Pogledajte cenovnik“ (vrh strane)',
   nav_book: '„Zakažite snimanje“ (meni)',
-  price_single: 'Paket: Pojedinačna tura',
+  price_single: 'Paket: Tura + fotografije',
   price_basic: 'Paket: Agencija Osnovni',
   price_premium: 'Paket: Agencija Premium',
   calculator_send: 'Kalkulator: „Pošalji upit sa ovim“',

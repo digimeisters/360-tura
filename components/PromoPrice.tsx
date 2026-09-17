@@ -1,7 +1,14 @@
 'use client';
 
-import type { HomeLang } from '../app/lib/homeCopy';
-import { PROMO, packagePrice, type PackageType } from '../app/lib/pricing';
+import type { HomeLang, RateAmount } from '../app/lib/homeCopy';
+import {
+  PRICE_TIERS,
+  PROMO,
+  hdrPrice,
+  packagePrice,
+  tourPrice,
+  type PackageType
+} from '../app/lib/pricing';
 import { usePromoActive } from './usePromoActive';
 
 /**
@@ -22,6 +29,46 @@ export function SaleSticker({ label }: { label?: string }) {
     <span className="price-sale" aria-label={label ?? DISCOUNT_LABEL}>
       {DISCOUNT_LABEL}
     </span>
+  );
+}
+
+/**
+ * Cena jedne stavke cenovnika, za jednu nekretninu (prvi stepen obima).
+ * Za više nekretnina mesečno cena pada - to pokazuju kartice paketa i
+ * kalkulator ispod njih.
+ */
+function rateAmount(amount: RateAmount, promoActive: boolean): number {
+  const tier = PRICE_TIERS[0];
+  if (amount === 'hdr') return hdrPrice(tier, promoActive);
+  return tourPrice(tier, amount === 'tourPremium' ? 'premium' : 'basic', promoActive);
+}
+
+/** Iznos u redu cenovnika - isto ponašanje kao PlanPrice, samo manji. */
+export function ItemPrice({
+  amount,
+  unit,
+  lang
+}: {
+  amount: RateAmount;
+  unit: string;
+  lang: HomeLang;
+}) {
+  const active = usePromoActive();
+  const eur = (n: number) => (lang === 'sr' ? `${n} €` : `€${n}`);
+
+  const regular = rateAmount(amount, false);
+  const promo = rateAmount(amount, true);
+
+  return (
+    <p className="rate-price">
+      <b>{eur(active ? promo : regular)}</b>
+      {active && (
+        <s className="price-was" aria-label={lang === 'sr' ? 'redovna cena' : 'regular price'}>
+          {eur(regular)}
+        </s>
+      )}
+      <span>{unit}</span>
+    </p>
   );
 }
 

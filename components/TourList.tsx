@@ -52,7 +52,8 @@ const LABELS = {
     shown === total ? `Prikazano ${total} tura` : `Prikazano ${shown} od ${total} tura`,
   empty: 'Za izabrane filtere nema tura. Sklonite neki filter da vidite ostale.',
   reset: 'Poništi filtere',
-  clearOne: 'Poništi izbor',
+  clearOne: 'Poništi',
+  confirmOne: 'Potvrdi',
   missing: (n: number, what: string) =>
     n === 1
       ? `Jedna tura nema upisanu ${what} i ostaje na spisku.`
@@ -331,6 +332,7 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
         onToggle={(value) => toggle(key, value)}
         onClear={() => clear(key)}
         clearLabel={labels.clearOne}
+        confirmLabel={labels.confirmOne}
         allLabel={labels.all}
       />
     );

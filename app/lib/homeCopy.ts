@@ -20,6 +20,23 @@ export type HomeLang = 'sr' | 'en';
 
 type Titled = { title: string; text: string };
 
+/**
+ * Jedna stavka cenovnika: tura (osnovna ili premium) i HDR fotografije.
+ *
+ * Postoji da bi cena svake stavke stajala napisana za sebe. Dok su cene
+ * postojale samo na karticama paketa, kartica "Pojedinačna tura" je nosila
+ * zbir ture i fotografija, pa se 70€ čitalo kao cena same ture.
+ */
+export type RateAmount = 'tourBasic' | 'tourPremium' | 'hdr';
+
+export type RateItem = {
+  title: string;
+  /** Iznos računa components/PromoPrice.tsx, zbog promo cene. */
+  amount: RateAmount;
+  unit: string;
+  items: string[];
+};
+
 export type PricePlan = {
   audience: string;
   title: string;
@@ -81,7 +98,18 @@ export type HomeCopy = {
     faqLabel: string;
     items: { eyebrow: string; title: string; focus: string; faq: string }[];
   };
-  pricing: { eyebrow: string; title: string; note: string; plans: PricePlan[]; fine: string };
+  pricing: {
+    eyebrow: string;
+    title: string;
+    note: string;
+    /** Cena po stavci - šta koliko košta samo za sebe. */
+    rates: { title: string; note: string; items: RateItem[] };
+    /** Paketi su drugi deo cenovnika: ista roba, niža cena na količinu. */
+    plansTitle: string;
+    plansNote: string;
+    plans: PricePlan[];
+    fine: string;
+  };
   // Putokaz ka strani za agencije (/za-agencije), odmah ispod paketa. Ta
   // strana postoji za sada samo na srpskom, pa se i sekcija pojavljuje samo
   // tamo - isto pravilo kao nav.agencies.
@@ -118,7 +146,7 @@ const sr: HomeCopy = {
     examples: 'Primeri tura',
     how: 'Kako radimo',
     benefits: 'Benefiti',
-    packages: 'Paketi',
+    packages: 'Cenovnik',
     faq: 'Pitanja',
     agencies: 'Za agencije',
     contact: 'Kontakt',
@@ -129,13 +157,13 @@ const sr: HomeCopy = {
     switchLang: 'en'
   },
   hero: {
-    chip: 'Prodaja · Izdavanje · Smeštaj',
+    chip: 'Prodaja · Izdavanje · Stan na dan',
     titleStart: 'Pravi kvadrati, ',
     titleEm: 'bez skrivenih ćoškova.',
     lede:
       'Virtuelna 360° tura i HDR fotografije pokazuju svaki ugao pre prvog dolaska — bilo da agencija vodi ceo portfolio ili vlasnik oglašava jedan stan. Na razgledanje tako dolaze samo ozbiljno zainteresovani, spremni da brzo odluče.',
     ctaTour: '▶ Pogledajte primer ture',
-    ctaPackages: 'Paketi za agencije',
+    ctaPackages: 'Pogledajte cenovnik',
     trust: ['🎧 Audio vodič SR · EN · DE · RU', '⏱ Isporuka za 48h'],
     opens: (count) => `👁 ${count}+ otvaranja tura`
   },
@@ -193,17 +221,62 @@ const sr: HomeCopy = {
     items: [
       { eyebrow: 'Prodaja', title: 'Dugoročna vrednost', focus: 'Naglasak na kvadraturi, stanju objekta i vlasništvu — ono što presuđuje pri kupovini.', faq: '„Da li je nekretnina uknjižena i kakvo je vlasništvo?“' },
       { eyebrow: 'Izdavanje', title: 'Svakodnevna praktičnost', focus: 'Naglasak na mesečnim troškovima, uslovima ugovora i datumu useljenja — ono što zanima budućeg stanara.', faq: '„Koliki su prosečni mesečni troškovi i kakvo je grejanje?“' },
-      { eyebrow: 'Kratkoročni smeštaj', title: 'Utisak gosta', focus: 'Naglasak na atmosferi, kapacitetu i uslovima boravka — ono što gost proverava pre rezervacije.', faq: '„Koje je tačno vreme za check-in i check-out?“' }
+      { eyebrow: 'Stan na dan', title: 'Utisak gosta', focus: 'Naglasak na atmosferi, kapacitetu i uslovima boravka — ono što gost proverava pre rezervacije.', faq: '„Koje je tačno vreme za check-in i check-out?“' }
     ]
   },
   pricing: {
-    eyebrow: 'Paketi',
-    title: 'Osmišljeno za agencije, otvoreno i za pojedince',
-    note: 'Mesečni paketi su za agencije sa stalnim prilivom oglasa. Ako sami prodajete ili izdajete jedan stan, uzmite pojedinačnu turu.',
+    eyebrow: 'Cenovnik',
+    title: 'Šta koliko košta',
+    note: 'Prvo cena svake stavke za sebe, pa paketi — jer ko uzme više nekretnina mesečno, plaća manje po nekretnini.',
+    rates: {
+      title: 'Cena po stavci',
+      note: 'Cene za jednu nekretninu. Turu možete uzeti i bez fotografija, kao i fotografije bez ture.',
+      items: [
+        {
+          title: '360° tura — Osnovna',
+          amount: 'tourBasic',
+          unit: '/ nekretnina',
+          items: [
+            'Snimanje svih prostorija i spajanje u jednu turu',
+            'Audio vodič na srpskom i jednom jeziku po izboru (EN, DE ili RU)',
+            'Opis nekretnine i odgovori na pet čestih pitanja',
+            'Ime i telefon vlasnika ili agenta u samoj turi',
+            'Link za oglas i gotov kod za ugradnju na sajt',
+            'Isporuka za 48h'
+          ]
+        },
+        {
+          title: '360° tura — Premium',
+          amount: 'tourPremium',
+          unit: '/ nekretnina',
+          items: [
+            'Sve iz Osnovne ture, plus:',
+            'Audio vodič na sva četiri jezika (SR, EN, DE, RU)',
+            'Izrada plana stana, ako ga nekretnina nema',
+            'Lokacija na mapi u turi',
+            'Prioritetno zakazivanje termina snimanja'
+          ]
+        },
+        {
+          title: 'HDR fotografije',
+          amount: 'hdr',
+          unit: '/ nekretnina',
+          items: [
+            'Po jedna fotografija svake prostorije',
+            'Obrada i isporuka u punoj rezoluciji',
+            'Spremne za oglas na portalu i za društvene mreže',
+            'Mogu i uz turu i same za sebe'
+          ]
+        }
+      ]
+    },
+    plansTitle: 'Paketi',
+    plansNote:
+      'Paket spaja turu i fotografije u jednu cenu po nekretnini. Mesečni paketi su za agencije sa stalnim prilivom oglasa; za jedan stan uzmite prvi paket, „Tura + fotografije“.',
     plans: [
       {
         audience: 'Za pojedinačne vlasnike',
-        title: 'Pojedinačna tura',
+        title: 'Tura + fotografije',
         from: 'od',
         count: 1,
         packageType: 'basic',
@@ -299,7 +372,7 @@ const en: HomeCopy = {
     examples: 'Sample tours',
     how: 'How it works',
     benefits: 'Benefits',
-    packages: 'Packages',
+    packages: 'Price list',
     faq: 'FAQ',
     contact: 'Contact',
     cta: 'Book a shoot',
@@ -315,7 +388,7 @@ const en: HomeCopy = {
     lede:
       'A 360° virtual tour and HDR photos show every corner up front, for an agency’s whole portfolio or a single listing — only genuinely interested buyers and tenants come to viewings, ready to decide quickly.',
     ctaTour: '▶ View a sample tour',
-    ctaPackages: 'Packages for agencies',
+    ctaPackages: 'See the price list',
     trust: ['🎧 Audio guide SR · EN · DE · RU', '⏱ Delivery within 48h'],
     opens: (count) => `👁 ${count}+ tour views`
   },
@@ -376,13 +449,58 @@ const en: HomeCopy = {
     ]
   },
   pricing: {
-    eyebrow: 'Packages',
-    title: 'Built for agencies, open to individuals',
-    note: 'Monthly packages are designed for agencies with a steady flow of listings; owners selling or renting on their own choose a single tour.',
+    eyebrow: 'Price list',
+    title: 'What each part costs',
+    note: 'Every item priced on its own first, then the packages — because the more properties you list each month, the less each one costs.',
+    rates: {
+      title: 'Price per item',
+      note: 'Prices are per property. A tour can be booked without photos, and photos without a tour.',
+      items: [
+        {
+          title: '360° tour — Basic',
+          amount: 'tourBasic',
+          unit: '/ property',
+          items: [
+            'Every room shot and stitched into one tour',
+            'Audio guide in Serbian and one language of your choice (EN, DE or RU)',
+            'A property description and answers to five common questions',
+            'The owner’s or agent’s name and phone inside the tour',
+            'A link for the listing and ready-made embed code for your site',
+            'Delivery within 48 hours'
+          ]
+        },
+        {
+          title: '360° tour — Premium',
+          amount: 'tourPremium',
+          unit: '/ property',
+          items: [
+            'Everything in the Basic tour, plus:',
+            'Audio guide in all four languages (SR, EN, DE, RU)',
+            'We draw the floor plan if the property doesn’t have one',
+            'Location on the map inside the tour',
+            'Priority scheduling for the shoot'
+          ]
+        },
+        {
+          title: 'HDR photos',
+          amount: 'hdr',
+          unit: '/ property',
+          items: [
+            'One photo of every room',
+            'Edited and delivered at full resolution',
+            'Ready for portal listings and social media',
+            'Available with a tour or on their own'
+          ]
+        }
+      ]
+    },
+    plansTitle: 'Packages',
+    plansNote:
+      'A package combines the tour and the photos into one price per property. Monthly packages suit agencies with a steady flow of listings; for a single flat, take the first package, “Tour + photos”.',
     plans: [
       {
         audience: 'For individual owners',
-        title: 'Single tour',
+        title: 'Tour + photos',
         from: 'from',
         count: 1,
         packageType: 'basic',
