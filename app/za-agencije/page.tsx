@@ -144,7 +144,7 @@ export default function AgencyPage() {
               {AGENCY_PLANS.map((plan) => (
                 <div key={plan.track} className={`card price-card${plan.badge ? ' featured' : ''}`}>
                   {plan.badge && <span className="price-badge">{plan.badge}</span>}
-                  <SaleSticker />
+                  <SaleSticker count={plan.count} packageType={plan.packageType} />
                   <span className="price-audience">{plan.audience}</span>
                   <h3>{plan.title}</h3>
                   <PlanPrice
@@ -160,7 +160,7 @@ export default function AgencyPage() {
                     ))}
                   </ul>
                   <a
-                    className={`btn ${plan.badge ? 'btn-primary' : 'btn-secondary'} price-cta`}
+                    className="btn btn-primary price-cta"
                     href="#kontakt"
                     data-track={`cta:agency_${plan.track}`}
                   >

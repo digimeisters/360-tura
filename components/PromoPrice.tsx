@@ -3,8 +3,8 @@
 import type { HomeLang, RateAmount } from '../app/lib/homeCopy';
 import {
   PRICE_TIERS,
-  PROMO,
   hdrPrice,
+  packageDiscountPercent,
   packagePrice,
   tourPrice,
   type PackageType
@@ -19,15 +19,28 @@ import { usePromoActive } from './usePromoActive';
  * posle isteka kampanje - do sledećeg deploy-a. Vidi usePromoActive.
  */
 
-const DISCOUNT_LABEL = `−${Math.round(PROMO.discount * 100)}%`;
-
-/** Okrugla nalepnica u uglu kartice, kao u prospektu. */
-export function SaleSticker({ label }: { label?: string }) {
+/**
+ * Okrugla nalepnica u uglu kartice, kao u prospektu. Procenat se računa PO
+ * PAKETU (count + packageType), a ne piše se paušalno "−30%": HDR fotografije
+ * ne idu u popust (vidi hdrPrice), pa paket koji ih sadrži padne manje od
+ * 30% - koliko manje zavisi od odnosa cene ture i HDR-a u datom stepenu.
+ */
+export function SaleSticker({
+  count,
+  packageType = 'basic',
+  label
+}: {
+  count: number;
+  packageType?: PackageType;
+  label?: string;
+}) {
   const active = usePromoActive();
   if (!active) return null;
+  const percent = packageDiscountPercent(count, packageType);
+  const text = `−${percent}%`;
   return (
-    <span className="price-sale" aria-label={label ?? DISCOUNT_LABEL}>
-      {DISCOUNT_LABEL}
+    <span className="price-sale" aria-label={label ?? text}>
+      {text}
     </span>
   );
 }
@@ -58,11 +71,14 @@ export function ItemPrice({
 
   const regular = rateAmount(amount, false);
   const promo = rateAmount(amount, true);
+  // HDR se ne menja pod promocijom - regular === promo, pa nema šta da se
+  // precrta. Precrtana ista cena pored sebe bi samo zbunila.
+  const discounted = active && promo !== regular;
 
   return (
     <p className="rate-price">
-      <b>{eur(active ? promo : regular)}</b>
-      {active && (
+      <b>{eur(discounted ? promo : regular)}</b>
+      {discounted && (
         <s className="price-was" aria-label={lang === 'sr' ? 'redovna cena' : 'regular price'}>
           {eur(regular)}
         </s>

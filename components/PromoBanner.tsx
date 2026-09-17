@@ -22,18 +22,24 @@ function srDays(n: number): string {
 
 const TEXT = {
   sr: {
-    headline: (percent: number, promoPrice: string, regularPrice: string) =>
-      `Uvodna promocija: −${percent}% na sve pakete — tura od ${promoPrice} umesto ${regularPrice}`,
+    eyebrow: 'Uvodna promocija',
+    headline: (percent: number) => `Tura je jeftinija za ${percent}%`,
+    until: (date: string) => `Važi do ${date}.`,
+    // "Paket", ne "tura" - iznos je tura + HDR fotografije zajedno, a HDR
+    // u popust ne ide (vidi hdrPrice u lib/pricing.ts).
+    example: (promoPrice: string, regularPrice: string) =>
+      `Paket (tura + HDR fotografije) već od ${promoPrice}, umesto ${regularPrice}.`,
     terms: `Cene za stan od oko ${REFERENCE_AREA_SQM}m².`,
-    until: (date: string) => `do ${date}`,
-    daysLeft: (n: number) => (n <= 0 ? 'poslednji dan' : `još ${n} ${srDays(n)}`)
+    daysLeft: (n: number) => (n <= 0 ? 'Poslednji dan' : `Još ${n} ${srDays(n)}`)
   },
   en: {
-    headline: (percent: number, promoPrice: string, regularPrice: string) =>
-      `Launch promo: −${percent}% on every package — tours from ${promoPrice} instead of ${regularPrice}`,
+    eyebrow: 'Launch promo',
+    headline: (percent: number) => `The tour is ${percent}% cheaper`,
+    until: (date: string) => `Through ${date}.`,
+    example: (promoPrice: string, regularPrice: string) =>
+      `The package (tour + HDR photos) already from ${promoPrice}, instead of ${regularPrice}.`,
     terms: `Prices for a flat of about ${REFERENCE_AREA_SQM}m².`,
-    until: (date: string) => `until ${date}`,
-    daysLeft: (n: number) => (n <= 0 ? 'last day' : `${n} ${n === 1 ? 'day' : 'days'} left`)
+    daysLeft: (n: number) => (n <= 0 ? 'Last day' : `${n} ${n === 1 ? 'day' : 'days'} left`)
   }
 } as const;
 
@@ -61,10 +67,14 @@ export default function PromoBanner({ lang = 'sr' }: { lang?: HomeLang }) {
 
   return (
     <div className="promo-strip">
-      <b>{t.headline(percent, promoPrice, regularPrice)}</b>
-      <span>
-        {t.until(endLabel)} · {t.terms}
-      </span>
+      <span className="promo-icon" aria-hidden="true">🎉</span>
+      <div className="promo-body">
+        <span className="promo-eyebrow">{t.eyebrow}</span>
+        <b className="promo-headline">{t.headline(percent)}</b>
+        <span className="promo-note">
+          {t.until(endLabel)} {t.example(promoPrice, regularPrice)} {t.terms}
+        </span>
+      </div>
       <span className="promo-days">{t.daysLeft(daysLeft)}</span>
     </div>
   );

@@ -157,7 +157,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
               </div>
               {copy.examples.allTours && (
                 <p className="fine-print" style={{ textAlign: 'center' }}>
-                  <Link className="btn btn-secondary btn-sm" href="/ture" data-track="cta:all_tours">
+                  <Link className="btn btn-primary btn-sm" href="/ture" data-track="cta:all_tours">
                     {copy.examples.allTours}
                   </Link>
                 </p>
@@ -271,7 +271,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
               {copy.pricing.plans.map((plan) => (
                 <div key={plan.track} className={`card price-card${plan.badge ? ' featured' : ''}`}>
                   {plan.badge && <span className="price-badge">{plan.badge}</span>}
-                  <SaleSticker />
+                  <SaleSticker count={plan.count} packageType={plan.packageType} />
                   <span className="price-audience">{plan.audience}</span>
                   <h3>{plan.title}</h3>
                   <PlanPrice
@@ -286,11 +286,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
-                  <a
-                    className={`btn ${plan.badge ? 'btn-primary' : 'btn-secondary'} price-cta`}
-                    href="#kontakt"
-                    data-track={`cta:${plan.track}`}
-                  >
+                  <a className="btn btn-primary price-cta" href="#kontakt" data-track={`cta:${plan.track}`}>
                     {plan.cta}
                   </a>
                 </div>

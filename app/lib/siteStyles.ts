@@ -417,11 +417,23 @@ export const SITE_STYLES = `
   .price-list li::before{content:"✓"; color:var(--accent); font-weight:700; flex:none;}
   .price-cta{width:100%;}
   .fine-print{margin-top:1.4rem; font-size:.85rem; color:var(--ink-faint); text-align:center;}
-  /* Traka uvodne promocije - crta se samo dok kampanja traje (PromoBanner). */
-  .promo-strip{max-width:720px; margin:0 auto 1.4rem; padding:.9rem 1.3rem; border-radius:16px; background:var(--accent); color:var(--on-accent); box-shadow:0 10px 26px -12px var(--accent-glow); display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:.4rem .9rem; text-align:center;}
-  .promo-strip b{font-family:var(--font-display); font-size:1.02rem; font-weight:800;}
-  .promo-strip span{font-size:.86rem; opacity:.92;}
-  .promo-days{flex:none; background:rgba(255,255,255,.2); border-radius:999px; padding:.2rem .7rem; font-size:.76rem; font-weight:700; letter-spacing:.02em;}
+  /* Traka uvodne promocije - crta se samo dok kampanja traje (PromoBanner).
+     Levo maskota (emodži u krugu), u sredini poruka u dva reda, desno
+     odbrojavanje kao izdvojena kapsula - umesto ranijeg teksta nabacanog u
+     jedan red koji se lomio nasumično na uskom ekranu. */
+  .promo-strip{max-width:760px; margin:0 auto 1.6rem; padding:1.1rem 1.4rem; border-radius:18px; background:linear-gradient(135deg, var(--accent), var(--accent-strong)); color:var(--on-accent); box-shadow:0 14px 32px -14px var(--accent-glow); display:flex; align-items:center; gap:1rem;}
+  .promo-icon{flex:none; display:grid; place-items:center; width:2.6rem; height:2.6rem; border-radius:50%; background:rgba(255,255,255,.16); font-size:1.3rem;}
+  .promo-body{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:.15rem;}
+  .promo-eyebrow{font-family:var(--font-display); font-size:.68rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase; opacity:.8;}
+  .promo-headline{font-family:var(--font-display); font-size:1.18rem; font-weight:800; line-height:1.2;}
+  .promo-note{font-size:.84rem; opacity:.92; line-height:1.5;}
+  .promo-days{flex:none; align-self:center; background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.3); border-radius:999px; padding:.4rem .9rem; font-family:var(--font-display); font-size:.78rem; font-weight:700; letter-spacing:.02em; white-space:nowrap;}
+  @media (max-width:640px){
+    .promo-strip{flex-wrap:wrap; text-align:center; justify-content:center; padding:1.1rem 1.2rem;}
+    .promo-icon{display:none;}
+    .promo-body{flex:1 1 100%; align-items:center;}
+    .promo-days{order:3;}
+  }
 
   /* ---------- CENOVNIK ---------- */
   /* Cene i stepeni su u lib/pricing.ts; ovde je samo izgled. */
