@@ -144,7 +144,13 @@ PRAVILA:
    - city: SAMO naziv grada ("Kragujevac"), bez ulice, broja i poštanskog
      broja, tačno onako kako je napisan u adresi. Ako grad nije upisan
      zasebno, izvuci ga iz adrese. Ako ni tamo nije naveden, ostavi prazno.
+   - property_type: spoji tip i strukturu iz upitnika u jedan izraz, na
+     srpskom, po obrascu "Stan - dvosoban (2.0)" ili "Kuća - spratna (Pr+1)".
+     Ako struktura nije navedena, ostavi samo tip.
    - title_i18n: profesionalan, sažet naslov oglasa na svakom ciljnom jeziku.
+     Struktura nekretnine ide u naslov kad je poznata ("Dvosoban stan 58 m²"),
+     na svakom jeziku u njegovom uobičajenom obliku ("2-room apartment",
+     "Zweizimmerwohnung") - nikad srpska oznaka u stranom naslovu.
 
 2. about_text_i18n: kratak opis nekretnine (3-5 rečenica), na svakom ciljnom
    jeziku, sastavljen isključivo od podataka iz upitnika.

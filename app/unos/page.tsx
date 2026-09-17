@@ -21,6 +21,53 @@ const CATEGORY_LABELS: Record<Category, string> = {
   booking: 'Stan na dan'
 };
 
+const PROPERTY_TYPES = ['Stan', 'Kuća', 'Poslovni prostor', 'Vikendica', 'Apartman'] as const;
+
+/**
+ * Struktura zavisi od tipa nekretnine - "dvoiposoban" nema smisla za lokal,
+ * a "HoReCa" nema smisla za stan. Zato se drugi meni puni prema prvom.
+ *
+ * Zapisuje se kao slobodan tekst u odgovore ("Struktura nekretnine"), pa se
+ * lista ovde može proširiti bez ijedne izmene u bazi.
+ */
+const STRUCTURES: Record<string, string[]> = {
+  Stan: [
+    'Garsonjera',
+    'Jednosoban (1.0)',
+    'Jednoiposoban (1.5)',
+    'Dvosoban (2.0)',
+    'Dvoiposoban (2.5)',
+    'Trosoban (3.0)',
+    'Troiposoban (3.5)',
+    'Četvorosoban (4.0)',
+    'Petosoban i veći'
+  ],
+  // Apartman je po strukturi stan - razlikuje se samo namena (stan na dan).
+  Apartman: [
+    'Garsonjera',
+    'Jednosoban (1.0)',
+    'Jednoiposoban (1.5)',
+    'Dvosoban (2.0)',
+    'Dvoiposoban (2.5)',
+    'Trosoban (3.0)',
+    'Troiposoban (3.5)',
+    'Četvorosoban (4.0)',
+    'Petosoban i veći'
+  ],
+  Kuća: [
+    'Prizemna (Pr)',
+    'Spratna (Pr+1)',
+    'Višespratna (Pr+2 i više)',
+    'Dupleks / mezonet u kući'
+  ],
+  'Poslovni prostor': [
+    'Maloprodajni / trgovački',
+    'Uslužni / kancelarijski',
+    'Ugostiteljski (HoReCa)'
+  ],
+  Vikendica: ['Montažna', 'Zidana', 'Renovirana stara / etno kuća']
+};
+
 export default function UnosPage() {
   const [values, setValues] = useState<Record<string, string>>({});
   const [languages, setLanguages] = useState<string[]>(['Srpski']);
@@ -58,6 +105,25 @@ export default function UnosPage() {
   const set = (key: string) => (e: { target: { value: string } }) =>
     setValues((prev) => ({ ...prev, [key]: e.target.value }));
 
+  const propertyType = values['Tip nekretnine'] || 'Stan';
+  const structureOptions = STRUCTURES[propertyType] || [];
+  // Posle promene tipa stara struktura može da ne postoji u novoj listi -
+  // tada se meni vraća na prazno, da agent ne pošalje "HoReCa" za stan.
+  const savedStructure = values['Struktura nekretnine'] || '';
+  const structure = structureOptions.includes(savedStructure) ? savedStructure : '';
+
+  const changePropertyType = (e: { target: { value: string } }) => {
+    const type = e.target.value;
+    setValues((prev) => {
+      const next: Record<string, string> = { ...prev, 'Tip nekretnine': type };
+      const options = STRUCTURES[type] || [];
+      if (!options.includes(next['Struktura nekretnine'] || '')) {
+        next['Struktura nekretnine'] = '';
+      }
+      return next;
+    });
+  };
+
   const toggleLanguage = (lang: string) => {
     setLanguages((prev) =>
       prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]
@@ -77,6 +143,10 @@ export default function UnosPage() {
     try {
       const answers: Record<string, string> = {
         ...values,
+        // Meniji koje agent nije dirao ostaju van `values`, pa se njihove
+        // podrazumevane vrednosti ovde upisuju eksplicitno.
+        'Tip nekretnine': propertyType,
+        'Struktura nekretnine': structure,
         'Kategorija oglasa': CATEGORY_LABELS[category],
         'Jezici za implementaciju': languages.join(', ')
       };
@@ -183,9 +253,28 @@ export default function UnosPage() {
 
         <Section title="Osnovni podaci">
           <Field label="Tip nekretnine" required>
-            <select id="tip" value={values['Tip nekretnine'] || 'Stan'} onChange={set('Tip nekretnine')} style={inputStyle}>
-              {['Stan', 'Kuća', 'Poslovni prostor', 'Vikendica', 'Apartman'].map((t) => (
+            <select id="tip" value={propertyType} onChange={changePropertyType} style={inputStyle}>
+              {PROPERTY_TYPES.map((t) => (
                 <option key={t}>{t}</option>
+              ))}
+            </select>
+          </Field>
+
+          <Field
+            label="Struktura nekretnine"
+            required
+            hint="Ponuđene strukture se menjaju prema izabranom tipu nekretnine."
+          >
+            <select
+              id="struktura"
+              value={structure}
+              onChange={set('Struktura nekretnine')}
+              required
+              style={inputStyle}
+            >
+              <option value="">Izaberite strukturu</option>
+              {structureOptions.map((s) => (
+                <option key={s}>{s}</option>
               ))}
             </select>
           </Field>
