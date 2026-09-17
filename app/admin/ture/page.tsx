@@ -6,7 +6,14 @@ import { FORM, FormThemeStyle, formBtnStyle } from '../../lib/formTheme';
 import { Logo } from '../../tour/[slug]/Logo';
 import { slugify } from '../../lib/slug';
 import { SITE_URL } from '../../lib/site';
-import { STRUCTURE_ORDER, HEATING_OPTIONS, YES_NO, neighbourhoodsFor } from '../../lib/propertyTaxonomy';
+import {
+  STRUCTURE_ORDER,
+  HEATING_OPTIONS,
+  YES_NO,
+  BUILD_STATUS_OPTIONS,
+  FINISH_STATUS_OPTIONS,
+  neighbourhoodsFor
+} from '../../lib/propertyTaxonomy';
 
 type TourRow = {
   slug: string;
@@ -20,11 +27,13 @@ type TourRow = {
   structure: string | null;
   area_sqm: number | string | null;
   price: number | string | null;
-  /** Tabela osnovnih podataka u Info modalu (migracija 014); zatečene ture su prazne. */
+  /** Tabela osnovnih podataka u Info modalu (migracije 014/015); zatečene ture su prazne. */
   floor: string | null;
   has_elevator: string | null;
   has_basement: string | null;
   heating: string | null;
+  build_status: string | null;
+  finish_status: string | null;
   category: string | null;
   property_type: string | null;
   agent_name: string | null;
@@ -59,6 +68,8 @@ type FormState = {
   has_elevator: string;
   has_basement: string;
   heating: string;
+  build_status: string;
+  finish_status: string;
   property_type: string;
   category: string;
   agent_name: string;
@@ -79,6 +90,8 @@ const EMPTY_FORM: FormState = {
   has_elevator: '',
   has_basement: '',
   heating: '',
+  build_status: '',
+  finish_status: '',
   property_type: '',
   category: 'rent',
   agent_name: '',
@@ -327,6 +340,8 @@ export default function ToursAdminPage() {
       has_elevator: tour.has_elevator || '',
       has_basement: tour.has_basement || '',
       heating: tour.heating || '',
+      build_status: tour.build_status || '',
+      finish_status: tour.finish_status || '',
       property_type: tour.property_type || '',
       category: tour.category || 'rent',
       agent_name: tour.agent_name || '',
@@ -620,6 +635,35 @@ export default function ToursAdminPage() {
               >
                 <option value="">— nije određeno —</option>
                 {YES_NO.map((v) => (
+                  <option key={v}>{v}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          <div style={twoCol}>
+            <Field label="Status gradnje">
+              <select
+                id="tour-build-status"
+                value={form.build_status}
+                onChange={(e) => setForm({ ...form, build_status: e.target.value })}
+                style={inputStyle}
+              >
+                <option value="">— nije određeno —</option>
+                {BUILD_STATUS_OPTIONS.map((v) => (
+                  <option key={v}>{v}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Stanje" hint="Stanje enterijera, nezavisno od statusa gradnje.">
+              <select
+                id="tour-finish-status"
+                value={form.finish_status}
+                onChange={(e) => setForm({ ...form, finish_status: e.target.value })}
+                style={inputStyle}
+              >
+                <option value="">— nije određeno —</option>
+                {FINISH_STATUS_OPTIONS.map((v) => (
                   <option key={v}>{v}</option>
                 ))}
               </select>

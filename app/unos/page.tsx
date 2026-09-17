@@ -9,6 +9,8 @@ import {
   OTHER_NEIGHBOURHOOD,
   HEATING_OPTIONS,
   YES_NO,
+  BUILD_STATUS_OPTIONS,
+  FINISH_STATUS_OPTIONS,
   neighbourhoodsFor
 } from '../lib/propertyTaxonomy';
 
@@ -58,7 +60,6 @@ const CATEGORY_FIELDS: Record<Category, string[]> = {
     'Prodajna cena',
     'Vlasništvo',
     'Uknjiženost',
-    'Stanje objekta',
     'Mogućnost kupovine na kredit',
     'Porezi i provizija',
     'Pripadajući prostor'
@@ -94,7 +95,6 @@ const SELECT_DEFAULTS: Record<string, string> = {
   'Kućni ljubimci': 'Po dogovoru',
   'Vlasništvo': '1/1',
   'Uknjiženost': 'Da',
-  'Stanje objekta': 'Novogradnja',
   'Mogućnost kupovine na kredit': 'Da',
   'Porezi i provizija': 'Uključeni u cenu'
 };
@@ -465,6 +465,40 @@ export default function UnosPage() {
             </select>
           </Field>
 
+          <Field label="Status gradnje" required hint="Bira se ručno, bez podrazumevanog odgovora.">
+            <select
+              id="status-gradnje"
+              value={values['Status gradnje'] || ''}
+              onChange={set('Status gradnje')}
+              required
+              style={inputStyle}
+            >
+              <option value="">Izaberite</option>
+              {BUILD_STATUS_OPTIONS.map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+          </Field>
+
+          <Field
+            label="Stanje"
+            required
+            hint="Stanje enterijera, nezavisno od statusa gradnje — i novogradnja ume da bude u sivoj fazi."
+          >
+            <select
+              id="stanje-enterijera"
+              value={values['Stanje'] || ''}
+              onChange={set('Stanje')}
+              required
+              style={inputStyle}
+            >
+              <option value="">Izaberite</option>
+              {FINISH_STATUS_OPTIONS.map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+          </Field>
+
           <Field label="Google Maps embed link" hint="Nije obavezno — mapa se sama postavlja po adresi. Popunite samo ako imate tačan embed link.">
             <input
               id="mapa"
@@ -694,13 +728,8 @@ export default function UnosPage() {
                 ))}
               </select>
             </Field>
-            <Field label="Stanje objekta" required>
-              <select id="stanje" value={pick('Stanje objekta')} onChange={set('Stanje objekta')} style={inputStyle}>
-                {['Novogradnja', 'Starogradnja', 'Renoviran', 'Siva gradnja'].map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
-            </Field>
+            {/* Status gradnje i stanje su sad u "Osnovni podaci" - relevantni
+                su i za izdavanje i za stan na dan, ne samo za prodaju. */}
             <Field label="Kupovina na kredit" required>
               <select id="kredit" value={pick('Mogućnost kupovine na kredit')} onChange={set('Mogućnost kupovine na kredit')} style={inputStyle}>
                 {['Da', 'Ne'].map((t) => (

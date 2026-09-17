@@ -1,6 +1,12 @@
 import { Language, Waypoint, EstablishData, Tour } from './types';
 import { THEME } from './theme';
-import { FACT_LABELS, HEATING_LABELS } from './translations';
+import {
+  FACT_LABELS,
+  HEATING_LABELS,
+  STRUCTURE_LABELS,
+  BUILD_STATUS_LABELS,
+  FINISH_STATUS_LABELS
+} from './translations';
 
 export const normalizeYaw = (yaw: number): number => {
   let res = (yaw + 180) % 360;
@@ -101,12 +107,13 @@ function asNumber(value: number | string | null | undefined): number | null {
 }
 
 /**
- * Tabela osnovnih podataka u Info modalu (migracije 012/013/014) - naselje,
- * kvadratura, sprat, lift, podrum, grejanje. Nijedan red ovde ne prolazi
- * kroz AI: vrednost je ili slobodan tekst koji je agent otkucao (naselje,
- * sprat), ili broj (kvadratura), ili prevod jedne zatvorene vrednosti
- * (lift/podrum da-ne, grejanje sa liste) - prevodi ga FACT_LABELS/
- * HEATING_LABELS, statički rečnik u aplikaciji.
+ * Tabela osnovnih podataka u Info modalu (migracije 012/013/014/015) -
+ * naselje, kvadratura, struktura, sprat, lift, podrum, grejanje, status
+ * gradnje, stanje. Nijedan red ovde ne prolazi kroz AI: vrednost je ili
+ * slobodan tekst koji je agent otkucao (naselje, sprat), ili broj
+ * (kvadratura), ili prevod jedne zatvorene vrednosti (lift/podrum da-ne,
+ * struktura/grejanje/status gradnje/stanje sa liste) - prevodi ga
+ * FACT_LABELS i odgovarajući *_LABELS rečnik, statički u aplikaciji.
  *
  * Prazno polje se prosto ne pojavljuje kao red - bolje nego prazan ili
  * izmišljen podatak.
@@ -116,17 +123,19 @@ export function buildFactList(tour: Tour | null | undefined, lang: Language): Fa
   const t = FACT_LABELS[lang] ?? FACT_LABELS.sr;
   const yesNo = (v: string | null | undefined) => (v === 'Da' ? t.yes : v === 'Ne' ? t.no : v || '');
   const area = asNumber(tour.area_sqm);
+  const fromList = (dict: Record<string, Record<Language, string>>, value: string | null | undefined) =>
+    value ? (dict[value]?.[lang] ?? value) : '';
 
   const rows: FactRow[] = [
     { label: t.neighbourhood, value: tour.district?.trim() || '' },
     { label: t.area, value: area !== null ? `${area} m²` : '' },
+    { label: t.structure, value: fromList(STRUCTURE_LABELS, tour.structure) },
     { label: t.floor, value: tour.floor?.trim() || '' },
     { label: t.elevator, value: yesNo(tour.has_elevator) },
     { label: t.basement, value: yesNo(tour.has_basement) },
-    {
-      label: t.heating,
-      value: tour.heating ? (HEATING_LABELS[tour.heating]?.[lang] ?? tour.heating) : ''
-    }
+    { label: t.heating, value: fromList(HEATING_LABELS, tour.heating) },
+    { label: t.buildStatus, value: fromList(BUILD_STATUS_LABELS, tour.build_status) },
+    { label: t.finishStatus, value: fromList(FINISH_STATUS_LABELS, tour.finish_status) }
   ];
 
   return rows.filter((row) => row.value !== '');

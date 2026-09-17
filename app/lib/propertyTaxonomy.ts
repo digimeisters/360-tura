@@ -127,3 +127,16 @@ export const HEATING_OPTIONS = [
  * traži da agent stvarno klikne odgovor.
  */
 export const YES_NO = ['Da', 'Ne'] as const;
+
+/**
+ * Status gradnje - kad je zidano, ne u kakvom je stanju enterijer (to je
+ * BUILD_STATUS_OPTIONS ispod). Isto pravilo kao Lift/Podrum: bez
+ * podrazumevane vrednosti, agent bira sam.
+ */
+export const BUILD_STATUS_OPTIONS = ['Novogradnja', 'Starogradnja', 'Starogradnja - renovirano'];
+
+/**
+ * Stanje enterijera - nezavisno od statusa gradnje (novogradnja ume da bude
+ * u sivoj fazi, starogradnja ume da bude potpuno nameštena).
+ */
+export const FINISH_STATUS_OPTIONS = ['Siva faza', 'Polunamešteno', 'Namešteno'];

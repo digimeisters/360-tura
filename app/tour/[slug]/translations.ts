@@ -111,10 +111,13 @@ export const FACT_LABELS: Record<
   {
     neighbourhood: string;
     area: string;
+    structure: string;
     floor: string;
     elevator: string;
     basement: string;
     heating: string;
+    buildStatus: string;
+    finishStatus: string;
     yes: string;
     no: string;
   }
@@ -122,40 +125,52 @@ export const FACT_LABELS: Record<
   sr: {
     neighbourhood: 'Naselje',
     area: 'Kvadratura',
+    structure: 'Struktura',
     floor: 'Sprat',
     elevator: 'Lift',
     basement: 'Podrum',
     heating: 'Grejanje',
+    buildStatus: 'Status gradnje',
+    finishStatus: 'Stanje',
     yes: 'Da',
     no: 'Ne'
   },
   en: {
     neighbourhood: 'Neighbourhood',
     area: 'Floor area',
+    structure: 'Structure',
     floor: 'Floor',
     elevator: 'Elevator',
     basement: 'Basement',
     heating: 'Heating',
+    buildStatus: 'Build status',
+    finishStatus: 'Finish',
     yes: 'Yes',
     no: 'No'
   },
   de: {
     neighbourhood: 'Viertel',
     area: 'Wohnfläche',
+    structure: 'Struktur',
     floor: 'Etage',
     elevator: 'Aufzug',
     basement: 'Keller',
     heating: 'Heizung',
+    buildStatus: 'Baustatus',
+    finishStatus: 'Ausbauzustand',
     yes: 'Ja',
     no: 'Nein'
   },
   ru: {
     neighbourhood: 'Район',
     area: 'Площадь',
+    structure: 'Структура',
     floor: 'Этаж',
     elevator: 'Лифт',
     basement: 'Подвал',
     heating: 'Отопление',
+    buildStatus: 'Статус строительства',
+    finishStatus: 'Отделка',
     yes: 'Да',
     no: 'Нет'
   }
@@ -183,6 +198,137 @@ export const HEATING_LABELS: Record<string, Record<Language, string>> = {
     de: 'Fußbodenheizung',
     ru: 'Тёплый пол'
   }
+};
+
+/**
+ * Struktura sa zatvorene liste (STRUCTURES u app/lib/propertyTaxonomy.ts) -
+ * ista lista za sve tipove nekretnine, pa je ovde jedan rečnik. Ključ je
+ * TAČNO ono što agent bira u upitniku.
+ */
+export const STRUCTURE_LABELS: Record<string, Record<Language, string>> = {
+  Garsonjera: { sr: 'Garsonjera', en: 'Studio', de: 'Studio', ru: 'Студия' },
+  'Jednosoban (1.0)': {
+    sr: 'Jednosoban (1.0)',
+    en: '1-room apartment',
+    de: '1-Zimmer-Wohnung',
+    ru: '1-комнатная квартира'
+  },
+  'Jednoiposoban (1.5)': {
+    sr: 'Jednoiposoban (1.5)',
+    en: '1.5-room apartment',
+    de: '1,5-Zimmer-Wohnung',
+    ru: '1,5-комнатная квартира'
+  },
+  'Dvosoban (2.0)': {
+    sr: 'Dvosoban (2.0)',
+    en: '2-room apartment',
+    de: '2-Zimmer-Wohnung',
+    ru: '2-комнатная квартира'
+  },
+  'Dvoiposoban (2.5)': {
+    sr: 'Dvoiposoban (2.5)',
+    en: '2.5-room apartment',
+    de: '2,5-Zimmer-Wohnung',
+    ru: '2,5-комнатная квартира'
+  },
+  'Trosoban (3.0)': {
+    sr: 'Trosoban (3.0)',
+    en: '3-room apartment',
+    de: '3-Zimmer-Wohnung',
+    ru: '3-комнатная квартира'
+  },
+  'Troiposoban (3.5)': {
+    sr: 'Troiposoban (3.5)',
+    en: '3.5-room apartment',
+    de: '3,5-Zimmer-Wohnung',
+    ru: '3,5-комнатная квартира'
+  },
+  'Četvorosoban (4.0)': {
+    sr: 'Četvorosoban (4.0)',
+    en: '4-room apartment',
+    de: '4-Zimmer-Wohnung',
+    ru: '4-комнатная квартира'
+  },
+  'Petosoban i veći': {
+    sr: 'Petosoban i veći',
+    en: '5+ rooms',
+    de: '5 Zimmer und mehr',
+    ru: '5+ комнат'
+  },
+  'Prizemna (Pr)': {
+    sr: 'Prizemna (Pr)',
+    en: 'Single-storey (ground floor)',
+    de: 'Eingeschossig (Erdgeschoss)',
+    ru: 'Одноэтажный (первый этаж)'
+  },
+  'Spratna (Pr+1)': {
+    sr: 'Spratna (Pr+1)',
+    en: 'Two-storey (ground + 1)',
+    de: 'Zweigeschossig (EG+1)',
+    ru: 'Двухэтажный'
+  },
+  'Višespratna (Pr+2 i više)': {
+    sr: 'Višespratna (Pr+2 i više)',
+    en: 'Multi-storey (ground + 2 or more)',
+    de: 'Mehrgeschossig (EG+2 oder mehr)',
+    ru: 'Многоэтажный'
+  },
+  'Dupleks / mezonet u kući': {
+    sr: 'Dupleks / mezonet u kući',
+    en: 'Duplex / mezzanine in the house',
+    de: 'Duplex / Maisonette im Haus',
+    ru: 'Дуплекс / мезонин в доме'
+  },
+  'Maloprodajni / trgovački': {
+    sr: 'Maloprodajni / trgovački',
+    en: 'Retail / shop',
+    de: 'Einzelhandel / Ladengeschäft',
+    ru: 'Розничная торговля / магазин'
+  },
+  'Uslužni / kancelarijski': {
+    sr: 'Uslužni / kancelarijski',
+    en: 'Service / office',
+    de: 'Dienstleistung / Büro',
+    ru: 'Услуги / офис'
+  },
+  'Ugostiteljski (HoReCa)': {
+    sr: 'Ugostiteljski (HoReCa)',
+    en: 'Hospitality (HoReCa)',
+    de: 'Gastronomie (HoReCa)',
+    ru: 'Общепит (HoReCa)'
+  },
+  Montažna: { sr: 'Montažna', en: 'Prefab', de: 'Fertighaus', ru: 'Сборный дом' },
+  Zidana: { sr: 'Zidana', en: 'Brick-built', de: 'Massivbau', ru: 'Кирпичный дом' },
+  'Renovirana stara / etno kuća': {
+    sr: 'Renovirana stara / etno kuća',
+    en: 'Renovated old / ethno house',
+    de: 'Renoviertes altes / Ethno-Haus',
+    ru: 'Отремонтированный старый / этно-дом'
+  }
+};
+
+/** Status gradnje (BUILD_STATUS_OPTIONS), prevedeno. */
+export const BUILD_STATUS_LABELS: Record<string, Record<Language, string>> = {
+  Novogradnja: { sr: 'Novogradnja', en: 'New build', de: 'Neubau', ru: 'Новостройка' },
+  Starogradnja: { sr: 'Starogradnja', en: 'Old build', de: 'Altbau', ru: 'Вторичное жильё' },
+  'Starogradnja - renovirano': {
+    sr: 'Starogradnja - renovirano',
+    en: 'Old build - renovated',
+    de: 'Altbau - renoviert',
+    ru: 'Вторичное жильё - отремонтировано'
+  }
+};
+
+/** Stanje enterijera (FINISH_STATUS_OPTIONS), prevedeno. */
+export const FINISH_STATUS_LABELS: Record<string, Record<Language, string>> = {
+  'Siva faza': { sr: 'Siva faza', en: 'Shell finish', de: 'Rohbau', ru: 'Черновая отделка' },
+  Polunamešteno: {
+    sr: 'Polunamešteno',
+    en: 'Partly furnished',
+    de: 'Teilmöbliert',
+    ru: 'Частично меблированная'
+  },
+  Namešteno: { sr: 'Namešteno', en: 'Furnished', de: 'Möbliert', ru: 'Меблированная' }
 };
 
 export const translations: Record<Language, Record<string, string>> = {

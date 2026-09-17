@@ -77,7 +77,7 @@ const FAQ_CONTEXT: Record<string, { topic: string; fields: string[] }[]> = {
   ],
   sale: [
     { topic: 'prodajna cena i mogućnost kupovine na kredit', fields: ['Prodajna cena', 'Mogućnost kupovine na kredit'] },
-    { topic: 'stanje objekta (novogradnja, starogradnja, renoviran)', fields: ['Stanje objekta'] },
+    { topic: 'status gradnje i stanje enterijera', fields: ['Status gradnje', 'Stanje'] },
     { topic: 'uknjiženost i vlasništvo (1/1, suvlasništvo, pravno lice)', fields: ['Uknjiženost', 'Vlasništvo'] },
     { topic: 'da li su porezi i agencijska provizija uključeni u cenu', fields: ['Porezi i provizija'] },
     { topic: 'šta sve ide uz stan (podrum, terasa, garažno mesto)', fields: ['Pripadajući prostor'] }
@@ -169,8 +169,9 @@ PRAVILA:
 2. about_text_i18n: NAJVIŠE 2 kratke rečenice, na svakom ciljnom jeziku,
    isključivo iz polja "Kratak opis nekretnine". Ako to polje nije popunjeno,
    vrati prazan string - ne izmišljaj rečenicu ni iz čega drugog. Naselje,
-   kvadratura, sprat, lift, podrum i grejanje NE idu ovde: posetilac ih već
-   vidi kao zasebnu tabelu u turi, pa bi ponavljanje bilo suvišno.
+   kvadratura, sprat, lift, podrum, grejanje, struktura, status gradnje i
+   stanje NE idu ovde: posetilac ih već vidi kao zasebnu tabelu u turi, pa
+   bi ponavljanje bilo suvišno.
 
 3. FAQ odgovori - TELEGRAFSKI kratko, kao SMS, ne kao rečenica u pasusu:
    brojevi i ključne reči, bez uvodnih fraza ("Zakupnina iznosi..."). Jedan

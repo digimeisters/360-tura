@@ -71,10 +71,13 @@ export type Tour = {
    */
   district?: string | null;
   area_sqm?: number | string | null;
+  structure?: string | null;
   floor?: string | null;
   has_elevator?: string | null;
   has_basement?: string | null;
   heating?: string | null;
+  build_status?: string | null;
+  finish_status?: string | null;
   faq_1_i18n?: Record<string, string> | string;
   faq_2_i18n?: Record<string, string> | string;
   faq_3_i18n?: Record<string, string> | string;
