@@ -1712,6 +1712,9 @@ export default function TourPage() {
         .pnlm-load-box {
           display: none !important;
         }
+        @media (min-width: 1024px) {
+          .tour-ui-scale { zoom: 1.5; }
+        }
       `}</style>
 
       {!tourStarted && (
@@ -1748,7 +1751,7 @@ export default function TourPage() {
 
       {tourStarted && (
         <>
-          <div style={{
+          <div className="tour-ui-scale" style={{
             position: 'absolute',
             // Maksimalno uz vrh, ali ispod notch-a/zaobljene ivice
             // (env(safe-area-inset-*), uključeno preko viewportFit:'cover').

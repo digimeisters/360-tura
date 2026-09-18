@@ -58,6 +58,7 @@ export function WelcomeScreen({
 }) {
   return (
     <div
+      className="tour-ui-scale"
       style={{
         position: 'absolute',
         inset: 0,

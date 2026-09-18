@@ -39,6 +39,7 @@ export function TourMenuBar({
       {showShare && (
       <button
         onClick={onShare}
+        className="tour-ui-scale"
         style={{
           ...GLASS,
           position: 'absolute',
@@ -68,7 +69,7 @@ export function TourMenuBar({
       </button>
       )}
 
-      <div style={{
+      <div className="tour-ui-scale" style={{
         ...GLASS,
         position: 'absolute',
         bottom: SCREEN_BOTTOM,

@@ -169,6 +169,7 @@ export function StatusNotice({
   return (
     <div
       role="status"
+      className="tour-ui-scale"
       style={{
         position: 'absolute',
         left: '50%',
@@ -211,7 +212,7 @@ export function InfoCard({
   closeLabel: string;
 }) {
   return (
-    <div style={{
+    <div className="tour-ui-scale" style={{
       position: 'absolute',
       bottom: SCREEN_BOTTOM,
       left: '50%',
