@@ -1714,7 +1714,12 @@ export default function TourPage() {
         }
         @media (min-width: 1024px) {
           .tour-ui-scale { zoom: 1.275; }
-          .custom-nav-hotspot, .custom-info-hotspot { zoom: 1.275; }
+          /* Zoom ide na unutrašnji omotač (.k360-hotspot-scale), NE na
+             .custom-nav-hotspot/.custom-info-hotspot - to je isti div koji
+             Pannellum svaki kadar pozicionira preko transform:translate(),
+             pa bi zoom na njemu skalirao i tu vrednost i tačka bi "plutala"
+             dok se gleda okolo (vidi komentar u theme.ts). */
+          .k360-hotspot-scale { zoom: 1.275; }
         }
         /* Blago pulsiranje tačaka u panorami, da posetilac odmah primeti šta
            je klikabilno - plavo za navigaciju, žuto za info tačke. Ide preko

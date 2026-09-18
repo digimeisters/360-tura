@@ -78,37 +78,54 @@ export const overlayNavButtonStyle: React.CSSProperties = {
 // tanak beli okvir, tačka u boji nosi razliku (plava = navigacija/soba,
 // žuta = info), isti tretman kao donji toolbar. Radi direktno sa raw DOM
 // stilom jer Pannellum-ov createTooltipFunc dobija HTMLDivElement, ne JSX.
+//
+// Ceo vizuelni izgled (i CSS zoom za uvećanje na računaru) stoji na
+// UNUTRAŠNJEM omotaču, ne na `hotSpotDiv` samom - Pannellum svaki kadar
+// upisuje position/transform (translate po pitch/yaw) direktno na
+// `hotSpotDiv` i računa centriranje iz njegove offsetWidth/offsetHeight;
+// `zoom` na tom istom elementu skalira i taj inline transform (translate u
+// pikselima), pa tačka "pluta" dok se gleda okolo. Spoljni div ostaje gola
+// pozicionirajuća ljuska (auto širina/visina - skuplja se oko unutrašnjeg).
 export function applyGlassHotspotStyle(hotSpotDiv: HTMLDivElement, isNav: boolean, label: string) {
+  hotSpotDiv.style.background = 'none';
   hotSpotDiv.style.backgroundImage = 'none';
-  hotSpotDiv.style.backgroundColor = 'rgba(15, 23, 42, 0.32)';
-  // @ts-ignore - backdropFilter nije u starijim CSSProperties tipovima za sve DOM lib verzije
-  hotSpotDiv.style.backdropFilter = 'blur(6px)';
-  // @ts-ignore
-  hotSpotDiv.style.webkitBackdropFilter = 'blur(6px)';
-  hotSpotDiv.style.border = '1px solid rgba(255, 255, 255, 0.7)';
-  hotSpotDiv.style.borderRadius = isNav ? '50px' : '50%';
-  hotSpotDiv.style.color = '#fff';
-  hotSpotDiv.style.textShadow = '0 1px 2px rgba(0, 0, 0, 0.45)';
-  hotSpotDiv.style.display = 'flex';
-  hotSpotDiv.style.alignItems = 'center';
-  hotSpotDiv.style.justifyContent = 'center';
-  hotSpotDiv.style.gap = '4px';
+  hotSpotDiv.style.width = 'auto';
+  hotSpotDiv.style.height = 'auto';
   hotSpotDiv.style.cursor = 'pointer';
-  hotSpotDiv.style.padding = isNav ? '4px 9px' : '0.5px';
-  hotSpotDiv.style.width = isNav ? 'auto' : '22px';
-  hotSpotDiv.style.height = isNav ? 'auto' : '22px';
-  hotSpotDiv.style.fontWeight = '700';
-  hotSpotDiv.style.fontSize = isNav ? '10.5px' : '12px';
-  hotSpotDiv.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
-  hotSpotDiv.style.whiteSpace = 'nowrap';
+
+  const inner = document.createElement('div');
+  inner.className = 'k360-hotspot-scale';
+  inner.style.backgroundColor = 'rgba(15, 23, 42, 0.32)';
+  // @ts-ignore - backdropFilter nije u starijim CSSProperties tipovima za sve DOM lib verzije
+  inner.style.backdropFilter = 'blur(6px)';
+  // @ts-ignore
+  inner.style.webkitBackdropFilter = 'blur(6px)';
+  inner.style.border = '1px solid rgba(255, 255, 255, 0.7)';
+  inner.style.borderRadius = isNav ? '50px' : '50%';
+  inner.style.color = '#fff';
+  inner.style.textShadow = '0 1px 2px rgba(0, 0, 0, 0.45)';
+  inner.style.display = 'flex';
+  inner.style.alignItems = 'center';
+  inner.style.justifyContent = 'center';
+  inner.style.gap = '4px';
+  inner.style.padding = isNav ? '4px 9px' : '0.5px';
+  inner.style.width = isNav ? 'auto' : '22px';
+  inner.style.height = isNav ? 'auto' : '22px';
+  inner.style.fontWeight = '700';
+  inner.style.fontSize = isNav ? '10.5px' : '12px';
+  inner.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
+  inner.style.whiteSpace = 'nowrap';
 
   if (isNav) {
     const dot = '<span style="width:5px;height:5px;border-radius:50%;background:#5B92D6;box-shadow:0 0 0 2px rgba(255,255,255,0.25);flex:none;"></span>';
-    hotSpotDiv.innerHTML = `${dot}<span>${label}</span>`;
+    inner.innerHTML = `${dot}<span>${label}</span>`;
   } else {
-    hotSpotDiv.style.color = '#fde68a';
-    hotSpotDiv.innerHTML = 'ℹ';
+    inner.style.color = '#fde68a';
+    inner.innerHTML = 'ℹ';
   }
+
+  hotSpotDiv.innerHTML = '';
+  hotSpotDiv.appendChild(inner);
 }
 
 export const btnStyle: React.CSSProperties = {
