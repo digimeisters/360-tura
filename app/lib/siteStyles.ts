@@ -176,6 +176,14 @@ export const SITE_STYLES = `
   @media (hover:hover){ .navlinks a[aria-current="true"]:hover{background:var(--accent); color:var(--on-accent);} }
   /* Druga jezička verzija: uokviren čip, da se ne čita kao još jedna sekcija. */
   .nav-lang a{border:1px solid var(--line-strong); color:var(--ink); font-weight:700; letter-spacing:.04em; margin-left:.35rem;}
+  /* Strelica na pilulama koje vode na DRUGU stranu (Link, href bez "#") - da
+     se razlikuju od onih koje samo skroluju ovu stranu. Čisto po atributu
+     href, pa ne traži izmenu nijedne strane koja SiteNav koristi (početna,
+     /ture, /za-agencije...) - nova pilula ka novoj strani ovo dobija sama.
+     EN je izuzet: već ima sopstveni, uočljiviji oblik (obrub). */
+  .navlinks li:not(.nav-lang) > a:not([href^="#"])::after{
+    content:"↗"; margin-left:.32em; font-size:.82em; opacity:.55; position:relative; top:-.05em;
+  }
 
   section{padding-block:clamp(3rem,7vw,5.2rem); scroll-margin-top:76px;}
 

@@ -131,7 +131,6 @@ export type HomeCopy = {
     points: string[];
     cta: string;
   };
-  integration: { eyebrow: string; title: string; desc: string };
   faq: { eyebrow: string; title: string; note: string };
   contact: {
     eyebrow: string;
@@ -354,11 +353,6 @@ const sr: HomeCopy = {
     points: ['Upitnik — sami ili zajedno sa nama', 'Kontakt agenta u svakoj turi', 'Praćenje poseta po oglasu'],
     cta: 'Pogledajte stranu za agencije →'
   },
-  integration: {
-    eyebrow: 'Integracija',
-    title: 'Ugradnja na vaš sajt u jednom koraku',
-    desc: 'Dobijate gotov kod za ugradnju. Ubacite ga na stranicu nekretnine i tura odmah radi u okviru vašeg sajta — bez programera.'
-  },
   faq: {
     eyebrow: 'Česta pitanja',
     title: 'Pre nego što zakažete',
@@ -569,11 +563,6 @@ const en: HomeCopy = {
       }
     ],
     fine: '* Prices are averages, for a flat of about 50m². For smaller and larger flats we quote by the number of rooms — tell us the size and room count and we will send an exact quote. Cities outside Kragujevac are arranged separately.'
-  },
-  integration: {
-    eyebrow: 'Integration',
-    title: 'Embed it on your website in one step',
-    desc: 'We deliver a ready-made iframe code. Paste it into the property page and the tour is instantly available to visitors — no extra development.'
   },
   faq: {
     eyebrow: 'FAQ',

@@ -9,7 +9,7 @@ import PromoBanner from '../components/PromoBanner';
 import { ItemPrice, PlanPrice, SaleSticker } from '../components/PromoPrice';
 import NavScrollSpy from '../components/NavScrollSpy';
 import { getShowcaseTours, pickHeroTour } from './lib/showcaseTours';
-import { SITE_NAME, SITE_URL, CONTACT, CONTACT_LINKS, whatsappLink } from './lib/site';
+import { SITE_NAME, CONTACT, CONTACT_LINKS, whatsappLink } from './lib/site';
 import { HOME_COPY, type HomeLang } from './lib/homeCopy';
 import { HOME_FAQ } from './lib/homeFaq';
 import { homeJsonLd, serializeJsonLd } from './lib/structuredData';
@@ -64,7 +64,6 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
 
   const [tours, openCount] = await Promise.all([getShowcaseTours(lang), getPublicOpenCount()]);
   const heroTour = pickHeroTour(tours, lang);
-  const exampleSlug = heroTour?.slug ?? tours[0]?.slug ?? 'naziv-ture';
   const address = [CONTACT.street, CONTACT.city, contact.country].filter(Boolean).join(', ');
 
   return (
@@ -340,26 +339,9 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
           </section>
         )}
 
-        <section className="integration">
-          <div className="wrap">
-            <div>
-              <span className="eyebrow">{copy.integration.eyebrow}</span>
-              <h2>{copy.integration.title}</h2>
-              <p className="desc">{copy.integration.desc}</p>
-            </div>
-            <div className="code-block">
-              &lt;<span className="tag">iframe</span>
-              <br />
-              &nbsp;&nbsp;<span className="attr">src</span>=<span className="str">&quot;{SITE_URL}/tour/{exampleSlug}&quot;</span>
-              <br />
-              &nbsp;&nbsp;<span className="attr">width</span>=<span className="str">&quot;100%&quot;</span> <span className="attr">height</span>=<span className="str">&quot;600&quot;</span>
-              <br />
-              &nbsp;&nbsp;<span className="attr">frameborder</span>=<span className="str">&quot;0&quot;</span> <span className="attr">allowfullscreen</span>&gt;
-              <br />
-              &lt;/<span className="tag">iframe</span>&gt;
-            </div>
-          </div>
-        </section>
+        {/* Ugradnja na sajt (iframe kod) je preseljena na /za-agencije -
+            isključivo agencijska tema, a ovde je stajala baš posle putokaza
+            ka toj strani, pred vlasnikom jednog stana kome ne znači ništa. */}
 
         <section className="band" id="pitanja">
           <div className="wrap">

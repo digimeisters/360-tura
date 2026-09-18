@@ -13,6 +13,7 @@ import { HOME_COPY } from '../lib/homeCopy';
 import { CONTACT, CONTACT_LINKS, SITE_NAME, SITE_URL, whatsappLink } from '../lib/site';
 import { serializeJsonLd } from '../lib/structuredData';
 import { CONTACT_PACKAGES } from '../lib/pricing';
+import { getShowcaseTours } from '../lib/showcaseTours';
 
 /**
  * Prodajna strana za agencije (/za-agencije). Deli CSS i komponente sa
@@ -72,9 +73,14 @@ function jsonLd() {
   };
 }
 
-export default function AgencyPage() {
+export default async function AgencyPage() {
   const { nav, hero, contact } = copy;
   const address = [CONTACT.street, CONTACT.city].filter(Boolean).join(', ');
+
+  // Samo za primer u kodu za ugradnju (§integration) - prava, otvorena tura,
+  // da agencija vidi stvaran link, ne izmišljen.
+  const tours = await getShowcaseTours('sr');
+  const exampleSlug = tours[0]?.slug ?? 'naziv-ture';
 
   return (
     <div lang="sr" style={{ display: 'contents' }}>
@@ -172,6 +178,27 @@ export default function AgencyPage() {
             </div>
             <p className="fine-print">{copy.pricing.fine}</p>
             <PriceCalculator lang="sr" />
+          </div>
+        </section>
+
+        <section className="integration">
+          <div className="wrap">
+            <div>
+              <span className="eyebrow">{copy.integration.eyebrow}</span>
+              <h2>{copy.integration.title}</h2>
+              <p className="desc">{copy.integration.desc}</p>
+            </div>
+            <div className="code-block">
+              &lt;<span className="tag">iframe</span>
+              <br />
+              &nbsp;&nbsp;<span className="attr">src</span>=<span className="str">&quot;{SITE_URL}/tour/{exampleSlug}&quot;</span>
+              <br />
+              &nbsp;&nbsp;<span className="attr">width</span>=<span className="str">&quot;100%&quot;</span> <span className="attr">height</span>=<span className="str">&quot;600&quot;</span>
+              <br />
+              &nbsp;&nbsp;<span className="attr">frameborder</span>=<span className="str">&quot;0&quot;</span> <span className="attr">allowfullscreen</span>&gt;
+              <br />
+              &lt;/<span className="tag">iframe</span>&gt;
+            </div>
           </div>
         </section>
 

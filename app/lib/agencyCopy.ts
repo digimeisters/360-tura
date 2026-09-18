@@ -30,6 +30,9 @@ export type AgencyCopy = {
     items: { title: string; text: string }[];
   };
   pricing: { eyebrow: string; title: string; note: string; fine: string };
+  /** Kod za ugradnju ture na sajt agencije - preseljeno sa početne strane
+      (bila je tamo agencijska tema na opštoj strani, § pre FAQ-a). */
+  integration: { eyebrow: string; title: string; desc: string };
   faq: { eyebrow: string; title: string; note: string; items: { question: string; answer: string }[] };
   contact: {
     eyebrow: string;
@@ -111,6 +114,11 @@ export const AGENCY_COPY: AgencyCopy = {
       'Mesečni paketi su za agencije sa stalnim prilivom oglasa. Ispod pogledajte cenu za svoj broj nekretnina.',
     fine:
       '* Cene su prosečne, za stan od oko 50m², u Kragujevcu i okolini. Za manje i veće stanove cenu formiramo prema broju prostorija. Za druge gradove i veći obim pravimo poseban predlog.'
+  },
+  integration: {
+    eyebrow: 'Integracija',
+    title: 'Ugradnja na vaš sajt u jednom koraku',
+    desc: 'Dobijate gotov kod za ugradnju. Ubacite ga na stranicu nekretnine i tura odmah radi u okviru vašeg sajta — bez programera.'
   },
   faq: {
     eyebrow: 'Pitanja agencija',
