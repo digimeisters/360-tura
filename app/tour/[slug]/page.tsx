@@ -1713,13 +1713,13 @@ export default function TourPage() {
           display: none !important;
         }
         @media (min-width: 1024px) {
-          .tour-ui-scale { zoom: 1.275; }
+          .tour-ui-scale { zoom: 1.122; }
           /* Zoom ide na unutrašnji omotač (.k360-hotspot-scale), NE na
              .custom-nav-hotspot/.custom-info-hotspot - to je isti div koji
              Pannellum svaki kadar pozicionira preko transform:translate(),
              pa bi zoom na njemu skalirao i tu vrednost i tačka bi "plutala"
              dok se gleda okolo (vidi komentar u theme.ts). */
-          .k360-hotspot-scale { zoom: 1.275; }
+          .k360-hotspot-scale { zoom: 1.122; }
         }
         /* Blago pulsiranje tačaka u panorami, da posetilac odmah primeti šta
            je klikabilno - plavo za navigaciju, žuto za info tačke. Ide preko
@@ -1734,8 +1734,8 @@ export default function TourPage() {
           70% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 10px rgba(253, 230, 138, 0); }
           100% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(253, 230, 138, 0); }
         }
-        .custom-nav-hotspot { animation: k360HotspotPulse 2.2s ease-out infinite; }
-        .custom-info-hotspot { animation: k360HotspotPulseInfo 2.2s ease-out infinite; }
+        .custom-nav-hotspot { animation: k360HotspotPulse 2.6s ease-out infinite; }
+        .custom-info-hotspot { animation: k360HotspotPulseInfo 2.6s ease-out infinite; }
         @media (prefers-reduced-motion: reduce) {
           .custom-nav-hotspot, .custom-info-hotspot { animation: none; }
         }
