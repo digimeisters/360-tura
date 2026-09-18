@@ -1,7 +1,7 @@
 'use client';
 
 import type { HomeLang } from '../app/lib/homeCopy';
-import { REFERENCE_AREA_SQM, PRICE_TIERS, PROMO, perProperty } from '../app/lib/pricing';
+import { REFERENCE_AREA_SQM, PRICE_TIERS, PROMO, formatPrice, perProperty } from '../app/lib/pricing';
 import { usePromoActive, usePromoDaysLeft } from './usePromoActive';
 
 /**
@@ -51,13 +51,10 @@ export default function PromoBanner({ lang = 'sr' }: { lang?: HomeLang }) {
 
   const t = TEXT[lang];
   const entryTier = PRICE_TIERS[0];
-  // Nelomivi razmak: "50 €" ne sme da se prelomi na kraju reda.
-  const eur = (n: number) => (lang === 'sr' ? `${n} €` : `€${n}`);
-
   // Ulazna cena Osnovnog paketa (1-2 nekretnine) - najniža koju posetilac
   // može da vidi, pa stoji uz "od".
-  const promoPrice = eur(perProperty(entryTier, 'basic', true));
-  const regularPrice = eur(perProperty(entryTier, 'basic'));
+  const promoPrice = formatPrice(perProperty(entryTier, 'basic', true), lang);
+  const regularPrice = formatPrice(perProperty(entryTier, 'basic'), lang);
   const percent = Math.round(PROMO.discount * 100);
 
   const end = new Date(`${PROMO.endDate}T23:59:59`);

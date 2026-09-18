@@ -1,5 +1,5 @@
 import { CONTACT, SITE_NAME, SITE_URL } from './site';
-import { PRICE_TIERS } from './pricing';
+import { PRICE_TIERS, formatPrice } from './pricing';
 import type { FaqItem } from './homeFaq';
 import type { HomeLang } from './homeCopy';
 
@@ -37,7 +37,11 @@ export function homeJsonLd(faq: readonly FaqItem[], lang: HomeLang = 'sr') {
         email: CONTACT.email,
         // Bio je hardkodiran (60€, stara cena) - sad čita ulaznu cenu same
         // ture (1-2 nekretnine, Osnovni paket) direktno iz pricing.ts.
-        priceRange: lang === 'sr' ? `od ${PRICE_TIERS[0].tour} €` : `from €${PRICE_TIERS[0].tour}`,
+        // Dinari na srpskoj strani, evri na engleskoj - vidi formatPrice.
+        priceRange:
+          lang === 'sr'
+            ? `od ${formatPrice(PRICE_TIERS[0].tour, 'sr')}`
+            : `from €${PRICE_TIERS[0].tour}`,
         address: {
           '@type': 'PostalAddress',
           streetAddress: CONTACT.street,

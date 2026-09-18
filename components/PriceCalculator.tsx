@@ -7,6 +7,7 @@ import {
   PREMIUM_EXTRA,
   PRICE_TIERS,
   PROMO,
+  formatPrice,
   perProperty,
   tierIndexFor,
   tierMax,
@@ -96,10 +97,7 @@ export default function PriceCalculator({ lang = 'sr' }: { lang?: HomeLang }) {
   const promoActive = usePromoActive();
   const activeTier = tierIndexFor(count);
 
-  // Ručno, a ne Intl: server i pregledač umeju da stave različit razmak uz €,
-  // pa se prvi render ne bi poklopio. Razmak je nelomivi ( ), da se iznos
-  // nikad ne prelomi na kraju reda.
-  const eur = (n: number) => (lang === 'sr' ? `${n} €` : `€${n}`);
+  const price = (n: number) => formatPrice(n, lang);
 
   const promoEnd = new Date(`${PROMO.endDate}T00:00:00`);
   // Intl daje nominativ ("1. novembar") - posle "do" treba genitiv.
@@ -158,7 +156,7 @@ export default function PriceCalculator({ lang = 'sr' }: { lang?: HomeLang }) {
                   onClick={() => setCount(tier.min)}
                 >
                   <small>{max === null ? `${tier.min}+` : tier.min === max ? tier.min : `${tier.min}–${max}`}</small>
-                  <b>{eur(perProperty(tier, packageType, promoActive))}</b>
+                  <b>{price(perProperty(tier, packageType, promoActive))}</b>
                 </button>
               );
             })}
@@ -184,7 +182,7 @@ export default function PriceCalculator({ lang = 'sr' }: { lang?: HomeLang }) {
               onClick={() => setPackageType('premium')}
             >
               <b>{t.premiumName}</b>
-              <small>{t.premiumDesc(eur(PREMIUM_EXTRA))}</small>
+              <small>{t.premiumDesc(price(PREMIUM_EXTRA))}</small>
             </button>
           </div>
         </div>

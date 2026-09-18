@@ -144,3 +144,34 @@ export function packageDiscountPercent(count: number, pkg: PackageType = 'basic'
   const promo = packagePrice(count, pkg, true);
   return regular > 0 ? Math.round(((regular - promo) / regular) * 100) : 0;
 }
+
+/**
+ * Prikaz cene: dinari na srpskoj strani (lokalno tržište plaća u dinarima),
+ * evri na engleskoj (strani kupci i dijaspora i dalje misle u evrima - ne
+ * konvertujemo njima ništa). SVA računica cenovnika (stepeni, popust,
+ * premium dodatak) i dalje radi u evrima - ovo je samo poslednji korak,
+ * ono što posetilac na kraju vidi napisano.
+ */
+
+/**
+ * Kurs za pretvaranje u dinare. NIJE tačan kurs Narodne banke (taj se menja
+ * iz dana u dan) - fiksan i zaokružen, ostavlja malu rezervu, pa cena u
+ * dinarima ne prati svaki pomak kursa. Menja se ručno, po dogovoru.
+ */
+export const RSD_PER_EUR = 120;
+
+/** Dinarski iznos, zaokružen na najbližih 500 - uvek "okrugla" cena. */
+export function toRSD(eurAmount: number): number {
+  return Math.round((eurAmount * RSD_PER_EUR) / 500) * 500;
+}
+
+/**
+ * Cena spremna za prikaz na stranici. `lang` je namerno običan string, ne
+ * `HomeLang` iz lib/homeCopy.ts - taj fajl uvozi odavde, pa obrnut uvoz
+ * pravi krug.
+ */
+export function formatPrice(eurAmount: number, lang: 'sr' | 'en'): string {
+  if (lang === 'sr') return `${toRSD(eurAmount).toLocaleString('sr-RS')} din.`;
+  // Nelomivi razmak nije potreban ovde - € stoji ispred broja, ne posle.
+  return `€${eurAmount}`;
+}

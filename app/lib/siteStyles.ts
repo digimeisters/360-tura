@@ -396,7 +396,11 @@ export const SITE_STYLES = `
   .rate-head + .rate-grid, .rate-head + .price-grid{margin-bottom:2.2rem;}
   .rate-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1.1rem; align-items:stretch;}
   @media (max-width:920px){ .rate-grid{grid-template-columns:1fr;} }
-  .rate-card{padding:1.4rem 1.35rem; display:flex; flex-direction:column; gap:.7rem;}
+  /* min-width:0 - bez njega flex/grid stavka ne sme da se suzi ispod širine
+     svog NEPREKINUTOG sadržaja (npr. "27.500 din."), pa gura ceo red preko
+     ivice kartice umesto da dozvoli prelom. Dinarski iznosi su duži od
+     evra, pa je ovo od uvođenja dinara postalo stvarno vidljivo. */
+  .rate-card{padding:1.4rem 1.35rem; display:flex; flex-direction:column; gap:.7rem; min-width:0;}
   .rate-card h4{font-family:var(--font-display); font-size:1.05rem; font-weight:700; margin:0;}
   .rate-price{display:flex; align-items:baseline; flex-wrap:wrap; gap:.35rem; margin:0; font-size:.86rem; color:var(--ink-soft);}
   .rate-price b{font-family:var(--font-display); font-size:1.7rem; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums;}
@@ -408,7 +412,7 @@ export const SITE_STYLES = `
   /* I .n-2 mora da se navede: ima veću specifičnost od samog .price-grid,
      pa bi inače nadjačao ovo pravilo i ostao u dve kolone na telefonu. */
   @media (max-width:920px){ .price-grid, .price-grid.n-2{grid-template-columns:1fr;} }
-  .price-card{position:relative; padding:1.7rem 1.6rem; display:flex; flex-direction:column; gap:1.1rem;}
+  .price-card{position:relative; padding:1.7rem 1.6rem; display:flex; flex-direction:column; gap:1.1rem; min-width:0;}
   .price-card.featured{border:2px solid var(--accent); box-shadow:0 12px 32px -10px var(--accent-glow);}
   .price-badge{position:absolute; top:-.8rem; left:1.5rem; background:var(--accent); color:var(--on-accent); font-family:var(--font-display); font-size:.66rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; padding:.35rem .75rem; border-radius:999px; box-shadow:0 4px 12px var(--accent-glow);}
   /* Nalepnica sa popustom, u uglu kartice - kao pečat u prospektu. Crvena, da
@@ -418,7 +422,7 @@ export const SITE_STYLES = `
   .price-was{color:var(--ink-faint); font-size:1rem; font-weight:600; text-decoration-thickness:2px; font-variant-numeric:tabular-nums;}
   .price-audience{font-family:var(--font-display); font-size:.7rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint);}
   .price-card h3{font-size:1.4rem;}
-  .price-value{display:flex; align-items:baseline; gap:.35rem; font-size:.92rem; color:var(--ink-soft);}
+  .price-value{display:flex; flex-wrap:wrap; align-items:baseline; gap:.35rem; font-size:.92rem; color:var(--ink-soft);}
   .price-value b{font-family:var(--font-display); font-size:2.2rem; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums;}
   .price-list{list-style:none; margin:0; padding:1rem 0 0; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:.6rem; flex:1;}
   .price-list li{font-size:.88rem; color:var(--ink-soft); display:flex; gap:.6rem;}

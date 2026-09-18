@@ -1,20 +1,23 @@
 // Tekst početne strane na srpskom (/) i engleskom (/en). Raspored je jedan
 // (app/HomePage.tsx), pa se nova rečenica dodaje ovde u oba jezika.
 
-import { PREMIUM_EXTRA, PRICE_TIERS, tierIndexFor, tourPrice, type PackageType } from './pricing';
+import { PREMIUM_EXTRA, PRICE_TIERS, formatPrice, tierIndexFor, tourPrice, type PackageType } from './pricing';
 
 // Veliki iznos na kartici NIJE ovde - računa ga components/PromoPrice.tsx na
 // klijentu, da bi mogao da pokaže promo cenu dok kampanja traje, a da posle
 // isteka sam prestane, bez novog deploy-a.
 //
-// Stavke u spisku jesu ovde, i prikazuju se odvojeno (tura 50€ + HDR 20€),
-// da se cena ne čita kao da cela ide na samu turu. To su REDOVNE cene -
-// popust na njih objašnjavaju nalepnica i traka iznad kartica.
+// Stavke u spisku jesu ovde, i prikazuju se odvojeno (tura + HDR), da se
+// cena ne čita kao da cela ide na samu turu. To su REDOVNE cene - popust na
+// njih objašnjavaju nalepnica i traka iznad kartica.
+//
+// srTour/srHdr daju dinare (lokalno tržište), enTour/enHdr evre (strani
+// kupci i dijaspora i dalje misle u evrima) - vidi formatPrice u pricing.ts.
 const tierFor = (count: number) => PRICE_TIERS[tierIndexFor(count)];
-const srTour = (count: number, pkg: PackageType = 'basic') => `${tourPrice(tierFor(count), pkg)}€`;
-const enTour = (count: number, pkg: PackageType = 'basic') => `€${tourPrice(tierFor(count), pkg)}`;
-const srHdr = (count: number) => `${tierFor(count).hdr}€`;
-const enHdr = (count: number) => `€${tierFor(count).hdr}`;
+const srTour = (count: number, pkg: PackageType = 'basic') => formatPrice(tourPrice(tierFor(count), pkg), 'sr');
+const enTour = (count: number, pkg: PackageType = 'basic') => formatPrice(tourPrice(tierFor(count), pkg), 'en');
+const srHdr = (count: number) => formatPrice(tierFor(count).hdr, 'sr');
+const enHdr = (count: number) => formatPrice(tierFor(count).hdr, 'en');
 
 export type HomeLang = 'sr' | 'en';
 
@@ -332,7 +335,7 @@ const sr: HomeCopy = {
         unit: '/ mesečno (3 ture)',
         items: [
           'Sve iz Osnovnog paketa, plus:',
-          `Audio vodič na sva 4 jezika (SR, EN, DE, RU) — +${PREMIUM_EXTRA}€ po turi`,
+          `Audio vodič na sva 4 jezika (SR, EN, DE, RU) — +${formatPrice(PREMIUM_EXTRA, 'sr')} po turi`,
           'Izrada plana stana ako ga nekretnina nema',
           'Lokacija na mapi uz svaku turu',
           'Prioritetno zakazivanje termina',

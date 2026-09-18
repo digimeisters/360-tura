@@ -3,6 +3,7 @@
 import type { HomeLang, RateAmount } from '../app/lib/homeCopy';
 import {
   PRICE_TIERS,
+  formatPrice,
   packageDiscountPercent,
   packagePrice,
   standaloneHdrPrice,
@@ -70,7 +71,7 @@ export function ItemPrice({
   lang: HomeLang;
 }) {
   const active = usePromoActive();
-  const eur = (n: number) => (lang === 'sr' ? `${n} €` : `€${n}`);
+  const price = (n: number) => formatPrice(n, lang);
 
   const regular = rateAmount(amount, false);
   const promo = rateAmount(amount, true);
@@ -80,10 +81,10 @@ export function ItemPrice({
 
   return (
     <p className="rate-price">
-      <b>{eur(discounted ? promo : regular)}</b>
+      <b>{price(discounted ? promo : regular)}</b>
       {discounted && (
         <s className="price-was" aria-label={lang === 'sr' ? 'redovna cena' : 'regular price'}>
-          {eur(regular)}
+          {price(regular)}
         </s>
       )}
       <span>{unit}</span>
@@ -111,17 +112,17 @@ export function PlanPrice({
   lang: HomeLang;
 }) {
   const active = usePromoActive();
-  const eur = (n: number) => (lang === 'sr' ? `${n} €` : `€${n}`);
+  const price = (n: number) => formatPrice(n, lang);
 
   const regular = packagePrice(count, packageType);
   const promo = packagePrice(count, packageType, true);
 
   return (
     <div className="price-value">
-      {from} <b>{eur(active ? promo : regular)}</b>
+      {from} <b>{price(active ? promo : regular)}</b>
       {active && (
         <s className="price-was" aria-label={lang === 'sr' ? 'redovna cena' : 'regular price'}>
-          {eur(regular)}
+          {price(regular)}
         </s>
       )}
       <span>{unit}</span>
