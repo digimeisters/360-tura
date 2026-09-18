@@ -66,6 +66,7 @@ export type HomeCopy = {
     // Strana za agencije postoji za sada samo na srpskom, pa link stoji
     // samo u srpskom meniju (vidi HomePage.tsx).
     agencies?: string;
+    blog?: string;
     contact: string;
     cta: string;
     // Link ka drugoj jezičkoj verziji strane.
@@ -159,6 +160,7 @@ const sr: HomeCopy = {
     packages: 'Cenovnik',
     faq: 'Pitanja',
     agencies: 'Za agencije',
+    blog: 'Blog',
     contact: 'Kontakt',
     cta: 'Zakažite snimanje',
     switchLabel: 'EN',

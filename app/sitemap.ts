@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { supabase } from './lib/supabaseClient';
 import { SITE_URL } from './lib/site';
+import { BLOG_POSTS } from './lib/blogPosts';
 
 // Ture se dodaju/menjaju bez redeploy-a, pa se sitemap generiše na zahtev
 // umesto da se zaledi u build-u.
@@ -38,8 +39,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.8
+    },
+    // Spisak blog postova - ulaz ka pojedinačnim tekstovima.
+    {
+      url: `${SITE_URL}/blog`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.6
     }
   ];
+
+  const blogRoutes: MetadataRoute.Sitemap = BLOG_POSTS.map((post) => ({
+    url: `${SITE_URL}/blog/${post.slug}`,
+    lastModified: new Date(post.publishedAt),
+    changeFrequency: 'monthly',
+    priority: 0.6
+  }));
 
   // Anon rola posle migracije 007 ionako vidi samo objavljene ture, ali uslov
   // stoji i ovde: sitemap ne sme da zavisi od toga kojim ključem se čita.
@@ -58,5 +73,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8
   }));
 
-  return [...staticRoutes, ...tourRoutes];
+  return [...staticRoutes, ...blogRoutes, ...tourRoutes];
 }

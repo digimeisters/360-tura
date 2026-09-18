@@ -112,6 +112,11 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
           </li>
         )}
         <li><a href="#pitanja">{nav.faq}</a></li>
+        {nav.blog && (
+          <li>
+            <Link href="/blog" data-track="cta:nav_blog">{nav.blog}</Link>
+          </li>
+        )}
         <li><a href="#kontakt">{nav.contact}</a></li>
         <li className="nav-lang">
           <a href={nav.switchHref} hrefLang={nav.switchLang} lang={nav.switchLang} aria-label={nav.switchAria}>

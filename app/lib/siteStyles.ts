@@ -417,6 +417,30 @@ export const SITE_STYLES = `
   .price-list li::before{content:"✓"; color:var(--accent); font-weight:700; flex:none;}
   .price-cta{width:100%;}
   .fine-print{margin-top:1.4rem; font-size:.85rem; color:var(--ink-faint); text-align:center;}
+
+  /* Blog (/blog, /blog/[slug]) */
+  .blog-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:1.1rem;}
+  @media (max-width:720px){ .blog-grid{grid-template-columns:1fr;} }
+  .blog-card{padding:1.4rem 1.35rem; display:block; text-decoration:none; color:inherit;}
+  .blog-card h3{font-family:var(--font-display); font-size:1.15rem; font-weight:700; margin:0 0 .5rem;}
+  .blog-card .note{margin:0; color:var(--ink-soft); font-size:.92rem;}
+  .blog-article{max-width:720px;}
+  .blog-section{margin-bottom:2.2rem;}
+  .blog-section h2{font-size:clamp(1.3rem,2.2vw,1.6rem); margin:0 0 .9rem;}
+  .blog-section p{color:var(--ink-soft); line-height:1.7; margin:0 0 1rem; font-size:1rem;}
+  .blog-list{margin:0; padding:0;}
+  .blog-list > div{margin-bottom:1.1rem;}
+  .blog-list dt{font-weight:700; color:var(--ink); margin-bottom:.3rem;}
+  .blog-list dd{margin:0; color:var(--ink-soft); line-height:1.65;}
+  .blog-related{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.7rem;}
+  .blog-related a{color:var(--accent); font-weight:600; text-decoration:none;}
+  .blog-related a:hover{text-decoration:underline;}
+  .blog-bullets{margin:0 0 1rem; padding:0; list-style:none; display:flex; flex-direction:column; gap:.55rem;}
+  .blog-bullets li{font-size:1rem; color:var(--ink-soft); line-height:1.6; display:flex; gap:.6rem;}
+  .blog-bullets li::before{content:"—"; color:var(--accent); font-weight:700; flex:none;}
+  .blog-callout{background:var(--accent-soft); border:1px solid var(--line); border-radius:16px; padding:1.3rem 1.5rem; margin-bottom:2.2rem;}
+  .blog-callout h2{font-size:.78rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--accent-strong); margin:0 0 .8rem;}
+  .blog-callout .blog-bullets li{color:var(--ink);}
   /* Traka uvodne promocije - crta se samo dok kampanja traje (PromoBanner).
      Levo maskota (emodži u krugu), u sredini poruka u dva reda, desno
      odbrojavanje kao izdvojena kapsula - umesto ranijeg teksta nabacanog u

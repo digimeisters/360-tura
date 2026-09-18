@@ -100,6 +100,7 @@ export default async function ToursPage() {
         cta={{ href: '/#kontakt', label: COPY.nav.cta, track: 'cta:tours_nav' }}
       >
         <li><Link href="/">{COPY.nav.home}</Link></li>
+        <li><Link href="/blog">Blog</Link></li>
         <li><Link href="/za-agencije">{COPY.nav.agencies}</Link></li>
       </SiteNav>
 

@@ -91,6 +91,7 @@ export default function AgencyPage() {
         <li><a href="#dobijate">{nav.benefits}</a></li>
         <li><a href="#paketi">{nav.packages}</a></li>
         <li><a href="#pitanja">{nav.faq}</a></li>
+        <li><Link href="/blog">Blog</Link></li>
         <li className="nav-lang"><Link href="/">{nav.home}</Link></li>
       </SiteNav>
 
