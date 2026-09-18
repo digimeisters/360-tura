@@ -1713,7 +1713,26 @@ export default function TourPage() {
           display: none !important;
         }
         @media (min-width: 1024px) {
-          .tour-ui-scale { zoom: 1.5; }
+          .tour-ui-scale { zoom: 1.275; }
+          .custom-nav-hotspot, .custom-info-hotspot { zoom: 1.275; }
+        }
+        /* Blago pulsiranje tačaka u panorami, da posetilac odmah primeti šta
+           je klikabilno - plavo za navigaciju, žuto za info tačke. Ide preko
+           box-shadow (animacija ima prednost nad inline stilom iz JS-a). */
+        @keyframes k360HotspotPulse {
+          0% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(91, 146, 214, 0.55); }
+          70% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 10px rgba(91, 146, 214, 0); }
+          100% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(91, 146, 214, 0); }
+        }
+        @keyframes k360HotspotPulseInfo {
+          0% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(253, 230, 138, 0.55); }
+          70% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 10px rgba(253, 230, 138, 0); }
+          100% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(253, 230, 138, 0); }
+        }
+        .custom-nav-hotspot { animation: k360HotspotPulse 2.2s ease-out infinite; }
+        .custom-info-hotspot { animation: k360HotspotPulseInfo 2.2s ease-out infinite; }
+        @media (prefers-reduced-motion: reduce) {
+          .custom-nav-hotspot, .custom-info-hotspot { animation: none; }
         }
       `}</style>
 
