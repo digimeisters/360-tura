@@ -2,7 +2,7 @@
 
 Ovo je prvi dokument koji AI agent (Claude, Codex, Gemini...) treba da pročita pre rada na projektu. Kaže šta je Kvadrat360, kako je sistem složen, gde šta stoji i koja pravila vlasnik traži.
 
-Stanje opisano ovde važi na dan **11. 9. 2026**. Ako se kod i ovaj dokument razilaze, **kod je tačan**. Tada ispravi i dokument.
+Stanje opisano ovde važi na dan **18. 9. 2026**. Ako se kod i ovaj dokument razilaze, **kod je tačan**. Tada ispravi i dokument.
 
 Uputstvo za ljude (kako se pravi tura, korak po korak) je u [`uputstvo-kreiranje-ture.md`](uputstvo-kreiranje-ture.md).
 
@@ -16,7 +16,7 @@ Platforma za **360° virtuelne ture nekretnina**, sajt **kvadrat360.com**. Kvadr
 - **Tipovi oglasa:** prodaja (`sale`), izdavanje (`rent`), kratkoročni smeštaj (`booking`). Tip menja fokus teksta koji AI piše za turu.
 - **Jezici:** srpski (osnovni, latinica), engleski, nemački, ruski. Sadržaj ture se čuva po jezicima u JSONB poljima.
 - **Područje:** Kragujevac i okolina, drugi gradovi po dogovoru.
-- **Faza:** posao **još nije krenuo**. Vlasnik podešava sajt, cene su **privremene**, a firma **još nije registrovana**.
+- **Faza:** posao **tek počinje**, prvi klijenti tek dolaze. Cenovnik je utvrđen (`app/lib/pricing.ts`), sa uvodnom promocijom koja ima datum isteka. Firma **još nije registrovana**.
 
 Vlasnik govori srpski, vodi se proizvodom i dizajnom, nije programer. Objašnjenja mu treba davati jednostavno, a za veće izmene izgleda prvo napraviti **mockup**, pa tek onda kod.
 
@@ -75,7 +75,7 @@ app/
   lib/                    zajednička logika (vidi ispod)
   sitemap.ts, robots.ts, opengraph-image.tsx
 components/               komponente početne: HeroDevice, ContactForm, PriceCalculator, SiteTracker
-supabase/migrations/      001–008, SQL koji vlasnik ručno pokreće u Supabase SQL editoru
+supabase/migrations/      001–015+, SQL koji vlasnik ručno pokreće u Supabase SQL editoru
 scripts/                  jednokratni skriptovi (backfill-previews.mjs)
 types/supabase.ts         generisani tipovi baze (ZASTARELI, vidi §5)
 docs/                     uputstvo-kreiranje-ture.md, ovaj fajl
@@ -110,11 +110,13 @@ Najvažnije u `app/lib/`:
 
 | Tabela | Šta | Važne kolone |
 |---|---|---|
-| `tours` | jedna nekretnina | `slug` (ključ za URL), `title_i18n`, `category` (`sale`/`rent`/`booking`), `about_text_i18n`, `faq_1..5_i18n`, `location_map_url`, `floorplan_url`, `agency_name`, `agent_*`, `address`, `property_type`, **`published`** (007) |
+| `tours` | jedna nekretnina | `slug` (ključ za URL), `title_i18n`, `category` (`sale`/`rent`/`booking`), `about_text_i18n` (kratka napomena, ≤2 rečenice), `faq_1..5_i18n`, `location_map_url`, `floorplan_url`, `agency_name`, `agent_*`, `address`, `city` (011), `structure`, `district` (012), `area_sqm`, `price` (013), `floor`, `has_elevator`, `has_basement`, `heating` (014), `build_status`, `finish_status` (015), `property_type`, `status` (010, aktivna/izdato/prodato/pauza), **`published`** (007) |
 | `rooms` | prostorija u turi | `tour_slug` (FK na `tours.slug`), `order_index`, `title_i18n`, `panorama_url_cf` (R2/CDN), `panorama_url` (stari Supabase URL), `preview_url` (004), `waypoints_i18n`, `establish_i18n`, `floorplan_x/y` (003) |
 | `contact_requests` | upiti sa forme | `name`, `contact`, `package`, `agency`, `listing_type`, `size`, `message` (prvi red može biti „Željeni termin: ..."), `source` (`landing` / `landing_en`) |
 | `tour_events` | analitika tura | `tour_slug`, `event_type` (`open`, `start`, `room_view`, `share`, `contact`), `session_id`, `room_id`, `duration_ms`, `lang` |
 | `site_events` | analitika početne (008) | `event_type` (`page_view`, `cta_click`, `contact_click`, `form_submit`), `target`, `session_id`, `device`, `source` |
+
+**Tabela osnovnih podataka u turi** (migracije 012–015: `structure`, `district`, `area_sqm`, `floor`, `has_elevator`, `has_basement`, `heating`, `build_status`, `finish_status`) namerno **nema i18n kolone**. Agent u `/unos` bira sa zatvorene liste (vidi `app/lib/propertyTaxonomy.ts`) ili kuca broj/tekst; AI to ne dodiruje. Prevod na EN/DE/RU radi statički rečnik u `app/tour/[slug]/translations.ts` (`FACT_LABELS`, `STRUCTURE_LABELS`, `HEATING_LABELS`, `BUILD_STATUS_LABELS`, `FINISH_STATUS_LABELS`) — proširiti listu u `propertyTaxonomy.ts` znači dodati i prevod tamo, za sva 4 jezika, inače nova vrednost ostaje neprevedena na EN/DE/RU (i dalje se prikazuje, samo na srpskom).
 
 ### Višejezični sadržaj (JSONB)
 
@@ -153,7 +155,7 @@ Polja `*_i18n` su objekti po jezicima: `{ "sr": "...", "en": "...", "de": "...",
 
 - Klijentska komponenta. Tura i sobe se učitavaju paralelno, a susedne panorame se unapred skidaju.
 - Početni ekran ima dugme „▶ Pokreni turu" i izbor jezika. Posle starta Pannellum prikazuje sobu, radi uvodna naracija (establish), pa tačke (waypoints).
-- Modali: **Skica** (tlocrt sa markerima soba), **Lokacija** (Google mapa u iframe-u), **O nekretnini**, **Pitanja** (FAQ 1–5), **Kontakt** (agent, poziv, mejl).
+- Modali: **Skica** (tlocrt sa markerima soba), **Lokacija** (Google mapa u iframe-u), **Info** (tabela osnovnih podataka, `buildFactList()` u `utils.tsx`, plus opciona kratka napomena `about_text_i18n`), **Pitanja** (FAQ 1–5, svako pitanje uska tema, odgovor jedan kratak red), **Kontakt** (agent, poziv, mejl).
 - Dodaci: auto-rotacija, žiroskop na telefonu, deljenje (Web Share), zvuk.
 - **`?lang=en|de|ru`** otvara turu na tom jeziku, ako ga tura ima.
 - **Admin režim:** prijava preko `?admin=1`; sesija se posle pamti. Admin alati su u `TourAdminTools.tsx` (dugmad se ubacuju u gornju traku preko portala), a uređivanje tačaka ostaje u `page.tsx`.
@@ -192,8 +194,9 @@ Nova ruta koja menja podatke **mora** imati `requireAdmin` ili ograničenje broj
 
 - **Jedan raspored, dva jezika:** `app/HomePage.tsx` + tekst iz `lib/homeCopy.ts` i `lib/homeFaq.ts`. Nova rečenica se dodaje **u oba jezika**.
 - Statična je i osvežava se na sat (`revalidate = 3600`), a odmah posle objave, skidanja ili izmene ture.
-- **Primeri tura** i **kadar u vrhu** su prave objavljene ture (`showcaseTours.ts`). Na `/en` prednost ima tura koja ima engleski.
-- **Cene:** samo u `lib/pricing.ts`. Stepeni po broju nekretnina (tura + HDR): 1–2 → 60 €, 3–4 → 50 €, 5–9 → 44 €, 10+ → 40 €. Kartice paketa (60 / 150 / 220 €) i kalkulator se računaju odatle. **Cene su privremene** i ne predstavljaju se kao konačne.
+- **Ture (odeljak "Ture", `#primeri`)** i **kadar u vrhu** su prave objavljene ture (`showcaseTours.ts`). Na `/en` prednost ima tura koja ima engleski. Posle prikazanih tura stoji traka koja najavljuje kompletnu bazu sa filterima i vodi na `/ture`.
+- **Cene:** samo u `lib/pricing.ts`. Tura i HDR se prikazuju kao odvojene stavke (§4 tamo), a paketi (tura+HDR) idu po stepenu obima: 1–2 → 70 €, 3–4 → 62 €, 5–9 → 55 €, 10+ → 48 € (Osnovni; Premium +15 € na turu). Kartice paketa i kalkulator se računaju odatle. Uvodna promocija (`PROMO` u `pricing.ts`) daje −30% na pakete do datuma u `PROMO.endDate`; HDR naručen **samostalno** (bez ture) se **nikad** ne spušta (`standaloneHdrPrice()`) - namerno, da se ne isplati poručiti samo fotografije.
+- **/ture:** spisak svih objavljenih tura sa filterima (vrsta oglasa, grad, naselje, struktura, agencija - padajući meniji sa više izbora) i klizačima (kvadratura, cena). `components/TourList.tsx` + `FilterMenu.tsx` + `RangeFilter.tsx`.
 - **Forma:** vrednosti polja (paket, tip) stižu **na srpskom** i sa engleske strane. Na Telegramu ide oznaka „🌐 Sa engleske strane".
 - **Kalkulator → forma:** događaj `k360:estimate` (`lib/estimateEvent.ts`).
 - **Merenje:** element sa `data-track="cta:cilj"` ili `data-track="contact:cilj"` se broji sam (`SiteTracker`). Novi cilj treba dodati i u `TARGET_LABELS` u `admin/analitika/page.tsx`. Posete admina se ne broje (proverava se ključ `sb-*-auth-token` u localStorage).
@@ -259,7 +262,6 @@ Samo imena. **Vrednosti se nikad ne upisuju u kod, dokumente ni poruke.** Stoje 
 - Registracija firme, pa naziv, PIB i MB u podnožju + strana „Politika privatnosti"
 - ElevenLabs, pa vraćanje glasovne naracije
 - 2–3 para fotografija (telefon / HDR), pa klizač „pre i posle" za HDR
-- Konačne cene, pa izmena u `lib/pricing.ts`
 
 **Tehnički dug**
 - `types/supabase.ts` je zastareo (i u UTF-16 kodiranju); treba ga regenerisati i skinuti kastove

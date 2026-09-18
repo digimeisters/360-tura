@@ -3,7 +3,7 @@
 Kompletan tok, od unosa nekretnine do objavljene ture.
 
 > Ovaj dokument je živ — kad promenimo neku funkciju, izmena se upisuje ovde.
-> Poslednja izmena: 11.09.2026.
+> Poslednja izmena: 18.09.2026.
 
 ---
 
@@ -33,17 +33,18 @@ Ovo je glavni put. Agent popunjava, tura se pravi sama.
 
 | Odeljak | Polja |
 |---|---|
-| Osnovni podaci | tip nekretnine, naslov, adresa, Google Maps embed link (opciono), kratak opis, tlocrt |
+| Osnovni podaci | tip i struktura nekretnine, naslov, adresa, grad, naselje, sprat, lift, podrum, grejanje, status gradnje, stanje enterijera, Google Maps embed link (opciono), kratak opis (opciono, ≤2 rečenice), tlocrt |
 | Oglašivač | svojstvo, naziv agencije, ime, telefon, e-mail |
 | Vrsta oglasa | Izdavanje / Prodaja / Stan na dan + jezici ture |
-| Uslovi | pitanja se menjaju prema izabranoj vrsti oglasa |
+| Uslovi | pitanja se menjaju prema izabranoj vrsti oglasa (cena, kvadratura, uslovi ugovora/kredita/otkazivanja...) |
 | Slanje | **kod za slanje** |
 
 Napomene:
 
 - **Kod za slanje** je vrednost iz `FORM_ACCESS_CODE` (Vercel → Settings → Environment Variables). Daje se agenciji zajedno sa linkom. Menja se izmenom te varijable i redeploy-om; stari kod odmah prestaje da važi.
 - **Link se ne kuca** — pravi se iz naslova. Naša slova i ćirilica se preslovljavaju, a ako naslov već postoji, dodaje se broj na kraj.
-- **Slanje traje do pola minuta** — u tom trenutku AI čisti podatke, piše opis i svih pet odgovora na svim izabranim jezicima.
+- **Slanje traje do pola minuta** — u tom trenutku AI čisti podatke, piše kratku napomenu i pet FAQ odgovora na svim izabranim jezicima. Naselje, kvadratura, struktura, sprat, lift, podrum, grejanje, status gradnje i stanje **ne prolaze kroz AI** — agent ih bira sa zatvorene liste ili kuca, upisuju se tačno tako, a aplikacija ih sama prevodi za posetioca ture.
+- **Lift i podrum nemaju podrazumevan odgovor** — moraju se ručno izabrati (Da/Ne), namerno: pogrešan da/ne podatak je gori od praznog.
 - **Ništa se ne gubi** — pogrešan kod ostavlja formular popunjen, a nacrt se čuva u pretraživaču i ako se stranica osveži.
 - **Tlocrt mora biti slika** (JPG, PNG, WEBP). PDF se ne prihvata jer se u turi crta kao slika.
 - **Mapa se pravi iz adrese.** Polje za Maps link je opciono i prima samo *embed* oblik (`google.com/maps/embed?pb=...`), jer Google zabranjuje ugrađivanje običnog share linka.
@@ -52,7 +53,7 @@ Napomene:
 
 Za tvoje unose i za ispravke. Prijava administratorskim nalogom.
 
-- Formular pravi turu: naslov, agencija, tip oglasa, adresa, tip nekretnine, podaci agenta.
+- Formular pravi turu: naslov, agencija, tip oglasa, adresa, grad, naselje, struktura, kvadratura, cena, sprat, lift, podrum, grejanje, status gradnje, stanje enterijera, tip nekretnine, podaci agenta.
 - Link se generiše iz naslova i vidi se uživo dok kucaš.
 - **Izmena** postojeće ture menja samo prikazane podatke — **link se ne menja**, jer su za njega vezani podeljeni linkovi i zabeležena analitika.
 - Lista pokazuje sve ture, stanje (**Objavljena** / **U pripremi**), broj soba i crveno upozorenje kad tura nema sobe ili neka soba nema panoramu.
@@ -194,12 +195,14 @@ Ovo se popunjava **samo pri prvom unosu kroz upitnik**. Naknadna izmena ide dire
 
 | Sadržaj | Kolona |
 |---|---|
-| Tekst u modalu „Info" | `about_text_i18n` |
+| Kratka napomena ispod tabele u modalu „Info" | `about_text_i18n` |
 | Odgovori u modalu „Pitanja" | `faq_1_i18n` … `faq_5_i18n` |
 | Slika tlocrta | `floorplan_url` |
 | Mapa lokacije | `location_map_url` |
 
-Ako ovo počne često da treba, sledeći korak je dopuna `/admin/ture` da i ta polja uređuje kroz formular.
+Sami redovi tabele u modalu „Info" (naselje, kvadratura, struktura, sprat, lift, podrum, grejanje, status gradnje, stanje) **se uređuju** kroz `/admin/ture`, kao i grad i cena.
+
+Ako gornja četiri polja počnu često da trebaju izmenu, sledeći korak je dopuna `/admin/ture` da i njih uređuje kroz formular.
 
 ---
 
