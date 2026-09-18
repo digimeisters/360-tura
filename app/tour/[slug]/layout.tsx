@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { getTourMeta } from './getTourMeta';
 import { SITE_NAME, SITE_URL } from '../../lib/site';
+import { tourJsonLd, serializeJsonLd } from '../../lib/structuredData';
 
 type Props = { params: Promise<{ slug: string }> };
+type LayoutProps = Props & { children: React.ReactNode };
 
 function buildDescription(
   about: string,
@@ -55,6 +57,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function TourLayout({ children }: { children: React.ReactNode }) {
-  return children;
+export default async function TourLayout({ children, params }: LayoutProps) {
+  const { slug } = await params;
+  const tour = await getTourMeta(slug);
+
+  if (!tour) return children;
+
+  const url = `${SITE_URL}/tour/${tour.slug}`;
+  const description = buildDescription(tour.about, tour.address, tour.agencyName);
+  const jsonLd = tourJsonLd({
+    title: tour.title,
+    description,
+    url,
+    previewUrl: tour.previewUrl,
+    address: tour.address
+  });
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
+      />
+      {children}
+    </>
+  );
 }

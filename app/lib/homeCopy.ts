@@ -147,9 +147,9 @@ export type HomeCopy = {
 const sr: HomeCopy = {
   locale: 'sr-RS',
   meta: {
-    title: 'Kvadrat360 — Virtuelne ture i HDR fotografije nekretnina',
+    title: 'Kvadrat360 — Virtuelne ture i HDR fotografije nekretnina u Kragujevcu',
     description:
-      'Profesionalne 360° virtuelne ture i HDR fotografije nekretnina — za agencije i vlasnike koji prodaju ili izdaju. Audio vodič na srpskom, engleskom, nemačkom i ruskom.'
+      'Profesionalne 360° virtuelne ture i HDR fotografije nekretnina u Kragujevcu i okolini — za agencije i vlasnike koji prodaju ili izdaju. Audio vodič na srpskom, engleskom, nemačkom i ruskom.'
   },
   nav: {
     brandAria: 'Kvadrat360, početak strane',
@@ -168,7 +168,7 @@ const sr: HomeCopy = {
   },
   hero: {
     chip: 'Prodaja · Izdavanje · Stan na dan',
-    titleStart: 'Pravi kvadrati, ',
+    titleStart: 'Vaš kvadrat u Kragujevcu, u 360°, ',
     titleEm: 'bez skrivenih ćoškova.',
     lede:
       'Virtuelna 360° tura i HDR fotografije pokazuju svaki ugao pre prvog dolaska — bilo da agencija vodi ceo portfolio ili vlasnik oglašava jedan stan. Na razgledanje tako dolaze samo ozbiljno zainteresovani, spremni da brzo odluče.',
@@ -377,9 +377,9 @@ const sr: HomeCopy = {
 const en: HomeCopy = {
   locale: 'en-GB',
   meta: {
-    title: 'Kvadrat360 — 360° virtual tours and HDR real estate photography',
+    title: 'Kvadrat360 — 360° virtual tours and HDR real estate photography in Kragujevac, Serbia',
     description:
-      'Professional 360° virtual tours and HDR photos for real estate agencies and owners who sell or rent. Audio guide in Serbian, English, German and Russian.'
+      'Professional 360° virtual tours and HDR photos for real estate agencies and owners in Kragujevac, Serbia who sell or rent. Audio guide in Serbian, English, German and Russian.'
   },
   nav: {
     brandAria: 'Kvadrat360, top of the page',

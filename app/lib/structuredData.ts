@@ -76,3 +76,45 @@ export function homeJsonLd(faq: readonly FaqItem[], lang: HomeLang = 'sr') {
 export function serializeJsonLd(data: unknown): string {
   return JSON.stringify(data).replace(/</g, '\\u003c');
 }
+
+// Structured data za pojedinačnu turu (/tour/[slug]) - do sada te stranice
+// nisu imale nijedan JSON-LD blok. BreadcrumbList vezuje turu za sajt u
+// Google-ovim rezultatima, a 3DModel je schema.org tip koji najbliže opisuje
+// interaktivnu 360° turu (nema posebnog tipa "virtual tour").
+export function tourJsonLd(params: {
+  title: string;
+  description: string;
+  url: string;
+  previewUrl: string | null;
+  address: string | null;
+}) {
+  const { title, description, url, previewUrl, address } = params;
+
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: SITE_NAME, item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'Ture', item: `${SITE_URL}/ture` },
+          { '@type': 'ListItem', position: 3, name: title, item: url }
+        ]
+      },
+      {
+        '@type': '3DModel',
+        name: title,
+        description,
+        url,
+        ...(previewUrl ? { image: previewUrl } : {}),
+        ...(address ? { contentLocation: { '@type': 'Place', address } } : {}),
+        provider: {
+          '@type': 'LocalBusiness',
+          name: SITE_NAME,
+          url: SITE_URL,
+          telephone: CONTACT.phoneE164
+        }
+      }
+    ]
+  };
+}

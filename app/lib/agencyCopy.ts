@@ -44,9 +44,9 @@ export type AgencyCopy = {
 
 export const AGENCY_COPY: AgencyCopy = {
   meta: {
-    title: 'Kvadrat360 za agencije — 360° ture za ceo portfolio',
+    title: 'Kvadrat360 za agencije — 360° ture za ceo portfolio u Kragujevcu',
     description:
-      'Mesečni paketi 360° virtuelnih tura i HDR fotografija za agencije za nekretnine: upitnik koji agenti popune sami ili zajedno sa nama, kontakt agenta u svakoj turi, ugradnja na sajt agencije i isporuka za 48h.'
+      'Mesečni paketi 360° virtuelnih tura i HDR fotografija za agencije za nekretnine u Kragujevcu i okolini: upitnik koji agenti popune sami ili zajedno sa nama, kontakt agenta u svakoj turi, ugradnja na sajt agencije i isporuka za 48h.'
   },
   nav: {
     brandAria: 'Kvadrat360, početna strana',
@@ -58,8 +58,8 @@ export const AGENCY_COPY: AgencyCopy = {
   },
   hero: {
     chip: 'Za agencije za nekretnine',
-    titleStart: 'Ceo portfolio ',
-    titleEm: 'u 360°.',
+    titleStart: 'Vaš portfolio u Kragujevcu, u 360°, ',
+    titleEm: 'bez skrivenih ćoškova.',
     lede:
       'Vaš agent pošalje osnovne podatke kroz upitnik — sam, ili ih popunimo zajedno sa njim. Mi snimamo i za 48h vraćamo gotovu turu, sa audio vodičem, linkom za oglas i kodom za vaš sajt. Kupca kroz stan provede automatski vodič, još pre nego što vas pozove — pa na razgledanje dolaze samo ozbiljno zainteresovani.',
     ctaContact: 'Zatražite ponudu',

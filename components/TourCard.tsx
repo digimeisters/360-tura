@@ -47,7 +47,14 @@ export default function TourCard({
         {tour.coverUrl && (
           /* eslint-disable-next-line @next/next/no-img-element -- sličica je
              već 1200x630 JPG sa CDN-a, next/image nema šta da doda */
-          <img src={tour.coverUrl} alt="" loading="lazy" decoding="async" />
+          <img
+            src={tour.coverUrl}
+            alt={`${tour.title}${tour.city ? `, ${tour.city}` : ''} — ${
+              lang === 'en' ? '360° virtual tour' : '360° virtuelna tura'
+            }`}
+            loading="lazy"
+            decoding="async"
+          />
         )}
         {category && (
           <span className="glass tag">
