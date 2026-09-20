@@ -158,29 +158,29 @@ export function WelcomeScreen({
         </div>
 
         {guideChoice ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', width: '100%', maxWidth: '360px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '9px', width: '100%', maxWidth: '320px' }}>
             <button
               onClick={guideChoice.onStartGuided}
-              style={{ width: '100%', padding: '15px 28px', fontSize: '17px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '999px', cursor: 'pointer', boxShadow: '0 8px 24px rgba(30, 90, 168, 0.45)' }}
+              style={{ width: '100%', padding: '12px 24px', fontSize: '15px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '999px', cursor: 'pointer', boxShadow: '0 6px 18px rgba(30, 90, 168, 0.4)' }}
             >
               {guideChoice.guidedLabel}
             </button>
-            <p style={{ margin: '0 0 6px', fontSize: '13px', lineHeight: 1.4, color: 'rgba(255, 255, 255, 0.75)', textShadow: '0 1px 6px rgba(0, 0, 0, 0.35)' }}>
+            <p style={{ margin: '0 0 4px', fontSize: '12.5px', lineHeight: 1.4, color: 'rgba(255, 255, 255, 0.75)', textShadow: '0 1px 6px rgba(0, 0, 0, 0.35)' }}>
               {guideChoice.guidedHint}
             </p>
 
             <button
               onClick={onStart}
-              style={{ width: '100%', padding: '13px 28px', fontSize: '15px', fontWeight: 700, background: 'rgba(255, 255, 255, 0.08)', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.35)', borderRadius: '999px', cursor: 'pointer' }}
+              style={{ width: '100%', padding: '10px 24px', fontSize: '13.5px', fontWeight: 700, background: 'rgba(255, 255, 255, 0.08)', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.35)', borderRadius: '999px', cursor: 'pointer' }}
             >
               {guideChoice.exploreLabel}
             </button>
-            <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.4, color: 'rgba(255, 255, 255, 0.75)', textShadow: '0 1px 6px rgba(0, 0, 0, 0.35)' }}>
+            <p style={{ margin: 0, fontSize: '12.5px', lineHeight: 1.4, color: 'rgba(255, 255, 255, 0.75)', textShadow: '0 1px 6px rgba(0, 0, 0, 0.35)' }}>
               {guideChoice.exploreHint}
             </p>
           </div>
         ) : (
-          <button onClick={onStart} style={{ padding: '15px 34px', fontSize: '17px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '999px', cursor: 'pointer', boxShadow: '0 8px 24px rgba(30, 90, 168, 0.45)' }}>
+          <button onClick={onStart} style={{ padding: '12px 28px', fontSize: '15px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '999px', cursor: 'pointer', boxShadow: '0 6px 18px rgba(30, 90, 168, 0.4)' }}>
             {startLabel}
           </button>
         )}

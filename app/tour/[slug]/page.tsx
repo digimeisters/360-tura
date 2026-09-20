@@ -582,6 +582,52 @@ export default function TourPage() {
     activateGuide();
   }, [guideRequested, tourStarted, hasGuide, activateGuide]);
 
+  // Gradi konfiguraciju JEDNE hotspot tačke (tooltip stil + šta se dešava na
+  // klik) - deli je refreshViewerHotspots (dodaje na već postojeći viewer)
+  // i efekat koji pravi novu scenu (formattedHotspots pri kreiranju
+  // viewer-a), da se ova logika ne duplira i ne razmine na dva mesta.
+  const buildHotspotConfig = useCallback((wp: Waypoint, index: number, lang: Language) => {
+    const isNav = wp.type === 'navigation' || Boolean(wp.targetRoomId);
+
+    let tooltipText = getLocalizedText(wp.title_i18n, lang);
+    if (!tooltipText && !isNav) {
+      tooltipText = getLocalizedText(wp.text_i18n, lang);
+      if (tooltipText.length > 40) tooltipText = tooltipText.substring(0, 40) + '...';
+    }
+    if (isNav && !tooltipText && wp.targetRoomId) {
+      const targetRoomObj = rooms.find(r => r.id == wp.targetRoomId);
+      if (targetRoomObj) tooltipText = getLocalizedText(targetRoomObj.title_i18n, lang);
+    }
+
+    return {
+      id: `hotspot-${index}`,
+      pitch: wp.pitch || 0,
+      yaw: wp.yaw || 0,
+      createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
+        hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
+        applyGlassHotspotStyle(hotSpotDiv, isNav, tooltipText);
+      },
+      text: tooltipText,
+      clickHandlerFunc: () => {
+        if (adminModeRef.current) {
+          handleStartEditWaypoint(index);
+        } else if (isNav && wp.targetRoomId) {
+          walkToRoom(wp);
+        } else if (!isNav) {
+          // Ručni klik na info-tačku tokom automatskog vođenja: vodič je
+          // sve tačke već sam obilazio, pa ovo znači da je posetilac
+          // preuzeo kontrolu - vidi komentar uz takeManualControl.
+          takeManualControl();
+          isInterruptedRef.current = true;
+          stopCurrentAnimation();
+          resetPosition();
+          if (viewerRef.current) viewerRef.current.setHfov(pickHfov(INFO_HFOV));
+          playNarration(wp.audio_url_i18n ?? wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
+        }
+      }
+    };
+  }, [rooms, handleStartEditWaypoint, resetPosition, walkToRoom, playNarration, stopCurrentAnimation, takeManualControl]);
+
   // Iscrtava hotspot-ove na vieweru koristeći TAČNO prosleđen niz tačaka.
   // Namerno NE čita rooms[roomIdx] iz state-a, jer bi to moglo biti zastarelo
   // (stale) odmah posle setRooms(...), pošto React state update nije sinhron.
@@ -596,47 +642,9 @@ export default function TourPage() {
 
     // Ponovo ih dodaj sa prosleđenim (svežim) podacima
     waypointsList.forEach((wp, index) => {
-      const isNav = wp.type === 'navigation' || Boolean(wp.targetRoomId);
-
-      let tooltipText = getLocalizedText(wp.title_i18n, l);
-      if (!tooltipText && !isNav) {
-        tooltipText = getLocalizedText(wp.text_i18n, l);
-        if (tooltipText.length > 40) tooltipText = tooltipText.substring(0, 40) + '...';
-      }
-      if (isNav && !tooltipText && wp.targetRoomId) {
-        const targetRoomObj = rooms.find(r => r.id == wp.targetRoomId);
-        if (targetRoomObj) tooltipText = getLocalizedText(targetRoomObj.title_i18n, l);
-      }
-
-      viewerRef.current.addHotSpot({
-        id: `hotspot-${index}`,
-        pitch: wp.pitch || 0,
-        yaw: wp.yaw || 0,
-        createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
-          hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
-          applyGlassHotspotStyle(hotSpotDiv, isNav, tooltipText);
-        },
-        text: tooltipText,
-        clickHandlerFunc: () => {
-          if (adminModeRef.current) {
-            handleStartEditWaypoint(index);
-          } else if (isNav && wp.targetRoomId) {
-            walkToRoom(wp);
-          } else if (!isNav) {
-            // Ručni klik na info-tačku tokom automatskog vođenja: vodič je
-            // sve tačke već sam obilazio, pa ovo znači da je posetilac
-            // preuzeo kontrolu - vidi komentar uz takeManualControl.
-            takeManualControl();
-            isInterruptedRef.current = true;
-            stopCurrentAnimation();
-            resetPosition();
-            if (viewerRef.current) viewerRef.current.setHfov(pickHfov(INFO_HFOV));
-            playNarration(wp.audio_url_i18n ?? wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
-          }
-        }
-      });
+      viewerRef.current.addHotSpot(buildHotspotConfig(wp, index, l));
     });
-  }, [rooms, handleStartEditWaypoint, resetPosition, walkToRoom, playNarration, stopCurrentAnimation, takeManualControl]);
+  }, [buildHotspotConfig]);
 
   const changeLanguage = useCallback((l: Language) => {
     setLang(l);
@@ -1231,47 +1239,9 @@ export default function TourPage() {
     const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
     const establishData = parseEstablish(currentRoom.establish_i18n);
 
-    const formattedHotspots = waypointsList.map((wp, index) => {
-      const isNav = wp.type === 'navigation' || Boolean(wp.targetRoomId);
-
-      let tooltipText = getLocalizedText(wp.title_i18n, langRef.current);
-      if (!tooltipText && !isNav) {
-         tooltipText = getLocalizedText(wp.text_i18n, langRef.current);
-         if (tooltipText.length > 40) tooltipText = tooltipText.substring(0, 40) + '...';
-      }
-      if (isNav && !tooltipText && wp.targetRoomId) {
-        const targetRoomObj = rooms.find(r => r.id == wp.targetRoomId);
-        if (targetRoomObj) tooltipText = getLocalizedText(targetRoomObj.title_i18n, langRef.current);
-      }
-
-      return {
-        id: `hotspot-${index}`,
-        pitch: wp.pitch || 0,
-        yaw: wp.yaw || 0,
-        createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
-          hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
-          applyGlassHotspotStyle(hotSpotDiv, isNav, tooltipText);
-        },
-        text: tooltipText,
-        clickHandlerFunc: () => {
-          if (adminModeRef.current) {
-            handleStartEditWaypoint(index);
-          } else if (isNav && wp.targetRoomId) {
-            walkToRoom(wp);
-          } else if (!isNav) {
-            // Ručni klik na info-tačku tokom automatskog vođenja: vodič je
-            // sve tačke već sam obilazio, pa ovo znači da je posetilac
-            // preuzeo kontrolu - vidi komentar uz takeManualControl.
-            takeManualControl();
-            isInterruptedRef.current = true;
-            stopCurrentAnimation();
-            resetPosition();
-            if (viewerRef.current) viewerRef.current.setHfov(pickHfov(INFO_HFOV));
-            playNarration(wp.audio_url_i18n ?? wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
-          }
-        }
-      };
-    });
+    const formattedHotspots = waypointsList.map((wp, index) =>
+      buildHotspotConfig(wp, index, langRef.current)
+    );
 
     const targetEstablishYaw = normalizeYaw(establishData.fromYaw ?? 0);
     const targetEstablishPitch = establishData.pitch ?? 0;
@@ -1597,7 +1567,8 @@ export default function TourPage() {
     stopAudio,
     handleStartEditWaypoint,
     playNarration,
-    takeManualControl
+    takeManualControl,
+    buildHotspotConfig
   ]);
 
   // Isto za oba mesta gde se admin alati crtaju (prazna tura i puna tura).
