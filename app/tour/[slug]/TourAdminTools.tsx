@@ -139,6 +139,10 @@ export default function TourAdminTools({
   const [savingGuidePath, setSavingGuidePath] = useState(false);
   const [guideLinkCopied, setGuideLinkCopied] = useState(false);
 
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameInput, setRenameInput] = useState('');
+  const [savingRename, setSavingRename] = useState(false);
+
   const currentRoom = rooms[roomIdx];
 
   const roomsByOrder = [...rooms].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
@@ -242,6 +246,41 @@ export default function TourAdminTools({
       alert('Greška pri kreiranju sobe: ' + (err.message || 'Nepoznata greška'));
     } finally {
       setCreatingRoom(false);
+    }
+  };
+
+  const openRenameModal = () => {
+    if (!currentRoom) return;
+    setRenameInput(getLocalizedText(currentRoom.title_i18n, 'sr'));
+    setShowRenameModal(true);
+  };
+
+  // Menja SAMO srpski naziv sobe, u bilo kom trenutku - ne zavisi od AI
+  // popune ili drugih koraka. Ostali jezici ne prate automatski; ako i
+  // njih treba osvežiti na novi naziv, to radi "🌐 Jezici" posle ovoga.
+  const handleSaveRename = async () => {
+    if (!currentRoom) return;
+    const newTitle = renameInput.trim();
+    if (!newTitle) return;
+
+    setSavingRename(true);
+    try {
+      const newTitleI18n = buildI18nObject(newTitle, currentRoom.title_i18n, 'sr');
+      const { error: dbErr } = await supabase
+        .from('rooms')
+        .update({ title: newTitle, title_i18n: newTitleI18n })
+        .eq('id', currentRoom.id as any);
+
+      if (dbErr) throw dbErr;
+
+      setRooms((prev) =>
+        prev.map((r, idx) => (idx === roomIdx ? { ...r, title_i18n: newTitleI18n } : r))
+      );
+      setShowRenameModal(false);
+    } catch (err: any) {
+      alert('Greška pri čuvanju naziva: ' + (err.message || 'Nepoznata greška'));
+    } finally {
+      setSavingRename(false);
     }
   };
 
@@ -745,6 +784,15 @@ export default function TourAdminTools({
         {creatingRoom ? '➕ Kreiranje...' : '➕ Soba'}
       </button>
 
+      <button
+        onClick={openRenameModal}
+        disabled={!currentRoom}
+        title="Promeni naziv trenutne sobe, u bilo kom trenutku"
+        style={{ ...toolbarButtonStyle, background: '#f59e0b', color: '#1e1b2e' }}
+      >
+        ✏️ Preimenuj
+      </button>
+
       <input
         ref={panoramaFileInputRef}
         type="file"
@@ -1014,6 +1062,57 @@ export default function TourAdminTools({
                 }}
               >
                 🎙️ Generiši Glas
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: PREIMENOVANJE TRENUTNE SOBE, U BILO KOM TRENUTKU */}
+      {showRenameModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', width: '100%', maxWidth: '420px', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid ' + THEME.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ color: '#f59e0b', fontSize: '17px', margin: 0, fontWeight: 700 }}>✏️ Preimenuj sobu</h2>
+              <button onClick={() => setShowRenameModal(false)} style={{ ...btnStyle, backgroundColor: THEME.surfaceAlt, color: THEME.textPrimary, borderColor: THEME.border, padding: '6px 12px' }}>
+                {t.cancel}
+              </button>
+            </div>
+
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <label style={{ fontSize: '12px', color: THEME.textSecondary, fontWeight: 600 }}>Naziv sobe (SR):</label>
+              <input
+                type="text"
+                value={renameInput}
+                onChange={(e) => setRenameInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && renameInput.trim()) handleSaveRename();
+                }}
+                autoFocus
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '14px', boxSizing: 'border-box' }}
+              />
+              <p style={{ margin: 0, fontSize: '12px', color: THEME.textSecondary, lineHeight: '1.5' }}>
+                Menja se samo srpski naziv. Ako soba ima i druge jezike, njih posle osveži preko „🌐 Jezici“.
+              </p>
+            </div>
+
+            <div style={{ padding: '16px 20px', borderTop: '1px solid ' + THEME.border }}>
+              <button
+                onClick={handleSaveRename}
+                disabled={!renameInput.trim() || savingRename}
+                style={{
+                  ...btnStyle,
+                  width: '100%',
+                  backgroundColor: !renameInput.trim() || savingRename ? THEME.surfaceAlt : '#f59e0b',
+                  color: !renameInput.trim() || savingRename ? THEME.textMuted : '#1e1b2e',
+                  borderColor: '#f59e0b',
+                  padding: '12px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  cursor: !renameInput.trim() || savingRename ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {savingRename ? 'Čuvanje...' : '💾 Sačuvaj naziv'}
               </button>
             </div>
           </div>
