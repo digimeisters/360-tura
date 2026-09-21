@@ -152,6 +152,7 @@ export default function ToursAdminPage() {
   const [updatingStatusSlug, setUpdatingStatusSlug] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
   const [copiedEmbedSlug, setCopiedEmbedSlug] = useState<string | null>(null);
+  const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -307,6 +308,41 @@ export default function ToursAdminPage() {
       setError('Nema veze sa serverom.');
     } finally {
       setUpdatingStatusSlug(null);
+    }
+  };
+
+  // Trajno brisanje - soba, panorame na R2 i statistika idu sa turom, bez
+  // povratka. Zato traži da admin UPIŠE tačan slug (ne samo OK na prozorčić)
+  // - isti nivo opreza kao GitHub traži za brisanje repozitorijuma.
+  const deleteTour = async (tour: TourRow) => {
+    const typed = window.prompt(
+      `Ovo TRAJNO briše turu "${pickTitle(tour)}" - sve sobe, panorame i statistiku poseta. Ne može se vratiti.\n\nZa potvrdu, upišite tačan slug ture:\n${tour.slug}`
+    );
+    if (typed === null) return;
+    if (typed.trim() !== tour.slug) {
+      alert('Upisani slug se ne poklapa - tura NIJE obrisana.');
+      return;
+    }
+
+    setDeletingSlug(tour.slug);
+    setNotice('');
+    setError('');
+    try {
+      const res = await authedFetch('/api/admin/tours', {
+        method: 'DELETE',
+        body: JSON.stringify({ slug: tour.slug })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setError(json.error || 'Tura nije obrisana.');
+        return;
+      }
+      setNotice(`Tura "${pickTitle(tour)}" je obrisana.`);
+      await load();
+    } catch {
+      setError('Nema veze sa serverom.');
+    } finally {
+      setDeletingSlug(null);
     }
   };
 
@@ -878,6 +914,22 @@ export default function ToursAdminPage() {
                       >
                         {copiedEmbedSlug === tour.slug ? 'Kopirano ✓' : 'Iframe'}
                       </button>
+                      <button
+                        onClick={() => void deleteTour(tour)}
+                        disabled={deletingSlug === tour.slug}
+                        title="Trajno briše turu, sobe, panorame i statistiku - ne može se vratiti"
+                        style={{
+                          ...formBtnStyle,
+                          padding: '6px 12px',
+                          fontSize: '12.5px',
+                          marginLeft: '6px',
+                          background: FORM.danger,
+                          color: '#fff',
+                          borderColor: FORM.danger
+                        }}
+                      >
+                        {deletingSlug === tour.slug ? '…' : 'Obriši'}
+                      </button>
                     </td>
                   </tr>
                 );
@@ -889,8 +941,9 @@ export default function ToursAdminPage() {
         <p style={{ marginTop: '14px', fontSize: '12.5px', color: FORM.textMuted }}>
           {"„Uredi sadržaj“"} otvara turu u admin režimu, gde se dodaju sobe, panorame i hotspotovi.
           {"„Iframe“"} kopira gotov kod za ugradnju ture na sajt agencije — radi tek kad je tura objavljena.
-          Crveno kod broja soba znači da neka soba nema panoramu. Nova tura kreće {"„u pripremi“"} —
-          link radi samo tebi dok je ne objaviš.
+          {"„Obriši“"} trajno uklanja turu, sobe, panorame i statistiku — traži da upišeš slug ture za potvrdu,
+          jer se ne može vratiti. Crveno kod broja soba znači da neka soba nema panoramu. Nova tura kreće
+          {"„u pripremi“"} — link radi samo tebi dok je ne objaviš.
         </p>
       </div>
     </main>

@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
+import { DeleteObjectsCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { requireAdmin } from '@/app/lib/adminAuth';
 import { uniqueSlug } from '@/app/lib/slug';
 import { refreshPublicPages } from '@/app/lib/revalidatePublic';
+import { r2Client } from '@/app/lib/r2';
 
 export const dynamic = 'force-dynamic';
 
@@ -309,6 +311,105 @@ export async function PATCH(req: Request) {
   if (error) {
     console.error('[api/admin/tours] update failed:', error.message);
     return NextResponse.json({ success: false, error: 'Izmena nije sačuvana.' }, { status: 500 });
+  }
+
+  refreshPublicPages();
+  return NextResponse.json({ success: true });
+}
+
+// R2 key iz snimljenog CDN URL-a (bazu + ?v=... skida, ostaje isti "put"
+// kojim je fajl upisan - vidi upload-panorama/finish/route.ts).
+function r2KeyFromUrl(url: string | null | undefined, cdnBase: string): string | null {
+  if (!url) return null;
+  const base = cdnBase.replace(/\/+$/, '') + '/';
+  if (!url.startsWith(base)) return null;
+  return url.slice(base.length).split('?')[0];
+}
+
+/**
+ * ============================================================
+ * DELETE /api/admin/tours
+ * ============================================================
+ * Trajno briše turu: sve sobe, panorame/sličice na R2 i statistiku poseta.
+ * Bez povratka - admin panel traži da se upiše tačan slug pre poziva ove
+ * rute (vidi deleteTour u app/admin/ture/page.tsx), ovde se samo još
+ * jednom proveri da slug postoji.
+ *
+ * Body (JSON): { slug: string }
+ */
+export async function DELETE(req: Request) {
+  const ctx = await requireAdmin(req);
+  if (!ctx.ok) return NextResponse.json({ success: false, error: ctx.error }, { status: ctx.status });
+
+  const body = await req.json().catch(() => ({}));
+  const slug = typeof body.slug === 'string' ? body.slug : '';
+  if (!slug) {
+    return NextResponse.json({ success: false, error: 'Nedostaje slug.' }, { status: 400 });
+  }
+
+  const { data: tour, error: tourErr } = await ctx.supabase
+    .from('tours')
+    .select('slug')
+    .eq('slug', slug)
+    .maybeSingle();
+
+  if (tourErr || !tour) {
+    return NextResponse.json({ success: false, error: `Tura "${slug}" nije pronađena.` }, { status: 404 });
+  }
+
+  const { data: rooms } = await ctx.supabase
+    .from('rooms')
+    .select('panorama_url_cf, preview_url')
+    .eq('tour_slug', slug);
+
+  // Brisanje fajlova na R2 je "best effort": ako pukne, tura se ipak briše
+  // iz baze - osiročeli fajl na R2 je manje loše od ture koja ne može da se
+  // obriše zato što je neka slika zaglavljena.
+  const bucket = process.env.R2_BUCKET_NAME;
+  const cdnUrl = process.env.NEXT_PUBLIC_CDN_URL;
+  if (bucket && cdnUrl) {
+    try {
+      const keys = new Set<string>();
+      for (const r of (rooms ?? []) as { panorama_url_cf?: string; preview_url?: string }[]) {
+        const a = r2KeyFromUrl(r.panorama_url_cf, cdnUrl);
+        const b = r2KeyFromUrl(r.preview_url, cdnUrl);
+        if (a) keys.add(a);
+        if (b) keys.add(b);
+      }
+
+      // Dopuna preko liste "foldera" ture (vidi upload-panorama/finish) -
+      // hvata i ono što URL parsiranje gore promaši.
+      const listed = await r2Client.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: `${slug}/` }));
+      for (const obj of listed.Contents ?? []) {
+        if (obj.Key) keys.add(obj.Key);
+      }
+
+      if (keys.size > 0) {
+        await r2Client.send(
+          new DeleteObjectsCommand({
+            Bucket: bucket,
+            Delete: { Objects: Array.from(keys).map((Key) => ({ Key })) }
+          })
+        );
+      }
+    } catch (r2Error) {
+      console.error('[api/admin/tours] R2 cleanup nije uspeo:', r2Error);
+    }
+  }
+
+  const { error: eventsErr } = await ctx.supabase.from('tour_events').delete().eq('tour_slug', slug);
+  if (eventsErr) console.error('[api/admin/tours] brisanje tour_events nije uspelo:', eventsErr.message);
+
+  const { error: roomsErr } = await ctx.supabase.from('rooms').delete().eq('tour_slug', slug);
+  if (roomsErr) {
+    console.error('[api/admin/tours] brisanje soba nije uspelo:', roomsErr.message);
+    return NextResponse.json({ success: false, error: 'Brisanje soba nije uspelo.' }, { status: 500 });
+  }
+
+  const { error: tourDeleteErr } = await ctx.supabase.from('tours').delete().eq('slug', slug);
+  if (tourDeleteErr) {
+    console.error('[api/admin/tours] brisanje ture nije uspelo:', tourDeleteErr.message);
+    return NextResponse.json({ success: false, error: 'Brisanje ture nije uspelo.' }, { status: 500 });
   }
 
   refreshPublicPages();
