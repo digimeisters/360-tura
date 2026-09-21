@@ -23,9 +23,9 @@ export const dynamic = 'force-dynamic';
  * Rezultat: čistiji kod, bez tipskih greški, ista funkcionalnost.
  */
 
-// Manje tačaka, ali relevantnijih: na MIN=4 je model često "izmišljao"
-// četvrtu tačku (generički prekidač za svetlo i sl.) samo da ispuni kvotu.
-const MIN_WAYPOINTS = 2;
+// Manje tačaka, ali relevantnijih: sa fiksnim minimumom je model često
+// "izmišljao" tačku (generički prekidač za svetlo i sl.) samo da ispuni
+// kvotu - zato je donja granica ukinuta, prazan niz je validan odgovor.
 const MAX_WAYPOINTS = 4;
 
 // Tekst tačke ide u mali tooltip u panorami, pa dužina mora da bude
@@ -103,7 +103,8 @@ function buildDraftSchema(): Schema {
       waypoints: {
         type: Type.ARRAY,
         description:
-          'Niz od 4 do 6 ČISTO INFORMATIVNIH tačaka. NIKADA tačke za prelaz između soba / vrata / hodnike.',
+          `Niz od 0 do ${MAX_WAYPOINTS} ČISTO INFORMATIVNIH tačaka. Prazan niz je u redu ako soba (hodnik, ostava, ` +
+          'prolaz) nema ništa vredno isticanja. NIKADA tačke za prelaz između soba / vrata / hodnike.',
         items: {
           type: Type.OBJECT,
           properties: {
@@ -232,11 +233,14 @@ from that object's pixel position in the image:
   pitch, and never repeat the same pair twice.
 
 CRITICAL WAYPOINT RULES:
-- Generate EXACTLY between ${MIN_WAYPOINTS} and ${MAX_WAYPOINTS} waypoints.
+- Generate AT MOST ${MAX_WAYPOINTS} waypoints - fewer is fine, and ZERO is
+  correct when the room genuinely has nothing worth pointing out (a plain
+  hallway, a closet, a utility passage). An empty array is a valid, expected
+  answer for such rooms - do not force it to look "populated".
 - Quality over quantity: only the most distinctive, worth-mentioning features.
-  Do NOT invent a waypoint just to reach the maximum - ${MIN_WAYPOINTS} strong
-  waypoints beat ${MAX_WAYPOINTS} where the last one is filler (a generic light
-  switch, an unremarkable wall).
+  Do NOT invent a waypoint just to reach a quota - one strong waypoint beats
+  ${MAX_WAYPOINTS} where the rest are filler (a generic light switch, an
+  unremarkable wall).
 - EVERY single waypoint MUST be purely INFORMATIONAL.
 - Focus waypoints ONLY on interior design, furniture, lighting, flooring, appliances, window views, or materials in the room.
 - STRICTLY DO NOT place waypoints on doors, hallways, stairs, or exits intended for room navigation/transitions.
