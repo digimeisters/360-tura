@@ -4,6 +4,7 @@ import { requireAdmin } from '@/app/lib/adminAuth';
 import { uniqueSlug } from '@/app/lib/slug';
 import { refreshPublicPages } from '@/app/lib/revalidatePublic';
 import { r2Client } from '@/app/lib/r2';
+import { geocodeAddress } from '@/app/lib/geocode';
 
 export const dynamic = 'force-dynamic';
 
@@ -127,6 +128,12 @@ export async function POST(req: Request) {
   const taken = new Set((existing ?? []).map((t) => t.slug.toLowerCase()));
   const slug = uniqueSlug(clean(body.slug, 'title') || title, taken);
 
+  const address = clean(body.address, 'address') || null;
+  const city = clean(body.city, 'city') || null;
+  // "Best effort": pogrešna adresa ili pad Nominatim-a ne sme da obori
+  // kreiranje ture - tura samo ostaje bez pina na mapi.
+  const coords = await geocodeAddress(address, city);
+
   const { error } = await ctx.supabase.from('tours').insert({
     slug,
     title,
@@ -136,8 +143,10 @@ export async function POST(req: Request) {
     // Tura čita title_i18n pre title-a, pa se naslov upisuje na oba mesta.
     title_i18n: { sr: title },
     agency_name: clean(body.agency_name, 'agency_name') || null,
-    address: clean(body.address, 'address') || null,
-    city: clean(body.city, 'city') || null,
+    address,
+    city,
+    lat: coords?.lat ?? null,
+    lng: coords?.lng ?? null,
     district: clean(body.district, 'district') || null,
     structure: clean(body.structure, 'structure') || null,
     area_sqm: cleanNumber(body.area_sqm, MAX_AREA_SQM),
@@ -268,7 +277,7 @@ export async function PATCH(req: Request) {
   // zabeležena analitika vezani su za njega.
   const { data: current } = await ctx.supabase
     .from('tours')
-    .select('title_i18n')
+    .select('title_i18n, address, city, lat, lng')
     .eq('slug', slug)
     .maybeSingle();
 
@@ -282,14 +291,25 @@ export async function PATCH(req: Request) {
     }
   }
 
+  const address = clean(body.address, 'address') || null;
+  const city = clean(body.city, 'city') || null;
+  // Ponovo geokodira SAMO ako se adresa/grad stvarno promenio - ne troši
+  // Nominatim upit na svaku izmenu (cena, sprat...) koja lokaciju ne dira.
+  const addressChanged = address !== (current?.address ?? null) || city !== (current?.city ?? null);
+  const coords = addressChanged
+    ? await geocodeAddress(address, city)
+    : { lat: current?.lat ?? null, lng: current?.lng ?? null };
+
   const { error } = await ctx.supabase
     .from('tours')
     .update({
       title,
       title_i18n: titleI18n,
       agency_name: clean(body.agency_name, 'agency_name') || null,
-      address: clean(body.address, 'address') || null,
-      city: clean(body.city, 'city') || null,
+      address,
+      city,
+      lat: coords?.lat ?? null,
+      lng: coords?.lng ?? null,
       district: clean(body.district, 'district') || null,
       structure: clean(body.structure, 'structure') || null,
       area_sqm: cleanNumber(body.area_sqm, MAX_AREA_SQM),

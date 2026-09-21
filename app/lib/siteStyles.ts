@@ -340,7 +340,13 @@ export const SITE_STYLES = `
     .filter-sheet-panel{width:100%; max-height:88vh; margin-top:auto; border-radius:20px 20px 0 0;}
   }
 
-  .filter-count{margin:.2rem 0 1.2rem; font-size:.88rem; color:var(--ink-soft); display:flex; align-items:center; gap:.6rem; flex-wrap:wrap;}
+  .filter-count{margin:.2rem 0 1.2rem; font-size:.88rem; color:var(--ink-soft); display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; justify-content:space-between;}
+  .map-toggle-btn{display:inline-flex; align-items:center; gap:.4rem; font-family:var(--font-display); font-size:.82rem; font-weight:700; color:var(--ink); background:var(--surface); border:1px solid var(--line-strong); border-radius:999px; padding:.4rem .9rem; cursor:pointer; white-space:nowrap;}
+  .map-toggle-btn.on{background:var(--accent); color:var(--on-accent); border-color:var(--accent);}
+  .tour-map{width:100%; height:420px; border-radius:16px; overflow:hidden; margin-bottom:1.4rem; border:1px solid var(--line-strong);}
+  .tour-map-empty{width:100%; padding:2rem; text-align:center; border-radius:16px; margin-bottom:1.4rem; background:var(--bg); border:1px solid var(--line-strong); color:var(--ink-soft); font-size:.9rem;}
+  .tour-map .leaflet-popup-content-wrapper{border-radius:10px;}
+  @media (max-width:560px){ .tour-map{height:320px;} }
   .filter-reset{background:none; border:none; padding:0; font:inherit; color:var(--accent); font-weight:650; cursor:pointer; text-decoration:underline;}
   /* Na telefonu meni ide preko cele širine kartice, da duga imena naselja
      ne isteraju panel van ekrana. */

@@ -1,11 +1,16 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import type { ShowcaseTour } from '../app/lib/showcaseTours';
 import { STRUCTURE_ORDER } from '../app/lib/propertyTaxonomy';
 import FilterMenu from './FilterMenu';
 import RangeFilter from './RangeFilter';
 import TourCard, { type TourCardLabels } from './TourCard';
+
+// Leaflet dira window/document - učitava se samo u pregledaču, i tek kad
+// zatreba (posetilac retko traži mapu, nema razloga da je svako skida).
+const TourMap = dynamic(() => import('./TourMap'), { ssr: false });
 
 /**
  * Spisak tura sa filterima (/ture). Sve ture stižu sa servera i već su u
@@ -169,6 +174,7 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
   const [scrolledPast, setScrolledPast] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [navHeight, setNavHeight] = useState<number | null>(null);
+  const [showMap, setShowMap] = useState(false);
   const blockRef = useRef<HTMLDivElement>(null);
 
   // Pilula mora da stane ISPOD gornje trake, a traka nije uvek iste visine -
@@ -530,17 +536,29 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
       )}
 
       <p className="filter-count" role="status">
-        {labels.count(shown.length, tours.length)}
-        {anyFilter && (
-          <button
-            type="button"
-            className="filter-reset"
-            onClick={() => apply(NO_FILTERS, NO_RANGES)}
-          >
-            {labels.reset}
-          </button>
-        )}
+        <span>
+          {labels.count(shown.length, tours.length)}
+          {anyFilter && (
+            <button
+              type="button"
+              className="filter-reset"
+              onClick={() => apply(NO_FILTERS, NO_RANGES)}
+            >
+              {labels.reset}
+            </button>
+          )}
+        </span>
+        <button
+          type="button"
+          className={`map-toggle-btn${showMap ? ' on' : ''}`}
+          onClick={() => setShowMap((v) => !v)}
+          aria-pressed={showMap}
+        >
+          🗺️ {showMap ? 'Sakrij mapu' : 'Mapa'}
+        </button>
       </p>
+
+      {showMap && <TourMap tours={shown} lang={lang} />}
 
       {shown.length > 0 ? (
         <div className={`tours-grid ${shown.length === 1 ? 'n-1' : shown.length === 2 || shown.length === 4 ? 'n-2' : 'n-3'}`}>
