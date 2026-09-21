@@ -1435,6 +1435,31 @@ export default function TourPage() {
 `${translations[langRef.current].welcomePrefix}${getLocalizedText(currentRoom.title_i18n, langRef.current)}`;
       const introAudioUrl = establishData.audio_url_i18n ?? establishData.audio_url;
 
+      // Namena sobe i specifično za sobu se pišu kao dva odvojena polja
+      // (vidi TourAdminTools "📝 Naracija") i tako se i prikazuju - dva
+      // uzastopna infoboksa, ne jedan spojen tekst. Izuzetak: ako soba već
+      // ima SNIMLJEN audio (od pre nego što je TTS isključen), taj audio
+      // priča ceo spojeni tekst kao jednu celinu, pa prikaz ostaje spojen
+      // da se ne raziđe od onoga što se čuje - vidi [[project-voice-narration-pending]].
+      const hasRecordedAudio = Boolean(getLocalizedText(introAudioUrl, langRef.current));
+      const introOnlyText = getLocalizedText(establishData.intro_i18n, langRef.current);
+      const detailOnlyText = getLocalizedText(establishData.detail_i18n, langRef.current);
+
+      const playIntroNarration = async () => {
+        if (hasRecordedAudio || (!introOnlyText && !detailOnlyText)) {
+          await playNarration(introAudioUrl, introTextRaw, currentRoom.title_i18n, undefined, 0);
+          return;
+        }
+        if (introOnlyText) {
+          await playNarration(undefined, establishData.intro_i18n, currentRoom.title_i18n, undefined, 0);
+        }
+        if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
+        if (!sequenceActiveRef.current || isInterruptedRef.current) return;
+        if (detailOnlyText) {
+          await playNarration(undefined, establishData.detail_i18n, currentRoom.title_i18n, undefined, 0);
+        }
+      };
+
       const rotatePromise = new Promise<void>((resolve) => {
         const durationPhase1 = 15000;
         const totalDegrees = 240;
@@ -1484,10 +1509,7 @@ export default function TourPage() {
         beginRotation();
       });
 
-      await Promise.all([
-        rotatePromise,
-        playNarration(introAudioUrl, introTextRaw, currentRoom.title_i18n, undefined, 0)
-      ]);
+      await Promise.all([rotatePromise, playIntroNarration()]);
 
       if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;

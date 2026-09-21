@@ -28,9 +28,9 @@ export const isWideScreen = () =>
 export const pickHfov = (v: HfovPair) => (isWideScreen() ? v.desktop : v.mobile);
 
 /** Normalan pogled na sobu. */
-export const DEFAULT_HFOV: HfovPair = { mobile: 65, desktop: 90 };
+export const DEFAULT_HFOV: HfovPair = { mobile: 65, desktop: 100 };
 /** Približavanje info-tački (vodič i ručni klik). */
-export const INFO_HFOV: HfovPair = { mobile: 50, desktop: 62 };
+export const INFO_HFOV: HfovPair = { mobile: 50, desktop: 70 };
 
 /** Vrednosti prelaza su zadate za telefon; na širokom ekranu se srazmerno šire. */
 export const scaledHfov = (mobile: number) =>

@@ -391,9 +391,14 @@ export default function TourAdminTools({
     }
   };
 
-  // Upload panorame sa računara za trenutnu sobu: šalje fajl na
-  // /api/upload-panorama, koji ga smešta na Cloudflare R2 i upisuje novi
-  // CDN link u rooms.panorama_url_cf. Zamenjuje postojeću panoramu sobe.
+  // Upload panorame sa računara za trenutnu sobu, u DVA koraka jer Vercel
+  // funkcije imaju tvrd limit od 4.5MB po telu zahteva, a panorame su skoro
+  // uvek veće:
+  //   1) /api/upload-panorama vrati potpisan R2 URL, pa fajl ide direktno
+  //      iz pregledača na Cloudflare (mimo naše funkcije, bez limita);
+  //   2) /api/upload-panorama/finish preuzme taj fajl NAZAD na serveru,
+  //      pretvori ga u WebP, napravi sličicu i upiše konačan CDN link u
+  //      rooms.panorama_url_cf.
   const handlePanoramaFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -410,18 +415,37 @@ export default function TourAdminTools({
       return;
     }
 
-    setPanoramaUploadProgress('Otpremanje panorame na Cloudflare...');
-
     try {
-      const formData = new FormData();
-      formData.append('roomId', String(currentRoom.id));
-      formData.append('file', file);
+      setPanoramaUploadProgress('Priprema upload-a...');
+      const presignRes = await fetch('/api/upload-panorama', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
+        body: JSON.stringify({ roomId: String(currentRoom.id), fileType: file.type, fileSize: file.size })
+      });
+      const presign = await presignRes.json();
+      if (!presignRes.ok || !presign.success) {
+        throw new Error(presign.error || 'Priprema upload-a nije uspela.');
+      }
 
-      const res = await fetch('/api/upload-panorama', { method: 'POST', headers: await adminAuthHeader(), body: formData });
-      const result = await res.json();
+      setPanoramaUploadProgress('Otpremanje panorame na Cloudflare...');
+      const putRes = await fetch(presign.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file
+      });
+      if (!putRes.ok) {
+        throw new Error(`Slanje fajla na Cloudflare nije uspelo (${putRes.status}).`);
+      }
 
-      if (!result.success) {
-        throw new Error(result.error || 'Nepoznata greška pri upload-u.');
+      setPanoramaUploadProgress('Obrada panorame (WebP, sličica)...');
+      const finishRes = await fetch('/api/upload-panorama/finish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
+        body: JSON.stringify({ roomId: String(currentRoom.id), key: presign.key })
+      });
+      const result = await finishRes.json();
+      if (!finishRes.ok || !result.success) {
+        throw new Error(result.error || 'Obrada panorame nije uspela.');
       }
 
       setRooms((prevRooms) =>
