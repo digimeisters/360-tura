@@ -13,9 +13,9 @@ import TourCard, { type TourCardLabels } from './TourCard';
 const TourMap = dynamic(() => import('./TourMap'), { ssr: false });
 
 /** Ista pribadača kao pinovi na mapi (TourMap) - dugme liči na ono što otvara. */
-function PinIcon() {
+function PinIcon({ size = 15 }: { size?: number }) {
   return (
-    <svg width="15" height="15" viewBox="0 0 30 30" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+    <svg width={size} height={size} viewBox="0 0 30 30" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
       <path
         d="M15 29C15 29 4 19.2 4 12A11 11 0 0 1 26 12C26 19.2 15 29 15 29Z"
         fill="currentColor"
@@ -553,28 +553,30 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
       )}
 
       <p className="filter-count" role="status">
-        <span>
-          {labels.count(shown.length, tours.length)}
-          {anyFilter && (
-            <button
-              type="button"
-              className="filter-reset"
-              onClick={() => apply(NO_FILTERS, NO_RANGES)}
-            >
-              {labels.reset}
-            </button>
-          )}
-        </span>
+        {labels.count(shown.length, tours.length)}
+        {anyFilter && (
+          <button
+            type="button"
+            className="filter-reset"
+            onClick={() => apply(NO_FILTERS, NO_RANGES)}
+          >
+            {labels.reset}
+          </button>
+        )}
+      </p>
+
+      <div className="map-cta">
+        <p className="map-cta-text">Proverite tačnu lokaciju pre nego što pozovete.</p>
         <button
           type="button"
-          className={`map-toggle-btn${showMap ? ' on' : ''}`}
+          className={`map-toggle-btn map-toggle-btn-lg${showMap ? ' on' : ''}`}
           onClick={() => setShowMap((v) => !v)}
           aria-pressed={showMap}
         >
-          <PinIcon />
+          <PinIcon size={19} />
           {showMap ? 'Sakrij mapu' : locatedCount > 0 ? `Mapa · ${locatedCount}` : 'Mapa'}
         </button>
-      </p>
+      </div>
 
       {showMap && <TourMap tours={shown} lang={lang} />}
 
