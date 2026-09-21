@@ -12,6 +12,19 @@ import TourCard, { type TourCardLabels } from './TourCard';
 // zatreba (posetilac retko traži mapu, nema razloga da je svako skida).
 const TourMap = dynamic(() => import('./TourMap'), { ssr: false });
 
+/** Ista pribadača kao pinovi na mapi (TourMap) - dugme liči na ono što otvara. */
+function PinIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 30 30" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <path
+        d="M15 29C15 29 4 19.2 4 12A11 11 0 0 1 26 12C26 19.2 15 29 15 29Z"
+        fill="currentColor"
+      />
+      <circle cx="15" cy="12" r="4" fill="var(--surface)" />
+    </svg>
+  );
+}
+
 /**
  * Spisak tura sa filterima (/ture). Sve ture stižu sa servera i već su u
  * HTML-u (zbog Google-a); filteri samo skrivaju kartice u pregledaču.
@@ -348,6 +361,10 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
     });
   });
 
+  // Koliko od prikazanih tura ima pin na mapi - broj u dugmetu je konkretniji
+  // poziv na klik nego prazan naziv "Mapa".
+  const locatedCount = shown.filter((t) => t.lat !== null && t.lng !== null).length;
+
   /**
    * Kvačica se dodaje ili sklanja. Promena grada izbacuje naselja koja u
    * novom izboru gradova više ne postoje - inače bi naselje iz prethodnog
@@ -554,7 +571,8 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
           onClick={() => setShowMap((v) => !v)}
           aria-pressed={showMap}
         >
-          🗺️ {showMap ? 'Sakrij mapu' : 'Mapa'}
+          <PinIcon />
+          {showMap ? 'Sakrij mapu' : locatedCount > 0 ? `Mapa · ${locatedCount}` : 'Mapa'}
         </button>
       </p>
 
