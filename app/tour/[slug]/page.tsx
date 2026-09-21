@@ -198,6 +198,15 @@ export default function TourPage() {
   const [isMuted, setIsMuted] = useState(false);
   const isMutedRef = useRef(false);
 
+  // Pauza automatskog vodiča: zamrzava naraciju (isti mehanizam kao zvuk -
+  // pauseForMute/resumeAfterMute) i kameru (kruženje faze 1, info-tačaka i
+  // završnog kruženja ka vratima), dok se ponovo ne klikne. Kratki, već
+  // pokrenuti pomeraji kamere (2.2s pogled ka tački, 2.5s hod ka vratima)
+  // se namerno ne prekidaju na pola - suviše kratki da bi to bilo primetno,
+  // a naredni korak čeka na pauzu pre nego što krene.
+  const [isGuidePaused, setIsGuidePaused] = useState(false);
+  const isGuidePausedRef = useRef(false);
+
   // Deljenje linka ture (Web Share API na mobilnom, kopiranje u clipboard
   // kao fallback na desktopu). shareCopied prikazuje kratku potvrdu.
   const [shareCopied, setShareCopied] = useState(false);
@@ -292,6 +301,12 @@ export default function TourPage() {
       guideFinishedTimerRef.current = null;
     }
     setGuideFinished(false);
+    // Pauza ima smisla samo dok vodič vodi - ručno preuzimanje je već
+    // "pauza" na svoj način (posetilac sam gleda), pa se ne nosi dalje.
+    if (isGuidePausedRef.current) {
+      isGuidePausedRef.current = false;
+      setIsGuidePaused(false);
+    }
     if (guideModeRef.current === 'manual') return;
     guideModeRef.current = 'manual';
     setGuideMode('manual');
@@ -1102,6 +1117,37 @@ export default function TourPage() {
     }
   };
 
+  // Isti mehanizam kao isključivanje zvuka (pauseForMute čuva mesto u
+  // naraciji), plus zamrzavanje kamere - vidi checkCompletion/lingerTick
+  // (faza 1 i završno kruženje) i waitWhilePaused (tačke i uvod) niže,
+  // koji proveravaju isGuidePausedRef pre svakog sledećeg koraka.
+  const togglePauseGuide = () => {
+    const next = !isGuidePausedRef.current;
+    isGuidePausedRef.current = next;
+    setIsGuidePaused(next);
+    if (next) {
+      pauseForMute();
+    } else {
+      resumeAfterMute();
+    }
+  };
+
+  // Čeka dok je tura pauzirana - koristi se PRE svakog vidljivog koraka
+  // (pomeranje kamere ka tački, početak naracije) da pauza deluje i kad je
+  // kliknuta usred kratke pauze IZMEĐU koraka, ne samo usred naracije.
+  const waitWhilePaused = useCallback((): Promise<void> => {
+    return new Promise((resolve) => {
+      const check = () => {
+        if (!isMountedRef.current || !isGuidePausedRef.current) {
+          resolve();
+          return;
+        }
+        setTimeout(check, 200);
+      };
+      check();
+    });
+  }, []);
+
   useEffect(() => {
     if (!hasMounted) return;
     if ((window as any).pannellum) { setPannellumReady(true); return; }
@@ -1362,24 +1408,51 @@ export default function TourPage() {
       roomSequenceFinishedRef.current = true;
 
       if (guideModeRef.current === 'auto') {
-        if (viewerRef.current && !isGyroActiveRef.current) {
+        // Brzina se preračuna svaki put kad kruženje (ponovo) krene - i na
+        // startu i posle svakog nastavka iz pauze - uvek na osnovu TRENUTNOG
+        // ugla kamere i PREOSTALOG vremena, pa uvek stigne do vrata bez
+        // obzira koliko je puta pauzirano usput.
+        const applyLingerRotation = (remainingMs: number) => {
+          if (!viewerRef.current || isGyroActiveRef.current) return;
           const doorAhead = nextGuideDoor();
           if (doorAhead) {
             const fromYaw = normalizeYaw(viewerRef.current.getYaw());
             const toYaw = getShortestTargetYaw(fromYaw, doorAhead.yaw ?? 0);
-            const turnSpeed = (toYaw - fromYaw) / (GUIDE_ROOM_LINGER_MS / 1000);
+            const turnSpeed = remainingMs > 0 ? (toYaw - fromYaw) / (remainingMs / 1000) : 0;
             viewerRef.current.startAutoRotate(turnSpeed, clampPitch(doorAhead.pitch ?? targetEstablishPitch));
           } else {
-            const idleRotateDegPerSec = 360 / 30; // 360° za 30 sekundi
+            const idleRotateDegPerSec = 360 / 30; // 360° za 30 sekundi, bez cilja (poslednja soba)
             viewerRef.current.startAutoRotate(idleRotateDegPerSec, targetEstablishPitch);
           }
-        }
-        scheduleAfterNarration(() => {
-          if (!isMountedRef.current || currentSession !== roomSessionRef.current) return;
+        };
+
+        applyLingerRotation(GUIDE_ROOM_LINGER_MS);
+
+        let lingerElapsed = 0;
+        let lastTick = performance.now();
+        let wasPaused = isGuidePausedRef.current;
+        const lingerTick = (now: number) => {
+          if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
           if (!sequenceActiveRef.current || isInterruptedRef.current) return;
-          if (viewerRef.current) viewerRef.current.stopAutoRotate();
-          if (guideModeRef.current === 'auto') advanceGuide();
-        }, GUIDE_ROOM_LINGER_MS);
+
+          const pausedNow = isGuidePausedRef.current;
+          if (pausedNow && !wasPaused) {
+            if (viewerRef.current) viewerRef.current.stopAutoRotate();
+          } else if (!pausedNow && wasPaused) {
+            applyLingerRotation(Math.max(0, GUIDE_ROOM_LINGER_MS - lingerElapsed));
+          }
+          wasPaused = pausedNow;
+          if (!pausedNow) lingerElapsed += now - lastTick;
+          lastTick = now;
+
+          if (lingerElapsed < GUIDE_ROOM_LINGER_MS) {
+            animFrameRef.current = requestAnimationFrame(lingerTick);
+          } else {
+            if (viewerRef.current) viewerRef.current.stopAutoRotate();
+            if (guideModeRef.current === 'auto') advanceGuide();
+          }
+        };
+        animFrameRef.current = requestAnimationFrame(lingerTick);
       } else {
         startInfiniteGlide();
       }
@@ -1477,6 +1550,9 @@ export default function TourPage() {
       const detailOnlyText = getLocalizedText(establishData.detail_i18n, langRef.current);
 
       const playIntroNarration = async () => {
+        await waitWhilePaused();
+        if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
+        if (!sequenceActiveRef.current || isInterruptedRef.current) return;
         if (hasRecordedAudio || (!introOnlyText && !detailOnlyText)) {
           await playNarration(introAudioUrl, introTextRaw, currentRoom.title_i18n, undefined, 0);
           return;
@@ -1520,14 +1596,28 @@ export default function TourPage() {
             }
           }
 
-          const startTime = performance.now();
+          // elapsedMs raste samo dok NIJE pauzirano - pauza tako prirodno
+          // zamrzne i odbrojavanje i kameru, bez posebnog "koliko je prošlo
+          // dok je stajalo" računanja.
+          let elapsedMs = 0;
+          let lastTick = performance.now();
+          let wasPaused = isGuidePausedRef.current;
           const checkCompletion = (now: number) => {
             if (!stillValid()) {
               if (viewerRef.current) viewerRef.current.stopAutoRotate();
               return resolve();
             }
-            const elapsed = now - startTime;
-            if (elapsed < durationPhase1) {
+            const pausedNow = isGuidePausedRef.current;
+            if (pausedNow && !wasPaused) {
+              if (viewerRef.current) viewerRef.current.stopAutoRotate();
+            } else if (!pausedNow && wasPaused && viewerRef.current && !isGyroActiveRef.current) {
+              viewerRef.current.startAutoRotate(speed, entry ? startPitch : targetEstablishPitch);
+            }
+            wasPaused = pausedNow;
+            if (!pausedNow) elapsedMs += now - lastTick;
+            lastTick = now;
+
+            if (elapsedMs < durationPhase1) {
               animFrameRef.current = requestAnimationFrame(checkCompletion);
             } else {
               if (viewerRef.current) viewerRef.current.stopAutoRotate();
@@ -1552,6 +1642,12 @@ export default function TourPage() {
           finishRoomSequence();
           return;
         }
+
+        // Pauzirano IZMEĐU tačaka (nema šta da se zamrzne, ništa se još ne
+        // pomera) - sledeći pogled ka tački čeka ovde dok se ne nastavi.
+        await waitWhilePaused();
+        if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
+        if (!sequenceActiveRef.current || isInterruptedRef.current || !viewerRef.current) return;
 
         const item = infoPoints[index];
         const currentYaw = normalizeYaw(viewerRef.current.getYaw());
@@ -1869,6 +1965,8 @@ export default function TourPage() {
             hasGuide={hasGuide}
             guideMode={guideMode}
             onToggleGuideMode={toggleGuideMode}
+            isGuidePaused={isGuidePaused}
+            onTogglePauseGuide={togglePauseGuide}
           />
           </div>
 

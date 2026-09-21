@@ -93,6 +93,19 @@ export const IconMute = (p: IconProps) => (
   </Svg>
 );
 
+export const IconPause = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="6" y="4.5" width="4" height="15" rx="1" />
+    <rect x="14" y="4.5" width="4" height="15" rx="1" />
+  </Svg>
+);
+
+export const IconPlay = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M7 4.5v15l13-7.5z" strokeLinejoin="round" />
+  </Svg>
+);
+
 export const IconHeadphones = (p: IconProps) => (
   <Svg {...p}>
     <path d="M3.5 14.5h2.5a2 2 0 0 1 2 2V19a2 2 0 0 1-2 2h-.5a2 2 0 0 1-2-2v-6.5a8.5 8.5 0 0 1 17 0V19a2 2 0 0 1-2 2H18a2 2 0 0 1-2-2v-2.5a2 2 0 0 1 2-2h2.5" />

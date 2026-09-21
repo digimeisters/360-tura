@@ -1,5 +1,5 @@
 import { THEME, GLASS, GLASS_ACCENT, overlayIconStyle, SCREEN_BOTTOM } from './theme';
-import { IconCollapse, IconCompass, IconExpand, IconHand, IconHeadphones, IconMute, IconSound } from './icons';
+import { IconCollapse, IconCompass, IconExpand, IconHand, IconHeadphones, IconMute, IconPause, IconPlay, IconSound } from './icons';
 import type { Language } from './types';
 
 /**
@@ -78,7 +78,9 @@ export function OverlayButtons({
   onToggleMute,
   hasGuide,
   guideMode,
-  onToggleGuideMode
+  onToggleGuideMode,
+  isGuidePaused,
+  onTogglePauseGuide
 }: {
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
@@ -89,6 +91,8 @@ export function OverlayButtons({
   hasGuide: boolean;
   guideMode: 'auto' | 'manual';
   onToggleGuideMode: () => void;
+  isGuidePaused: boolean;
+  onTogglePauseGuide: () => void;
 }) {
   const guideTitle =
     guideMode === 'auto'
@@ -137,6 +141,18 @@ export function OverlayButtons({
       >
         {isMuted ? <IconMute size={19} /> : <IconSound size={19} />}
       </button>
+
+      {hasGuide && guideMode === 'auto' && (
+        <button
+          onClick={onTogglePauseGuide}
+          style={{ ...overlayIconStyle, background: isGuidePaused ? 'rgba(91, 146, 214, 0.55)' : GLASS.background }}
+          title={isGuidePaused ? 'Nastavi turu' : 'Pauziraj turu'}
+          aria-label={isGuidePaused ? 'Nastavi turu' : 'Pauziraj turu'}
+          aria-pressed={isGuidePaused}
+        >
+          {isGuidePaused ? <IconPlay size={19} /> : <IconPause size={19} />}
+        </button>
+      )}
 
       {hasGuide && (
         <button
