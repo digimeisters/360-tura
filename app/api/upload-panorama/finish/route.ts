@@ -59,7 +59,7 @@ export async function POST(req: Request) {
 
     const { data: room, error: roomErr } = await ctx.supabase
       .from('rooms')
-      .select('id')
+      .select('id, tour_slug')
       .eq('id', roomId)
       .single();
 
@@ -77,16 +77,22 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(await getResult.Body.transformToByteArray());
     const ext = key.split('.').pop() || 'jpg';
 
+    // Fajlovi idu u "folder" sa imenom ture (slug, ne naslov - naslov se
+    // može menjati, slug ostaje isti ceo vek ture) da se u R2/Cloudflare
+    // pregledu vidi na prvi pogled kojoj nekretnini pripadaju, umesto svih
+    // panorama izmešanih u jednom ravnom spisku.
+    const folder = (room as { tour_slug?: string }).tour_slug || 'ostalo';
+
     // Panorama se čuva kao WebP: isti kadar u punoj rezoluciji, ali oko 90%
     // manji od JPEG-a. Ako konverzija pukne, ide original - bolje teška
     // panorama nego nikakva.
     let finalBody: Buffer = buffer;
     let contentType = getResult.ContentType || 'image/jpeg';
-    let finalKey = `${roomId}-panorama.${ext}`;
+    let finalKey = `${folder}/${roomId}-panorama.${ext}`;
     try {
       finalBody = await convertPanoramaToWebp(buffer);
       contentType = 'image/webp';
-      finalKey = `${roomId}-panorama.webp`;
+      finalKey = `${folder}/${roomId}-panorama.webp`;
     } catch (convertError) {
       console.error('UPLOAD PANORAMA: WebP konverzija nije uspela:', convertError);
     }
@@ -110,7 +116,7 @@ export async function POST(req: Request) {
     let previewUrl: string | null = null;
     try {
       const preview = await generatePanoramaPreview(buffer);
-      const previewKey = `${roomId}-preview.jpg`;
+      const previewKey = `${folder}/${roomId}-preview.jpg`;
       await r2Client.send(
         new PutObjectCommand({ Bucket: bucket, Key: previewKey, Body: preview, ContentType: 'image/jpeg' })
       );
