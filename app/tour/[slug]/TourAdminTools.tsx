@@ -141,7 +141,13 @@ export default function TourAdminTools({
 
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [renameInput, setRenameInput] = useState('');
+  const [orderInput, setOrderInput] = useState('');
   const [savingRename, setSavingRename] = useState(false);
+
+  const [showNarrationModal, setShowNarrationModal] = useState(false);
+  const [narrationIntroInput, setNarrationIntroInput] = useState('');
+  const [narrationDetailInput, setNarrationDetailInput] = useState('');
+  const [savingNarration, setSavingNarration] = useState(false);
 
   const currentRoom = rooms[roomIdx];
 
@@ -252,35 +258,98 @@ export default function TourAdminTools({
   const openRenameModal = () => {
     if (!currentRoom) return;
     setRenameInput(getLocalizedText(currentRoom.title_i18n, 'sr'));
+    setOrderInput(String(currentRoom.order_index ?? ''));
     setShowRenameModal(true);
   };
 
-  // Menja SAMO srpski naziv sobe, u bilo kom trenutku - ne zavisi od AI
-  // popune ili drugih koraka. Ostali jezici ne prate automatski; ako i
-  // njih treba osvežiti na novi naziv, to radi "🌐 Jezici" posle ovoga.
+  // Menja naziv (SAMO srpski - ostali jezici ne prate automatski, njih
+  // osvežava "🌐 Jezici" posle ovoga) i/ili redni broj sobe, u bilo kom
+  // trenutku. Redni broj određuje redosled soba svuda (traka soba, plan,
+  // vodič) - upisuje se u bazu odmah, ali PROSTOR U OVOJ SESIJI se ne
+  // presortira uživo (da roomIdx ne "iskoči" ispod trenutno otvorene
+  // panorame); novi redosled se vidi od sledećeg učitavanja ture.
   const handleSaveRename = async () => {
     if (!currentRoom) return;
     const newTitle = renameInput.trim();
     if (!newTitle) return;
+
+    const trimmedOrder = orderInput.trim();
+    const newOrder = trimmedOrder ? Number(trimmedOrder) : currentRoom.order_index ?? 1;
+    if (!Number.isInteger(newOrder) || newOrder < 1) {
+      alert('Redni broj mora biti ceo broj, 1 ili veći.');
+      return;
+    }
+
+    if (newOrder !== currentRoom.order_index) {
+      const clash = rooms.find((r) => r.id !== currentRoom.id && r.order_index === newOrder);
+      if (clash) {
+        const clashTitle = getLocalizedText(clash.title_i18n, 'sr') || '(bez naziva)';
+        const ok = confirm(`Sobu "${clashTitle}" već ima redni broj ${newOrder}. Ipak sačuvati? Redosled će zavisiti od baze.`);
+        if (!ok) return;
+      }
+    }
 
     setSavingRename(true);
     try {
       const newTitleI18n = buildI18nObject(newTitle, currentRoom.title_i18n, 'sr');
       const { error: dbErr } = await supabase
         .from('rooms')
-        .update({ title: newTitle, title_i18n: newTitleI18n })
+        .update({ title: newTitle, title_i18n: newTitleI18n, order_index: newOrder })
         .eq('id', currentRoom.id as any);
 
       if (dbErr) throw dbErr;
 
       setRooms((prev) =>
-        prev.map((r, idx) => (idx === roomIdx ? { ...r, title_i18n: newTitleI18n } : r))
+        prev.map((r, idx) => (idx === roomIdx ? { ...r, title_i18n: newTitleI18n, order_index: newOrder } : r))
       );
       setShowRenameModal(false);
     } catch (err: any) {
       alert('Greška pri čuvanju naziva: ' + (err.message || 'Nepoznata greška'));
     } finally {
       setSavingRename(false);
+    }
+  };
+
+  const openNarrationModal = () => {
+    if (!currentRoom) return;
+    const establishData = parseEstablish(currentRoom.establish_i18n);
+    setNarrationIntroInput(getLocalizedText(establishData.intro_i18n, 'sr'));
+    setNarrationDetailInput(getLocalizedText(establishData.detail_i18n, 'sr'));
+    setShowNarrationModal(true);
+  };
+
+  // Menja SAMO srpski tekst uvodne naracije (namena sobe + specifično za
+  // sobu), u bilo kom trenutku - ne zavisi od AI popune i ne dira
+  // waypoint-e ni naziv. NE dira postojeći audio: ako je glas već
+  // generisan za ovu sobu, i dalje govori STARI tekst dok se ponovo ne
+  // pokrene "🎙️ Glas" - to je namerno rečeno u samom modalu.
+  const handleSaveNarration = async () => {
+    if (!currentRoom) return;
+
+    setSavingNarration(true);
+    try {
+      const establishData = parseEstablish(currentRoom.establish_i18n);
+      const updatedEstablish: EstablishData = {
+        ...establishData,
+        intro_i18n: buildI18nObject(narrationIntroInput.trim(), establishData.intro_i18n, 'sr'),
+        detail_i18n: buildI18nObject(narrationDetailInput.trim(), establishData.detail_i18n, 'sr')
+      };
+
+      const { error: dbErr } = await supabase
+        .from('rooms')
+        .update({ establish_i18n: updatedEstablish })
+        .eq('id', currentRoom.id as any);
+
+      if (dbErr) throw dbErr;
+
+      setRooms((prev) =>
+        prev.map((r, idx) => (idx === roomIdx ? { ...r, establish_i18n: updatedEstablish } : r))
+      );
+      setShowNarrationModal(false);
+    } catch (err: any) {
+      alert('Greška pri čuvanju naracije: ' + (err.message || 'Nepoznata greška'));
+    } finally {
+      setSavingNarration(false);
     }
   };
 
@@ -793,6 +862,15 @@ export default function TourAdminTools({
         ✏️ Preimenuj
       </button>
 
+      <button
+        onClick={openNarrationModal}
+        disabled={!currentRoom}
+        title="Promeni tekst uvodne naracije ove sobe, u bilo kom trenutku"
+        style={{ ...toolbarButtonStyle, background: '#0d9488' }}
+      >
+        📝 Naracija
+      </button>
+
       <input
         ref={panoramaFileInputRef}
         type="file"
@@ -1091,8 +1169,22 @@ export default function TourAdminTools({
                 autoFocus
                 style={{ width: '100%', padding: '10px', borderRadius: '8px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '14px', boxSizing: 'border-box' }}
               />
+
+              <label style={{ fontSize: '12px', color: THEME.textSecondary, fontWeight: 600, marginTop: '4px' }}>Redni broj (redosled soba):</label>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={orderInput}
+                onChange={(e) => setOrderInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && renameInput.trim()) handleSaveRename();
+                }}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '14px', boxSizing: 'border-box' }}
+              />
               <p style={{ margin: 0, fontSize: '12px', color: THEME.textSecondary, lineHeight: '1.5' }}>
-                Menja se samo srpski naziv. Ako soba ima i druge jezike, njih posle osveži preko „🌐 Jezici“.
+                Naziv menja samo srpski (ostale jezike posle osveži preko „🌐 Jezici“). Redni broj određuje
+                redosled soba u turi - novi redosled se vidi od sledećeg učitavanja ture.
               </p>
             </div>
 
@@ -1113,6 +1205,68 @@ export default function TourAdminTools({
                 }}
               >
                 {savingRename ? 'Čuvanje...' : '💾 Sačuvaj naziv'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: IZMENA TEKSTA UVODNE NARACIJE, U BILO KOM TRENUTKU */}
+      {showNarrationModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', width: '100%', maxWidth: '480px', maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid ' + THEME.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ color: '#0d9488', fontSize: '17px', margin: 0, fontWeight: 700 }}>📝 Uvodna naracija</h2>
+              <button onClick={() => setShowNarrationModal(false)} style={{ ...btnStyle, backgroundColor: THEME.surfaceAlt, color: THEME.textPrimary, borderColor: THEME.border, padding: '6px 12px' }}>
+                {t.cancel}
+              </button>
+            </div>
+
+            <div style={{ padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '12px', color: THEME.textSecondary, display: 'block', marginBottom: '4px', fontWeight: 600 }}>Uvodna naracija - namena sobe (SR):</label>
+                <textarea
+                  value={narrationIntroInput}
+                  onChange={(e) => setNarrationIntroInput(e.target.value)}
+                  rows={2}
+                  autoFocus
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '14px', resize: 'vertical', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', color: THEME.textSecondary, display: 'block', marginBottom: '4px', fontWeight: 600 }}>Uvodna naracija - specifično za sobu (SR):</label>
+                <textarea
+                  value={narrationDetailInput}
+                  onChange={(e) => setNarrationDetailInput(e.target.value)}
+                  rows={3}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '14px', resize: 'vertical', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <p style={{ margin: 0, fontSize: '12px', color: THEME.textSecondary, lineHeight: '1.5' }}>
+                Menja se samo srpski tekst. Ako je za ovu sobu već generisan glas, i dalje govori stari
+                tekst dok ga ponovo ne pokreneš preko „🎙️ Glas“. Ostale jezike osveži preko „🌐 Jezici“.
+              </p>
+            </div>
+
+            <div style={{ padding: '16px 20px', borderTop: '1px solid ' + THEME.border }}>
+              <button
+                onClick={handleSaveNarration}
+                disabled={savingNarration}
+                style={{
+                  ...btnStyle,
+                  width: '100%',
+                  backgroundColor: savingNarration ? THEME.surfaceAlt : '#0d9488',
+                  color: savingNarration ? THEME.textMuted : '#fff',
+                  borderColor: '#0d9488',
+                  padding: '12px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  cursor: savingNarration ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {savingNarration ? 'Čuvanje...' : '💾 Sačuvaj naraciju'}
               </button>
             </div>
           </div>
