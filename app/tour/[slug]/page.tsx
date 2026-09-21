@@ -1344,14 +1344,45 @@ export default function TourPage() {
       }
     };
 
+    // Vodič ne prelazi u sledeću sobu ODMAH posle poslednje info-tačke -
+    // kamera još kruži ovoliko da posetilac stigne da pogleda okolo.
+    const GUIDE_ROOM_LINGER_MS = 7000;
+
     // Kraj naracije sobe: u ručnom modu se kao i do sada samo mirno stoji
-    // (startInfiniteGlide); u automatskom vodič odmah nastavlja dalje.
+    // (startInfiniteGlide); u automatskom vodič kruži GUIDE_ROOM_LINGER_MS,
+    // pa tek onda ide dalje. Kruženje namerno NIJE nasumično: brzina se
+    // računa tako da kamera stigne TAČNO do sledećih vrata (ili tačke ka
+    // sledećoj sobi) kad vreme istekne - isti obrazac kao "beginRotation"
+    // gore (ugao / trajanje = brzina), samo je ovde ugao razdaljina do
+    // vrata, ne fiksnih 240°. Ako nema sledećeg koraka (poslednja soba),
+    // kruži bez cilja, kao i pre.
     const finishRoomSequence = () => {
       if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
       roomSequenceFinishedRef.current = true;
-      if (guideModeRef.current === 'auto') advanceGuide();
-      else startInfiniteGlide();
+
+      if (guideModeRef.current === 'auto') {
+        if (viewerRef.current && !isGyroActiveRef.current) {
+          const doorAhead = nextGuideDoor();
+          if (doorAhead) {
+            const fromYaw = normalizeYaw(viewerRef.current.getYaw());
+            const toYaw = getShortestTargetYaw(fromYaw, doorAhead.yaw ?? 0);
+            const turnSpeed = (toYaw - fromYaw) / (GUIDE_ROOM_LINGER_MS / 1000);
+            viewerRef.current.startAutoRotate(turnSpeed, clampPitch(doorAhead.pitch ?? targetEstablishPitch));
+          } else {
+            const idleRotateDegPerSec = 360 / 30; // 360° za 30 sekundi
+            viewerRef.current.startAutoRotate(idleRotateDegPerSec, targetEstablishPitch);
+          }
+        }
+        scheduleAfterNarration(() => {
+          if (!isMountedRef.current || currentSession !== roomSessionRef.current) return;
+          if (!sequenceActiveRef.current || isInterruptedRef.current) return;
+          if (viewerRef.current) viewerRef.current.stopAutoRotate();
+          if (guideModeRef.current === 'auto') advanceGuide();
+        }, GUIDE_ROOM_LINGER_MS);
+      } else {
+        startInfiniteGlide();
+      }
     };
 
     // Stara scena (iznad nove) nestaje; nova je već učitana ispod nje.
