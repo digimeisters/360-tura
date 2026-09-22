@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { r2Client } from '@/app/lib/r2';
 import { requireAdmin } from '@/app/lib/adminAuth';
+import { refreshPublicPages } from '@/app/lib/revalidatePublic';
 
 export const dynamic = 'force-dynamic';
 
@@ -102,6 +103,85 @@ export async function POST(req: Request) {
     console.error('UPLOAD PANORAMA PRESIGN ERROR:', error);
     return NextResponse.json(
       { success: false, error: error?.message || 'Greška tokom pripreme upload-a.' },
+      { status: 500 }
+    );
+  }
+}
+
+// R2 key iz snimljenog CDN URL-a (skida bazu i ?v=...) - isti obrazac kao
+// r2KeyFromUrl u api/admin/tours/route.ts.
+function r2KeyFromUrl(url: string | null | undefined, cdnBase: string): string | null {
+  if (!url) return null;
+  const base = cdnBase.replace(/\/+$/, '') + '/';
+  if (!url.startsWith(base)) return null;
+  return url.slice(base.length).split('?')[0];
+}
+
+/**
+ * ============================================================
+ * DELETE /api/upload-panorama
+ * ============================================================
+ * Uklanja panoramu sobe (pogrešno otpremljena slika, ili admin više ne želi
+ * baš tu) - soba se vraća u stanje "bez panorame", spremna za novi upload.
+ * Briše i fajlove na R2 (panorama + sličica), best effort.
+ *
+ * Body (JSON): { roomId: string }
+ */
+export async function DELETE(req: Request) {
+  try {
+    const ctx = await requireAdmin(req);
+    if (!ctx.ok) return NextResponse.json({ success: false, error: ctx.error }, { status: ctx.status });
+
+    const body = await req.json().catch(() => ({}));
+    const roomId = typeof body.roomId === 'string' ? body.roomId : '';
+    if (!roomId) {
+      return NextResponse.json({ success: false, error: 'Nedostaje roomId.' }, { status: 400 });
+    }
+
+    const { data: room, error: roomErr } = await ctx.supabase
+      .from('rooms')
+      .select('id, panorama_url_cf, preview_url')
+      .eq('id', roomId)
+      .maybeSingle();
+
+    if (roomErr || !room) {
+      return NextResponse.json({ success: false, error: `Soba ${roomId} nije pronađena.` }, { status: 404 });
+    }
+
+    const bucket = process.env.R2_BUCKET_NAME;
+    const cdnUrl = process.env.NEXT_PUBLIC_CDN_URL;
+    if (bucket && cdnUrl) {
+      const keys = [
+        r2KeyFromUrl((room as any).panorama_url_cf, cdnUrl),
+        r2KeyFromUrl((room as any).preview_url, cdnUrl)
+      ].filter((k): k is string => Boolean(k));
+
+      if (keys.length > 0) {
+        try {
+          await r2Client.send(
+            new DeleteObjectsCommand({ Bucket: bucket, Delete: { Objects: keys.map((Key) => ({ Key })) } })
+          );
+        } catch (r2Error) {
+          console.error('DELETE PANORAMA: R2 brisanje nije uspelo:', r2Error);
+        }
+      }
+    }
+
+    const { error: updateError } = await ctx.supabase
+      .from('rooms')
+      .update({ panorama_url_cf: null, panorama_url: null, preview_url: null })
+      .eq('id', roomId);
+
+    if (updateError) {
+      return NextResponse.json({ success: false, error: `Upis u bazu nije uspeo: ${updateError.message}` }, { status: 500 });
+    }
+
+    refreshPublicPages();
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('DELETE PANORAMA ERROR:', error);
+    return NextResponse.json(
+      { success: false, error: error?.message || 'Greška tokom brisanja panorame.' },
       { status: 500 }
     );
   }

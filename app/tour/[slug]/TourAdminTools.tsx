@@ -459,6 +459,38 @@ export default function TourAdminTools({
     }
   };
 
+  // Uklanja panoramu sobe (pogrešno otpremljena slika, ili admin više ne
+  // želi baš tu) - soba se vraća na "bez panorame", spremna za novi upload.
+  // Ne dira naziv, naraciju ni tačke - samo sliku.
+  const handleDeletePanorama = async () => {
+    if (!currentRoom || !currentRoom.panorama_url_cf) return;
+    if (!confirm('Obrisati panoramu ove sobe? Soba ostaje bez slike dok se ne otpremi nova.')) return;
+
+    setPanoramaUploadProgress('Brisanje panorame...');
+    try {
+      const res = await fetch('/api/upload-panorama', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
+        body: JSON.stringify({ roomId: String(currentRoom.id) })
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || 'Brisanje panorame nije uspelo.');
+      }
+
+      setRooms((prevRooms) =>
+        prevRooms.map((r, idx) =>
+          idx === roomIdx ? { ...r, panorama_url_cf: undefined, panorama_url: undefined, preview_url: undefined } : r
+        )
+      );
+    } catch (err: any) {
+      console.error('[Brisanje panorame] Greška:', err);
+      alert('Greška pri brisanju panorame: ' + (err.message || 'Nepoznata greška'));
+    } finally {
+      setPanoramaUploadProgress(null);
+    }
+  };
+
   // Naknadno generisanje AI glasa za VEĆ POSTOJEĆI sadržaj sobe (bez celog
   // AI draft/prevod toka). Koristi trenutno sačuvan tekst kakav god da je -
   // ručno unet ili prethodno AI generisan/preveden.
@@ -910,6 +942,17 @@ export default function TourAdminTools({
       >
         📤 Panorama
       </button>
+
+      {currentRoom?.panorama_url_cf && (
+        <button
+          onClick={() => void handleDeletePanorama()}
+          disabled={!!panoramaUploadProgress}
+          title="Obriši panoramu ove sobe (pogrešno otpremljena slika i sl.)"
+          style={{ ...toolbarButtonStyle, background: THEME.danger }}
+        >
+          🗑️ Panorama
+        </button>
+      )}
 
       <button
         onClick={handleAutoPopulateRoom}
