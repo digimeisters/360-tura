@@ -133,6 +133,7 @@ export default function TourAdminTools({
   const panoramaFileInputRef = useRef<HTMLInputElement>(null);
 
   const [creatingRoom, setCreatingRoom] = useState(false);
+  const [deletingRoom, setDeletingRoom] = useState(false);
 
   const [showGuidePathModal, setShowGuidePathModal] = useState(false);
   const [guidePathInput, setGuidePathInput] = useState('');
@@ -252,6 +253,67 @@ export default function TourAdminTools({
       alert('Greška pri kreiranju sobe: ' + (err.message || 'Nepoznata greška'));
     } finally {
       setCreatingRoom(false);
+    }
+  };
+
+  // Trajno brisanje cele sobe (ne samo panorame) - pogrešno napravljena
+  // soba, duplikat i sl. Server (DELETE /api/admin/rooms) čisti R2 fajlove,
+  // navigacione tačke u DRUGIM sobama koje vode baš u ovu, i redni broj
+  // sobe iz putanje vodiča. Isto filtriranje se radi i ovde nad lokalnim
+  // stanjem - server već zna da je uradio to isto, pa nema potrebe da se
+  // čeka nov odgovor sa sadržajem.
+  const handleDeleteRoom = async () => {
+    if (!currentRoom) return;
+    const roomTitle = getLocalizedText(currentRoom.title_i18n, 'sr') || '(soba bez naziva)';
+    if (
+      !confirm(
+        `Trajno obrisati sobu "${roomTitle}"? Uklanjaju se i navigacione tačke drugih soba koje vode u nju, i njen redni broj iz putanje vodiča, ako postoji. Ne može se vratiti.`
+      )
+    ) {
+      return;
+    }
+
+    setDeletingRoom(true);
+    try {
+      const res = await fetch('/api/admin/rooms', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
+        body: JSON.stringify({ roomId: String(currentRoom.id) })
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || 'Brisanje sobe nije uspelo.');
+      }
+
+      const deletedId = String(currentRoom.id);
+      const deletedOrderIndex = currentRoom.order_index ?? null;
+
+      const remainingRooms = rooms
+        .filter((r) => String(r.id) !== deletedId)
+        .map((r) => {
+          const waypoints = parseWaypoints(r.waypoints_i18n);
+          const filtered = waypoints.filter((wp) => String(wp.targetRoomId ?? '') !== deletedId);
+          return filtered.length === waypoints.length ? r : { ...r, waypoints_i18n: filtered };
+        });
+
+      setRooms(remainingRooms);
+      setRoomIdx(Math.min(roomIdx, Math.max(0, remainingRooms.length - 1)));
+
+      if (deletedOrderIndex !== null && tour?.guide_path) {
+        const steps = tour.guide_path
+          .split(',')
+          .map((s) => Number(s.trim()))
+          .filter((n) => Number.isInteger(n) && n > 0);
+        const filteredSteps = steps.filter((n) => n !== deletedOrderIndex);
+        if (filteredSteps.length !== steps.length) {
+          setTour((prev) => (prev ? { ...prev, guide_path: filteredSteps.length > 0 ? filteredSteps.join(',') : null } : prev));
+        }
+      }
+    } catch (err: any) {
+      console.error('[Brisanje sobe] Greška:', err);
+      alert('Greška pri brisanju sobe: ' + (err.message || 'Nepoznata greška'));
+    } finally {
+      setDeletingRoom(false);
     }
   };
 
@@ -917,6 +979,17 @@ export default function TourAdminTools({
       >
         ✏️ Preimenuj
       </button>
+
+      {currentRoom && (
+        <button
+          onClick={() => void handleDeleteRoom()}
+          disabled={deletingRoom}
+          title="Trajno obriši ovu sobu - panoramu, tačke i sve što na nju vodi iz drugih soba"
+          style={{ ...toolbarButtonStyle, background: THEME.danger }}
+        >
+          {deletingRoom ? '🗑️ Brisanje...' : '🗑️ Soba'}
+        </button>
+      )}
 
       <button
         onClick={openNarrationModal}
