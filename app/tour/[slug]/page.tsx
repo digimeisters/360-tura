@@ -847,6 +847,42 @@ export default function TourPage() {
     );
   };
 
+  // Da li i18n objekat ima BILO KAKVU vrednost, za bilo koji jezik - koristi
+  // se da se utvrdi da li je tura UOPŠTE ikad prošla kroz generisanje glasa,
+  // bez obzira na koji jezik.
+  const hasAnyLangValue = (data: unknown): boolean => {
+    if (!data) return false;
+    let obj: unknown = data;
+    if (typeof data === 'string') {
+      try {
+        obj = JSON.parse(data);
+      } catch {
+        return false;
+      }
+    }
+    if (obj && typeof obj === 'object') {
+      return Object.values(obj as Record<string, unknown>).some(
+        (v) => typeof v === 'string' && v.trim().length > 0
+      );
+    }
+    return false;
+  };
+
+  // Da li JE tura ikad dobila snimljen glas - u bilo kojoj sobi, na bilo
+  // kom jeziku. Razlikuje ture koje su prošle kroz TTS od onih koje nisu.
+  const tourHasAnyAudio = (): boolean => {
+    if (!rooms) return false;
+    for (const room of rooms) {
+      const establishData = parseEstablish(room.establish_i18n);
+      if (establishData.audio_url || hasAnyLangValue(establishData.audio_url_i18n)) return true;
+      const waypoints = parseWaypoints(room.waypoints_i18n);
+      for (const wp of waypoints) {
+        if (wp.audio_url || hasAnyLangValue(wp.audio_url_i18n)) return true;
+      }
+    }
+    return false;
+  };
+
   const isLanguageAvailable = (l: Language): boolean => {
     if (l === 'sr') return true;
 
@@ -864,9 +900,28 @@ export default function TourPage() {
       return false;
     };
 
+    // Čim je tura BAR JEDNOM prošla kroz generisanje glasa, jezik se nudi
+    // SAMO ako baš za njega postoji snimljen audio - inače bi posetilac
+    // izabrao jezik koji izgleda dostupan (ima prevod), a dobio turu bez
+    // vodiča dok ostali jezici zvuče profesionalno. Dok tura nikad nije
+    // dobila glas ni na jednom jeziku, ponašanje ostaje kao pre (dostupnost
+    // po prevedenom TEKSTU) - ne sakriva prevode koji tek čekaju na glas.
+    if (tourHasAnyAudio()) {
+      if (!rooms) return false;
+      for (const room of rooms) {
+        const establishData = parseEstablish(room.establish_i18n);
+        if (checkI18n(establishData.audio_url_i18n)) return true;
+        const waypoints = parseWaypoints(room.waypoints_i18n);
+        for (const wp of waypoints) {
+          if (checkI18n(wp.audio_url_i18n)) return true;
+        }
+      }
+      return false;
+    }
+
     if (tour) {
       if (
-        checkI18n(tour.title_i18n) || 
+        checkI18n(tour.title_i18n) ||
         checkI18n(tour.about_text_i18n) ||
         checkI18n(tour.faq_1_i18n) ||
         checkI18n(tour.faq_2_i18n) ||
