@@ -107,12 +107,12 @@ export function applyGlassHotspotStyle(hotSpotDiv: HTMLDivElement, isNav: boolea
   inner.style.display = 'flex';
   inner.style.alignItems = 'center';
   inner.style.justifyContent = 'center';
-  inner.style.gap = isNav ? '7px' : '4px';
-  inner.style.padding = isNav ? '4px 11px 4px 5px' : '0.5px';
+  inner.style.gap = isNav ? '5px' : '4px';
+  inner.style.padding = isNav ? '2px 8px 2px 3px' : '0.5px';
   inner.style.width = isNav ? 'auto' : '22px';
   inner.style.height = isNav ? 'auto' : '22px';
   inner.style.fontWeight = '700';
-  inner.style.fontSize = isNav ? '10.5px' : '12px';
+  inner.style.fontSize = isNav ? '9.5px' : '12px';
   inner.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
   inner.style.whiteSpace = 'nowrap';
 

@@ -37,8 +37,8 @@ export function TourGlobalStyles() {
         100% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(253, 230, 138, 0); }
       }
       /* Navigacija: pulsira sama tačka (talas oko nje), ne cela pilula. */
-      .k360-hs-dot { position: relative; flex: none; width: 15px; height: 15px; border-radius: 50%; background: #1E5AA8; border: 2.5px solid #fff; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35); }
-      .k360-hs-dot::after { content: ''; position: absolute; inset: -8px; border-radius: 50%; border: 2px solid #5B92D6; animation: k360HsRing 1.8s ease-out infinite; }
+      .k360-hs-dot { position: relative; flex: none; width: 12px; height: 12px; border-radius: 50%; background: rgba(127, 176, 236, 0.7); border: 1.5px solid rgba(255, 255, 255, 0.75); box-shadow: 0 0 8px rgba(127, 176, 236, 0.55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+      .k360-hs-dot::after { content: ''; position: absolute; inset: -7px; border-radius: 50%; border: 1.5px solid rgba(165, 200, 242, 0.7); animation: k360HsRing 1.8s ease-out infinite; }
       @keyframes k360HsRing { from { transform: scale(0.55); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
       .custom-info-hotspot { animation: k360HotspotPulseInfo 2.6s ease-out infinite; }
       @media (prefers-reduced-motion: reduce) {

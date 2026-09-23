@@ -87,7 +87,7 @@ export function TourModals({
       <style>{'@media (max-width: 720px){.k360-modal-wrap{align-items:flex-end!important;padding:0!important}.k360-modal{border-radius:30px 30px 0 0!important;max-height:88vh!important;border-left:0!important;border-right:0!important;border-bottom:0!important}}'}</style>
       <div className="k360-modal" style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '24px', width: '100%', maxWidth: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid ' + THEME.border }}>
-          <h2 style={{ color: THEME.textPrimary, fontSize: '24px', margin: 0, fontWeight: 800, letterSpacing: '-0.03em', fontFamily: THEME.fontDisplay, display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <h2 style={{ color: THEME.accent, fontSize: '30px', margin: 0, fontWeight: 400, fontStyle: 'italic', letterSpacing: '-0.005em', fontFamily: 'var(--font-serif), Georgia, serif', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Icon size={22} color={THEME.accent} />
             {withoutEmoji(title)}
           </h2>
@@ -189,6 +189,12 @@ export function TourModals({
                         );
                       })}
                   </div>
+                </div>
+                {/* Legenda: šta znači koja tačka. */}
+                <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '14px', fontSize: '12.5px', fontWeight: 600, color: THEME.textSecondary }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><i style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#5B92D6' }} />{t.planHere}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><i style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#fff', border: '2px solid #334155' }} />{t.planSeen}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><i style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'rgba(15,23,42,.55)', border: '2px solid #fff', boxShadow: '0 0 0 1px #D3D3CB' }} />{t.planNew}</span>
                 </div>
               </div>
             ) : empty(t.noPlan)
