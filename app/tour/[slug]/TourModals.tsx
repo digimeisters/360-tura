@@ -3,6 +3,7 @@ import { MODAL_ICONS, withoutEmoji } from './icons';
 import { getLocalizedText, type FactRow } from './utils';
 import { translations } from './translations';
 import type { ActiveModal, Language, Room, Tour } from './types';
+import { VIEWING_TEXT } from './ViewingRequestModal';
 
 /**
  * Modali ture: skica, lokacija, info, pitanja i kontakt, plus zaseban modal
@@ -31,6 +32,7 @@ export function TourModals({
   onChangeRoom,
   onFloorplanClick,
   onShare,
+  onRequestViewing,
   shareCopied
 }: {
   activeModal: ActiveModal;
@@ -51,6 +53,8 @@ export function TourModals({
   /** Admin: klik po skici postavlja oznaku trenutne sobe. */
   onFloorplanClick: React.MouseEventHandler<HTMLImageElement>;
   onShare: () => void;
+  /** Otvara formu "Zakaži razgledanje" - null kad je tura nema (admin, nepoznata tura). */
+  onRequestViewing: (() => void) | null;
   shareCopied: boolean;
 }) {
   if (!activeModal) return null;
@@ -210,6 +214,23 @@ export function TourModals({
 
           {activeModal === 'contact' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '4px' }}>
+              {/* Glavna radnja u kontaktu: zahtev za termin, ne samo broj
+                  telefona - posetilac koji ne želi da zove odmah ostavlja
+                  kontakt, a agent zove kad može. */}
+              {onRequestViewing && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    onClick={onRequestViewing}
+                    style={{ ...btnStyle, width: '100%', backgroundColor: THEME.accent, color: '#fff', borderColor: THEME.accent, borderRadius: '999px', padding: '13px', fontSize: '15px', fontWeight: 700 }}
+                  >
+                    📅 {VIEWING_TEXT[lang]?.cta ?? VIEWING_TEXT.sr.cta}
+                  </button>
+                  <p style={{ margin: 0, fontSize: '12.5px', color: THEME.textSecondary, textAlign: 'center' }}>
+                    {VIEWING_TEXT[lang]?.ctaHint ?? VIEWING_TEXT.sr.ctaHint}
+                  </p>
+                </div>
+              )}
+
               {tour?.agent_name && (
                 <div style={{ backgroundColor: THEME.surfaceAlt, padding: '16px', borderRadius: '12px', border: '1px solid ' + THEME.border }}>
                   <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: THEME.textSecondary }}>{t.agentLabel}</p>

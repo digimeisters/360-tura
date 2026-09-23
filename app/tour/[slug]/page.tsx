@@ -16,6 +16,7 @@ import { RoomNavBar, type RoomDot } from './RoomNavBar';
 import { WelcomeScreen } from './WelcomeScreen';
 import { CallAgentButton, InfoCard, LanguageChips, OverlayButtons, StatusNotice, TourTitleCard } from './TourControls';
 import { TourMenuBar } from './TourMenuBar';
+import { ViewingRequestModal } from './ViewingRequestModal';
 import { FaqAnswerModal, TourModals } from './TourModals';
 import { AdminLoginModal, HotspotForm } from './TourAdminPanels';
 import { useViewerControls } from './useViewerControls';
@@ -214,6 +215,7 @@ export default function TourPage() {
 
 
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
+  const [showViewing, setShowViewing] = useState(false);
   const [selectedFaq, setSelectedFaq] = useState<number | null>(null);
   const [isRoomTourFullyCompleted, setIsRoomTourFullyCompleted] = useState(false);
   const [isInfoboxManuallyClosed, setIsInfoboxManuallyClosed] = useState(false);
@@ -2227,6 +2229,17 @@ export default function TourPage() {
           onFloorplanClick={handleSetFloorplanMarker}
           onShare={handleShareTour}
           shareCopied={shareCopied}
+          onRequestViewing={slug ? () => { setActiveModal(null); setShowViewing(true); } : null}
+        />
+      )}
+
+      {/* "Zakaži razgledanje" - otvara se iz prozora Kontakt (TourModals). */}
+      {hasMounted && showViewing && slug && (
+        <ViewingRequestModal
+          slug={slug}
+          tourTitle={fullTourTitle}
+          lang={lang}
+          onClose={() => setShowViewing(false)}
         />
       )}
 
