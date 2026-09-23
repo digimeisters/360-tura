@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og';
+import { OgMark } from './ogMark';
 
 // Kartica koja se vidi kad se početna podeli (Viber, WhatsApp, Facebook,
 // LinkedIn). Isti izgled za obe jezičke verzije, samo drugi tekst.
@@ -21,22 +22,7 @@ export function renderHomeOgImage({ title, subtitle }: { title: string; subtitle
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div
-            style={{
-              width: '54px',
-              height: '54px',
-              borderRadius: '14px',
-              background: '#FFFFFF',
-              color: '#1E5AA8',
-              fontSize: '30px',
-              fontWeight: 800,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            K
-          </div>
+          <OgMark size={54} color="#A9CBF2" />
           <div style={{ display: 'flex', fontSize: '30px', fontWeight: 800, letterSpacing: '-0.5px' }}>
             <span style={{ color: '#FFFFFF' }}>Kvadrat</span>
             <span style={{ color: '#A9CBF2' }}>360</span>
