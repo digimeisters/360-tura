@@ -14,7 +14,7 @@ import { pickCoverRoom } from '../../lib/coverRoom';
 import { Logo } from './Logo';
 import { RoomNavBar, type RoomDot } from './RoomNavBar';
 import { WelcomeScreen } from './WelcomeScreen';
-import { InfoCard, LanguageChips, OverlayButtons, StatusNotice, TourTitleCard } from './TourControls';
+import { CallAgentButton, InfoCard, LanguageChips, OverlayButtons, StatusNotice, TourTitleCard } from './TourControls';
 import { TourMenuBar } from './TourMenuBar';
 import { FaqAnswerModal, TourModals } from './TourModals';
 import { AdminLoginModal, HotspotForm } from './TourAdminPanels';
@@ -23,6 +23,7 @@ import { useTourNarration } from './useTourNarration';
 import { LockedTourScreen } from './LockedTourScreen';
 import { FloorplanMiniMap } from './FloorplanMiniMap';
 import { withoutEmoji } from './icons';
+import { formatListingPrice } from '../../lib/listingPrice';
 import { PANNELLUM_CSS, PANNELLUM_JS } from './pannellum';
 import {
   ARRIVE_HFOV,
@@ -1886,6 +1887,24 @@ export default function TourPage() {
 
   const isModalToolbarVisible = !infoBoxData && (!tourStarted || isRoomTourFullyCompleted || isInfoboxManuallyClosed);
 
+  // Dugme "Pozovi" stoji dok donji meni (sa Kontaktom) nije vidljiv - vidi
+  // CallAgentButton. U admin režimu se prikazuje (da vlasnik vidi turu kao
+  // posetilac), ali se klik ne broji.
+  const agentPhone = tour?.agent_phone?.trim() || '';
+  const showCallButton =
+    tourStarted && Boolean(agentPhone) && !pendingCoords && !activeModal && !isModalToolbarVisible;
+  const callButton = showCallButton ? (
+    <CallAgentButton
+      phone={agentPhone}
+      label={t.callNow}
+      floating={!infoBoxData}
+      onPhoneCall={() => {
+        if (slug && !adminMode) trackEvent({ eventType: 'contact', tourSlug: slug, lang });
+      }}
+      onDesktop={() => setActiveModal('contact')}
+    />
+  ) : null;
+
   return (
     <main style={{ position: 'relative', width: '100vw', height: '100dvh', backgroundColor: THEME.bg, overflow: 'hidden', fontFamily: THEME.fontBody }}>
       <style>{`
@@ -1926,6 +1945,7 @@ export default function TourPage() {
           coverUrl={welcomeCoverUrl}
           agencyName={tour?.agency_name ?? null}
           title={fullTourTitle}
+          price={formatListingPrice(tour?.price, tour?.category, lang)}
           lede={t.welcome}
           startLabel={guideRequested && hasGuide ? t.startGuidedTour : t.startTour}
           onStart={startTour}
@@ -2161,8 +2181,12 @@ export default function TourPage() {
             setInfoBoxData(null);
             setIsInfoboxManuallyClosed(true);
           }}
+          above={callButton}
         />
       )}
+
+      {/* Bez kartice dugme ide samo u dno ekrana, desno. */}
+      {!infoBoxData && callButton}
 
       {/* MODAL: ADMIN LOGIN (Supabase Auth - zamena za staru ?admin=... lozinku) */}
       {showAdminLogin && !adminMode && (

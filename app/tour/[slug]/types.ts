@@ -71,6 +71,8 @@ export type Tour = {
    */
   district?: string | null;
   area_sqm?: number | string | null;
+  /** Cena u evrima (migracija 013) - značenje zavisi od `category`, vidi lib/listingPrice.ts. */
+  price?: number | string | null;
   structure?: string | null;
   floor?: string | null;
   has_elevator?: string | null;

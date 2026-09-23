@@ -539,6 +539,9 @@ export const SITE_STYLES = `
   .tour-langs{position:absolute; bottom:.75rem; right:.75rem; display:flex; gap:.3rem;}
   .tour-body{padding:1rem 1.15rem 1.2rem; display:flex; flex-direction:column; gap:.7rem; flex:1;}
   .tour-body h3{font-size:1.02rem; font-weight:700; line-height:1.3;}
+  /* Cena odmah ispod naslova (zato negativan razmak - .tour-body ima gap). */
+  .tour-price{margin-top:-.35rem; font-size:1.05rem; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums;}
+  .tour-price small{font-size:.8rem; font-weight:600; color:var(--ink-soft);}
   .tour-meta{font-size:.86rem; color:var(--ink-soft);}
   .tour-open{margin-top:auto; align-self:flex-start;}
 

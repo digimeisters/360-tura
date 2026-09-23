@@ -3,6 +3,8 @@ import { Logo } from './Logo';
 import { LanguageChips } from './TourControls';
 import { IconLink } from './icons';
 import type { Language } from './types';
+import type { ListingPrice } from '../../lib/listingPrice';
+import { keepUnitsTogether } from '../../lib/typography';
 
 /**
  * Uvodni ekran ture: naslovna fotografija, izbor jezika i dugme za polazak.
@@ -22,6 +24,7 @@ export function WelcomeScreen({
   coverUrl,
   agencyName,
   title,
+  price,
   lede,
   startLabel,
   onStart,
@@ -37,6 +40,8 @@ export function WelcomeScreen({
   coverUrl: string | null;
   agencyName: string | null;
   title: string;
+  /** Cena nekretnine - null kad nije upisana (tada se ne prikazuje). */
+  price: ListingPrice | null;
   lede: string;
   startLabel: string;
   onStart: () => void;
@@ -143,8 +148,18 @@ export function WelcomeScreen({
         )}
 
         <h1 style={{ color: '#fff', fontSize: 'clamp(26px, 5vw, 38px)', lineHeight: 1.15, margin: '0 0 12px', fontWeight: 700, fontFamily: THEME.fontDisplay, textWrap: 'balance', textShadow: '0 2px 12px rgba(0, 0, 0, 0.35)' }}>
-          {title}
+          {keepUnitsTogether(title)}
         </h1>
+        {/* Cena odmah uz naslov - prvo što kupac pita, pre nego što krene
+            u obilazak. Jedinica (mesečno / noć) sitnije, kao na karticama. */}
+        {price && (
+          <div style={{ ...GLASS, borderRadius: '999px', padding: '6px 16px', margin: '0 0 14px', fontFamily: THEME.fontDisplay, fontSize: '18px', fontWeight: 800, color: '#fff', whiteSpace: 'nowrap' }}>
+            {price.amount}
+            {price.unit && (
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255, 255, 255, 0.78)' }}> {price.unit}</span>
+            )}
+          </div>
+        )}
         <p style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '16px', maxWidth: '440px', margin: '0 0 18px', lineHeight: 1.5, textShadow: '0 1px 8px rgba(0, 0, 0, 0.35)' }}>
           {lede}
         </p>

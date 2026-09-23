@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import type { ShowcaseTour } from '../app/lib/showcaseTours';
 import { STRUCTURE_ORDER } from '../app/lib/propertyTaxonomy';
+import { listingPriceUnit } from '../app/lib/listingPrice';
 import FilterMenu from './FilterMenu';
 import RangeFilter from './RangeFilter';
 import TourCard, { type TourCardLabels } from './TourCard';
@@ -69,6 +70,12 @@ function tourWord(n: number): string {
   return 'tura';
 }
 
+// Isto, ali u nominativu: "1 tura", "4 ture", "5 tura" (za "Prikazano: ...").
+function tourNoun(n: number): string {
+  const word = tourWord(n);
+  return word === 'turu' ? 'tura' : word;
+}
+
 const LABELS = {
   all: 'Sve',
   category: 'Vrsta oglasa',
@@ -78,8 +85,9 @@ const LABELS = {
   agency: 'Agencija',
   area: 'Kvadratura',
   price: 'Cena',
+  priceNeedsCategory: 'izaberite vrstu oglasa',
   count: (shown: number, total: number) =>
-    shown === total ? `Prikazano ${total} tura` : `Prikazano ${shown} od ${total} tura`,
+    shown === total ? `Prikazano: ${total} ${tourNoun(total)}` : `Prikazano: ${shown} od ${total}`,
   empty: 'Za izabrane filtere nema tura. Sklonite neki filter da vidite ostale.',
   reset: 'Poništi filtere',
   clearOne: 'Poništi',
@@ -87,10 +95,12 @@ const LABELS = {
   filters: 'Filteri',
   close: 'Zatvori',
   show: (n: number) => `Prikaži ${n} ${tourWord(n)}`,
-  missing: (n: number, what: string) =>
-    n === 1
-      ? `Jedna tura nema upisanu ${what} i ostaje na spisku.`
-      : `${n} tura nema upisanu ${what} i ostaju na spisku.`
+  // 2-4 ture "nemaju ... ostaju", a 1, 5+ i 21 "nema ... ostaje".
+  missing: (n: number, what: string) => {
+    if (n === 1) return `Jedna tura nema upisanu ${what} i ostaje na spisku.`;
+    const few = tourNoun(n) === 'ture';
+    return `${n} ${tourNoun(n)} ${few ? 'nemaju' : 'nema'} upisanu ${what} i ${few ? 'ostaju' : 'ostaje'} na spisku.`;
+  }
 };
 
 type FilterKey = 'kategorija' | 'grad' | 'naselje' | 'struktura' | 'agencija';
@@ -330,19 +340,27 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
   /**
    * Granice klizača se računaju iz tura koje su prošle menije, a ne iz svih:
    * cena kod prodaje ide u desetinama hiljada, a kod izdavanja u stotinama,
-   * pa jedan zajednički raspon ne bi značio ništa. Čim posetilac izabere
-   * vrstu oglasa, klizač se svede na njen red veličine.
+   * pa jedan zajednički raspon ne bi značio ništa.
+   *
+   * Zato klizač cene postoji SAMO kad je izabrana tačno jedna vrsta oglasa:
+   * noćenje (45 €), mesečna kirija (700 €) i prodajna cena (85.000 €) nisu
+   * ista stvar i ne mogu na istu skalu. Bez granica nema ni filtera po
+   * ceni, pa se ni cena iz podeljenog linka ne primenjuje dok vrsta nije
+   * izabrana.
    */
+  const priceCategory = filters.kategorija.length === 1 ? filters.kategorija[0] : null;
+
   const bounds = useMemo(() => {
     const pool = tours.filter(matchesMenus);
     return Object.fromEntries(
       RANGE_KEYS.map((key) => {
+        if (key === 'cena' && !priceCategory) return [key, null];
         const numbers = pool.map(NUMBER_OF[key]).filter((n): n is number => n !== null);
         return [key, boundsFor(numbers, pool.length - numbers.length)];
       })
     ) as Record<RangeKey, Bounds | null>;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tours, filters]);
+  }, [tours, filters, priceCategory]);
 
   const shown = tours.filter((tour) => {
     if (!matchesMenus(tour)) return false;
@@ -388,10 +406,13 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
       next.naselje = next.naselje.filter((d) => allowed.has(d));
     }
 
-    apply(next, ranges);
+    // Druga vrsta oglasa = drugi red veličine cene; raspon od kirije nema
+    // smisla na prodajnim cenama, pa se cena vraća na "bez filtera".
+    apply(next, key === 'kategorija' ? { ...ranges, cena: null } : ranges);
   };
 
-  const clear = (key: FilterKey) => apply({ ...filters, [key]: [] }, ranges);
+  const clear = (key: FilterKey) =>
+    apply({ ...filters, [key]: [] }, key === 'kategorija' ? { ...ranges, cena: null } : ranges);
 
   const setRange = (key: RangeKey, range: [number, number]) => {
     const limit = bounds[key];
@@ -453,7 +474,7 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
   };
 
   const anyFilter =
-    FILTER_KEYS.some((key) => filters[key].length) || RANGE_KEYS.some((key) => ranges[key]);
+    FILTER_KEYS.some((key) => filters[key].length) || RANGE_KEYS.some((key) => ranges[key] && bounds[key]);
 
   // "Vrsta oglasa" stoji uvek i uvek sa sve tri mogućnosti: to je prvo po
   // čemu kupac bira, pa se ne skriva ni kad su sve ture iste vrste.
@@ -465,16 +486,36 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
     menu('agencija', labels.agency, agencies)
   ].filter(Boolean);
 
+  const priceUnit = listingPriceUnit(priceCategory, lang);
+
+  // Dok vrsta oglasa nije izabrana, na mestu klizača cene stoji objašnjenje
+  // zašto ga nema - ako bar neka tura ima cenu, pa bi klizač imao smisla.
+  const priceHint =
+    !priceCategory && tours.some((t) => t.price !== null) ? (
+      <div key="cena" className="range-filter">
+        <div className="range-head">
+          <span className="range-label">{labels.price}</span>
+          <span className="range-value">{labels.priceNeedsCategory}</span>
+        </div>
+      </div>
+    ) : null;
+
   const sliders = [
-    slider('kvadratura', labels.area, (v) => `${v} m²`, 'kvadraturu'),
-    slider('cena', labels.price, (v) => `${v.toLocaleString('sr-RS')} €`, 'cenu')
+    slider('kvadratura', labels.area, (v) => `${v}\u00a0m²`, 'kvadraturu'),
+    slider(
+      'cena',
+      priceUnit ? `${labels.price} ${priceUnit}` : labels.price,
+      // Jedinica (mesečno / noć) je u nazivu klizača, ne uz svaki broj.
+      (v) => `${v.toLocaleString('sr-RS')} €`,
+      'cenu'
+    ) ?? priceHint
   ].filter(Boolean);
 
   // Broj UKLJUČENIH filtera, ne izabranih vrednosti: posetioca zanima
   // koliko uslova sužava spisak, a ne koliko je naselja štiklirao.
   const activeCount =
     FILTER_KEYS.filter((key) => filters[key].length).length +
-    RANGE_KEYS.filter((key) => ranges[key]).length;
+    RANGE_KEYS.filter((key) => ranges[key] && bounds[key]).length;
 
   const controls = (
     <>

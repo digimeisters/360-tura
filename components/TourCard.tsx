@@ -1,5 +1,7 @@
 import type { ShowcaseTour } from '../app/lib/showcaseTours';
 import { tourHref } from '../app/lib/tourHref';
+import { formatListingPrice } from '../app/lib/listingPrice';
+import { keepUnitsTogether } from '../app/lib/typography';
 
 /**
  * Kartica ture - ista na početnoj strani ("Primeri tura") i na spisku
@@ -36,6 +38,7 @@ export default function TourCard({
 }) {
   const category = tour.category ? labels.category(tour.category) : null;
   const rooms = labels.rooms(tour.roomCount);
+  const price = formatListingPrice(tour.price, tour.category, lang);
 
   return (
     <a
@@ -71,7 +74,13 @@ export default function TourCard({
         </span>
       </div>
       <div className="tour-body">
-        <h3>{tour.title}</h3>
+        <h3>{keepUnitsTogether(tour.title)}</h3>
+        {price && (
+          <p className="tour-price">
+            {price.amount}
+            {price.unit && <small> {price.unit}</small>}
+          </p>
+        )}
         <p className="tour-meta">{[tour.city, tour.agency, rooms].filter(Boolean).join(' · ')}</p>
         <span className="btn btn-secondary btn-sm tour-open">{labels.open}</span>
       </div>

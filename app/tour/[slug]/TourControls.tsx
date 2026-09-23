@@ -1,5 +1,5 @@
 import { THEME, GLASS, GLASS_ACCENT, overlayIconStyle, SCREEN_BOTTOM } from './theme';
-import { IconCollapse, IconCompass, IconExpand, IconHand, IconHeadphones, IconMute, IconPause, IconPlay, IconSound } from './icons';
+import { IconCollapse, IconCompass, IconExpand, IconHand, IconHeadphones, IconMute, IconPause, IconPhone, IconPlay, IconSound } from './icons';
 import type { Language } from './types';
 
 /**
@@ -220,12 +220,15 @@ export function InfoCard({
   title,
   text,
   onClose,
-  closeLabel
+  closeLabel,
+  above
 }: {
   title: string | null;
   text: string;
   onClose: () => void;
   closeLabel: string;
+  /** Element prikačen tik iznad kartice, desno (dugme "Pozovi"). */
+  above?: React.ReactNode;
 }) {
   return (
     <div className="tour-ui-scale" style={{
@@ -247,6 +250,11 @@ export function InfoCard({
       boxShadow: '0 6px 20px rgba(0, 0, 0, 0.25)',
       fontFamily: THEME.fontBody
     }}>
+      {/* Kartica menja visinu sa tekstom, pa je dugme vezano za NJU, a ne
+          za dno ekrana - tako uvek stoji tik iznad, ma koliko teksta bilo. */}
+      {above && (
+        <div style={{ position: 'absolute', right: 0, bottom: 'calc(100% + 6px)' }}>{above}</div>
+      )}
       <button
         onClick={onClose}
         style={{
@@ -284,5 +292,70 @@ export function InfoCard({
         {text}
       </p>
     </div>
+  );
+}
+
+/**
+ * Malo dugme "Pozovi" koje stoji u turi dok donji meni (sa Kontaktom) nije
+ * vidljiv - tokom vođenja i dok su otvorene kartice sa opisom. Bez njega
+ * posetilac kome se stan dopadne baš u tom trenutku nema kako da pozove.
+ *
+ * Na telefonu je to običan tel: link (jedan dodir do poziva). Na računaru
+ * poziv nema smisla, pa `onDesktop` otvara modal "Kontakt" (ime, telefon,
+ * mejl) - on se i broji u analitici kao kontakt.
+ */
+export function CallAgentButton({
+  phone,
+  label,
+  onPhoneCall,
+  onDesktop,
+  floating = false
+}: {
+  phone: string;
+  label: string;
+  /** Poziv sa telefona - modal se ne otvara, pa se kontakt broji ovde. */
+  onPhoneCall: () => void;
+  onDesktop: () => void;
+  /** Samostalno u dnu ekrana (kad kartice nema), umesto prikačeno uz nju. */
+  floating?: boolean;
+}) {
+  return (
+    <a
+      href={`tel:${phone.replace(/[^\d+]/g, '')}`}
+      className={floating ? 'tour-ui-scale' : undefined}
+      onClick={(e) => {
+        const touch = window.matchMedia('(pointer: coarse)').matches;
+        if (touch) {
+          onPhoneCall();
+          return;
+        }
+        e.preventDefault();
+        onDesktop();
+      }}
+      style={{
+        ...(floating
+          ? { position: 'absolute' as const, right: '12px', bottom: SCREEN_BOTTOM, zIndex: 30 }
+          : {}),
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '5px',
+        padding: '5px 11px 5px 9px',
+        borderRadius: '999px',
+        background: THEME.accent,
+        border: '1px solid rgba(255, 255, 255, 0.35)',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)',
+        color: '#fff',
+        fontFamily: THEME.fontBody,
+        fontSize: '12.5px',
+        fontWeight: 700,
+        lineHeight: 1,
+        textDecoration: 'none',
+        whiteSpace: 'nowrap',
+        cursor: 'pointer'
+      }}
+    >
+      <IconPhone size={14} color="#fff" />
+      {label}
+    </a>
   );
 }
