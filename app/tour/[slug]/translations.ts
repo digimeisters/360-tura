@@ -573,3 +573,18 @@ export const translations: Record<Language, Record<string, string>> = {
     lockedIntro: 'По поводу похожих объектов или дополнительной информации обращайтесь:'
   }
 };
+
+/**
+ * Sprat je slobodan tekst iz upitnika ("3/6", "Prizemlje"), pa se brojevi
+ * prikazuju kako su upisani, a REČI se prevode - inače bi "Prizemlje"
+ * ostalo na srpskom u engleskoj, nemačkoj i ruskoj turi. Ključ je mala
+ * slova, bez tačke; vidi formatFloor u utils.tsx.
+ */
+export const FLOOR_WORDS: Record<string, Record<Language, string>> = {
+  prizemlje: { sr: 'Prizemlje', en: 'Ground floor', de: 'Erdgeschoss', ru: 'Первый этаж' },
+  pr: { sr: 'Prizemlje', en: 'Ground floor', de: 'Erdgeschoss', ru: 'Первый этаж' },
+  'visoko prizemlje': { sr: 'Visoko prizemlje', en: 'Raised ground floor', de: 'Hochparterre', ru: 'Высокий первый этаж' },
+  vpr: { sr: 'Visoko prizemlje', en: 'Raised ground floor', de: 'Hochparterre', ru: 'Высокий первый этаж' },
+  suteren: { sr: 'Suteren', en: 'Semi-basement', de: 'Souterrain', ru: 'Цокольный этаж' },
+  potkrovlje: { sr: 'Potkrovlje', en: 'Attic floor', de: 'Dachgeschoss', ru: 'Мансарда' }
+};

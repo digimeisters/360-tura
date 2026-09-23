@@ -5,7 +5,8 @@ import {
   HEATING_LABELS,
   STRUCTURE_LABELS,
   BUILD_STATUS_LABELS,
-  FINISH_STATUS_LABELS
+  FINISH_STATUS_LABELS,
+  FLOOR_WORDS
 } from './translations';
 
 export const normalizeYaw = (yaw: number): number => {
@@ -107,6 +108,20 @@ function asNumber(value: number | string | null | undefined): number | null {
 }
 
 /**
+ * Sprat za tabelu: reč ("Prizemlje", "PR", "Potkrovlje") se prevodi, a
+ * broj spratova zgrade posle kose crte ostaje ("Prizemlje/5" → "Ground
+ * floor/5"). Sve ostalo ("3/6", "2. sprat") ide kako je upisano.
+ */
+export function formatFloor(value: string | null | undefined, lang: Language): string {
+  const raw = value?.trim() || '';
+  const match = raw.match(/^([^\d/]+?)\.?\s*(\/\s*\d+)?$/);
+  if (!match) return raw;
+  const word = FLOOR_WORDS[match[1].trim().toLowerCase()];
+  if (!word) return raw;
+  return `${word[lang] ?? word.sr}${match[2] ? match[2].replace(/\s+/g, '') : ''}`;
+}
+
+/**
  * Tabela osnovnih podataka u Info modalu (migracije 012/013/014/015) -
  * naselje, kvadratura, struktura, sprat, lift, podrum, grejanje, status
  * gradnje, stanje. Nijedan red ovde ne prolazi kroz AI: vrednost je ili
@@ -130,7 +145,7 @@ export function buildFactList(tour: Tour | null | undefined, lang: Language): Fa
     { label: t.neighbourhood, value: tour.district?.trim() || '' },
     { label: t.area, value: area !== null ? `${area} m²` : '' },
     { label: t.structure, value: fromList(STRUCTURE_LABELS, tour.structure) },
-    { label: t.floor, value: tour.floor?.trim() || '' },
+    { label: t.floor, value: formatFloor(tour.floor, lang) },
     { label: t.elevator, value: yesNo(tour.has_elevator) },
     { label: t.basement, value: yesNo(tour.has_basement) },
     { label: t.heating, value: fromList(HEATING_LABELS, tour.heating) },
