@@ -1472,8 +1472,13 @@ export default function TourPage() {
           const doorAhead = nextGuideDoor();
           if (doorAhead) {
             const fromYaw = normalizeYaw(viewerRef.current.getYaw());
-            const toYaw = getShortestTargetYaw(fromYaw, doorAhead.yaw ?? 0);
-            const turnSpeed = remainingMs > 0 ? (toYaw - fromYaw) / (remainingMs / 1000) : 0;
+            // NAMERNO ne getShortestTargetYaw (taj bira kraći put, koji ume da
+            // bude suprotan smeru u kom je kamera već krenula u "Fazi 1" gore -
+            // posetilac bi video da se okretanje odjednom vrati unazad). Umesto
+            // toga uvek isti smer kao početna rotacija (pozitivan ugao/korak),
+            // makar to značilo da ide "dužim putem" do vrata.
+            const forwardDelta = (((doorAhead.yaw ?? 0) - fromYaw) % 360 + 360) % 360;
+            const turnSpeed = remainingMs > 0 ? forwardDelta / (remainingMs / 1000) : 0;
             viewerRef.current.startAutoRotate(turnSpeed, clampPitch(doorAhead.pitch ?? targetEstablishPitch));
           } else {
             const idleRotateDegPerSec = 360 / 30; // 360° za 30 sekundi, bez cilja (poslednja soba)
@@ -1624,7 +1629,7 @@ export default function TourPage() {
 
       const rotatePromise = new Promise<void>((resolve) => {
         const durationPhase1 = 15000;
-        const totalDegrees = 240;
+        const totalDegrees = 250;
         const speed = totalDegrees / (durationPhase1 / 1000);
 
         const stillValid = () =>
