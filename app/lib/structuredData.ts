@@ -81,18 +81,65 @@ export function serializeJsonLd(data: unknown): string {
   return JSON.stringify(data).replace(/</g, '\\u003c');
 }
 
-// Structured data za pojedinačnu turu (/tour/[slug]) - do sada te stranice
-// nisu imale nijedan JSON-LD blok. BreadcrumbList vezuje turu za sajt u
-// Google-ovim rezultatima, a 3DModel je schema.org tip koji najbliže opisuje
-// interaktivnu 360° turu (nema posebnog tipa "virtual tour").
+// Structured data za pojedinačnu turu (/tour/[slug]). BreadcrumbList vezuje
+// turu za sajt u Google-ovim rezultatima. Sama tura je RealEstateListing -
+// schema.org tip za oglas nekretnine, koji nosi cenu (offers), datum
+// objave i sliku; 360° tura je njegova glavna stranica. Ranije je stajao
+// 3DModel, koji ne kaže da je reč o nekretnini na prodaju ili izdavanje.
+// FAQPage nosi iste odgovore koje posetilac vidi u dugmetu "Pitanja".
 export function tourJsonLd(params: {
   title: string;
   description: string;
   url: string;
   previewUrl: string | null;
   address: string | null;
+  city?: string | null;
+  category?: string | null;
+  /** Cena u evrima (ukupna / mesečna / po noćenju, prema category). */
+  price?: number | null;
+  areaSqm?: number | null;
+  datePosted?: string | null;
+  faq?: { question: string; answer: string }[];
 }) {
-  const { title, description, url, previewUrl, address } = params;
+  const { title, description, url, previewUrl, address, city, category, price, areaSqm, datePosted, faq } =
+    params;
+
+  const place =
+    address || city
+      ? {
+          '@type': 'Place',
+          address: {
+            '@type': 'PostalAddress',
+            ...(address ? { streetAddress: address } : {}),
+            ...(city ? { addressLocality: city } : {}),
+            addressCountry: 'RS'
+          }
+        }
+      : null;
+
+  // Kod izdavanja i smeštaja cena je po jedinici vremena - UnitPriceSpecification
+  // to kaže mašinski (MON = mesec, DAY = noćenje), da se 700 € kirije ne
+  // pročita kao cena stana.
+  const offer =
+    price && price > 0
+      ? {
+          '@type': 'Offer',
+          price,
+          priceCurrency: 'EUR',
+          businessFunction:
+            category === 'sale' ? 'http://purl.org/goodrelations/v1#Sell' : 'http://purl.org/goodrelations/v1#LeaseOut',
+          ...(category === 'rent' || category === 'booking'
+            ? {
+                priceSpecification: {
+                  '@type': 'UnitPriceSpecification',
+                  price,
+                  priceCurrency: 'EUR',
+                  unitCode: category === 'rent' ? 'MON' : 'DAY'
+                }
+              }
+            : {})
+        }
+      : null;
 
   return {
     '@context': 'https://schema.org',
@@ -106,19 +153,46 @@ export function tourJsonLd(params: {
         ]
       },
       {
-        '@type': '3DModel',
+        '@type': 'RealEstateListing',
+        '@id': `${url}#oglas`,
         name: title,
         description,
         url,
+        inLanguage: 'sr',
         ...(previewUrl ? { image: previewUrl } : {}),
-        ...(address ? { contentLocation: { '@type': 'Place', address } } : {}),
+        ...(datePosted ? { datePosted } : {}),
+        ...(offer ? { offers: offer } : {}),
+        ...(place || areaSqm
+          ? {
+              about: {
+                '@type': 'Accommodation',
+                ...(place ? { location: place } : {}),
+                ...(areaSqm ? { floorSize: { '@type': 'QuantitativeValue', value: areaSqm, unitCode: 'MTK' } } : {})
+              }
+            }
+          : {}),
         provider: {
           '@type': 'LocalBusiness',
           name: SITE_NAME,
           url: SITE_URL,
           telephone: CONTACT.phoneE164
         }
-      }
+      },
+      ...(faq && faq.length
+        ? [
+            {
+              '@type': 'FAQPage',
+              '@id': `${url}#pitanja`,
+              url,
+              inLanguage: 'sr',
+              mainEntity: faq.map((item) => ({
+                '@type': 'Question',
+                name: item.question,
+                acceptedAnswer: { '@type': 'Answer', text: item.answer }
+              }))
+            }
+          ]
+        : [])
     ]
   };
 }

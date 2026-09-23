@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { pickCoverRoom } from '../../lib/coverRoom';
+import type { Tour } from './types';
 
 export type TourMeta = {
   slug: string;
@@ -53,21 +54,61 @@ export function realValue(value: string | null): string | null {
   return trimmed;
 }
 
-type CoverRoom = {
+type TourRoomRow = {
   preview_url: string | null;
   title: string | null;
   title_i18n: unknown;
   order_index: number | null;
 };
 
+// Kolone tabele osnovnih podataka i FAQ-a (migracije 011-015). Čitaju se za
+// tekstualni sažetak ture koji ide u HTML sa servera (TourSeoSummary) - bez
+// njega Google na stranici ture vidi samo "Učitavanje ture...".
+const DETAIL_COLUMNS = [
+  'city',
+  'district',
+  'structure',
+  'area_sqm',
+  'price',
+  'floor',
+  'has_elevator',
+  'has_basement',
+  'heating',
+  'build_status',
+  'finish_status',
+  'status',
+  'created_at',
+  'faq_1_i18n',
+  'faq_2_i18n',
+  'faq_3_i18n',
+  'faq_4_i18n',
+  'faq_5_i18n'
+].join(', ');
+
+/**
+ * Sirov red ture za sažetak - isti oblik koji tura koristi u pregledaču
+ * (types.ts Tour), da buildFactList radi isto na oba mesta.
+ */
+export type TourDetails = Tour;
+
+export type TourMetaFull = TourMeta & {
+  details: TourDetails;
+  /** Nazivi prostorija redom obilaska (srpski). */
+  roomTitles: string[];
+  createdAt: string | null;
+};
+
 // generateMetadata i opengraph-image se izvršavaju odvojeno za isti slug -
 // cache() sprečava dupli upit ka Supabase-u u istom renderu.
-export const getTourMeta = cache(async (slug: string): Promise<TourMeta | null> => {
+export const getTourMeta = cache(async (slug: string): Promise<TourMetaFull | null> => {
+  // Cast jer types/supabase.ts ne zna za kolone iz migracija 011-015.
   const { data, error } = await supabase
     .from('tours')
-    .select('slug, title, title_i18n, agency_name, about_text_i18n, address, category, property_type')
+    .select(
+      `slug, title, title_i18n, agency_name, about_text_i18n, address, category, property_type, ${DETAIL_COLUMNS}` as '*'
+    )
     .eq('slug', slug)
-    .maybeSingle();
+    .maybeSingle<Tour & { title: string | null; address: string | null; property_type: string | null; created_at: string | null }>();
 
   if (error || !data) return null;
 
@@ -77,18 +118,24 @@ export const getTourMeta = cache(async (slug: string): Promise<TourMeta | null> 
     .from('rooms')
     .select('preview_url, title, title_i18n, order_index' as '*')
     .eq('tour_slug', slug)
-    .not('preview_url', 'is', null)
     .order('order_index', { ascending: true })
-    .returns<CoverRoom[]>();
+    .returns<TourRoomRow[]>();
+
+  const roomTitles = (rooms ?? [])
+    .map((room) => realValue(pickLang(room.title_i18n)) || realValue(room.title))
+    .filter((title): title is string => Boolean(title));
 
   return {
     previewUrl: pickCoverRoom(rooms ?? [])?.preview_url ?? null,
     slug: data.slug,
     title: realValue(pickLang(data.title_i18n)) || realValue(data.title) || 'Virtuelna tura',
-    agencyName: realValue(data.agency_name),
+    agencyName: realValue(data.agency_name ?? null),
     about: realValue(pickLang(data.about_text_i18n)) || '',
-    address: realValue(data.address),
-    category: data.category,
-    propertyType: data.property_type
+    address: realValue(data.address ?? null),
+    category: data.category ?? null,
+    propertyType: data.property_type,
+    details: data,
+    roomTitles: [...new Set(roomTitles)],
+    createdAt: data.created_at
   };
 });

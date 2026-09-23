@@ -69,6 +69,8 @@ export type Tour = {
    * pa ih prevodi sama aplikacija (translations.ts FACT_LABELS/
    * HEATING_LABELS), ne AI. Prazno = taj red se ne prikazuje.
    */
+  /** Grad (migracija 011). */
+  city?: string | null;
   district?: string | null;
   area_sqm?: number | string | null;
   /** Cena u evrima (migracija 013) - značenje zavisi od `category`, vidi lib/listingPrice.ts. */

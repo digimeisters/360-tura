@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { getTourMeta } from './getTourMeta';
+import { TourSeoSummary, faqForTour } from './TourSeoSummary';
 import { SITE_NAME, SITE_URL } from '../../lib/site';
 import { tourJsonLd, serializeJsonLd } from '../../lib/structuredData';
 
@@ -57,6 +58,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+function asNumber(value: unknown): number | null {
+  const n = typeof value === 'number' ? value : typeof value === 'string' ? Number.parseFloat(value) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 export default async function TourLayout({ children, params }: LayoutProps) {
   const { slug } = await params;
   const tour = await getTourMeta(slug);
@@ -65,12 +71,23 @@ export default async function TourLayout({ children, params }: LayoutProps) {
 
   const url = `${SITE_URL}/tour/${tour.slug}`;
   const description = buildDescription(tour.about, tour.address, tour.agencyName);
+  // Prodata, izdata ili pauzirana nekretnina: posetilac vidi samo poruku
+  // (LockedTourScreen), pa ni Google ne dobija cenu i podatke kao da je
+  // oglas i dalje aktivan.
+  const active = !tour.details.status || tour.details.status === 'active';
+  const faq = active ? faqForTour(tour) : [];
   const jsonLd = tourJsonLd({
     title: tour.title,
     description,
     url,
     previewUrl: tour.previewUrl,
-    address: tour.address
+    address: tour.address,
+    city: tour.details.city ?? null,
+    category: tour.category,
+    price: active ? asNumber(tour.details.price) : null,
+    areaSqm: asNumber(tour.details.area_sqm),
+    datePosted: tour.createdAt,
+    faq
   });
 
   return (
@@ -79,6 +96,7 @@ export default async function TourLayout({ children, params }: LayoutProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
+      {active && <TourSeoSummary tour={tour} />}
       {children}
     </>
   );
