@@ -107,8 +107,8 @@ export function applyGlassHotspotStyle(hotSpotDiv: HTMLDivElement, isNav: boolea
   inner.style.display = 'flex';
   inner.style.alignItems = 'center';
   inner.style.justifyContent = 'center';
-  inner.style.gap = '4px';
-  inner.style.padding = isNav ? '4px 9px' : '0.5px';
+  inner.style.gap = isNav ? '7px' : '4px';
+  inner.style.padding = isNav ? '4px 11px 4px 5px' : '0.5px';
   inner.style.width = isNav ? 'auto' : '22px';
   inner.style.height = isNav ? 'auto' : '22px';
   inner.style.fontWeight = '700';
@@ -117,7 +117,8 @@ export function applyGlassHotspotStyle(hotSpotDiv: HTMLDivElement, isNav: boolea
   inner.style.whiteSpace = 'nowrap';
 
   if (isNav) {
-    const dot = '<span style="width:5px;height:5px;border-radius:50%;background:#5B92D6;box-shadow:0 0 0 2px rgba(255,255,255,0.25);flex:none;"></span>';
+    // Puna plava tačka sa belim obrubom i talasom koji pulsira (.k360-hs-dot u TourOverlays) - odmah se vidi šta je klikabilno.
+    const dot = '<span class="k360-hs-dot"></span>';
     inner.innerHTML = `${dot}<span>${label}</span>`;
   } else {
     inner.style.color = '#fde68a';

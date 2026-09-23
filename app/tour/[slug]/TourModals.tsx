@@ -82,17 +82,19 @@ export function TourModals({
   );
 
   return (
-    <div className="tour-ui-scale" style={{ position: 'absolute', inset: 0, zIndex: 80, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-      <div style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', width: '100%', maxWidth: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
+    <div className="tour-ui-scale k360-modal-wrap" style={{ position: 'absolute', inset: 0, zIndex: 80, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+      {/* Na telefonu prozor izlazi odozdo kao list (zaobljen gore), na računaru je kartica u sredini. */}
+      <style>{'@media (max-width: 720px){.k360-modal-wrap{align-items:flex-end!important;padding:0!important}.k360-modal{border-radius:30px 30px 0 0!important;max-height:88vh!important;border-left:0!important;border-right:0!important;border-bottom:0!important}}'}</style>
+      <div className="k360-modal" style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '24px', width: '100%', maxWidth: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid ' + THEME.border }}>
-          <h2 style={{ color: THEME.textPrimary, fontSize: '20px', margin: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <h2 style={{ color: THEME.textPrimary, fontSize: '24px', margin: 0, fontWeight: 800, letterSpacing: '-0.03em', fontFamily: THEME.fontDisplay, display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Icon size={22} color={THEME.accent} />
             {withoutEmoji(title)}
           </h2>
           <button
             onClick={onClose}
             title={t.close}
-            style={{ background: 'transparent', border: 'none', color: THEME.textMuted, fontSize: '24px', fontWeight: 'bold', cursor: 'pointer', padding: '0 4px', lineHeight: '1', flexShrink: 0 }}
+            style={{ background: THEME.surfaceAlt, border: 'none', color: THEME.textSecondary, fontSize: '22px', cursor: 'pointer', width: '40px', height: '40px', borderRadius: '50%', lineHeight: '1', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             ×
           </button>
@@ -362,7 +364,7 @@ export function FaqAnswerModal({
           <button
             onClick={onClose}
             title={closeLabel}
-            style={{ background: 'transparent', border: 'none', color: THEME.textMuted, fontSize: '24px', fontWeight: 'bold', cursor: 'pointer', padding: '0 4px', lineHeight: '1', flexShrink: 0 }}
+            style={{ background: THEME.surfaceAlt, border: 'none', color: THEME.textSecondary, fontSize: '22px', cursor: 'pointer', width: '40px', height: '40px', borderRadius: '50%', lineHeight: '1', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             ×
           </button>
