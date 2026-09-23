@@ -5,8 +5,12 @@ import { uniqueSlug } from '@/app/lib/slug';
 import { refreshPublicPages } from '@/app/lib/revalidatePublic';
 import { r2Client } from '@/app/lib/r2';
 import { geocodeAddress } from '@/app/lib/geocode';
+import { translateTexts, type TargetLang } from '@/app/lib/translateTexts';
 
 export const dynamic = 'force-dynamic';
+// Izmena odgovora na pitanja prevodi ih modelom na jezike ture (vidi
+// buildFaqUpdate) - to ume da potraje duže od podrazumevanih 10s.
+export const maxDuration = 60;
 
 const CATEGORIES = new Set(['rent', 'sale', 'booking']);
 const TOUR_STATUSES = new Set(['active', 'rented', 'sold', 'paused']);
@@ -51,6 +55,75 @@ function cleanNumber(value: unknown, max: number): number | null {
 const MAX_AREA_SQM = 10_000;
 const MAX_PRICE_EUR = 100_000_000;
 
+const FAQ_COLUMNS = ['faq_1_i18n', 'faq_2_i18n', 'faq_3_i18n', 'faq_4_i18n', 'faq_5_i18n'] as const;
+type FaqColumn = (typeof FAQ_COLUMNS)[number];
+const FAQ_ANSWER_MAX = 400;
+const TRANSLATABLE: TargetLang[] = ['en', 'de', 'ru'];
+
+function asI18n(value: unknown): Record<string, string> {
+  const parsed = typeof value === 'string' ? safeParse(value) ?? { sr: value } : value;
+  if (!parsed || typeof parsed !== 'object') return {};
+  return Object.fromEntries(
+    Object.entries(parsed as Record<string, unknown>).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].trim() !== ''
+    )
+  );
+}
+
+/**
+ * Odgovori na pitanja iz admin forme (samo srpski). Menja se SAMO odgovor
+ * čiji se srpski tekst stvarno promenio, i on se odmah prevodi na jezike
+ * koje tura već ima - inače bi engleska ili nemačka tura ostala sa starim,
+ * sad pogrešnim odgovorom.
+ *
+ * Ako prevod ne uspe, stari prevodi tog odgovora se BRIŠU (tura tada na tom
+ * jeziku pokaže srpski odgovor): tačan odgovor na srpskom je bolji od
+ * netačnog na engleskom. Admin dobija upozorenje.
+ */
+async function buildFaqUpdate(
+  answers: unknown,
+  current: Record<string, unknown> | null,
+  titleI18n: Record<string, string>
+): Promise<{ update: Partial<Record<FaqColumn, Record<string, string> | null>>; warning: string | null }> {
+  if (!Array.isArray(answers)) return { update: {}, warning: null };
+
+  const existing = FAQ_COLUMNS.map((col) => asI18n(current?.[col]));
+  // Jezici ture: oni na kojima već postoji naslov ili neki odgovor.
+  const tourLangs = new Set<string>(Object.keys(titleI18n));
+  existing.forEach((obj) => Object.keys(obj).forEach((l) => tourLangs.add(l)));
+  const targets = TRANSLATABLE.filter((l) => tourLangs.has(l));
+
+  const update: Partial<Record<FaqColumn, Record<string, string> | null>> = {};
+  const changed: { col: FaqColumn; sr: string }[] = [];
+
+  FAQ_COLUMNS.forEach((col, i) => {
+    const next = typeof answers[i] === 'string' ? answers[i].trim().slice(0, FAQ_ANSWER_MAX) : '';
+    if (next === (existing[i].sr ?? '')) return;
+    if (!next) {
+      update[col] = null;
+      return;
+    }
+    update[col] = { sr: next };
+    changed.push({ col, sr: next });
+  });
+
+  let warning: string | null = null;
+  for (const lang of targets) {
+    if (!changed.length) break;
+    try {
+      const translated = await translateTexts(changed.map((c) => c.sr), lang);
+      changed.forEach((c, i) => {
+        update[c.col] = { ...(update[c.col] ?? {}), [lang]: translated[i] };
+      });
+    } catch (err) {
+      console.error(`[api/admin/tours] FAQ prevod (${lang}) nije uspeo:`, err);
+      warning = `Odgovori su sačuvani, ali prevod na ${lang.toUpperCase()} nije uspeo - na tom jeziku tura za sada prikazuje srpski odgovor. Sačuvajte ponovo kasnije.`;
+    }
+  }
+
+  return { update, warning };
+}
+
 export async function GET(req: Request) {
   const ctx = await requireAdmin(req);
   if (!ctx.ok) return NextResponse.json({ success: false, error: ctx.error }, { status: ctx.status });
@@ -70,7 +143,7 @@ export async function GET(req: Request) {
 
   const [toursResult, { data: rooms }] = await Promise.all([
     readTours(
-      `${BASE_COLUMNS}, district, structure, area_sqm, price, floor, has_elevator, has_basement, heating, build_status, finish_status`
+      `${BASE_COLUMNS}, district, structure, area_sqm, price, floor, has_elevator, has_basement, heating, build_status, finish_status, faq_1_i18n, faq_2_i18n, faq_3_i18n, faq_4_i18n, faq_5_i18n`
     ),
     ctx.supabase.from('rooms').select('tour_slug, panorama_url, panorama_url_cf')
   ]);
@@ -277,7 +350,7 @@ export async function PATCH(req: Request) {
   // zabeležena analitika vezani su za njega.
   const { data: current } = await ctx.supabase
     .from('tours')
-    .select('title_i18n, address, city, lat, lng')
+    .select('title_i18n, address, city, lat, lng, faq_1_i18n, faq_2_i18n, faq_3_i18n, faq_4_i18n, faq_5_i18n')
     .eq('slug', slug)
     .maybeSingle();
 
@@ -299,6 +372,8 @@ export async function PATCH(req: Request) {
   const coords = addressChanged
     ? await geocodeAddress(address, city)
     : { lat: current?.lat ?? null, lng: current?.lng ?? null };
+
+  const faq = await buildFaqUpdate(body.faq, current as Record<string, unknown> | null, titleI18n);
 
   const { error } = await ctx.supabase
     .from('tours')
@@ -324,7 +399,8 @@ export async function PATCH(req: Request) {
       agent_name: clean(body.agent_name, 'agent_name') || null,
       agent_phone: clean(body.agent_phone, 'agent_phone') || null,
       agent_email: clean(body.agent_email, 'agent_email') || null,
-      category: CATEGORIES.has(body.category) ? body.category : 'rent'
+      category: CATEGORIES.has(body.category) ? body.category : 'rent',
+      ...faq.update
     })
     .eq('slug', slug);
 
@@ -334,7 +410,7 @@ export async function PATCH(req: Request) {
   }
 
   refreshPublicPages();
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, warning: faq.warning });
 }
 
 // R2 key iz snimljenog CDN URL-a (bazu + ?v=... skida, ostaje isti "put"

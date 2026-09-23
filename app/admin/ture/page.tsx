@@ -14,6 +14,7 @@ import {
   FINISH_STATUS_OPTIONS,
   neighbourhoodsFor
 } from '../../lib/propertyTaxonomy';
+import { categoryQuestions } from '../../tour/[slug]/translations';
 
 type TourRow = {
   slug: string;
@@ -44,6 +45,12 @@ type TourRow = {
   // Nezavisno od `published` - da li je nekretnina i dalje dostupna
   // (migracija 010). Kad nije, posetilac vidi poruku umesto ture.
   status: 'active' | 'rented' | 'sold' | 'paused';
+  /** Odgovori na pet pitanja ture (JSONB po jezicima); u formi se menja samo srpski. */
+  faq_1_i18n?: unknown;
+  faq_2_i18n?: unknown;
+  faq_3_i18n?: unknown;
+  faq_4_i18n?: unknown;
+  faq_5_i18n?: unknown;
   rooms: number;
   roomsWithPanorama: number;
 };
@@ -75,6 +82,8 @@ type FormState = {
   agent_name: string;
   agent_phone: string;
   agent_email: string;
+  /** Srpski odgovori na pet pitanja - samo pri izmeni postojeće ture. */
+  faq: string[];
 };
 
 const EMPTY_FORM: FormState = {
@@ -96,7 +105,8 @@ const EMPTY_FORM: FormState = {
   category: 'rent',
   agent_name: '',
   agent_phone: '',
-  agent_email: ''
+  agent_email: '',
+  faq: ['', '', '', '', '']
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -114,6 +124,23 @@ const CATEGORY_LABELS: Record<string, string> = {
 function embedSnippet(slug: string): string {
   const url = `${SITE_URL}/tour/${slug}`;
   return `<iframe src="${url}" width="100%" height="600" style="border:0;border-radius:12px;overflow:hidden" allow="fullscreen; accelerometer; gyroscope; magnetometer" allowfullscreen loading="lazy"></iframe>`;
+}
+
+/** Srpski tekst iz i18n polja (objekat ili stariji JSON-string). */
+function pickSr(raw: unknown): string {
+  let parsed: unknown = raw;
+  if (typeof raw === 'string') {
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return raw;
+    }
+  }
+  if (parsed && typeof parsed === 'object') {
+    const rec = parsed as Record<string, string>;
+    return rec.sr || '';
+  }
+  return typeof parsed === 'string' ? parsed : '';
 }
 
 function pickTitle(row: TourRow): string {
@@ -225,6 +252,8 @@ export default function ToursAdminPage() {
         return;
       }
       setNotice(editingSlug ? 'Izmene su sačuvane.' : `Tura je kreirana: /tour/${json.slug}`);
+      // Sačuvano, ali prevod nekog odgovora nije uspeo - vidi buildFaqUpdate.
+      if (json.warning) setError(json.warning);
       setForm(EMPTY_FORM);
       setEditingSlug(null);
       await load();
@@ -382,7 +411,8 @@ export default function ToursAdminPage() {
       category: tour.category || 'rent',
       agent_name: tour.agent_name || '',
       agent_phone: tour.agent_phone || '',
-      agent_email: tour.agent_email || ''
+      agent_email: tour.agent_email || '',
+      faq: [tour.faq_1_i18n, tour.faq_2_i18n, tour.faq_3_i18n, tour.faq_4_i18n, tour.faq_5_i18n].map(pickSr)
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -745,6 +775,36 @@ export default function ToursAdminPage() {
               style={inputStyle}
             />
           </Field>
+
+          {/* Odgovori na pet pitanja (dugme "Pitanja" u turi). Samo pri izmeni:
+              nova tura ih dobija iz upitnika. Pitanja zavise od tipa oglasa,
+              a odgovor stoji na istom mestu - zato se pri promeni tipa
+              oglasa i odgovori moraju proveriti. */}
+          {editingSlug && (
+            <fieldset style={{ border: `1px solid ${FORM.border}`, borderRadius: '12px', padding: '12px 14px 14px', margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <legend style={{ padding: '0 6px', fontSize: '13.5px', fontWeight: 700 }}>Odgovori na pitanja</legend>
+              <p style={{ margin: 0, fontSize: '12.5px', color: FORM.textSecondary }}>
+                Pišete na srpskom. Izmenjen odgovor se pri čuvanju sam prevodi na jezike koje tura ima.
+                Jedan kratak red po odgovoru; prazno polje = pitanje se ne prikazuje.
+              </p>
+              {(categoryQuestions[form.category]?.sr ?? categoryQuestions.rent.sr).map((question, i) => (
+                <Field key={i} label={`${i + 1}. ${question}`}>
+                  <textarea
+                    id={`tour-faq-${i + 1}`}
+                    value={form.faq[i] ?? ''}
+                    onChange={(e) => {
+                      const faq = [...form.faq];
+                      faq[i] = e.target.value;
+                      setForm({ ...form, faq });
+                    }}
+                    rows={2}
+                    maxLength={400}
+                    style={{ ...inputStyle, resize: 'vertical' }}
+                  />
+                </Field>
+              ))}
+            </fieldset>
+          )}
 
           {error && <p style={{ margin: 0, color: FORM.danger, fontSize: '13px' }}>{error}</p>}
           {notice && <p style={{ margin: 0, color: FORM.success, fontSize: '13px' }}>{notice}</p>}
