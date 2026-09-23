@@ -7,6 +7,7 @@ import { processTourForm, FormAnswers } from '@/app/lib/tourFromForm';
 import { uniqueSlug } from '@/app/lib/slug';
 import { rateLimit, tooManyRequests } from '@/app/lib/rateLimit';
 import { parseArea, priceFromAnswers } from '@/app/lib/tourNumbers';
+import { geocodeAddress } from '@/app/lib/geocode';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -21,7 +22,9 @@ const CODE_ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
 const SUBMIT_LIMIT = 10;
 const SUBMIT_WINDOW_MS = 60 * 60 * 1000;
 
-const MAX_FLOORPLAN_BYTES = 10 * 1024 * 1024;
+// Vercel ionako odbija telo veće od 4,5MB pre ove rute; klijent (unos/page.tsx)
+// zato veći tlocrt sam smanji. Ova granica je samo zaštita od ručnih poziva.
+const MAX_FLOORPLAN_BYTES = 4 * 1024 * 1024;
 // Bez PDF-a: modal "Skica" crta tlocrt kao <img>, pa bi PDF ostao prazan
 // okvir. Ako agent ima samo PDF, treba mu slika - bolje da to sazna pri
 // slanju nego da otkrije prazan modal.
@@ -124,7 +127,7 @@ export async function POST(req: Request) {
       }
       if (floorplan.size > MAX_FLOORPLAN_BYTES) {
         return NextResponse.json(
-          { success: false, error: 'Tlocrt je veći od 10MB.' },
+          { success: false, error: 'Tlocrt je veći od 4MB.' },
           { status: 400 }
         );
       }
@@ -187,6 +190,12 @@ export async function POST(req: Request) {
       faq_5_i18n: processed.faq_5_i18n,
       target_languages: processed.target_languages
     };
+
+    // Pin na mapi /ture (migracija 016). Isto kao u /api/admin/tours - bez
+    // ovoga ture iz upitnika nisu imale koordinate, pa ih mapa nije videla.
+    // "Best effort": ako Nominatim ne nađe adresu, tura se upisuje bez pina.
+    const coords = await geocodeAddress(processed.address, processed.city);
+    if (coords) Object.assign(payload, { lat: coords.lat, lng: coords.lng });
 
     let { error } = await supabase.from('tours').insert(payload);
 

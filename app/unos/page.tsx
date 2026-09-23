@@ -13,6 +13,11 @@ import {
   FINISH_STATUS_OPTIONS,
   neighbourhoodsFor
 } from '../lib/propertyTaxonomy';
+import { shrinkImage } from '../lib/shrinkImage';
+
+// Vercel odbija telo zahteva veće od 4,5MB pre nego što ruta dobije reč, pa
+// se veći tlocrt smanjuje u pregledaču (ostatak forme je samo tekst).
+const MAX_FLOORPLAN_UPLOAD_BYTES = 3.5 * 1024 * 1024;
 
 type Category = 'rent' | 'sale' | 'booking';
 
@@ -226,13 +231,22 @@ export default function UnosPage() {
       const body = new FormData();
       body.append('accessCode', code);
       body.append('answers', JSON.stringify(answers));
-      if (floorplan) body.append('floorplan', floorplan);
+      if (floorplan) {
+        const upload = await shrinkImage(floorplan, MAX_FLOORPLAN_UPLOAD_BYTES);
+        if (upload.size > MAX_FLOORPLAN_UPLOAD_BYTES) {
+          setError('Slika tlocrta je prevelika. Pošaljite manju sliku ili je dodajte naknadno.');
+          return;
+        }
+        body.append('floorplan', upload);
+      }
 
       const res = await fetch('/api/unos', { method: 'POST', body });
-      const json = await res.json();
+      // Greške same platforme (npr. prevelik zahtev) stižu kao običan tekst,
+      // ne JSON - bez ovoga bi agent video "Nema veze sa serverom".
+      const json = await res.json().catch(() => null);
 
-      if (!res.ok || !json.success) {
-        setError(json.error || 'Slanje nije uspelo.');
+      if (!res.ok || !json?.success) {
+        setError(json?.error || `Slanje nije uspelo (greška ${res.status}). Podaci su sačuvani, pokušajte ponovo.`);
         return;
       }
 
@@ -523,7 +537,7 @@ export default function UnosPage() {
             />
           </Field>
 
-          <Field label="Crtež osnove / tlocrt" hint="Slika tlocrta — JPG, PNG ili WEBP, do 10MB. Može i naknadno.">
+          <Field label="Crtež osnove / tlocrt" hint="Slika tlocrta — JPG, PNG ili WEBP. Velika slika se sama smanji pre slanja. Može i naknadno.">
             {/* Sopstveno dugme: pregledačevo ("Choose File / No file chosen")
                 je uvek na jeziku pregledača, pa je usred srpske forme umelo
                 da bude na engleskom. */}
