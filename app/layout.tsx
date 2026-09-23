@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import ScrollToTop from "../components/ScrollToTop";
+import ErrorReporter from "../components/ErrorReporter";
 import { SITE_NAME, SITE_URL } from "./lib/site";
 
 // Fontovi se preuzimaju pri build-u i služe sa našeg domena: nema čekanja na
@@ -72,6 +73,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-full flex flex-col">
         <ScrollToTop />
+        {/* Prijavljuje greške u pregledaču vlasniku na Telegram (samo na pravom domenu). */}
+        <ErrorReporter />
         {children}
       </body>
     </html>
