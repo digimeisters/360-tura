@@ -16,10 +16,10 @@ import fs from 'fs';
 // briše.
 //
 // Pokretanje (samo izveštaj, ništa se ne menja u bazi):
-//   node app/find-duplicate-waypoints.mjs
+//   node scripts/find-duplicate-waypoints.mjs
 //
 // Pokretanje (stvarno briše duplikate iz baze):
-//   node app/find-duplicate-waypoints.mjs --apply
+//   node scripts/find-duplicate-waypoints.mjs --apply
 // ============================================================
 
 const APPLY = process.argv.includes('--apply');

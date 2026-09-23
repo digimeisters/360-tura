@@ -1,3 +1,6 @@
+// GENERISANO skriptom scripts/gen-db-types.mjs (npm run db:types) - ne menjati ručno.
+// Izvor: živa baza sajta (tmnaguwmzlwirhjprdbh), 2026-09-23.
+
 export type Json =
   | string
   | number
@@ -7,13 +10,53 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
+      contact_requests: {
+        Row: {
+          agency: string | null
+          contact: string
+          created_at: string
+          id: string
+          listing_type: string | null
+          message: string | null
+          name: string
+          package: string | null
+          size: string | null
+          source: string | null
+          status: string
+        }
+        Insert: {
+          agency?: string | null
+          contact: string
+          created_at?: string
+          id?: string
+          listing_type?: string | null
+          message?: string | null
+          name: string
+          package?: string | null
+          size?: string | null
+          source?: string | null
+          status?: string
+        }
+        Update: {
+          agency?: string | null
+          contact?: string
+          created_at?: string
+          id?: string
+          listing_type?: string | null
+          message?: string | null
+          name?: string
+          package?: string | null
+          size?: string | null
+          source?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       rooms: {
         Row: {
           ai_listing_type: string | null
@@ -23,16 +66,20 @@ export type Database = {
           draft_data: string | null
           establish: Json | null
           establish_i18n: Json | null
+          floorplan_x: number | null
+          floorplan_y: number | null
           highlights_i18n: Json | null
           id: string
           listing_copy_i18n: Json | null
           order_index: number | null
           panorama_url: string | null
+          panorama_url_cf: string | null
+          preview_url: string | null
           status: string | null
-          target_languages: Json | null
-          title: string
+          target_languages: string | null
+          title: string | null
           title_i18n: Json | null
-          tour_slug: string
+          tour_slug: string | null
           visual_analysis: Json | null
           waypoints: Json | null
           waypoints_i18n: Json | null
@@ -45,16 +92,20 @@ export type Database = {
           draft_data?: string | null
           establish?: Json | null
           establish_i18n?: Json | null
+          floorplan_x?: number | null
+          floorplan_y?: number | null
           highlights_i18n?: Json | null
           id?: string
           listing_copy_i18n?: Json | null
           order_index?: number | null
           panorama_url?: string | null
+          panorama_url_cf?: string | null
+          preview_url?: string | null
           status?: string | null
-          target_languages?: Json | null
-          title: string
+          target_languages?: string | null
+          title?: string | null
           title_i18n?: Json | null
-          tour_slug: string
+          tour_slug?: string | null
           visual_analysis?: Json | null
           waypoints?: Json | null
           waypoints_i18n?: Json | null
@@ -67,55 +118,128 @@ export type Database = {
           draft_data?: string | null
           establish?: Json | null
           establish_i18n?: Json | null
+          floorplan_x?: number | null
+          floorplan_y?: number | null
           highlights_i18n?: Json | null
           id?: string
           listing_copy_i18n?: Json | null
           order_index?: number | null
           panorama_url?: string | null
+          panorama_url_cf?: string | null
+          preview_url?: string | null
           status?: string | null
-          target_languages?: Json | null
-          title?: string
+          target_languages?: string | null
+          title?: string | null
           title_i18n?: Json | null
-          tour_slug?: string
+          tour_slug?: string | null
           visual_analysis?: Json | null
           waypoints?: Json | null
           waypoints_i18n?: Json | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_rooms_tours"
-            columns: ["tour_slug"]
-            isOneToOne: false
-            referencedRelation: "tours"
-            referencedColumns: ["slug"]
-          },
-        ]
+        Relationships: []
+      }
+      site_events: {
+        Row: {
+          created_at: string
+          device: string | null
+          event_type: string
+          id: string
+          session_id: string
+          source: string | null
+          target: string | null
+        }
+        Insert: {
+          created_at?: string
+          device?: string | null
+          event_type: string
+          id?: string
+          session_id: string
+          source?: string | null
+          target?: string | null
+        }
+        Update: {
+          created_at?: string
+          device?: string | null
+          event_type?: string
+          id?: string
+          session_id?: string
+          source?: string | null
+          target?: string | null
+        }
+        Relationships: []
+      }
+      tour_events: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          event_type: string
+          id: string
+          lang: string | null
+          room_id: string | null
+          session_id: string
+          tour_slug: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          event_type: string
+          id?: string
+          lang?: string | null
+          room_id?: string | null
+          session_id: string
+          tour_slug: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          event_type?: string
+          id?: string
+          lang?: string | null
+          room_id?: string | null
+          session_id?: string
+          tour_slug?: string
+        }
+        Relationships: []
       }
       tours: {
         Row: {
           about_text_i18n: Json | null
           address: string | null
-          city: string | null
-          status: string
           advertiser_type: string | null
           agency_name: string | null
           agent_email: string | null
           agent_name: string | null
           agent_phone: string | null
+          area_sqm: number | null
+          build_status: string | null
           category: string | null
-          created_at: string | null
+          city: string | null
+          created_at: string
+          district: string | null
           faq_1_i18n: Json | null
           faq_2_i18n: Json | null
           faq_3_i18n: Json | null
           faq_4_i18n: Json | null
           faq_5_i18n: Json | null
+          finish_status: string | null
+          floor: string | null
           floorplan_url: string | null
+          guide_path: string | null
+          has_basement: string | null
+          has_elevator: string | null
+          heating: string | null
           id: string
+          lat: number | null
+          lng: number | null
           location_map_url: string | null
           location_text_i18n: Json | null
           panorama_url: string | null
+          price: number | null
           property_type: string | null
+          published: boolean
           slug: string
+          status: string
+          structure: string | null
           target_languages: string | null
           title: string | null
           title_i18n: Json | null
@@ -123,27 +247,41 @@ export type Database = {
         Insert: {
           about_text_i18n?: Json | null
           address?: string | null
-          city?: string | null
-          status?: string
           advertiser_type?: string | null
           agency_name?: string | null
           agent_email?: string | null
           agent_name?: string | null
           agent_phone?: string | null
+          area_sqm?: number | null
+          build_status?: string | null
           category?: string | null
-          created_at?: string | null
+          city?: string | null
+          created_at?: string
+          district?: string | null
           faq_1_i18n?: Json | null
           faq_2_i18n?: Json | null
           faq_3_i18n?: Json | null
           faq_4_i18n?: Json | null
           faq_5_i18n?: Json | null
+          finish_status?: string | null
+          floor?: string | null
           floorplan_url?: string | null
+          guide_path?: string | null
+          has_basement?: string | null
+          has_elevator?: string | null
+          heating?: string | null
           id?: string
+          lat?: number | null
+          lng?: number | null
           location_map_url?: string | null
           location_text_i18n?: Json | null
           panorama_url?: string | null
+          price?: number | null
           property_type?: string | null
+          published?: boolean
           slug: string
+          status?: string
+          structure?: string | null
           target_languages?: string | null
           title?: string | null
           title_i18n?: Json | null
@@ -151,27 +289,41 @@ export type Database = {
         Update: {
           about_text_i18n?: Json | null
           address?: string | null
-          city?: string | null
-          status?: string
           advertiser_type?: string | null
           agency_name?: string | null
           agent_email?: string | null
           agent_name?: string | null
           agent_phone?: string | null
+          area_sqm?: number | null
+          build_status?: string | null
           category?: string | null
-          created_at?: string | null
+          city?: string | null
+          created_at?: string
+          district?: string | null
           faq_1_i18n?: Json | null
           faq_2_i18n?: Json | null
           faq_3_i18n?: Json | null
           faq_4_i18n?: Json | null
           faq_5_i18n?: Json | null
+          finish_status?: string | null
+          floor?: string | null
           floorplan_url?: string | null
+          guide_path?: string | null
+          has_basement?: string | null
+          has_elevator?: string | null
+          heating?: string | null
           id?: string
+          lat?: number | null
+          lng?: number | null
           location_map_url?: string | null
           location_text_i18n?: Json | null
           panorama_url?: string | null
+          price?: number | null
           property_type?: string | null
+          published?: boolean
           slug?: string
+          status?: string
+          structure?: string | null
           target_languages?: string | null
           title?: string | null
           title_i18n?: Json | null
@@ -193,126 +345,3 @@ export type Database = {
     }
   }
 }
-
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
-
-export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
-    }
-    ? R
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
-
-export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
-
-export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
-
-export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never) = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never) = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
-
-export const Constants = {
-  public: {
-    Enums: {},
-  },
-} as const

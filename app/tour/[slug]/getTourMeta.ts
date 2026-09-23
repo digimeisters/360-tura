@@ -101,7 +101,8 @@ export type TourMetaFull = TourMeta & {
 // generateMetadata i opengraph-image se izvršavaju odvojeno za isti slug -
 // cache() sprečava dupli upit ka Supabase-u u istom renderu.
 export const getTourMeta = cache(async (slug: string): Promise<TourMetaFull | null> => {
-  // Cast jer types/supabase.ts ne zna za kolone iz migracija 011-015.
+  // Cast jer lista kolona nije doslovan tekst (slaže se iz DETAIL_COLUMNS), pa
+  // supabase-js ne može sam da izvede tip reda - daje ga maybeSingle ispod.
   const { data, error } = await supabase
     .from('tours')
     .select(
@@ -112,11 +113,9 @@ export const getTourMeta = cache(async (slug: string): Promise<TourMetaFull | nu
 
   if (error || !data) return null;
 
-  // Cast jer types/supabase.ts još ne zna za preview_url (migracija 004) -
-  // ukloniti kad se tipovi regenerišu.
   const { data: rooms } = await supabase
     .from('rooms')
-    .select('preview_url, title, title_i18n, order_index' as '*')
+    .select('preview_url, title, title_i18n, order_index')
     .eq('tour_slug', slug)
     .order('order_index', { ascending: true })
     .returns<TourRoomRow[]>();

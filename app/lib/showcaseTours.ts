@@ -159,14 +159,12 @@ const FALLBACK_TITLES: Record<string, { tour: string; room: (n: number) => strin
 export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
   const fallback = FALLBACK_TITLES[lang] ?? FALLBACK_TITLES.sr;
 
-  // Cast jer types/supabase.ts još ne zna za preview_url (004) i published
-  // (007) - ukloniti kad se tipovi regenerišu.
   // select('*') jer `status` (migracija 010) na bazi možda još ne postoji -
   // nabrajanje kolone koje nema oborilo bi ceo upit.
   const { data: allTours, error } = await supabase
     .from('tours')
     .select('*')
-    .eq('published' as never, true as never)
+    .eq('published', true)
     .order('created_at', { ascending: false })
     .returns<TourRow[]>();
 
@@ -181,7 +179,7 @@ export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
 
   const { data: rooms, error: roomsErr } = await supabase
     .from('rooms')
-    .select('id, tour_slug, title, title_i18n, preview_url, establish_i18n, order_index' as '*')
+    .select('id, tour_slug, title, title_i18n, preview_url, establish_i18n, order_index')
     .in(
       'tour_slug',
       tours.map((t) => t.slug)

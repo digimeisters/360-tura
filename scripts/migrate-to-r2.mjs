@@ -13,7 +13,7 @@ import fs from 'fs';
 // skripta — ruta mora biti dostupna na http://localhost:3000
 //
 // Pokretanje:
-//   node app/migrate-to-r2.mjs
+//   node scripts/migrate-to-r2.mjs
 // ============================================================
 
 const APP_URL = process.env.MIGRATE_APP_URL || 'http://localhost:3000';
