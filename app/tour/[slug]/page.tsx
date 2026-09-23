@@ -1051,6 +1051,7 @@ export default function TourPage() {
           rooms={rooms}
           currentRoom={currentRoom}
           currentRoomTitle={currentRoomTitle}
+          seenRoomIds={seenRoomIds}
           lang={lang}
           adminMode={adminMode}
           aboutText={aboutText}

@@ -34,6 +34,7 @@ Vlasnik govori srpski, vodi se proizvodom i dizajnom, nije programer. Objašnjen
 | Admin, analitika | `/admin/analitika` | vlasnik | Posete tura i početne strane, klikovi, izvori poseta |
 | Admin u turi | `/tour/[slug]?admin=1` | vlasnik | Dodavanje soba, otpremanje panorama, AI popuna, prevodi, tačke, tlocrt |
 | Izveštaj agencije | `/izvestaj/[token]?mesec=YYYY-MM` | agencija | Mesečni izveštaj o posetama njenih tura. Tajni potpisan link (`lib/agencyReport.ts`), bez prijave; linkovi su u `/admin/ture` → „Izveštaji za agencije". Nije za Google. |
+| Šematski plan | `/admin/plan/[slug]` | vlasnik | Editor tlocrta: automatski nacrt iz tačaka vrata (`lib/schematicFloorplan.ts`) koji se ispravlja povlačenjem; čuvanje crta SVG (`lib/floorplanLayout.ts`), stavlja ga na R2 kao `<slug>/floorplan-schematic.svg` (+ `.json` sa rasporedom za kasniju izmenu) i upisuje `floorplan_url` i oznake soba. Pravi tlocrt se ne menja bez potvrde. Dugme „🗺 Plan" u `/admin/ture`. |
 
 ---
 
@@ -180,6 +181,7 @@ Polja `*_i18n` su objekti po jezicima: `{ "sr": "...", "en": "...", "de": "...",
 | `POST /api/contact` | 5 zahteva / 10 min po IP-u | Upit sa forme → `contact_requests` + Telegram (termin, oznaka EN strane) |
 | `POST /api/viewing-request` | 5 zahteva / 10 min po IP-u; samo objavljena aktivna tura | „Zakaži razgledanje" iz ture → `contact_requests` (`source = tour:<slug>`) + Telegram sa podacima ture i agenta |
 | `POST /api/client-error` | 10 / 10 min po IP-u, botovi se odbacuju, ista greška najviše 1×/h | Greška iz pregledača (`lib/reportError.ts`) → Telegram vlasniku + Vercel log |
+| `GET/POST /api/admin/floorplan` | `requireAdmin` | Raspored šematskog plana (sačuvan ili nov nacrt) / čuvanje plana u turu |
 | `POST /api/track` | 120 / min, botovi se odbacuju | Događaji tura (`tour_events`) i, uz `scope: 'site'`, početne (`site_events`) |
 | `POST /api/unos` | kod `FORM_ACCESS_CODE`; 10 slanja / h; 5 pogrešnih kodova / 15 min | Upitnik agenta → Gemini nacrt → neobjavljena tura |
 | `GET/POST/PATCH /api/admin/tours` | `requireAdmin` | Spisak, nova tura, izmena, objava. Posle izmene osvežava `/`, `/en` i sitemap |

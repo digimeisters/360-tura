@@ -1003,6 +1003,13 @@ export default function ToursAdminPage() {
                       >
                         Uredi sadržaj
                       </a>
+                      {/* Šematski tlocrt: automatski nacrt + ručna ispravka (app/admin/plan). */}
+                      <a
+                        href={`/admin/plan/${tour.slug}`}
+                        style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', textDecoration: 'none', marginRight: '6px' }}
+                      >
+                        🗺 Plan
+                      </a>
                       <button
                         onClick={() => void copyEmbedCode(tour)}
                         title="Kopira <iframe> kod za ugradnju ture na sajt agencije"

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { THEME, btnStyle } from './theme';
 import { MODAL_ICONS, withoutEmoji } from './icons';
 import { getLocalizedText, type FactRow } from './utils';
@@ -23,6 +24,7 @@ export function TourModals({
   rooms,
   currentRoom,
   currentRoomTitle,
+  seenRoomIds,
   lang,
   adminMode,
   aboutText,
@@ -43,6 +45,8 @@ export function TourModals({
   rooms: Room[];
   currentRoom: Room | undefined;
   currentRoomTitle: string;
+  /** Sobe koje je posetilac već video - tačke na skici to pokazuju kao na mini skici. */
+  seenRoomIds: Set<string>;
   lang: Language;
   adminMode: boolean;
   aboutText: string;
@@ -57,7 +61,12 @@ export function TourModals({
   onRequestViewing: (() => void) | null;
   shareCopied: boolean;
 }) {
+  // Admin: postavljanje oznake na skicu tek posle klika na dugme.
+  const [placing, setPlacing] = useState(false);
   if (!activeModal) return null;
+
+  const schematic = Boolean(tour?.floorplan_url?.includes('/floorplan-schematic.svg'));
+  const placeMode = adminMode && !schematic && placing;
 
   const Icon = MODAL_ICONS[activeModal];
   const title = {
@@ -93,50 +102,87 @@ export function TourModals({
           {activeModal === 'plan' && (
             tour?.floorplan_url ? (
               <div>
-                {adminMode && (
-                  <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: THEME.accent, fontWeight: 600, textAlign: 'center' }}>
-                    🖊️ Klikni na skicu da postaviš oznaku za trenutnu sobu: <b>{currentRoomTitle}</b>
+                {/* Admin: šematski plan se uređuje u editoru; na pravom
+                    tlocrtu oznaka se postavlja tek posle klika na dugme -
+                    inače bi svaki klik po skici (i kad je admin samo
+                    razgleda turu kao posetilac) pomerio oznaku. */}
+                {adminMode && schematic && (
+                  <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: THEME.textMuted, textAlign: 'center' }}>
+                    Admin: oznake i raspored menjate u{' '}
+                    <a href={`/admin/plan/${tour.slug}`} style={{ color: THEME.accent, fontWeight: 600 }}>editoru plana</a>.
                   </p>
+                )}
+                {adminMode && !schematic && (
+                  <div style={{ margin: '0 0 12px 0', textAlign: 'center' }}>
+                    {placing ? (
+                      <p style={{ margin: 0, fontSize: '13px', color: THEME.accent, fontWeight: 600 }}>
+                        🖊️ Klikni na skicu gde je soba: <b>{currentRoomTitle}</b>{' '}
+                        <button type="button" onClick={() => setPlacing(false)} style={{ ...btnStyle, padding: '2px 10px', fontSize: '12px', marginLeft: '6px' }}>
+                          Otkaži
+                        </button>
+                      </p>
+                    ) : (
+                      <button type="button" onClick={() => setPlacing(true)} style={{ ...btnStyle, padding: '5px 12px', fontSize: '13px' }}>
+                        🖊️ Postavi oznaku za: {currentRoomTitle}
+                      </button>
+                    )}
+                  </div>
                 )}
                 {/* Unutrašnji omotač je tačno veličine slike: oznake su u
                     procentima slike, a spoljni okvir je širi kad je skica
                     visoka - tada bi oznake stajale pomereno. */}
+                {/* Tačke kao na mini skici (računar): plava pulsira = ovde ste,
+                    bela = viđeno, tamna = još niste bili. Malo veće za prst. */}
+                <style>{`
+                  .k360-plan-dot { position: absolute; transform: translate(-50%, -50%); padding: 0; cursor: pointer; border-radius: 50%;
+                    width: 16px; height: 16px; border: 2.5px solid #fff; background: rgba(15, 23, 42, 0.55);
+                    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35); transition: transform 0.15s ease; }
+                  .k360-plan-dot::before { content: ''; position: absolute; inset: -12px; border-radius: 50%; }
+                  .k360-plan-dot:hover { transform: translate(-50%, -50%) scale(1.25); }
+                  .k360-plan-dot[data-state="seen"] { background: #fff; border-color: #334155; }
+                  .k360-plan-dot[data-state="current"] { width: 20px; height: 20px; background: #5B92D6; border-color: #fff; z-index: 1; }
+                  .k360-plan-dot[data-state="current"]::after { content: ''; position: absolute; inset: -8px; border-radius: 50%;
+                    border: 2.5px solid #5B92D6; animation: k360PlanPulse 1.8s ease-out infinite; }
+                  @keyframes k360PlanPulse { from { transform: scale(0.6); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
+                  @media (prefers-reduced-motion: reduce) { .k360-plan-dot[data-state="current"]::after { animation: none; } }
+                `}</style>
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
                   <div style={{ position: 'relative', lineHeight: 0 }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={tour.floorplan_url}
                       alt="Floorplan"
-                      onClick={adminMode ? onFloorplanClick : undefined}
-                      style={{ maxWidth: '100%', maxHeight: '60vh', borderRadius: '12px', cursor: adminMode ? 'crosshair' : 'default', display: 'block' }}
+                      onClick={
+                        placeMode
+                          ? (e) => {
+                              onFloorplanClick(e);
+                              setPlacing(false);
+                            }
+                          : undefined
+                      }
+                      style={{ maxWidth: '100%', maxHeight: '60vh', borderRadius: '12px', cursor: placeMode ? 'crosshair' : 'default', display: 'block' }}
                     />
                     {rooms
                       .filter((r) => typeof r.floorplan_x === 'number' && typeof r.floorplan_y === 'number')
                       .map((r) => {
                         const isCurrent = r.id === currentRoom?.id;
+                        const state = isCurrent ? 'current' : seenRoomIds.has(String(r.id)) ? 'seen' : 'unseen';
+                        const name = getLocalizedText(r.title_i18n, lang);
                         return (
                           <button
                             key={r.id}
-                            title={getLocalizedText(r.title_i18n, lang)}
+                            type="button"
+                            className="k360-plan-dot"
+                            data-state={state}
+                            title={name}
+                            aria-label={name}
+                            aria-current={isCurrent ? 'location' : undefined}
                             onClick={(e) => {
                               e.stopPropagation();
                               onChangeRoom(r.id);
                               onClose();
                             }}
-                            style={{
-                              position: 'absolute',
-                              left: `${r.floorplan_x}%`,
-                              top: `${r.floorplan_y}%`,
-                              transform: 'translate(-50%, -50%)',
-                              width: isCurrent ? '18px' : '14px',
-                              height: isCurrent ? '18px' : '14px',
-                              borderRadius: '50%',
-                              backgroundColor: isCurrent ? THEME.accent : THEME.surface,
-                              border: '2px solid ' + (isCurrent ? '#fff' : THEME.accent),
-                              boxShadow: THEME.shadowLg,
-                              cursor: 'pointer',
-                              padding: 0
-                            }}
+                            style={{ left: `${r.floorplan_x}%`, top: `${r.floorplan_y}%` }}
                           />
                         );
                       })}
