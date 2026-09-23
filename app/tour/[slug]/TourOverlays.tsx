@@ -1,9 +1,10 @@
+import { useEffect, useState } from 'react';
 import { THEME } from './theme';
 
 /**
- * Statični delovi ekrana ture, izdvojeni iz page.tsx: globalni CSS ture,
- * veliki ekran dok se prva soba učitava i nišan za admina. Nemaju svoje
- * stanje - samo prikaz onoga što strana prosledi.
+ * Delovi ekrana ture izdvojeni iz page.tsx: globalni CSS ture, veliki ekran
+ * dok se prva soba učitava, nišan za admina i natpis "prevucite prstom" pri
+ * prvom ulasku (jedino ovaj ima svoje stanje - useFirstTimeDragHint).
  */
 
 /** CSS koji tura dodaje stranici (Pannellum, uvećanje na računaru, pulsiranje tačaka). */
@@ -107,6 +108,90 @@ export function RoomLoadingScreen({
           {loadingPrefix}<b style={{ color: THEME.textPrimary }}>{roomTitle}</b>
         </div>
       </div>
+    </div>
+  );
+}
+
+const DRAG_HINT_KEY = 'k360_drag_hint_seen';
+const DRAG_HINT_MS = 4000;
+
+/**
+ * Natpis "Prevucite prstom da razgledate" pri PRVOM ulasku u turu na ovom
+ * uređaju - onome ko ne zna da se 360° slika pomera, to je prva prepreka.
+ * Pojavi se na 4 sekunde (ili dok posetilac prvi put ne dotakne ekran) i
+ * više se ne prikazuje; pamti se u pregledaču. Ako pregledač ne dozvoljava
+ * pamćenje (privatni režim), prikazuje se svaki put - bolje nego nikad.
+ */
+export function useFirstTimeDragHint(tourStarted: boolean): boolean {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (!tourStarted) return;
+    try {
+      if (localStorage.getItem(DRAG_HINT_KEY)) return;
+      localStorage.setItem(DRAG_HINT_KEY, '1');
+    } catch {
+      // bez pamćenja - natpis se ipak prikaže
+    }
+    // Mali predah da se prva soba pojavi pre natpisa.
+    let dismissed = false;
+    const show = setTimeout(() => {
+      if (!dismissed) setVisible(true);
+    }, 900);
+    const hide = setTimeout(() => setVisible(false), 900 + DRAG_HINT_MS);
+    const onTouch = () => {
+      dismissed = true;
+      setVisible(false);
+    };
+    window.addEventListener('pointerdown', onTouch, { once: true });
+    return () => {
+      clearTimeout(show);
+      clearTimeout(hide);
+      window.removeEventListener('pointerdown', onTouch);
+    };
+  }, [tourStarted]);
+
+  return visible;
+}
+
+/** Sam natpis - na sredini ekrana, ne hvata dodir (ispod se odmah može prevlačiti). */
+export function DragHint({ text }: { text: string }) {
+  return (
+    <div
+      role="status"
+      className="tour-ui-scale"
+      style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 34,
+        pointerEvents: 'none',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '12px 18px',
+        borderRadius: '999px',
+        background: 'rgba(15, 23, 42, 0.72)',
+        border: '1px solid rgba(255, 255, 255, 0.35)',
+        color: '#fff',
+        fontFamily: THEME.fontBody,
+        fontSize: '15px',
+        fontWeight: 600,
+        whiteSpace: 'nowrap',
+        boxShadow: '0 6px 20px rgba(0, 0, 0, 0.3)',
+        animation: 'k360HintIn 0.35s ease-out both'
+      }}
+    >
+      <style>{`
+        @keyframes k360HintIn { from { opacity: 0; transform: translate(-50%, -40%); } to { opacity: 1; transform: translate(-50%, -50%); } }
+        @keyframes k360HintSwipe { 0%, 100% { transform: translateX(-6px); } 50% { transform: translateX(6px); } }
+        @media (prefers-reduced-motion: reduce) { .k360-swipe { animation: none !important; } }
+      `}</style>
+      <span aria-hidden="true" className="k360-swipe" style={{ fontSize: '22px', display: 'inline-block', animation: 'k360HintSwipe 1.2s ease-in-out infinite' }}>
+        👆
+      </span>
+      {text}
     </div>
   );
 }

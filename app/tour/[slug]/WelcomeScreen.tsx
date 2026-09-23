@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { THEME, GLASS, GLASS_ACCENT } from './theme';
 import { Logo } from './Logo';
 import { LanguageChips } from './TourControls';
@@ -11,22 +12,27 @@ import { keepUnitsTogether } from '../../lib/typography';
  * Stoji preko panorame dok posetilac ne krene (`tourStarted`).
  *
  * Gornja traka nosi samo logo (levo) i deljenje linka (desno) - ostatak
- * ekrana je slobodan za naslov i CTA. Izbor jezika stoji odmah ispod
- * obaveštenja o pokretanju (lede), pre dugmadi za polazak - prirodan tok je
- * da posetilac prvo izabere jezik, pa tek onda pusti turu.
+ * ekrana je slobodan za naslov i CTA. Izbor jezika stoji pre dugmadi za
+ * polazak - prirodan tok je da posetilac prvo izabere jezik, pa tek onda
+ * pusti turu.
  *
  * Kad tura ima putanju vodiča (`guideChoice`), umesto jednog dugmeta nudi
  * pravi izbor: automatsko vođenje (agent priča i hoda kroz sve prostorije
- * bez prekida) ili samostalno istraživanje (kao i do sada). Bez putanje
- * ostaje stari jednodelan CTA.
+ * bez prekida) ili samostalno istraživanje. Bez putanje ostaje jedno dugme.
+ *
+ * Opis svakog izbora je jedan kratak red UNUTAR dugmeta (ne pasus ispod),
+ * da ekran ne bude natrpan, a objašnjenje stoji tačno gde se odlučuje. Za
+ * one kojima 360° tura nije poznata, ispod dugmadi je "Kako radi?" -
+ * mali prozor sa tri koraka.
  */
 export function WelcomeScreen({
   coverUrl,
   agencyName,
   title,
   price,
-  lede,
   startLabel,
+  startHint,
+  help,
   onStart,
   guideChoice,
   onShare,
@@ -42,8 +48,11 @@ export function WelcomeScreen({
   title: string;
   /** Cena nekretnine - null kad nije upisana (tada se ne prikazuje). */
   price: ListingPrice | null;
-  lede: string;
   startLabel: string;
+  /** Kratak opis ispod natpisa jedinog dugmeta (kad nema izbora vodiča). */
+  startHint: string;
+  /** Tekstovi prozora "Kako radi?". */
+  help: { link: string; steps: [string, string, string]; gotIt: string };
   onStart: () => void;
   guideChoice?: {
     guidedLabel: string;
@@ -61,6 +70,8 @@ export function WelcomeScreen({
   languages: Language[];
   onChangeLanguage: (l: Language) => void;
 }) {
+  const [showHelp, setShowHelp] = useState(false);
+
   return (
     <div
       className="tour-ui-scale"
@@ -160,45 +171,132 @@ export function WelcomeScreen({
             )}
           </div>
         )}
-        <p style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '16px', maxWidth: '440px', margin: '0 0 18px', lineHeight: 1.5, textShadow: '0 1px 8px rgba(0, 0, 0, 0.35)' }}>
-          {lede}
-        </p>
 
-        {/*
-          Odmah ispod obaveštenja ("Izaberite jezik i kliknite...") - prirodan
-          tok je da posetilac prvo izabere jezik, pa tek onda pusti turu.
-        */}
-        <div style={{ ...GLASS, display: 'flex', gap: '4px', borderRadius: '999px', padding: '4px', marginBottom: '26px' }}>
+        {/* Prirodan tok: prvo jezik, pa tek onda polazak. */}
+        <div style={{ ...GLASS, display: 'flex', gap: '4px', borderRadius: '999px', padding: '4px', marginBottom: '22px' }}>
           <LanguageChips lang={lang} languages={languages} onChange={onChangeLanguage} size="lg" selectedColor={THEME.accent} />
         </div>
 
-        {guideChoice ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '9px', width: '100%', maxWidth: '320px' }}>
-            <button
-              onClick={guideChoice.onStartGuided}
-              style={{ width: '100%', padding: '12px 24px', fontSize: '15px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '999px', cursor: 'pointer', boxShadow: '0 6px 18px rgba(30, 90, 168, 0.4)' }}
-            >
-              {guideChoice.guidedLabel}
-            </button>
-            <p style={{ margin: '0 0 4px', fontSize: '12.5px', lineHeight: 1.4, color: 'rgba(255, 255, 255, 0.75)', textShadow: '0 1px 6px rgba(0, 0, 0, 0.35)' }}>
-              {guideChoice.guidedHint}
-            </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', maxWidth: '330px' }}>
+          {guideChoice ? (
+            <>
+              <ChoiceButton icon="🎧" label={guideChoice.guidedLabel} hint={guideChoice.guidedHint} primary onClick={guideChoice.onStartGuided} />
+              <ChoiceButton icon="🧭" label={guideChoice.exploreLabel} hint={guideChoice.exploreHint} onClick={onStart} />
+            </>
+          ) : (
+            <ChoiceButton icon="▶" label={startLabel} hint={startHint} primary onClick={onStart} />
+          )}
+        </div>
 
-            <button
-              onClick={onStart}
-              style={{ width: '100%', padding: '10px 24px', fontSize: '13.5px', fontWeight: 700, background: 'rgba(255, 255, 255, 0.08)', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.35)', borderRadius: '999px', cursor: 'pointer' }}
-            >
-              {guideChoice.exploreLabel}
-            </button>
-            <p style={{ margin: 0, fontSize: '12.5px', lineHeight: 1.4, color: 'rgba(255, 255, 255, 0.75)', textShadow: '0 1px 6px rgba(0, 0, 0, 0.35)' }}>
-              {guideChoice.exploreHint}
-            </p>
-          </div>
-        ) : (
-          <button onClick={onStart} style={{ padding: '12px 28px', fontSize: '15px', fontWeight: 'bold', backgroundColor: THEME.accent, color: '#fff', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '999px', cursor: 'pointer', boxShadow: '0 6px 18px rgba(30, 90, 168, 0.4)' }}>
-            {startLabel}
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setShowHelp(true)}
+          style={{ marginTop: '16px', background: 'none', border: 'none', color: 'rgba(255, 255, 255, 0.88)', fontSize: '14px', fontFamily: THEME.fontBody, textDecoration: 'underline', textUnderlineOffset: '3px', cursor: 'pointer', textShadow: '0 1px 6px rgba(0, 0, 0, 0.4)', display: 'flex', alignItems: 'center', gap: '6px' }}
+        >
+          <span aria-hidden="true" style={{ fontSize: '15px', textDecoration: 'none' }}>ⓘ</span>
+          {help.link}
+        </button>
+      </div>
+
+      {showHelp && <HowItWorks help={help} onClose={() => setShowHelp(false)} />}
+    </div>
+  );
+}
+
+/** Natpisi imaju emoji na početku ("▶ Pokreni turu") - ovde ikonica stoji posebno. */
+function stripLeadingSymbol(label: string): string {
+  return label.replace(/^[^\p{L}\p{N}]+/u, '');
+}
+
+/**
+ * Dugme izbora: ikonica, natpis i jedan red opisa - ceo okvir je dugme,
+ * pa je površina za dodir velika i opis se čita baš dok se bira.
+ */
+function ChoiceButton({
+  icon,
+  label,
+  hint,
+  primary = false,
+  onClick
+}: {
+  icon: string;
+  label: string;
+  hint: string;
+  primary?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        width: '100%',
+        padding: '11px 18px',
+        borderRadius: '18px',
+        border: primary ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid rgba(255, 255, 255, 0.45)',
+        background: primary ? THEME.accent : 'rgba(255, 255, 255, 0.1)',
+        boxShadow: primary ? '0 6px 18px rgba(30, 90, 168, 0.4)' : 'none',
+        color: '#fff',
+        textAlign: 'left',
+        fontFamily: THEME.fontBody,
+        cursor: 'pointer'
+      }}
+    >
+      <span aria-hidden="true" style={{ fontSize: '22px', lineHeight: 1, flexShrink: 0, width: '26px', textAlign: 'center' }}>
+        {icon}
+      </span>
+      <span style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+        <span style={{ fontSize: '15.5px', fontWeight: 700, lineHeight: 1.2 }}>{stripLeadingSymbol(label)}</span>
+        <span style={{ fontSize: '12.5px', lineHeight: 1.3, color: 'rgba(255, 255, 255, 0.82)' }}>{hint}</span>
+      </span>
+    </button>
+  );
+}
+
+/** Prozor "Kako radi 360° tura?" - tri koraka, krupno i jednostavno. */
+function HowItWorks({
+  help,
+  onClose
+}: {
+  help: { link: string; steps: [string, string, string]; gotIt: string };
+  onClose: () => void;
+}) {
+  const icons = ['👆', '🔵', '☰'];
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'absolute', inset: 0, zIndex: 60, background: 'rgba(10, 14, 25, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="how-title"
+        onClick={(e) => e.stopPropagation()}
+        style={{ background: THEME.surface, color: THEME.textPrimary, borderRadius: '20px', padding: '22px 20px 18px', width: '100%', maxWidth: '360px', textAlign: 'left', fontFamily: THEME.fontBody, boxShadow: THEME.shadowLg }}
+      >
+        <h2 id="how-title" style={{ margin: '0 0 16px', fontSize: '18px', fontFamily: THEME.fontDisplay, lineHeight: 1.25 }}>
+          {help.link}
+        </h2>
+        <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {help.steps.map((step, i) => (
+            <li key={i} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <span aria-hidden="true" style={{ flexShrink: 0, width: '40px', height: '40px', borderRadius: '50%', background: THEME.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
+                {icons[i]}
+              </span>
+              <span style={{ fontSize: '15px', lineHeight: 1.4 }}>{step}</span>
+            </li>
+          ))}
+        </ol>
+        <button
+          type="button"
+          onClick={onClose}
+          style={{ marginTop: '20px', width: '100%', padding: '12px', borderRadius: '999px', border: 'none', background: THEME.accent, color: '#fff', fontSize: '15px', fontWeight: 700, cursor: 'pointer' }}
+        >
+          {help.gotIt}
+        </button>
       </div>
     </div>
   );

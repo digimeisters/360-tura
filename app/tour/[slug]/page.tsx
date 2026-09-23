@@ -23,7 +23,7 @@ import { useAdminSession } from './useAdminSession';
 import { useHotspotEditor, type RefreshHotspots } from './useHotspotEditor';
 import { useRoomNavigation } from './useRoomNavigation';
 import { runRoomSequence } from './roomSequence';
-import { AdminCrosshair, RoomLoadingScreen, TourGlobalStyles } from './TourOverlays';
+import { AdminCrosshair, DragHint, RoomLoadingScreen, TourGlobalStyles, useFirstTimeDragHint } from './TourOverlays';
 import { useNeighbourPreload, useTourAnalytics } from './useTourAnalytics';
 import { useViewerControls } from './useViewerControls';
 import { useTourNarration } from './useTourNarration';
@@ -393,6 +393,8 @@ export default function TourPage() {
   // Merenje poseta i unapred skidanje susednih soba - vidi useTourAnalytics.ts.
   useTourAnalytics({ slug, tour, adminMode, tourStarted, rooms, roomIdx, lang, langRef, activeModal });
   useNeighbourPreload(tourStarted, rooms, roomIdx);
+  // "Prevucite prstom da razgledate" pri prvom ulasku - vidi TourOverlays.tsx.
+  const showDragHint = useFirstTimeDragHint(tourStarted);
 
   // Deljenje linka trenutne ture: na mobilnom otvara native share meni
   // (WhatsApp, Viber, SMS, mejl...) preko Web Share API-ja; na desktopu (ili
@@ -825,7 +827,8 @@ export default function TourPage() {
           agencyName={tour?.agency_name ?? null}
           title={fullTourTitle}
           price={formatListingPrice(tour?.price, tour?.category, lang)}
-          lede={t.welcome}
+          startHint={guideRequested && hasGuide ? t.startGuidedTourHint : t.exploreSelfHint}
+          help={{ link: t.howItWorks, steps: [t.howStep1, t.howStep2, t.howStep3], gotIt: t.howGotIt }}
           startLabel={guideRequested && hasGuide ? t.startGuidedTour : t.startTour}
           onStart={startTour}
           // ?vodic=1 (agent-link) već je odlučen - zadržava stari jednodelan
@@ -957,6 +960,12 @@ export default function TourPage() {
       )}
 
       {guideFinished && <StatusNotice variant="done">{t.guideAllSeen}</StatusNotice>}
+
+      {showDragHint && (
+        <DragHint
+          text={typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches ? t.dragHintTouch : t.dragHintMouse}
+        />
+      )}
 
 
       {!pendingCoords && isModalToolbarVisible && (
