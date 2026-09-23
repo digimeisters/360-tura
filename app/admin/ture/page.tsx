@@ -180,6 +180,9 @@ export default function ToursAdminPage() {
   const [notice, setNotice] = useState('');
   const [copiedEmbedSlug, setCopiedEmbedSlug] = useState<string | null>(null);
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
+  // Tajni linkovi mesečnih izveštaja (lib/agencyReport.ts) - potpisuje ih server.
+  const [agencyReports, setAgencyReports] = useState<{ agency: string; tours: number; path: string }[]>([]);
+  const [copiedReport, setCopiedReport] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -218,6 +221,7 @@ export default function ToursAdminPage() {
         return;
       }
       setTours(json.tours);
+      setAgencyReports(json.agencyReports ?? []);
     } catch {
       setError('Nema veze sa serverom.');
     } finally {
@@ -515,6 +519,45 @@ export default function ToursAdminPage() {
             </button>
           </div>
         </header>
+
+        {/* Mesečni izveštaj za agenciju: tajni link, agencija vidi samo svoje
+            ture (posete, ulazak u turu, kontakt, zahtevi za razgledanje). */}
+        {agencyReports.length > 0 && (
+          <section style={{ ...cardStyle, maxWidth: 'none', marginBottom: '22px' }}>
+            <h2 style={{ fontSize: '15px', margin: 0, fontFamily: FORM.fontDisplay }}>Izveštaji za agencije</h2>
+            <p style={{ margin: 0, fontSize: '12.5px', color: FORM.textSecondary }}>
+              Pošaljite agenciji njen link - vidi samo svoje ture, po mesecima, bez prijave. Link ne ističe.
+            </p>
+            {agencyReports.map((r) => (
+              <div key={r.agency} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', borderTop: `1px solid ${FORM.border}`, paddingTop: '10px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 600 }}>
+                  {r.agency} <span style={{ color: FORM.textSecondary, fontWeight: 400 }}>· {r.tours} {r.tours === 1 ? 'tura' : r.tours < 5 ? 'ture' : 'tura'}</span>
+                </span>
+                <span style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const link = `${SITE_URL}${r.path}`;
+                      try {
+                        await navigator.clipboard.writeText(link);
+                      } catch {
+                        window.prompt('Link izveštaja (Ctrl+C, pa Enter):', link);
+                      }
+                      setCopiedReport(r.agency);
+                      setTimeout(() => setCopiedReport((cur) => (cur === r.agency ? null : cur)), 1800);
+                    }}
+                    style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px' }}
+                  >
+                    {copiedReport === r.agency ? 'Kopirano ✓' : 'Kopiraj link'}
+                  </button>
+                  <a href={r.path} target="_blank" rel="noreferrer" style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', textDecoration: 'none' }}>
+                    Otvori
+                  </a>
+                </span>
+              </div>
+            ))}
+          </section>
+        )}
 
         <form onSubmit={handleSave} style={{ ...cardStyle, maxWidth: 'none', marginBottom: '22px' }}>
           <h2 style={{ fontSize: '15px', margin: 0, fontFamily: FORM.fontDisplay }}>

@@ -33,6 +33,7 @@ Vlasnik govori srpski, vodi se proizvodom i dizajnom, nije programer. Objašnjen
 | Admin, ture | `/admin/ture` | vlasnik | Spisak tura, novi unos, izmena, **Objavi / Skini** |
 | Admin, analitika | `/admin/analitika` | vlasnik | Posete tura i početne strane, klikovi, izvori poseta |
 | Admin u turi | `/tour/[slug]?admin=1` | vlasnik | Dodavanje soba, otpremanje panorama, AI popuna, prevodi, tačke, tlocrt |
+| Izveštaj agencije | `/izvestaj/[token]?mesec=YYYY-MM` | agencija | Mesečni izveštaj o posetama njenih tura. Tajni potpisan link (`lib/agencyReport.ts`), bez prijave; linkovi su u `/admin/ture` → „Izveštaji za agencije". Nije za Google. |
 
 ---
 
@@ -76,8 +77,8 @@ app/
   sitemap.ts, robots.ts, opengraph-image.tsx
 components/               komponente početne: HeroDevice, ContactForm, PriceCalculator, SiteTracker
 supabase/migrations/      001–015+, SQL koji vlasnik ručno pokreće u Supabase SQL editoru
-scripts/                  jednokratni skriptovi (backfill-previews.mjs)
-types/supabase.ts         generisani tipovi baze (ZASTARELI, vidi §5)
+scripts/                  jednokratni skriptovi + gen-db-types.mjs (npm run db:types)
+types/supabase.ts         generisani tipovi baze (`npm run db:types`, vidi §5)
 docs/                     uputstvo-kreiranje-ture.md, ovaj fajl
 ```
 
@@ -132,9 +133,9 @@ Polja `*_i18n` su objekti po jezicima: `{ "sr": "...", "en": "...", "de": "...",
 - **authenticated** (prijavljeni admin) čita sve, a u `rooms` i piše. Zato javna registracija na Supabase projektu **mora ostati isključena**.
 - **service role** (samo na serveru) zaobilazi RLS. Koriste ga API rute i admin rute posle `requireAdmin`.
 
-### Zastareli tipovi
+### Tipovi baze
 
-`types/supabase.ts` ne zna za `preview_url`, `published`, `floorplan_x/y`, `panorama_url_cf` ni za nove tabele. U kodu se zato koriste kastovi: `.select('... ' as '*')`, `.eq('published' as never, true as never)`, `.returns<T[]>()`. Kad se tipovi regenerišu, kastovi se mogu skinuti.
+`types/supabase.ts` pravi `npm run db:types` (`scripts/gen-db-types.mjs`) iz **žive baze sajta**, samo čitanjem. Pokreće se posle svake nove migracije. Supabase CLI (`supabase gen types`) se ovde NE koristi: baza je premeštena na poslovni nalog, a CLI na ovom računaru je i dalje prijavljen na stari nalog (projekat „360-tura"), pa daje pogrešne tipove. Kastovi `as '*'` ostaju samo tamo gde se lista kolona slaže iz promenljive.
 
 ### Migracije
 
@@ -168,6 +169,8 @@ Polja `*_i18n` su objekti po jezicima: `{ "sr": "...", "en": "...", "de": "...",
 | Ruta | Zaštita | Šta radi |
 |---|---|---|
 | `POST /api/contact` | 5 zahteva / 10 min po IP-u | Upit sa forme → `contact_requests` + Telegram (termin, oznaka EN strane) |
+| `POST /api/viewing-request` | 5 zahteva / 10 min po IP-u; samo objavljena aktivna tura | „Zakaži razgledanje" iz ture → `contact_requests` (`source = tour:<slug>`) + Telegram sa podacima ture i agenta |
+| `POST /api/client-error` | 10 / 10 min po IP-u, botovi se odbacuju, ista greška najviše 1×/h | Greška iz pregledača (`lib/reportError.ts`) → Telegram vlasniku + Vercel log |
 | `POST /api/track` | 120 / min, botovi se odbacuju | Događaji tura (`tour_events`) i, uz `scope: 'site'`, početne (`site_events`) |
 | `POST /api/unos` | kod `FORM_ACCESS_CODE`; 10 slanja / h; 5 pogrešnih kodova / 15 min | Upitnik agenta → Gemini nacrt → neobjavljena tura |
 | `GET/POST/PATCH /api/admin/tours` | `requireAdmin` | Spisak, nova tura, izmena, objava. Posle izmene osvežava `/`, `/en` i sitemap |
@@ -221,6 +224,7 @@ Samo imena. **Vrednosti se nikad ne upisuju u kod, dokumente ni poruke.** Stoje 
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | obaveštenja o upitima |
 | `FORM_ACCESS_CODE` | kod koji agencija unosi u `/unos` |
 | `NEXT_PUBLIC_SITE_URL` | opciono; menja kanonski domen (npr. za staging) |
+| `REPORT_LINK_SECRET` | opciono; ključ za potpis linkova izveštaja agencija. Bez njega se izvodi iz service-role ključa. Promena poništava sve poslate linkove. |
 
 `FORM_WEBHOOK_SECRET` iz `.env.local` se više ne koristi (stari Google Form tok je uklonjen).
 
@@ -258,16 +262,11 @@ Samo imena. **Vrednosti se nikad ne upisuju u kod, dokumente ni poruke.** Stoje 
 ## 13. Otvorene stavke i tehnički dug
 
 **Čeka vlasnika**
-- Novi logo, pa ikonica sajta (`app/favicon.ico` je još podrazumevana Next.js ikonica) i ikonica za iPhone
 - Registracija firme, pa naziv, PIB i MB u podnožju + strana „Politika privatnosti"
 - ElevenLabs, pa vraćanje glasovne naracije
 - 2–3 para fotografija (telefon / HDR), pa klizač „pre i posle" za HDR
 
 **Tehnički dug**
-- `types/supabase.ts` je zastareo (i u UTF-16 kodiranju); treba ga regenerisati i skinuti kastove
-- neiskorišćeni paketi: `marzipano`, `@google/generative-ai`
-- `app/find-duplicate-waypoints.mjs` i `app/migrate-to-r2.mjs` su skriptovi; mesto im je u `scripts/`
-- `README.md` je šablon iz create-next-app
 - rate limit je u memoriji, pa na više Vercel instanci važi približno
 - `app/tour/[slug]/page.tsx` je velik (oko 2100 redova); uređivanje tačaka bi moglo u poseban modul
 

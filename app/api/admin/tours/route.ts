@@ -6,6 +6,7 @@ import { refreshPublicPages } from '@/app/lib/revalidatePublic';
 import { r2Client } from '@/app/lib/r2';
 import { geocodeAddress } from '@/app/lib/geocode';
 import { translateTexts, type TargetLang } from '@/app/lib/translateTexts';
+import { agencyReportToken } from '@/app/lib/agencyReport';
 
 export const dynamic = 'force-dynamic';
 // Izmena odgovora na pitanja prevodi ih modelom na jezike ture (vidi
@@ -164,6 +165,18 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: false, error: 'Greška pri čitanju tura.' }, { status: 500 });
   }
 
+  // Tajni link mesečnog izveštaja za svaku agenciju koja ima turu (vidi
+  // lib/agencyReport.ts). Naziv tačno kako piše u bazi - izveštaj po njemu
+  // traži ture.
+  const agencyCounts = new Map<string, number>();
+  for (const tour of tours ?? []) {
+    const name = (tour as { agency_name?: string | null }).agency_name;
+    if (name?.trim()) agencyCounts.set(name, (agencyCounts.get(name) ?? 0) + 1);
+  }
+  const agencyReports = [...agencyCounts.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0], 'sr'))
+    .map(([agency, count]) => ({ agency, tours: count, path: `/izvestaj/${agencyReportToken(agency)}` }));
+
   const roomCount = new Map<string, { total: number; withPanorama: number }>();
   for (const room of rooms ?? []) {
     const entry = roomCount.get(room.tour_slug) ?? { total: 0, withPanorama: 0 };
@@ -178,7 +191,8 @@ export async function GET(req: Request) {
       ...tour,
       rooms: roomCount.get(tour.slug)?.total ?? 0,
       roomsWithPanorama: roomCount.get(tour.slug)?.withPanorama ?? 0
-    }))
+    })),
+    agencyReports
   });
 }
 
@@ -260,7 +274,7 @@ export async function PATCH(req: Request) {
   if (typeof body.published === 'boolean' && body.title === undefined) {
     const { error: pubError } = await ctx.supabase
       .from('tours')
-      .update({ published: body.published } as never)
+      .update({ published: body.published })
       .eq('slug', slug);
 
     if (pubError) {
@@ -283,7 +297,7 @@ export async function PATCH(req: Request) {
 
     const { error: statusErr } = await ctx.supabase
       .from('tours')
-      .update({ status: body.status } as never)
+      .update({ status: body.status })
       .eq('slug', slug);
 
     if (statusErr) {
@@ -330,7 +344,7 @@ export async function PATCH(req: Request) {
 
     const { error: guideErr } = await ctx.supabase
       .from('tours')
-      .update({ guide_path: path.length > 0 ? path.join(',') : null } as never)
+      .update({ guide_path: path.length > 0 ? path.join(',') : null })
       .eq('slug', slug);
 
     if (guideErr) {
