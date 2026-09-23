@@ -139,7 +139,7 @@ export default async function BlogPostPage({ params }: Props) {
         </section>
 
         <section id="poziv">
-          <div className="wrap">
+          <div className="wrap cta-band">
             <div className="section-head">
               <h2>Sledeći korak</h2>
               <ul className="blog-related">

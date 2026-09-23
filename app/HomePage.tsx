@@ -17,6 +17,9 @@ import { SITE_STYLES } from './lib/siteStyles';
 import TourCard, { tourCardLabels } from '../components/TourCard';
 import { getPublicOpenCount } from './lib/tourStats';
 import { tourHref } from './lib/tourHref';
+import { accent } from './lib/accent';
+import PromoTopBar from '../components/PromoTopBar';
+import MobileCtaBar from '../components/MobileCtaBar';
 
 /**
  * Početna strana, jedan raspored za obe jezičke verzije: app/page.tsx (/,
@@ -51,7 +54,8 @@ export function homeMetadata(lang: HomeLang): Metadata {
 // Broj kolona prati broj tura, da nijedna kartica ne ostane sama u redu.
 function gridClass(count: number): string {
   if (count === 1) return 'n-1';
-  if (count === 2 || count === 4) return 'n-2';
+  if (count === 2) return 'n-2';
+  if (count === 4) return 'n-4';
   return 'n-3';
 }
 
@@ -78,6 +82,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
       />
       <SiteTracker />
       <NavScrollSpy />
+      <PromoTopBar lang={lang} href="#cenovnik" />
 
       <SiteNav
         brandHref="#pocetna"
@@ -160,10 +165,10 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
             <div className="wrap">
               <div className="section-head">
                 <span className="eyebrow">{copy.examples.eyebrow}</span>
-                <h2>{copy.examples.title}</h2>
+                <h2>{accent(copy.examples.title)}</h2>
                 <p className="note">{copy.examples.note}</p>
               </div>
-              <div className={`tours-grid ${gridClass(tours.length)}`}>
+              <div className={`tours-grid home-tours ${gridClass(tours.length)}`}>
                 {tours.map((tour) => (
                   <TourCard key={tour.slug} tour={tour} labels={tourCardLabels(copy)} lang={lang} />
                 ))}
@@ -192,7 +197,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
           <div className="wrap">
             <div className="section-head">
               <span className="eyebrow">{copy.benefits.eyebrow}</span>
-              <h2>{copy.benefits.title}</h2>
+              <h2>{accent(copy.benefits.title)}</h2>
               <p className="note">{copy.benefits.note}</p>
             </div>
             <div className="feat-grid">
@@ -207,11 +212,21 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
         </section>
 
         <section className="band" id="kako-radimo">
-          <div className="wrap">
-            <div className="section-head">
-              <span className="eyebrow">{copy.steps.eyebrow}</span>
-              <h2>{copy.steps.title}</h2>
-              <p className="note">{copy.steps.note}</p>
+          <div className="wrap steps-split">
+            <div className="steps-side">
+              <div className="section-head left">
+                <span className="eyebrow">{copy.steps.eyebrow}</span>
+                <h2>{accent(copy.steps.title)}</h2>
+                <p className="note">{copy.steps.note}</p>
+              </div>
+              <div className="card deliver-card">
+                <h3>{copy.steps.deliverTitle}</h3>
+                <ul className="deliver-list">
+                  {copy.steps.deliver.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
 
             <div className="steps-row">
@@ -223,15 +238,6 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
                 </div>
               ))}
             </div>
-
-            <div className="card deliver-card">
-              <h3>{copy.steps.deliverTitle}</h3>
-              <ul className="deliver-list">
-                {copy.steps.deliver.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
           </div>
         </section>
 
@@ -239,7 +245,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
           <div className="wrap">
             <div className="section-head">
               <span className="eyebrow">{copy.types.eyebrow}</span>
-              <h2>{copy.types.title}</h2>
+              <h2>{accent(copy.types.title)}</h2>
               <p className="note">{copy.types.note}</p>
             </div>
             <div className="cat-grid">
@@ -259,7 +265,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
           <div className="wrap">
             <div className="section-head">
               <span className="eyebrow">{copy.pricing.eyebrow}</span>
-              <h2>{copy.pricing.title}</h2>
+              <h2>{accent(copy.pricing.title)}</h2>
               <p className="note">{copy.pricing.note}</p>
             </div>
             <PromoBanner lang={lang} />
@@ -291,7 +297,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
             </div>
             <div className="price-grid">
               {copy.pricing.plans.map((plan) => (
-                <div key={plan.track} className={`card price-card${plan.badge ? ' featured' : ''}`}>
+                <div key={plan.track} className={`card price-card${plan.track === 'price_basic' ? ' featured' : ''}`}>
                   {plan.badge && <span className="price-badge">{plan.badge}</span>}
                   <SaleSticker count={plan.count} packageType={plan.packageType} lang={lang} />
                   <span className="price-audience">{plan.audience}</span>
@@ -320,7 +326,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
             <div className="wrap">
               <div className="section-head left">
                 <span className="eyebrow">{copy.agencyBridge.eyebrow}</span>
-                <h2>{copy.agencyBridge.title}</h2>
+                <h2>{accent(copy.agencyBridge.title)}</h2>
                 <p className="note">{copy.agencyBridge.text}</p>
                 <ul className="bridge-points">
                   {copy.agencyBridge.points.map((point) => (
@@ -339,11 +345,11 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
             isključivo agencijska tema, a ovde je stajala baš posle putokaza
             ka toj strani, pred vlasnikom jednog stana kome ne znači ništa. */}
 
-        <section className="band" id="pitanja">
-          <div className="wrap">
-            <div className="section-head">
+        <section id="pitanja">
+          <div className="wrap faq-split">
+            <div className="section-head left">
               <span className="eyebrow">{copy.faq.eyebrow}</span>
-              <h2>{copy.faq.title}</h2>
+              <h2>{accent(copy.faq.title)}</h2>
               <p className="note">{copy.faq.note}</p>
             </div>
             <div className="faq-list">
@@ -362,7 +368,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
             <div className="contact-head">
               <div className="section-head left">
                 <span className="eyebrow">{contact.eyebrow}</span>
-                <h2>{contact.title}</h2>
+                <h2>{accent(contact.title)}</h2>
                 <p className="note">{contact.note}</p>
               </div>
               <div className="quick-contact">
@@ -406,6 +412,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
       </main>
 
       <SiteFooter note={copy.footer} />
+      <MobileCtaBar href="#kontakt" label={nav.cta} callLabel={contact.call} track="cta:mobile_bar" />
     </div>
   );
 }

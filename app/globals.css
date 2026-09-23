@@ -7,6 +7,7 @@
      <html>; ostatak aplikacije koristi samo ova dva imena. */
   --font-body: var(--font-inter), system-ui, -apple-system, sans-serif;
   --font-display: var(--font-jakarta), system-ui, sans-serif;
+  --font-serif: var(--font-instrument), Georgia, serif;
 }
 
 @theme inline {

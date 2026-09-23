@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { Inter, Instrument_Serif, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import ScrollToTop from "../components/ScrollToTop";
 import ErrorReporter from "../components/ErrorReporter";
@@ -18,6 +18,15 @@ const inter = Inter({
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin", "latin-ext"],
   variable: "--font-jakarta",
+  display: "swap",
+});
+
+// Kurziv sa serifima samo za naglašene reči u naslovima sajta (<em>).
+const serif = Instrument_Serif({
+  weight: "400",
+  style: "italic",
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-instrument",
   display: "swap",
 });
 
@@ -66,7 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const cdn = cdnOrigin();
 
   return (
-    <html lang="sr" className={`${inter.variable} ${jakarta.variable}`}>
+    <html lang="sr" className={`${inter.variable} ${jakarta.variable} ${serif.variable}`}>
       <head>
         {cdn && <link rel="preconnect" href={cdn} />}
         {cdn && <link rel="preconnect" href={cdn} crossOrigin="anonymous" />}

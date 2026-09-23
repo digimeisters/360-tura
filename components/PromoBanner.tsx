@@ -20,7 +20,7 @@ function srDays(n: number): string {
   return n % 10 === 1 && n % 100 !== 11 ? 'dan' : 'dana';
 }
 
-const TEXT = {
+export const PROMO_TEXT = {
   sr: {
     eyebrow: 'Uvodna promocija',
     headline: (percent: number) => `Paketi su jeftiniji za ${percent}%`,
@@ -50,7 +50,7 @@ export default function PromoBanner({ lang = 'sr' }: { lang?: HomeLang }) {
   const daysLeft = usePromoDaysLeft();
   if (!active) return null;
 
-  const t = TEXT[lang];
+  const t = PROMO_TEXT[lang];
   const entryTier = PRICE_TIERS[0];
   // Ulazna cena Osnovnog paketa (1-2 nekretnine) - najniža koju posetilac
   // može da vidi, pa stoji uz "od".

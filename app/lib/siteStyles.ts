@@ -1,9 +1,13 @@
 /**
- * Dizajn sistem sajta van ture: početna strana i strana za agencije dele
- * OVAJ isti CSS, da se ne razdvoje kad se nešto promeni na jednom mestu.
- * Oblici su preuzeti iz aplikacije (ture, /unos, admin): pun zaobljen oblik
- * dugmadi, kartice od 20px sa mekom senkom, polja od 10px na blago sivoj
- * podlozi, čipovi i stakleni tretman preko fotografija.
+ * Dizajn sistem sajta van ture: početna, /ture, blog i strana za agencije
+ * dele OVAJ isti CSS, da se ne razdvoje kad se nešto promeni na jednom mestu.
+ *
+ * Izgled (septembar 2026, mockup "Ceo sajt u novom dizajnu"): veliki naslovi
+ * poravnati levo, naglašena reč u kurzivu sa serifima (<em>, vidi
+ * lib/accent.tsx), numerisana poglavlja (01, 02... - brojač ispod), smena
+ * svetlih, sivih i tamnih sekcija, kartice od 24px, kontakt u plavom bloku.
+ * Tamni delovi (.is-dark lista ispod) samo menjaju boje preko promenljivih,
+ * pa sve komponente u njima rade bez posebnih pravila.
  */
 export const SITE_STYLES = `
   :root{
@@ -91,22 +95,24 @@ export const SITE_STYLES = `
   img{max-width:100%;}
   a{color:inherit;}
   [hidden]{display:none !important;}
-  .wrap{width:100%; max-width:1180px; margin:0 auto; padding-inline:1.25rem;}
+  .wrap{width:100%; max-width:1280px; margin:0 auto; padding-inline:clamp(1.25rem,4vw,2.5rem);}
   h1,h2,h3{
     font-family:var(--font-display);
     font-weight:800;
     text-wrap:balance;
     margin:0;
     color:var(--ink);
-    letter-spacing:-0.01em;
+    letter-spacing:-0.03em;
   }
-  em{font-style:normal; color:var(--accent);}
+  /* Naglašena reč u naslovu: kurziv sa serifima, malo veći jer je taj font
+     optički sitniji od Jakarte. */
+  em{font-family:var(--font-serif); font-style:italic; font-weight:400; color:var(--accent); letter-spacing:-0.005em; font-size:1.12em; line-height:.9;}
   p{margin:0;}
   .eyebrow{
     font-family:var(--font-display);
-    font-size:.76rem;
+    font-size:.8rem;
     font-weight:700;
-    letter-spacing:.09em;
+    letter-spacing:.1em;
     text-transform:uppercase;
     color:var(--accent);
   }
@@ -134,7 +140,7 @@ export const SITE_STYLES = `
   .glass{display:inline-flex; align-items:center; gap:5px; background:rgba(15,23,42,.34); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,.7); color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.45); border-radius:999px; padding:4px 10px; font-family:var(--font-display); font-size:.72rem; font-weight:700; box-shadow:0 2px 8px rgba(0,0,0,.2); white-space:nowrap;}
   .glass .dot{width:5px; height:5px; border-radius:50%; background:#5B92D6; box-shadow:0 0 0 2px rgba(255,255,255,.25); flex:none;}
 
-  .card{background:var(--surface); border:1px solid var(--line); border-radius:20px; box-shadow:var(--shadow);}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:24px; box-shadow:var(--shadow);}
 
   .field{display:flex; flex-direction:column; gap:.4rem;}
   .field label{font-size:.8rem; font-weight:600; color:var(--ink-soft);}
@@ -160,20 +166,18 @@ export const SITE_STYLES = `
 
   /* ---------- MENI ---------- */
   /* Kartica koja lebdi pri vrhu - isti oblik kao gornja traka u turi. */
-  .nav{position:sticky; top:0; z-index:40; padding-block:10px;}
-  .nav-bar{
-    display:flex; align-items:center; justify-content:space-between; gap:1rem;
-    background:color-mix(in srgb, var(--surface) 90%, transparent); -webkit-backdrop-filter:saturate(140%) blur(10px); backdrop-filter:saturate(140%) blur(10px);
-    border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:.45rem .45rem .45rem .85rem;
-  }
+  .nav{position:sticky; top:0; z-index:40; background:color-mix(in srgb, var(--bg) 88%, transparent); -webkit-backdrop-filter:saturate(140%) blur(12px); backdrop-filter:saturate(140%) blur(12px); border-bottom:1px solid var(--line);}
+  .nav-bar{display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.8rem 0;}
+  .nav .btn-primary{background:var(--ink); color:var(--bg); box-shadow:none;}
+  .nav .btn-primary:hover{background:var(--accent); color:var(--on-accent);}
   .brand{text-decoration:none; display:inline-flex;}
   .navlinks{display:flex; align-items:center; gap:.2rem; list-style:none; margin:0; padding:0;}
-  .navlinks a{display:block; text-decoration:none; font-size:.88rem; font-weight:600; color:var(--ink-soft); padding:.45rem .85rem; border-radius:999px; transition:background .15s ease, color .15s ease;}
+  .navlinks a{display:block; white-space:nowrap; text-decoration:none; font-size:.88rem; font-weight:600; color:var(--ink-soft); padding:.45rem .85rem; border-radius:999px; transition:background .15s ease, color .15s ease;}
   /* Samo gde postoji miš - na telefonu bi hover ostao "zalepljen" posle dodira. */
   @media (hover:hover){ .navlinks a:hover{background:var(--surface-2); color:var(--ink);} }
   /* Sekcija kroz koju posetilac upravo prolazi (components/NavScrollSpy.tsx). */
-  .navlinks a[aria-current="true"]{background:var(--accent); border-color:var(--accent); color:var(--on-accent);}
-  @media (hover:hover){ .navlinks a[aria-current="true"]:hover{background:var(--accent); color:var(--on-accent);} }
+  .navlinks a[aria-current="true"]{background:var(--accent-soft); border-color:var(--accent-soft); color:var(--accent);}
+  @media (hover:hover){ .navlinks a[aria-current="true"]:hover{background:var(--accent-soft); color:var(--accent);} }
   /* Druga jezička verzija: uokviren čip, da se ne čita kao još jedna sekcija. */
   .nav-lang a{border:1px solid var(--line-strong); color:var(--ink); font-weight:700; letter-spacing:.04em; margin-left:.35rem;}
   /* Strelica na pilulama koje vode na DRUGU stranu (Link, href bez "#") - da
@@ -185,11 +189,16 @@ export const SITE_STYLES = `
     content:"↗"; margin-left:.32em; font-size:.82em; opacity:.55; position:relative; top:-.05em;
   }
 
-  section{padding-block:clamp(3rem,7vw,5.2rem); scroll-margin-top:76px;}
+  section{padding-block:clamp(3.5rem,8vw,7rem); scroll-margin-top:76px;}
 
   /* Na užem ekranu linkovi ne nestaju: prelaze u drugi red kartice kao čipovi
      koji se pomeraju prstom, isto kao spisak soba u turi. Jezik ide prvi, da
      ga stranac na telefonu ne mora da traži skrolovanjem. */
+  /* Između 980 i 1200px: linkovi zbijeniji; ako ih je i dalje previše (početna),
+     traka linkova se pomera prstom umesto da gura dugme van ekrana. */
+  .navlinks{min-width:0; overflow-x:auto; scrollbar-width:none;}
+  .navlinks::-webkit-scrollbar{display:none;}
+  @media (max-width:1200px){ .navlinks a{padding:.45rem .6rem; font-size:.84rem;} }
   @media (max-width:980px){
     .nav-bar{flex-wrap:wrap; row-gap:.45rem;}
     .navlinks{order:3; flex-basis:100%; gap:.35rem; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch;}
@@ -201,27 +210,31 @@ export const SITE_STYLES = `
     section{scroll-margin-top:124px;}
   }
   .band{background:var(--surface-2);}
-  .section-head{display:flex; flex-direction:column; align-items:center; text-align:center; gap:.65rem; margin-bottom:clamp(2.2rem,4vw,3rem);}
-  .section-head h2{font-size:clamp(1.8rem,2.8vw,2.5rem); max-width:22ch;}
-  .section-head .note{max-width:52ch; color:var(--ink-soft); font-size:.98rem;}
-  .section-head.left{align-items:flex-start; text-align:left; margin-bottom:0;}
-  .section-head.left .note{max-width:40ch;}
+  main{counter-reset:chapter;}
+  .section-head{display:flex; flex-direction:column; align-items:flex-start; text-align:left; gap:1rem; margin-bottom:clamp(2.4rem,5vw,3.8rem);}
+  .section-head h2{font-size:clamp(2.1rem,4.2vw,3.5rem); line-height:1.06; max-width:24ch;}
+  .section-head .note{max-width:60ch; color:var(--ink-soft); font-size:clamp(1rem,1.3vw,1.18rem); line-height:1.6;}
+  .section-head.left{margin-bottom:0;}
+  .section-head .eyebrow{color:var(--ink-soft); display:flex; align-items:baseline; gap:1.1rem;}
+  .section-head .eyebrow::before{counter-increment:chapter; content:counter(chapter, decimal-leading-zero); color:var(--accent); font-weight:800; letter-spacing:0;}
 
   /* ---------- HERO ---------- */
-  .hero{padding-block:clamp(1.4rem,4vw,2.6rem) clamp(2.6rem,6vw,4.4rem);}
-  .hero .wrap{display:grid; grid-template-columns:1fr 1.08fr; gap:clamp(2rem,5vw,3.2rem); align-items:center;}
-  .hero h1{font-size:clamp(2.5rem,4.6vw,3.9rem); line-height:1.06; margin-top:1rem;}
-  .hero .lede{margin-top:1.15rem; max-width:42ch; color:var(--ink-soft); font-size:1.06rem;}
+  .hero{padding-block:clamp(2rem,6vw,5rem) clamp(3rem,7vw,6rem);}
+  .hero .wrap{display:grid; grid-template-columns:1fr 1fr; gap:clamp(2rem,5vw,4rem); align-items:center;}
+  .hero h1{font-size:clamp(2.4rem,5vw,4.4rem); line-height:1.04; letter-spacing:-0.035em; margin-top:1.2rem;}
+  .hero .lede{margin-top:1.5rem; max-width:48ch; color:var(--ink-soft); font-size:clamp(1rem,1.3vw,1.18rem); line-height:1.6;}
   .hero-ctas{display:flex; align-items:center; gap:.7rem; margin-top:1.8rem; flex-wrap:wrap;}
   .trust{display:flex; flex-wrap:wrap; gap:.5rem; margin-top:1.4rem;}
   @media (max-width:940px){ .hero .wrap{grid-template-columns:1fr;} }
   /* Vrh bez makete (strana za agencije): jedna kolona, uži tekst - inače bi
      desna polovina ekrana ostala prazna. */
-  .hero.hero-solo .wrap{grid-template-columns:1fr; max-width:820px;}
+  .hero.hero-solo .wrap{grid-template-columns:1fr;}
+  .hero.hero-solo h1{max-width:20ch;}
 
   /* ---------- KADAR IZ TURE ---------- */
   /* Delovi aplikacije preko fotografije su uvek svetli, kao u samoj turi. */
-  .device{position:relative; border-radius:20px; overflow:hidden; box-shadow:var(--shadow-lg); border:1px solid var(--line); aspect-ratio:16/11; background:var(--surface-2);}
+  .device{position:relative; border-radius:28px; overflow:hidden; box-shadow:0 30px 70px rgba(17,17,19,.25); aspect-ratio:1/.95; background:var(--surface-2);}
+  @media (max-width:940px){ .device{aspect-ratio:4/3.4; border-radius:22px;} }
   .device-img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;}
   .device::after{content:""; position:absolute; inset:0; background:linear-gradient(180deg,rgba(0,0,0,.1) 0%,transparent 32%,transparent 60%,rgba(0,0,0,.2) 100%); pointer-events:none; z-index:1;}
   .device-empty{display:flex; align-items:center; justify-content:center; color:var(--ink-faint); font-weight:600;}
@@ -358,12 +371,13 @@ export const SITE_STYLES = `
     .filter-menu{width:100%;}
   }
 
-  .feat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:1rem;}
+  .feat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:1.2rem; counter-reset:feat;}
   /* Šest kartica: 3+3, da poslednji red ne ostane napola prazan. */
   .feat-grid.n-3{grid-template-columns:repeat(3,1fr);}
-  .feat{padding:1.4rem 1.35rem; display:flex; flex-direction:column; gap:.55rem;}
-  .feat h3{font-size:1.02rem; font-weight:700;}
-  .feat p{color:var(--ink-soft); font-size:.9rem;}
+  .feat{padding:1.8rem 1.7rem; display:flex; flex-direction:column; gap:.65rem; box-shadow:none;}
+  .feat::before{counter-increment:feat; content:counter(feat, decimal-leading-zero); font-family:var(--font-display); font-weight:800; font-size:.95rem; color:var(--accent);}
+  .feat h3{font-size:1.18rem; font-weight:700; line-height:1.25; letter-spacing:-0.015em;}
+  .feat p{color:var(--ink-soft); font-size:.95rem; line-height:1.6;}
   /* I .n-3 mora da se navede: ima veću specifičnost od samog .feat-grid, pa
      bi inače ostao u tri kolone i na telefonu (strana za agencije). */
   @media (max-width:1000px){ .feat-grid, .feat-grid.n-3{grid-template-columns:1fr 1fr;} }
@@ -374,6 +388,15 @@ export const SITE_STYLES = `
   @media (max-width:900px){ .steps-row{grid-template-columns:1fr 1fr;} }
   @media (max-width:520px){ .steps-row{grid-template-columns:1fr;} }
   .step{padding:1.35rem 1.35rem 1.45rem;}
+  .steps-split{display:grid; grid-template-columns:1fr 1.5fr; gap:clamp(2rem,5vw,4.5rem); align-items:start;}
+  @media (max-width:900px){ .steps-split{grid-template-columns:1fr;} }
+  .steps-side .deliver-card{margin-top:2.2rem;}
+  .steps-side .deliver-list{grid-template-columns:1fr;}
+  .steps-split .steps-row{grid-template-columns:1fr; gap:.9rem; margin:0;}
+  .steps-split .step{display:grid; grid-template-columns:4.6rem 1fr; column-gap:1.1rem; align-items:center; padding:1.6rem 1.8rem; border:0; box-shadow:none;}
+  .steps-split .step .num{grid-row:span 2; background:none; padding:0; height:auto; font-size:2.6rem; letter-spacing:-0.02em;}
+  .steps-split .step h3{margin:0; font-size:1.25rem;}
+  .steps-split .step p{margin-top:.35rem; font-size:1rem;}
   .step .num{display:inline-flex; align-items:center; justify-content:center; height:1.75rem; padding-inline:.7rem; border-radius:999px; background:var(--accent-soft); color:var(--accent); font-family:var(--font-display); font-weight:800; font-size:.82rem; font-variant-numeric:tabular-nums;}
   .step h3{font-size:1.02rem; font-weight:700; margin-top:.85rem;}
   .step p{margin-top:.45rem; font-size:.9rem; color:var(--ink-soft);}
@@ -388,41 +411,46 @@ export const SITE_STYLES = `
   /* ---------- TIPOVI OGLASA ---------- */
   .cat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1rem;}
   @media (max-width:880px){ .cat-grid{grid-template-columns:1fr;} }
-  .cat-card{padding:1.6rem; display:flex; flex-direction:column; gap:.7rem;}
+  .cat-card{padding:2.1rem; display:flex; flex-direction:column; gap:.8rem; box-shadow:none;}
   .cat-card .eyebrow{font-size:.72rem;}
-  .cat-card h3{font-size:1.2rem;}
-  .cat-card .focus{font-size:.9rem; color:var(--ink-soft);}
-  .cat-faq{background:var(--surface-2); border-radius:12px; padding:.8rem .95rem; margin-top:.4rem;}
+  .cat-card h3{font-size:1.6rem;}
+  .cat-card .focus{font-size:1rem; color:var(--ink-soft); line-height:1.6;}
+  .cat-faq{border-top:1px solid var(--line); padding-top:1.2rem; margin-top:auto;}
   .cat-faq span{display:block; font-family:var(--font-display); font-size:.68rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:.3rem;}
-  .cat-faq p{font-size:.9rem; color:var(--ink); font-style:italic;}
+  .cat-faq p{font-family:var(--font-serif); font-size:1.5rem; line-height:1.3; color:var(--ink); font-style:italic;}
 
   /* ---------- CENOVNIK ---------- */
   /* Cena po stavci: tura i fotografije stoje napisane odvojeno, pre paketa
      koji ih spajaju u jednu cenu po nekretnini. Lakše kartice od paketa -
      ovde nema dugmeta ni nalepnice, samo cena i šta za nju ulazi. */
-  .rate-head{max-width:720px; margin:0 auto 1.1rem; text-align:center;}
-  .rate-head h3{font-size:1.25rem; margin:0 0 .35rem;}
-  .rate-head + .rate-grid, .rate-head + .price-grid{margin-bottom:2.2rem;}
+  .rate-head{max-width:820px; margin:3rem 0 1.4rem;}
+  .rate-head h3{font-size:1.5rem; margin:0 0 .4rem;}
+  .rate-head .note{color:var(--ink-soft);}
+  .rate-head + .rate-grid, .rate-head + .price-grid{margin-bottom:1rem;}
   .rate-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1.1rem; align-items:stretch;}
   @media (max-width:920px){ .rate-grid{grid-template-columns:1fr;} }
   /* min-width:0 - bez njega flex/grid stavka ne sme da se suzi ispod širine
      svog NEPREKINUTOG sadržaja (npr. "27.500 din."), pa gura ceo red preko
      ivice kartice umesto da dozvoli prelom. Dinarski iznosi su duži od
      evra, pa je ovo od uvođenja dinara postalo stvarno vidljivo. */
-  .rate-card{padding:1.4rem 1.35rem; display:flex; flex-direction:column; gap:.7rem; min-width:0;}
+  .rate-card{padding:2rem 1.9rem; display:flex; flex-direction:column; gap:.8rem; min-width:0; box-shadow:none;}
   .rate-card h4{font-family:var(--font-display); font-size:1.05rem; font-weight:700; margin:0;}
   .rate-price{display:flex; align-items:baseline; flex-wrap:wrap; gap:.35rem; margin:0; font-size:.86rem; color:var(--ink-soft);}
-  .rate-price b{font-family:var(--font-display); font-size:1.7rem; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums;}
+  .rate-price b{font-family:var(--font-display); font-size:2.3rem; letter-spacing:-0.02em; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums;}
   .rate-price .price-was{font-size:.92rem;}
 
-  .price-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1.1rem; align-items:stretch;}
+  .price-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1.3rem; align-items:stretch; padding-top:.9rem;}
   /* Samo dva paketa (strana za agencije) - centrirano, da ne visi prazno mesto. */
-  .price-grid.n-2{grid-template-columns:repeat(2,1fr); max-width:780px; margin-inline:auto;}
+  .price-grid.n-2{grid-template-columns:repeat(2,1fr);}
   /* I .n-2 mora da se navede: ima veću specifičnost od samog .price-grid,
      pa bi inače nadjačao ovo pravilo i ostao u dve kolone na telefonu. */
   @media (max-width:920px){ .price-grid, .price-grid.n-2{grid-template-columns:1fr;} }
-  .price-card{position:relative; padding:1.7rem 1.6rem; display:flex; flex-direction:column; gap:1.1rem; min-width:0;}
-  .price-card.featured{border:2px solid var(--accent); box-shadow:0 12px 32px -10px var(--accent-glow);}
+  .price-card{position:relative; padding:2.2rem 2rem; display:flex; flex-direction:column; gap:1.1rem; min-width:0; box-shadow:none;}
+  .price-card.featured{border:0; box-shadow:0 30px 60px -20px rgba(17,17,19,.45);}
+  /* Dugme u običnoj kartici je obrub, u istaknutoj (tamnoj) belo. */
+  .price-card:not(.featured) .price-cta{background:transparent; color:var(--ink); border:2px solid var(--ink); box-shadow:none;}
+  .price-card:not(.featured) .price-cta:hover{background:var(--ink); color:var(--bg);}
+  .price-card.featured .price-cta{background:#FFFFFF; color:#111113; box-shadow:none;}
   .price-badge{position:absolute; top:-.8rem; left:1.5rem; background:var(--accent); color:var(--on-accent); font-family:var(--font-display); font-size:.66rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; padding:.35rem .75rem; border-radius:999px; box-shadow:0 4px 12px var(--accent-glow);}
   /* Nalepnica sa popustom, u uglu kartice - kao pečat u prospektu. Crvena, da
      se ne stopi sa plavim čipom u suprotnom uglu (components/PromoPrice.tsx). */
@@ -430,25 +458,27 @@ export const SITE_STYLES = `
   @media (prefers-reduced-motion:no-preference){ .price-card:hover .price-sale{transform:rotate(9deg) scale(1.06); transition:transform .18s ease;} }
   .price-was{color:var(--ink-faint); font-size:1rem; font-weight:600; text-decoration-thickness:2px; font-variant-numeric:tabular-nums;}
   .price-audience{font-family:var(--font-display); font-size:.7rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint);}
-  .price-card h3{font-size:1.4rem;}
+  .price-card h3{font-size:1.7rem;}
   .price-value{display:flex; flex-wrap:wrap; align-items:baseline; gap:.35rem; font-size:.92rem; color:var(--ink-soft);}
-  .price-value b{font-family:var(--font-display); font-size:2.2rem; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums;}
+  .price-value b{font-family:var(--font-display); font-size:2.8rem; letter-spacing:-0.025em; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums;}
   .price-list{list-style:none; margin:0; padding:1rem 0 0; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:.6rem; flex:1;}
   .price-list li{font-size:.88rem; color:var(--ink-soft); display:flex; gap:.6rem;}
   .price-list li::before{content:"✓"; color:var(--accent); font-weight:700; flex:none;}
   .price-cta{width:100%;}
-  .fine-print{margin-top:1.4rem; font-size:.85rem; color:var(--ink-faint); text-align:center;}
+  .fine-print{margin-top:1.4rem; font-size:.88rem; color:var(--ink-soft); max-width:90ch;}
 
   /* Blog (/blog, /blog/[slug]) */
-  .blog-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:1.1rem;}
+  .blog-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:1.4rem;}
   @media (max-width:720px){ .blog-grid{grid-template-columns:1fr;} }
-  .blog-card{padding:1.4rem 1.35rem; display:block; text-decoration:none; color:inherit;}
-  .blog-card h3{font-family:var(--font-display); font-size:1.15rem; font-weight:700; margin:0 0 .5rem;}
-  .blog-card .note{margin:0; color:var(--ink-soft); font-size:.92rem;}
-  .blog-article{max-width:720px;}
-  .blog-section{margin-bottom:2.2rem;}
-  .blog-section h2{font-size:clamp(1.3rem,2.2vw,1.6rem); margin:0 0 .9rem;}
-  .blog-section p{color:var(--ink-soft); line-height:1.7; margin:0 0 1rem; font-size:1rem;}
+  .blog-card{padding:2.2rem 2.1rem; display:block; text-decoration:none; color:inherit; box-shadow:none; transition:transform .18s ease, box-shadow .18s ease;}
+  @media (hover:hover){ .blog-card:hover{transform:translateY(-3px); box-shadow:var(--shadow-lg);} }
+  .blog-card:nth-child(2n){background:var(--surface);}
+  .blog-card h3{font-family:var(--font-display); font-size:clamp(1.4rem,2vw,1.8rem); line-height:1.2; letter-spacing:-0.02em; font-weight:800; margin:0 0 .8rem;}
+  .blog-card .note{margin:0; color:var(--ink-soft); font-size:1rem; line-height:1.6;}
+  .blog-article{max-width:760px;}
+  .blog-section{margin-bottom:2.6rem;}
+  .blog-section h2{font-size:clamp(1.6rem,2.8vw,2.1rem); line-height:1.2; margin:0 0 1rem;}
+  .blog-section p{color:var(--ink); opacity:.88; line-height:1.75; margin:0 0 1.2rem; font-size:1.1rem;}
   .blog-list{margin:0; padding:0;}
   .blog-list > div{margin-bottom:1.1rem;}
   .blog-list dt{font-weight:700; color:var(--ink); margin-bottom:.3rem;}
@@ -457,16 +487,16 @@ export const SITE_STYLES = `
   .blog-related a{color:var(--accent); font-weight:600; text-decoration:none;}
   .blog-related a:hover{text-decoration:underline;}
   .blog-bullets{margin:0 0 1rem; padding:0; list-style:none; display:flex; flex-direction:column; gap:.55rem;}
-  .blog-bullets li{font-size:1rem; color:var(--ink-soft); line-height:1.6; display:flex; gap:.6rem;}
-  .blog-bullets li::before{content:"—"; color:var(--accent); font-weight:700; flex:none;}
-  .blog-callout{background:var(--accent-soft); border:1px solid var(--line); border-radius:16px; padding:1.3rem 1.5rem; margin-bottom:2.2rem;}
-  .blog-callout h2{font-size:.78rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--accent-strong); margin:0 0 .8rem;}
+  .blog-bullets li{font-size:1.05rem; color:var(--ink); opacity:.88; line-height:1.6; display:flex; gap:.75rem;}
+  .blog-bullets li::before{content:""; width:8px; height:8px; margin-top:.6em; border-radius:50%; background:var(--accent); flex:none;}
+  .blog-callout{border-radius:26px; padding:2rem 2.2rem; margin-bottom:2.6rem;}
+  .blog-callout h2{font-size:1.3rem; font-weight:800; letter-spacing:-0.01em; color:var(--accent); margin:0 0 1rem;}
   .blog-callout .blog-bullets li{color:var(--ink);}
   /* Traka uvodne promocije - crta se samo dok kampanja traje (PromoBanner).
      Levo maskota (emodži u krugu), u sredini poruka u dva reda, desno
      odbrojavanje kao izdvojena kapsula - umesto ranijeg teksta nabacanog u
      jedan red koji se lomio nasumično na uskom ekranu. */
-  .promo-strip{max-width:760px; margin:0 auto 1.6rem; padding:1.1rem 1.4rem; border-radius:18px; background:linear-gradient(135deg, var(--accent), var(--accent-strong)); color:var(--on-accent); box-shadow:0 14px 32px -14px var(--accent-glow); display:flex; align-items:center; gap:1rem;}
+  .promo-strip{max-width:none; margin:0 0 1.6rem; padding:1.1rem 1.4rem; border-radius:18px; background:linear-gradient(135deg, var(--accent), var(--accent-strong)); color:var(--on-accent); box-shadow:0 14px 32px -14px var(--accent-glow); display:flex; align-items:center; gap:1rem;}
   .promo-icon{flex:none; display:grid; place-items:center; width:2.6rem; height:2.6rem; border-radius:50%; background:rgba(255,255,255,.16); font-size:1.3rem;}
   .promo-body{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:.15rem;}
   .promo-eyebrow{font-family:var(--font-display); font-size:.68rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase; opacity:.8;}
@@ -517,13 +547,17 @@ export const SITE_STYLES = `
   .tours-grid.n-1{grid-template-columns:minmax(0,560px); justify-content:center;}
   .tours-grid.n-2{grid-template-columns:repeat(2,1fr);}
   .tours-grid.n-3{grid-template-columns:repeat(3,1fr);}
+  .tours-grid.n-4{grid-template-columns:repeat(4,1fr);}
+  @media (max-width:1100px){ .tours-grid.n-4{grid-template-columns:1fr 1fr;} }
   @media (max-width:900px){ .tours-grid.n-3{grid-template-columns:1fr 1fr;} }
-  @media (max-width:620px){ .tours-grid.n-2, .tours-grid.n-3{grid-template-columns:1fr;} }
+  @media (max-width:620px){ .tours-grid.n-2, .tours-grid.n-3, .tours-grid.n-4{grid-template-columns:1fr;} }
+  /* Na telefonu početna pokazuje samo prva dva primera - ostale su na /ture (dugme ispod). */
+  @media (max-width:620px){ .home-tours > :nth-child(n+3){display:none;} }
   /* Traka posle mreže kartica - najavljuje ceo spisak tura sa filterima
      (/ture). Isprekidan okvir kao .calc-note ("ovo je samo napomena", ne
      promo ponuda), a NE akcentna boja iz .promo-strip - lako bi se pročitalo
      kao popust umesto kao putokaz. */
-  .db-teaser{margin-top:1.6rem; padding:1.1rem 1.4rem; border-radius:16px; background:var(--surface-2); border:1px dashed var(--line-strong); display:flex; flex-wrap:wrap; align-items:center; gap:1rem 1.2rem;}
+  .db-teaser{margin-top:1.6rem; padding:1.3rem 1.6rem; border-radius:22px; background:var(--surface); border:1px solid var(--line); display:flex; flex-wrap:wrap; align-items:center; gap:1rem 1.2rem;}
   .db-teaser-icon{flex:none; display:grid; place-items:center; width:2.4rem; height:2.4rem; border-radius:50%; background:var(--accent-soft); font-size:1.15rem;}
   .db-teaser-body{flex:1 1 16rem; min-width:0; display:flex; flex-direction:column; gap:.55rem;}
   .db-teaser-text{font-size:.9rem; color:var(--ink-soft); line-height:1.5;}
@@ -531,30 +565,31 @@ export const SITE_STYLES = `
   .db-teaser-filters .chip{font-size:.76rem; padding:.25rem .65rem; font-weight:650;}
   .db-teaser-cta{flex:none;}
   @media (max-width:640px){ .db-teaser{flex-direction:column; text-align:center; padding:1.2rem;} .db-teaser-body{align-items:center;} .db-teaser-filters{justify-content:center;} .db-teaser-cta{width:100%;} }
-  .tour-card{overflow:hidden; display:flex; flex-direction:column; text-decoration:none; color:inherit; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;}
+  .tour-card{overflow:hidden; display:flex; flex-direction:column; text-decoration:none; color:inherit; border:0; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;}
   @media (hover:hover){ .tour-card:hover{transform:translateY(-3px); box-shadow:var(--shadow-lg);} .tour-card:hover .tour-open{border-color:var(--accent); color:var(--accent);} }
   .tour-photo{position:relative; aspect-ratio:1200/630; background:var(--surface-2);}
   .tour-photo img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;}
   .tour-photo .glass.tag{position:absolute; top:.75rem; left:.75rem;}
   .tour-langs{position:absolute; bottom:.75rem; right:.75rem; display:flex; gap:.3rem;}
-  .tour-body{padding:1rem 1.15rem 1.2rem; display:flex; flex-direction:column; gap:.7rem; flex:1;}
-  .tour-body h3{font-size:1.02rem; font-weight:700; line-height:1.3;}
+  .tour-body{padding:1.25rem 1.3rem 1.4rem; display:flex; flex-direction:column; gap:.7rem; flex:1;}
+  .tour-body h3{font-size:1.1rem; font-weight:700; line-height:1.3; letter-spacing:-0.015em;}
   /* Cena odmah ispod naslova (zato negativan razmak - .tour-body ima gap). */
-  .tour-price{margin-top:-.35rem; font-size:1.05rem; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums;}
+  .tour-price{margin-top:-.35rem; font-family:var(--font-display); font-size:1.4rem; font-weight:800; letter-spacing:-0.02em; color:var(--ink); font-variant-numeric:tabular-nums;}
   .tour-price small{font-size:.8rem; font-weight:600; color:var(--ink-soft);}
   .tour-meta{font-size:.86rem; color:var(--ink-soft);}
-  .tour-open{margin-top:auto; align-self:flex-start;}
+  .tour-open{margin-top:auto; align-self:flex-start; background:none; border:0; box-shadow:none; padding:0; color:var(--accent);}
 
   /* ---------- INTEGRACIJA ---------- */
   /* ---------- PUTOKAZ KA STRANI ZA AGENCIJE ---------- */
   /* Tekst levo, dugme desno; na užem ekranu jedno ispod drugog. */
   .agency-bridge .wrap{display:grid; grid-template-columns:1fr auto; gap:clamp(1.4rem,4vw,3rem); align-items:center;}
   @media (max-width:820px){ .agency-bridge .wrap{grid-template-columns:1fr; justify-items:start;} }
-  .agency-bridge h2{font-size:clamp(1.5rem,2.4vw,2rem);}
+  .agency-bridge h2{font-size:clamp(2rem,4vw,3.3rem);}
   .bridge-points{list-style:none; margin:.3rem 0 0; padding:0; display:flex; flex-wrap:wrap; gap:.5rem 1.4rem;}
   .bridge-points li{display:flex; align-items:center; gap:.5rem; font-size:.9rem; color:var(--ink-soft);}
   .bridge-points li::before{content:"✓"; color:var(--accent); font-weight:700; flex:none;}
-  .agency-bridge .btn{white-space:nowrap;}
+  .agency-bridge .btn{white-space:nowrap; background:#FFFFFF; color:#111113; box-shadow:none;}
+  .agency-bridge .bridge-points li{font-size:1rem;}
 
   .integration{background:var(--dark-bg); color:var(--dark-ink);}
   .integration .wrap{display:grid; grid-template-columns:1fr 1.1fr; gap:clamp(2rem,5vw,3.5rem); align-items:center;}
@@ -569,7 +604,12 @@ export const SITE_STYLES = `
 
   /* ---------- KONTAKT ---------- */
   /* Naslov preko obe kolone, pa forma i kartice kreću sa iste visine. */
-  .contact .wrap{display:grid; grid-template-columns:1.1fr .9fr; gap:1.5rem clamp(2rem,5vw,3.4rem); align-items:start;}
+  .contact .wrap{display:grid; grid-template-columns:1.1fr .9fr; gap:1.5rem clamp(2rem,5vw,3.4rem); align-items:start; background:#1E5AA8; border-radius:36px; padding:clamp(1.6rem,5vw,4.5rem); max-width:calc(1280px - 5rem); width:calc(100% - clamp(1.5rem,6vw,5rem));
+    --ink:#FFFFFF; --ink-soft:rgba(255,255,255,.85); --ink-faint:rgba(255,255,255,.66); --line:rgba(255,255,255,.28); --line-strong:rgba(255,255,255,.4); --surface:rgba(255,255,255,.12); --accent:#FFFFFF; --accent-soft:rgba(255,255,255,.16); --on-accent:#1E5AA8; --shadow:none; color:var(--ink);}
+  @media (max-width:640px){ .contact .wrap{border-radius:26px;} }
+  .contact .contact-form{--surface:#FFFFFF; --surface-2:#F4F4F0; --ink:#111113; --ink-soft:#5B5D63; --ink-faint:#8C8E93; --line:#E4E4DE; --line-strong:#D3D3CB; --accent:#1E5AA8; --accent-soft:#E9EFF6; --on-accent:#FFFFFF; --shadow:0 2px 8px rgba(17,17,19,.08); background:#FFFFFF; color:#111113; border:0;}
+  .contact .contact-form .btn-primary{background:#111113; color:#FFFFFF; box-shadow:none;}
+  .contact .info-list > div{background:none; border:0; box-shadow:none; padding:.3rem 0;}
   .contact-head{grid-column:1 / -1; display:flex; flex-direction:column; gap:1.1rem;}
   @media (max-width:880px){ .contact .wrap{grid-template-columns:1fr;} }
   .contact h2{font-size:clamp(1.8rem,2.8vw,2.5rem); margin-top:.6rem; margin-bottom:.3rem;}
@@ -618,8 +658,45 @@ export const SITE_STYLES = `
   .faq-item[open] summary::after{transform:rotate(45deg);}
   @media (hover:hover){ .faq-item summary:hover{color:var(--accent);} }
   .faq-item p{padding:0 1.25rem 1.2rem; color:var(--ink-soft); font-size:.94rem; max-width:65ch;}
+  .faq-split{display:grid; grid-template-columns:1fr 2fr; gap:clamp(2rem,5vw,4.5rem); align-items:start;}
+  @media (max-width:900px){ .faq-split{grid-template-columns:1fr;} }
+  .faq-split .faq-list{max-width:none; margin:0; gap:0;}
+  .faq-split .faq-item{background:none; border:0; border-top:1px solid var(--line-strong); border-radius:0; box-shadow:none;}
+  .faq-split .faq-item:last-child{border-bottom:1px solid var(--line-strong);}
+  .faq-split .faq-item summary{padding:1.4rem 0; font-size:1.15rem;}
+  .faq-split .faq-item p{padding:0 0 1.4rem; font-size:1rem; line-height:1.65;}
 
-  footer{border-top:1px solid var(--line); padding-block:1.6rem;}
+  footer{border-top:1px solid var(--line); padding-block:2.2rem; margin-top:clamp(3rem,6vw,5rem);}
+  @media (max-width:720px){ footer{padding-bottom:6.5rem;} }
+
+  /* ---------- TAMNI DELOVI ---------- */
+  /* Iste komponente, tamne boje: menjaju se samo promenljive. */
+  .agency-bridge, .steps-side .deliver-card, .cat-card:nth-child(2), .price-card.featured, .blog-callout, .blog-card:nth-child(2n), .is-dark{
+    --surface:#111113; --surface-2:#1A1A1E; --ink:#F5F5F3; --ink-soft:#A8A9AE; --ink-faint:#8C8E93; --line:#2C2C30; --line-strong:#38383D;
+    --accent:#7FB0EC; --accent-strong:#A5C8F2; --accent-soft:rgba(127,176,236,.14); --on-accent:#0B0E1A; --shadow:none;
+    background:var(--surface); color:var(--ink); border-color:var(--line);
+  }
+  .agency-bridge{background:#0E0E10;}
+
+  /* Završni poziv (/ture, tekst na blogu): plavi blok kao kontakt na početnoj. */
+  .cta-band{background:#1E5AA8; border-radius:32px; padding:clamp(1.8rem,5vw,4rem); max-width:calc(1280px - 5rem); width:calc(100% - clamp(1.5rem,6vw,5rem));
+    --ink:#FFFFFF; --ink-soft:rgba(255,255,255,.85); --accent:#FFFFFF; color:var(--ink);}
+  @media (max-width:640px){ .cta-band{border-radius:24px;} }
+  .cta-band .section-head{margin-bottom:0;}
+  .cta-band .btn-primary{background:#FFFFFF; color:#111113; box-shadow:none;}
+  .cta-band .blog-related a{color:#FFFFFF; text-decoration:underline; text-underline-offset:3px;}
+
+  /* ---------- TRAKE ---------- */
+  .promo-top{display:block; text-align:center; background:#1E5AA8; color:#FFFFFF; font-size:.86rem; font-weight:500; padding:.6rem 1rem; text-decoration:none; line-height:1.4;}
+  .promo-top b{font-weight:700;}
+  .promo-top:hover{background:#17447E;}
+  /* Stalno dugme pri dnu ekrana telefona (components/MobileCtaBar.tsx). */
+  .mobile-cta{display:none;}
+  @media (max-width:720px){
+    .mobile-cta{position:fixed; z-index:50; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom)); display:flex; gap:8px; padding:6px; border-radius:999px; background:rgba(17,17,19,.92); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); box-shadow:0 10px 30px rgba(0,0,0,.25);}
+    .mobile-cta-main{flex:1; text-align:center; background:#1E5AA8; color:#FFFFFF; font-family:var(--font-display); font-weight:700; font-size:.95rem; padding:.85rem 1rem; border-radius:999px; text-decoration:none;}
+    .mobile-cta-call{flex:none; width:46px; display:grid; place-items:center; background:#FFFFFF; color:#111113; border-radius:999px;}
+  }
   footer .wrap{display:flex; flex-wrap:wrap; justify-content:space-between; gap:1rem; align-items:center;}
   footer p{font-size:.85rem; color:var(--ink-soft);}
 `;

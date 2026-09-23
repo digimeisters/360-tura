@@ -13,5 +13,7 @@ export function refreshPublicPages(): void {
   revalidatePath('/');
   revalidatePath('/en');
   revalidatePath('/ture');
+  // Tura u vrhu strane za agencije.
+  revalidatePath('/za-agencije');
   revalidatePath('/sitemap.xml');
 }

@@ -129,7 +129,7 @@ export default async function ToursPage() {
         </section>
 
         <section id="poziv">
-          <div className="wrap">
+          <div className="wrap cta-band">
             <div className="section-head">
               <h2>{COPY.cta.title}</h2>
               <p className="note">{COPY.cta.note}</p>

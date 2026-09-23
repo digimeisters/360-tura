@@ -188,7 +188,7 @@ const sr: HomeCopy = {
   },
   examples: {
     eyebrow: 'Ture',
-    title: 'Prošetajte kroz pravu turu',
+    title: 'Prošetajte kroz *pravu turu*',
     note: 'Ture koje su trenutno objavljene — otvaraju se u pretraživaču, na telefonu ili računaru, bez instaliranja aplikacije.',
     database: {
       text: 'Ovo su samo neke od tura. Kompletna baza ima filtere po gradu, naselju, strukturi, kvadraturi i ceni.',
@@ -198,7 +198,7 @@ const sr: HomeCopy = {
   },
   benefits: {
     eyebrow: 'Benefiti',
-    title: 'Zašto virtuelna tura prodaje bolje',
+    title: 'Zašto virtuelna tura *prodaje bolje*',
     note: 'Ono što tura i HDR fotografije donose vama i vašim klijentima — a ne tehnologija iza njih.',
     items: [
       { title: 'Manje uzaludnih razgledanja', text: 'Kupci i zakupci prvo „prošetaju“ kroz stan online. Na razgledanje dolaze samo oni koje stan zaista zanima.' },
@@ -213,7 +213,7 @@ const sr: HomeCopy = {
   },
   steps: {
     eyebrow: 'Kako radimo',
-    title: 'Od poziva do gotove ture',
+    title: 'Od poziva do *gotove ture*',
     note: 'Vaš deo je jednostavan — sve ostalo je na nama.',
     items: [
       { title: 'Zakazivanje', text: 'Javite se telefonom ili preko forme i dogovorimo termin. Dolazimo sa opremom, bez ometanja stanara.' },
@@ -233,7 +233,7 @@ const sr: HomeCopy = {
   },
   types: {
     eyebrow: 'Tipovi oglasa',
-    title: 'Ista tura, drugačiji fokus',
+    title: 'Ista tura, *drugačiji fokus*',
     note: 'Bilo da agencija vodi ceo portfolio ili vlasnik oglašava jedan stan, tura naglašava ono što je za taj oglas najvažnije.',
     faqLabel: 'Tipično pitanje',
     items: [
@@ -244,7 +244,7 @@ const sr: HomeCopy = {
   },
   pricing: {
     eyebrow: 'Cenovnik',
-    title: 'Šta koliko košta',
+    title: 'Šta *koliko košta*',
     note: 'Prvo cena svake stavke za sebe, pa paketi — jer ko uzme više nekretnina mesečno, plaća manje po nekretnini.',
     rates: {
       title: 'Cena po stavci',
@@ -350,7 +350,7 @@ const sr: HomeCopy = {
   },
   agencyBridge: {
     eyebrow: 'Za agencije',
-    title: 'Vodite više oglasa odjednom?',
+    title: 'Vodite više oglasa *odjednom?*',
     text:
       'Za agencije smo napravili posebnu stranu. Tamo piše kako agenti šalju osnovne podatke kroz upitnik — sami ili zajedno sa nama — kako tura ide na sajt agencije i šta sve dobijate uz mesečni paket.',
     points: ['Upitnik — sami ili zajedno sa nama', 'Kontakt agenta u svakoj turi', 'Praćenje poseta po oglasu'],
@@ -358,12 +358,12 @@ const sr: HomeCopy = {
   },
   faq: {
     eyebrow: 'Česta pitanja',
-    title: 'Pre nego što zakažete',
+    title: 'Pre nego što *zakažete*',
     note: 'Ono što agencije i vlasnici najčešće pitaju pre prvog snimanja. Ako vašeg pitanja nema, javite nam se.'
   },
   contact: {
     eyebrow: 'Kontakt',
-    title: 'Zakažite snimanje',
+    title: 'Zakažite *snimanje*',
     note: 'Odgovaramo za 24h radnim danima — ili se javite odmah, pozivom ili porukom:',
     call: 'Pozovite',
     labels: { phone: 'Telefon', email: 'E-mail', address: 'Adresa', hours: 'Radno vreme' },
@@ -412,12 +412,12 @@ const en: HomeCopy = {
   },
   examples: {
     eyebrow: 'Tours',
-    title: 'Walk through a real tour',
+    title: 'Walk through a *real tour*',
     note: 'Tours that are live right now — they open in the browser, on a phone or computer, with no app to download.'
   },
   benefits: {
     eyebrow: 'Benefits',
-    title: 'Why a virtual tour sells better',
+    title: 'Why a virtual tour *sells better*',
     note: 'What the tour and HDR photos do for you and your clients — not the technology behind them.',
     items: [
       { title: 'Fewer wasted viewings', text: 'Buyers and tenants “walk” through the apartment online first — only the seriously interested come to see it in person.' },
@@ -432,7 +432,7 @@ const en: HomeCopy = {
   },
   steps: {
     eyebrow: 'How it works',
-    title: 'From the first call to a finished tour',
+    title: 'From the first call to a *finished tour*',
     note: 'A simple process on your side — we take care of the rest.',
     items: [
       { title: 'Booking', text: 'Book a time by phone or through the form — we arrive with our equipment at the agreed time, without disturbing residents or tenants.' },
@@ -452,7 +452,7 @@ const en: HomeCopy = {
   },
   types: {
     eyebrow: 'Listing types',
-    title: 'Same tour, different focus',
+    title: 'Same tour, *different focus*',
     note: 'Whether an agency manages a whole portfolio or an owner lists a single property, the emphasis and questions in the tour follow the purpose of the listing.',
     faqLabel: 'Typical question',
     items: [
@@ -463,7 +463,7 @@ const en: HomeCopy = {
   },
   pricing: {
     eyebrow: 'Price list',
-    title: 'What each part costs',
+    title: 'What each part *costs*',
     note: 'Every item priced on its own first, then the packages — because the more properties you list each month, the less each one costs.',
     rates: {
       title: 'Price per item',
@@ -569,12 +569,12 @@ const en: HomeCopy = {
   },
   faq: {
     eyebrow: 'FAQ',
-    title: 'Before you book',
+    title: 'Before you *book*',
     note: 'What agencies and owners most often ask before the first shoot. If your question isn’t here, get in touch.'
   },
   contact: {
     eyebrow: 'Contact',
-    title: 'Book a shoot',
+    title: 'Book a *shoot*',
     note: 'We reply within 24 hours on business days — or reach us right away by phone or message:',
     call: 'Call',
     labels: { phone: 'Phone', email: 'Email', address: 'Address', hours: 'Hours' },

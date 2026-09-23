@@ -197,7 +197,8 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
   const [scrolledPast, setScrolledPast] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [navHeight, setNavHeight] = useState<number | null>(null);
-  const [showMap, setShowMap] = useState(false);
+  // Mapa je otvorena od starta (vlasnik, 2026-09-24): lokacija je prvo što kupac proverava.
+  const [showMap, setShowMap] = useState(true);
   const blockRef = useRef<HTMLDivElement>(null);
 
   // Pilula mora da stane ISPOD gornje trake, a traka nije uvek iste visine -
