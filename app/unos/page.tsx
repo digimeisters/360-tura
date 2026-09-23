@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { FORM, FormThemeStyle, formBtnStyle } from '../lib/formTheme';
 import { Logo } from '../tour/[slug]/Logo';
+import PasswordInput from '../../components/PasswordInput';
 import {
   PROPERTY_TYPES,
   STRUCTURES,
@@ -812,9 +813,10 @@ export default function UnosPage() {
 
         <Section title="Slanje">
           <Field label="Kod za slanje" required hint="Kod koji ste dobili od Kvadrat360.">
-            <input
+            <PasswordInput
               id="kod"
-              type="password"
+              showLabel="Prikaži kod"
+              hideLabel="Sakrij kod"
               value={code}
               onChange={(e) => setCode(e.target.value)}
               required

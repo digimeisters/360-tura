@@ -4,6 +4,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { FORM, FormThemeStyle, formBtnStyle } from '../../lib/formTheme';
 import { Logo } from '../../tour/[slug]/Logo';
+import PasswordInput from '../../../components/PasswordInput';
 
 type RoomStat = {
   roomId: string;
@@ -252,9 +253,8 @@ export default function AnalyticsPage() {
             required
             style={inputStyle}
           />
-          <input
+          <PasswordInput
             id="analytics-password"
-            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="lozinka"

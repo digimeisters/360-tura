@@ -2,6 +2,7 @@ import { THEME, btnStyle } from './theme';
 import { getLocalizedText } from './utils';
 import { translations } from './translations';
 import type { Language, Room } from './types';
+import PasswordInput from '../../../components/PasswordInput';
 
 /**
  * Dva admin prikaza koji su stajali usred strane ture: prijava i forma za
@@ -62,8 +63,7 @@ export function AdminLoginModal({
           style={field}
         />
 
-        <input
-          type="password"
+        <PasswordInput
           placeholder="Lozinka"
           value={password}
           onChange={(e) => onPassword(e.target.value)}

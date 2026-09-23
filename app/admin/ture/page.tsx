@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { FORM, FormThemeStyle, formBtnStyle } from '../../lib/formTheme';
 import { Logo } from '../../tour/[slug]/Logo';
+import PasswordInput from '../../../components/PasswordInput';
 import { slugify } from '../../lib/slug';
 import { SITE_URL } from '../../lib/site';
 import {
@@ -474,9 +475,8 @@ export default function ToursAdminPage() {
             required
             style={inputStyle}
           />
-          <input
+          <PasswordInput
             id="tours-password"
-            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="lozinka"
