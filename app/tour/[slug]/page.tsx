@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { preload } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
-import { supabase } from '../../lib/supabaseClient';
-import { Language, Waypoint, Room, Tour, ActiveModal } from './types';
-import { translations, categoryQuestions } from './translations';
+import { Language, Waypoint, ActiveModal } from './types';
+import { translations } from './translations';
 import { THEME, GLASS, applyGlassHotspotStyle } from './theme';
 import { SITE_URL } from '../../lib/site';
 import { trackEvent } from '../../lib/track';
@@ -19,59 +18,44 @@ import { TourMenuBar } from './TourMenuBar';
 import { ViewingRequestModal } from './ViewingRequestModal';
 import { FaqAnswerModal, TourModals } from './TourModals';
 import { AdminLoginModal, HotspotForm } from './TourAdminPanels';
+import { useTourData } from './useTourData';
+import { useAdminSession } from './useAdminSession';
+import { useHotspotEditor, type RefreshHotspots } from './useHotspotEditor';
+import { useRoomNavigation } from './useRoomNavigation';
+import { runRoomSequence } from './roomSequence';
+import { AdminCrosshair, RoomLoadingScreen, TourGlobalStyles } from './TourOverlays';
+import { useNeighbourPreload, useTourAnalytics } from './useTourAnalytics';
 import { useViewerControls } from './useViewerControls';
 import { useTourNarration } from './useTourNarration';
 import { LockedTourScreen } from './LockedTourScreen';
 import { FloorplanMiniMap } from './FloorplanMiniMap';
 import { withoutEmoji } from './icons';
 import { formatListingPrice } from '../../lib/listingPrice';
+import { ALL_LANGUAGES, isLanguageAvailable as isLanguageAvailableFor } from './tourLanguages';
 import { PANNELLUM_CSS, PANNELLUM_JS } from './pannellum';
 import {
   ARRIVE_HFOV,
-  CREEP_HFOV,
-  CREEP_MS,
   DEFAULT_HFOV,
   ENTRY_START_HFOV,
   FADE_MS,
-  IMAGE_WAIT_MS,
   INFO_HFOV,
-  SETTLE_MS,
   SLOW_LOAD_HINT_MS,
-  WALK_HFOV,
-  WALK_MIN_HFOV_BOUND,
-  WALK_MS,
-  WALK_REVEAL_AT,
   VIEW_MAX_HFOV,
   VIEW_MIN_HFOV,
-  clampPitch,
-  entryViewFor,
   pickHfov,
-  preloadPanorama,
-  prefersReducedMotion,
   scaledHfov,
   wait,
   type PendingTransition
 } from './transition';
 import {
   normalizeYaw,
-  getShortestTargetYaw,
   getLocalizedText,
   parseWaypoints,
   parseEstablish,
-  composeEstablishText,
-  buildI18nObject,
-  mergeAudioI18n,
   buildFactList,
+  buildFaqList,
   Centered
 } from './utils';
-import {
-  GUIDE_REVISIT_OVERLAP_MS,
-  GUIDE_REVISIT_TURN_MIN_MS,
-  revisitTurnMs,
-  parseGuidePath,
-  resolveGuidePath,
-  type GuideStep
-} from './guidePath';
 
 // Admin alati (AI popuna, jezici, glas, otpremanje panorame) su poseban chunk
 // koji se skida tek kad postoji admin sesija - posetilac ga nikad ne dobija.
@@ -120,94 +104,39 @@ export default function TourPage() {
   // Mali natpis "Ulazimo u prostoriju" samo kad nova soba kasni.
   const [slowRoomLoad, setSlowRoomLoad] = useState(false);
 
-  // ---- Automatski vodič (vidi guidePath.ts) ------------------------------
-  // 'auto' = vodič sam hoda kroz putanju i priča; 'manual' = kao i do sada,
-  // posetilac sam bira sobe. Ref postoji jer se čita iz async koda unutar
-  // efekta koji pravi scenu (v.on('load'), tajmeri) - state bi tamo bio
-  // "zaleđen" na vrednost iz trenutka kad je efekat pokrenut.
-  const [guideMode, setGuideMode] = useState<'auto' | 'manual'>('manual');
-  const guideModeRef = useRef<'auto' | 'manual'>('manual');
-  // Koliko je vodič odmakao u putanji - indeks POSLEDNJE sobe do koje je
-  // stigao (ne resetuje se pri prelasku auto/ručno, da bi "nastavak" znao
-  // odakle je vodič stao).
-  const guidePathIndexRef = useRef(0);
-  // Isti indeks kao state, samo za prikaz "Prostorija X od Y".
-  const [guideStepIdx, setGuideStepIdx] = useState(0);
-  // Link sa ?vodic=1 pokreće turu odmah u automatskom modu (npr. agent ga
-  // šalje kupcu u poruci). Pokreće se samo jednom po poseti.
-  const [guideRequested, setGuideRequested] = useState(false);
-  const guideAutoStartedRef = useRef(false);
-  // Scena trenutne sobe je učitana - "Sledeća" dok se soba tek učitava bi
-  // krenula da hoda iz scene koja još nema sliku.
-  const sceneReadyRef = useRef(false);
-  // Sobe koje je posetilac video u ovoj poseti - za tačkice napretka u traci.
-  const [seenRoomIds, setSeenRoomIds] = useState<Set<string>>(() => new Set());
-  // Sobe koje su već dobile PUNU naraciju u ovoj poseti (ručno ili od
-  // vodiča) - drugi automatski prolazak kroz njih je samo okret ka sledećim
-  // vratima, bez priče (vidi GUIDE_REVISIT_* u guidePath.ts).
-  const visitedGuideRoomsRef = useRef<Set<string>>(new Set());
-  // Da li je naracija TRENUTNE sobe već završena (vodič sad samo mirno
-  // stoji) - treba activateGuide-u da zna da li da odmah krene dalje ili da
-  // pusti postojeću naraciju da se sama završi.
-  const roomSequenceFinishedRef = useRef(false);
-  const [guideFinished, setGuideFinished] = useState(false);
-  const guideFinishedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const t = translations[lang];
 
   const params = useParams();
   const slug = params?.slug as string;
 
-  const [tour, setTour] = useState<Tour | null>(null);
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [roomIdx, setRoomIdx] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [roomLoading, setRoomLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  // Putanja vodiča razrešena na stvarne sobe (vidi guidePath.ts). Prazno ili
-  // sa manje od 2 koraka = tura nema automatskog vodiča, dugme se ne krca.
-  const guideSteps: GuideStep[] = useMemo(
-    () => resolveGuidePath(parseGuidePath(tour?.guide_path), rooms),
-    [tour?.guide_path, rooms]
+  // Tura i sobe iz baze - vidi useTourData.ts.
+  const { tour, setTour, rooms, setRooms, loading, error, setError } = useTourData(
+    slug,
+    hasMounted,
+    isMountedRef,
+    langRef
   );
-  const hasGuide = guideSteps.length >= 2;
-  // Broje se različite prostorije, ne koraci - hodnik kroz koji se prolazi
-  // tri puta je i dalje jedna prostorija.
-  const guideProgress = useMemo(() => {
-    const ids = guideSteps.map((s) => String(s.room.id));
-    return { current: new Set(ids.slice(0, guideStepIdx + 1)).size, total: new Set(ids).size };
-  }, [guideSteps, guideStepIdx]);
+  const [roomIdx, setRoomIdx] = useState(0);
+  const [roomLoading, setRoomLoading] = useState(false);
+
 
   const [pannellumReady, setPannellumReady] = useState(false);
-  const [adminMode, setAdminMode] = useState(false);
-  // Otvoreno sa ?admin=1: ne pokazuj poruku o zaključanoj turi dok se ne zna
-  // da li je prijava uspela - inače bi admin video kratak bljesak poruke
-  // pre nego što se sesija prepozna.
-  const [adminRequested, setAdminRequested] = useState(false);
-  const adminModeRef = useRef(false);
+  // Admin režim i prijava - vidi useAdminSession.ts.
+  const {
+    adminMode,
+    adminModeRef,
+    adminRequested,
+    showAdminLogin,
+    setShowAdminLogin,
+    loginForm,
+    handleAdminLogin
+  } = useAdminSession();
 
-  // Otvaranje se beleži samo jednom po učitavanju, i kad se tour objekat
-  // kasnije osveži (npr. posle admin izmene).
-  const openTrackedRef = useRef(false);
-
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [loginLoading, setLoginLoading] = useState(false);
 
   const [isMuted, setIsMuted] = useState(false);
   const isMutedRef = useRef(false);
 
-  // Pauza automatskog vodiča: zamrzava naraciju (isti mehanizam kao zvuk -
-  // pauseForMute/resumeAfterMute) i kameru (kruženje faze 1, info-tačaka i
-  // završnog kruženja ka vratima), dok se ponovo ne klikne. Kratki, već
-  // pokrenuti pomeraji kamere (2.2s pogled ka tački, 2.5s hod ka vratima)
-  // se namerno ne prekidaju na pola - suviše kratki da bi to bilo primetno,
-  // a naredni korak čeka na pauzu pre nego što krene.
-  const [isGuidePaused, setIsGuidePaused] = useState(false);
-  const isGuidePausedRef = useRef(false);
 
   // Deljenje linka ture (Web Share API na mobilnom, kopiranje u clipboard
   // kao fallback na desktopu). shareCopied prikazuje kratku potvrdu.
@@ -223,16 +152,6 @@ export default function TourPage() {
 
   const [infoBoxData, setInfoBoxData] = useState<{ titleRaw?: unknown; textRaw: unknown; index?: number; audio_url?: unknown } | null>(null);
 
-  const [pendingCoords, setPendingCoords] = useState<{ yaw: number; pitch: number } | null>(null);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const editingIndexRef = useRef<number | null>(null);
-  const [hotspotType, setHotspotType] = useState<'navigation' | 'info' | 'establish'>('navigation');
-  const [targetRoomId, setTargetRoomId] = useState<string | number>('');
-
-  const [hotspotText, setHotspotText] = useState<string>('');
-  const [hotspotTitle, setHotspotTitle] = useState<string>('');
-  const [hotspotAudioUrl, setHotspotAudioUrl] = useState<string>('');
-
   const viewerRef = useRef<any>(null);
   const animFrameRef = useRef<number | null>(null);
   const sequenceActiveRef = useRef<boolean>(false);
@@ -247,29 +166,16 @@ export default function TourPage() {
     toggleFullscreen
   } = useViewerControls(viewerRef);
 
-  const handleStartEditWaypoint = useCallback((index: number) => {
-    const currentRoom = rooms[roomIdx];
-    if (!currentRoom) return;
-    const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
-    const targetWp = waypointsList[index];
-    if (!targetWp) return;
-
-    setEditingIndex(index);
-    editingIndexRef.current = index;
-    setPendingCoords({ pitch: targetWp.pitch || 0, yaw: targetWp.yaw || 0 });
-
-    if (viewerRef.current) {
-      viewerRef.current.lookAt(targetWp.pitch || 0, targetWp.yaw || 0, 70, 1000);
-    }
-
-    const isNav = targetWp.type === 'navigation' || Boolean(targetWp.targetRoomId);
-    setHotspotType(isNav ? 'navigation' : 'info');
-
-    setHotspotText(getLocalizedText(targetWp.text_i18n, langRef.current));
-    setHotspotTitle(getLocalizedText(targetWp.title_i18n, langRef.current));
-    setHotspotAudioUrl(getLocalizedText(targetWp.audio_url_i18n ?? targetWp.audio_url, langRef.current));
-    setTargetRoomId(targetWp.targetRoomId || '');
-  }, [rooms, roomIdx]);
+  // Admin uređivanje tačaka i oznaka na tlocrtu - vidi useHotspotEditor.ts.
+  // refreshViewerHotspots (niže) se upisuje u ref jer zavisi od ovog hook-a.
+  const refreshHotspotsRef = useRef<RefreshHotspots | null>(null);
+  const {
+    pendingCoords,
+    handleStartEditWaypoint,
+    handleViewerClick,
+    handleSetFloorplanMarker,
+    formProps: hotspotFormProps
+  } = useHotspotEditor({ rooms, setRooms, roomIdx, viewerRef, langRef, refreshHotspotsRef });
 
   const stopCurrentAnimation = useCallback(() => {
     if (animFrameRef.current !== null) {
@@ -295,310 +201,63 @@ export default function TourPage() {
     scheduleAfterNarration
   } = useTourNarration({ isMountedRef, langRef, isMutedRef, onNarrationChange: setInfoBoxData });
 
-  // Ručni klik (soba, tačka, tlocrt) uvek preuzima kontrolu od vodiča - kao
-  // audio-vodič u muzeju: čim nešto sam pipneš, vodič ćuti. `transition.guided`
-  // označava korak koji je pokrenuo SAM vodič, pa ovo za njega preskačemo.
-  const takeManualControl = useCallback(() => {
-    if (guideFinishedTimerRef.current) {
-      clearTimeout(guideFinishedTimerRef.current);
-      guideFinishedTimerRef.current = null;
-    }
-    setGuideFinished(false);
-    // Pauza ima smisla samo dok vodič vodi - ručno preuzimanje je već
-    // "pauza" na svoj način (posetilac sam gleda), pa se ne nosi dalje.
-    if (isGuidePausedRef.current) {
-      isGuidePausedRef.current = false;
-      setIsGuidePaused(false);
-    }
-    if (guideModeRef.current === 'manual') return;
-    guideModeRef.current = 'manual';
-    setGuideMode('manual');
-  }, []);
-
-  useEffect(() => {
-    if (!tourStarted) return;
-    const id = rooms[roomIdx]?.id;
-    if (id == null) return;
-    setSeenRoomIds((prev) => (prev.has(String(id)) ? prev : new Set(prev).add(String(id))));
-  }, [tourStarted, rooms, roomIdx]);
-
-  // Poruka "obišli ste sve" sama nestane posle nekoliko sekundi.
-  useEffect(() => {
-    if (!guideFinished) return;
-    guideFinishedTimerRef.current = setTimeout(() => setGuideFinished(false), 6000);
-    return () => {
-      if (guideFinishedTimerRef.current) clearTimeout(guideFinishedTimerRef.current);
-    };
-  }, [guideFinished]);
-
-  // `transition` dolazi iz walkToRoom (prelaz kroz tačku, sa smerom ulaska).
-  // Bez njega (spisak soba, tlocrt) prelaz je samo pretapanje.
-  const changeRoomById = useCallback((id: string | number, transition?: PendingTransition) => {
-    const foundIndex = rooms.findIndex(r => r.id == id);
-    if (foundIndex === -1) return;
-
-    // Soba u koju se upravo ulazi se već priprema ispod stare scene - klik na
-    // nju (spisak, tlocrt) ne sme da prekine taj prelaz.
-    if (foundIndex === roomIdx && walkingRef.current && fadingLayerRef.current) return;
-
-    if (!transition?.guided) takeManualControl();
-
-    // Prelaz koji se još približava vratima više ne važi - posetilac je
-    // izabrao sobu. Prelaz sa revealAt je sam taj prelaz: on traje dok nova
-    // scena ne izađe ispod stare (v.on('load') dole).
-    const walkCancelled = walkingRef.current && !transition;
-    walkTokenRef.current += 1;
-    walkingRef.current = Boolean(transition?.revealAt);
-
-    roomSessionRef.current += 1;
-    sequenceActiveRef.current = false;
-    isInterruptedRef.current = true;
-    resetPosition();
-    setIsRoomTourFullyCompleted(false);
-    setIsInfoboxManuallyClosed(false);
-    stopCurrentAnimation();
-    stopAudio();
-    setInfoBoxData(null);
-
-    // Klik na sobu u kojoj se već nalazimo (isti indeks): setRoomIdx sa istom
-    // vrednošću NE pokreće efekat koji učitava scenu, pa "roomLoading" ne bi
-    // nikad bio vraćen na false - "Ulazimo u prostoriju" bi ostalo zauvek na
-    // ekranu. Iznad smo već prekinuli naraciju/animaciju; ponovno učitavanje
-    // panorame ovde nije ni potrebno.
-    if (foundIndex === roomIdx) {
-      // Prekinut prilaz vratima u istoj sobi: kamera je ostala duboko
-      // uvećana, sa spuštenom granicom zuma - vrati normalan pogled.
-      if (walkCancelled && viewerRef.current) {
-        try {
-          viewerRef.current.setHfovBounds([VIEW_MIN_HFOV, VIEW_MAX_HFOV]);
-          viewerRef.current.setHfov(pickHfov(DEFAULT_HFOV), SETTLE_MS);
-        } catch {}
-      }
-      return;
-    }
-
-    if (viewerRef.current) {
-      // Postoji scena na ekranu: ona ostaje dok se nova ne učita, pa se
-      // pretapaju. Veliki ekran za učitavanje se tada ne prikazuje.
-      pendingTransitionRef.current = transition ?? { entry: null, zoomedIn: false };
-    } else {
-      pendingTransitionRef.current = null;
-      setRoomLoading(true);
-    }
-    setRoomIdx(foundIndex);
-  }, [rooms, roomIdx, resetPosition, stopAudio, stopCurrentAnimation, takeManualControl]);
-
-  // Klik na navigacionu tačku: kamera se okrene ka tački i približi joj se,
-  // za to vreme se skida sledeća soba, pa prelaz (vidi transition.ts).
-  // `options.guided` = ovaj korak pokreće automatski vodič, ne ručan klik.
-  const walkToRoom = useCallback((wp: Waypoint, options?: { guided?: boolean }) => {
-    if (wp.targetRoomId == null || walkingRef.current) return;
-
-    if (!options?.guided) takeManualControl();
-
-    const fromRoom = rooms[roomIdx];
-    const target = rooms.find(r => String(r.id) === String(wp.targetRoomId));
-    const v = viewerRef.current;
-    if (!fromRoom || !target || target.id == fromRoom.id || !v) {
-      changeRoomById(wp.targetRoomId, options?.guided ? { entry: null, zoomedIn: false, guided: true } : undefined);
-      return;
-    }
-
-    const token = ++walkTokenRef.current;
-    walkingRef.current = true;
-
-    // Kamera sad pripada prelazu: prekini naraciju i okretanje.
-    sequenceActiveRef.current = false;
-    isInterruptedRef.current = true;
-    stopCurrentAnimation();
-    stopAudio();
-    setInfoBoxData(null);
-
-    const url = target.panorama_url_cf || target.panorama_url;
-    const imageReady = url ? preloadPanorama(url) : Promise.resolve();
-
-    const reduceMotion = prefersReducedMotion();
-    const approach = new Promise<void>((resolve) => {
-      if (reduceMotion) return resolve();
-      const yaw = getShortestTargetYaw(normalizeYaw(v.getYaw()), wp.yaw ?? 0);
-      try {
-        v.setHfovBounds([WALK_MIN_HFOV_BOUND, VIEW_MAX_HFOV]);
-        v.lookAt(clampPitch(wp.pitch ?? 0), yaw, scaledHfov(WALK_HFOV), WALK_MS, () => resolve());
-      } catch {
-        resolve();
-      }
-      // Ako posetilac povuče pogled usred animacije, Pannellum ne pozove
-      // callback - zato i rezervni tajmer.
-      setTimeout(resolve, WALK_MS + 150);
-    });
-
-    const entry = entryViewFor(wp);
-    // Nova soba se pravi dok kamera još prilazi, skrivena ispod stare, i
-    // pokazuje se tek pred kraj prilaza - raspakivanje velike panorame traje
-    // ~1,5 s i ranije je na kraju prilaza izgledalo kao da kamera stoji.
-    const revealAt = reduceMotion ? undefined : Date.now() + WALK_MS * WALK_REVEAL_AT;
-
-    Promise.race([imageReady, wait(WALK_MS + IMAGE_WAIT_MS)]).then(() => {
-      if (!isMountedRef.current || token !== walkTokenRef.current) return;
-      changeRoomById(target.id, { entry, zoomedIn: !reduceMotion, guided: options?.guided, revealAt });
-    });
-
-    approach.then(() => {
-      // Nova soba još nije spremna, a kamera je stigla do vrata: stara scena
-      // i dalje polako ide napred (vidi CREEP_* u transition.ts).
-      if (reduceMotion || !walkingRef.current || v === viewerRef.current) return;
-      try { v.setHfov(scaledHfov(CREEP_HFOV), CREEP_MS); } catch {}
-    });
-  }, [rooms, roomIdx, changeRoomById, stopAudio, stopCurrentAnimation, takeManualControl]);
-
-  const setGuideIndex = useCallback((i: number) => {
-    guidePathIndexRef.current = i;
-    setGuideStepIdx(i);
-  }, []);
-
-  // Vrata u trenutnoj sobi putanje koja vode u sledeći korak (null na kraju
-  // putanje ili ako tačka za prelaz ne postoji).
-  const nextGuideDoor = useCallback(() => {
-    const idx = guidePathIndexRef.current;
-    if (idx >= guideSteps.length - 1) return null;
-    const from = guideSteps[idx].room;
-    const to = guideSteps[idx + 1].room;
-    return (
-      parseWaypoints(from.waypoints_i18n).find(
-        (w) => w.targetRoomId != null && String(w.targetRoomId) === String(to.id)
-      ) ?? null
-    );
-  }, [guideSteps]);
-
-  // Sledeći korak u putanji vodiča (guidePath.ts): nađe tačku iz TRENUTNOG
-  // koraka ka SLEDEĆEM i "prošeta" kroz nju. Ako je tačka u međuvremenu
-  // nestala (obrisana posle čuvanja putanje), pretopi se bez hodanja umesto
-  // da ostane zaglavljeno.
-  const advanceGuide = useCallback(() => {
-    // Već hoda ka sledećoj sobi - drugi poziv bi pomerio indeks bez pokreta.
-    if (walkingRef.current) return;
-    const idx = guidePathIndexRef.current;
-    if (idx >= guideSteps.length - 1) {
-      setGuideFinished(true);
-      return;
-    }
-    const wp = nextGuideDoor();
-    const to = guideSteps[idx + 1];
-    setGuideIndex(idx + 1);
-
-    if (wp) {
-      walkToRoom(wp, { guided: true });
-    } else {
-      changeRoomById(to.room.id, { entry: null, zoomedIn: false, guided: true });
-    }
-  }, [guideSteps, nextGuideDoor, setGuideIndex, walkToRoom, changeRoomById]);
-
-  // Uključivanje vodiča: nastavlja od tamo gde je stao, preskačući sobe koje
-  // su već predstavljene (ručno ili od ranijeg vođenja - "pokaži samo ono
-  // što još nisam video"). Ako je posetilac u međuvremenu ručno odlutao
-  // negde drugde, "sustigne" ga pretapanjem (nema garancije da baš iz TE
-  // sobe postoji tačka do sledećeg koraka), pa dalje hoda normalno.
-  const activateGuide = useCallback(() => {
-    if (!hasGuide) return;
-
-    guideModeRef.current = 'auto';
-    setGuideMode('auto');
-    if (guideFinishedTimerRef.current) clearTimeout(guideFinishedTimerRef.current);
-    setGuideFinished(false);
-
-    let idx = guidePathIndexRef.current;
-    while (idx < guideSteps.length && visitedGuideRoomsRef.current.has(String(guideSteps[idx].room.id))) {
-      idx++;
-    }
-
-    if (idx >= guideSteps.length) {
-      setGuideFinished(true);
-      return;
-    }
-    setGuideIndex(idx);
-
-    const targetRoom = guideSteps[idx].room;
-    if (rooms[roomIdx]?.id === targetRoom.id) {
-      // Već smo u ciljnoj sobi. Ako je naracija već završena (mirno stojimo),
-      // nastavi odmah; ako još traje, nastaviće se sama - v.on('load') dole
-      // uživo proverava guideModeRef pri kraju sekvence.
-      if (roomSequenceFinishedRef.current) advanceGuide();
-      return;
-    }
-
-    changeRoomById(targetRoom.id, { entry: null, zoomedIn: false, guided: true });
-  }, [hasGuide, guideSteps, rooms, roomIdx, setGuideIndex, changeRoomById, advanceGuide]);
-
-  const toggleGuideMode = useCallback(() => {
-    if (guideModeRef.current === 'auto') takeManualControl();
-    else activateGuide();
-  }, [takeManualControl, activateGuide]);
-
-  // "Sledeća" u automatskom modu: prekida priču trenutne sobe i vodič odmah
-  // kreće dalje - i dalje vodi on, pa se ne računa kao ručno preuzimanje.
-  const skipGuideStep = useCallback(() => {
-    if (guideModeRef.current !== 'auto' || !sceneReadyRef.current) return;
-    advanceGuide();
-  }, [advanceGuide]);
-
-  // "Prethodna" u automatskom modu vraća na poslednju RANIJU sobu koju je
-  // vodič predstavio - korak kroz koji se samo prolazi (hodnik drugi put) se
-  // preskače, jer bi se vodič odatle odmah okrenuo i krenuo nazad napred.
-  const prevGuideStepIdx = useMemo(() => {
-    const currentId = String(guideSteps[guideStepIdx]?.room.id);
-    for (let j = guideStepIdx - 1; j >= 0; j--) {
-      const id = String(guideSteps[j].room.id);
-      const firstIdx = guideSteps.findIndex((s) => String(s.room.id) === id);
-      if (firstIdx === j && id !== currentId) return j;
-    }
-    return -1;
-  }, [guideSteps, guideStepIdx]);
-
-  const backGuideStep = useCallback(() => {
-    if (guideModeRef.current !== 'auto' || !sceneReadyRef.current || walkingRef.current) return;
-    if (prevGuideStepIdx < 0) return;
-    const room = guideSteps[prevGuideStepIdx].room;
-    // Posetilac se vratio da je ponovo čuje - soba se predstavlja iz početka.
-    visitedGuideRoomsRef.current.delete(String(room.id));
-    setGuideIndex(prevGuideStepIdx);
-    changeRoomById(room.id, { entry: null, zoomedIn: false, guided: true });
-  }, [guideSteps, prevGuideStepIdx, setGuideIndex, changeRoomById]);
-
-  const goPrev = () => {
-    if (guideModeRef.current === 'auto') return backGuideStep();
-    if (roomIdx > 0) changeRoomById(rooms[roomIdx - 1].id);
-  };
-
-  const goNext = () => {
-    if (guideModeRef.current === 'auto') return skipGuideStep();
-    if (roomIdx < rooms.length - 1) changeRoomById(rooms[roomIdx + 1].id);
-  };
-
-  // Sa ?vodic=1 prva scena je odmah prva soba putanje - postavlja se u istom
-  // renderu kao tourStarted, pa se soba 1 ture ne učitava uzalud.
-  const startTour = () => {
-    if (guideRequested && hasGuide) {
-      const firstIdx = rooms.findIndex((r) => r.id === guideSteps[0].room.id);
-      if (firstIdx !== -1) setRoomIdx(firstIdx);
-    }
-    setTourStarted(true);
-  };
-
-  // Posetilac je na uvodnom ekranu sam izabrao "Automatsko vođenje" (za
-  // razliku od ?vodic=1, koji dolazi već odlučen iz linka). Isti efekat kao
-  // gore - guideRequested=true pokreće activateGuide() čim se tura pokrene.
-  const startTourGuided = () => {
-    const firstIdx = rooms.findIndex((r) => r.id === guideSteps[0].room.id);
-    if (firstIdx !== -1) setRoomIdx(firstIdx);
-    setGuideRequested(true);
-    setTourStarted(true);
-  };
-
-  useEffect(() => {
-    if (!guideRequested || !tourStarted || !hasGuide || guideAutoStartedRef.current) return;
-    guideAutoStartedRef.current = true;
-    activateGuide();
-  }, [guideRequested, tourStarted, hasGuide, activateGuide]);
+  // Kretanje između soba (klik, tačka, strelice, tlocrt) i automatski
+  // vodič - vidi useRoomNavigation.ts.
+  const {
+    guideMode,
+    guideModeRef,
+    guideStepIdx,
+    guideSteps,
+    hasGuide,
+    guideProgress,
+    prevGuideStepIdx,
+    guideRequested,
+    setGuideRequested,
+    guideFinished,
+    isGuidePaused,
+    isGuidePausedRef,
+    seenRoomIds,
+    sceneReadyRef,
+    visitedGuideRoomsRef,
+    roomSequenceFinishedRef,
+    takeManualControl,
+    changeRoomById,
+    walkToRoom,
+    nextGuideDoor,
+    advanceGuide,
+    toggleGuideMode,
+    goPrev,
+    goNext,
+    startTour,
+    startTourGuided,
+    togglePauseGuide,
+    waitWhilePaused
+  } = useRoomNavigation({
+    tour,
+    rooms,
+    roomIdx,
+    setRoomIdx,
+    tourStarted,
+    setTourStarted,
+    setRoomLoading,
+    isMountedRef,
+    roomSessionRef,
+    sequenceActiveRef,
+    isInterruptedRef,
+    viewerRef,
+    pendingTransitionRef,
+    fadingLayerRef,
+    walkTokenRef,
+    walkingRef,
+    resetPosition,
+    stopCurrentAnimation,
+    stopAudio,
+    setInfoBoxData,
+    setIsRoomTourFullyCompleted,
+    setIsInfoboxManuallyClosed,
+    pauseForMute,
+    resumeAfterMute
+  });
 
   // Gradi konfiguraciju JEDNE hotspot tačke (tooltip stil + šta se dešava na
   // klik) - deli je refreshViewerHotspots (dodaje na već postojeći viewer)
@@ -663,6 +322,12 @@ export default function TourPage() {
       viewerRef.current.addHotSpot(buildHotspotConfig(wp, index, l));
     });
   }, [buildHotspotConfig]);
+  // Čita ga useHotspotEditor (pregled pomeranja, čuvanje, brisanje tačke).
+  // useLayoutEffect: izvršava se pre običnih efekata, pa je ref svež i za
+  // efekat pregleda u hook-u iz istog prolaza.
+  useLayoutEffect(() => {
+    refreshHotspotsRef.current = refreshViewerHotspots;
+  }, [refreshViewerHotspots]);
 
   const changeLanguage = useCallback((l: Language) => {
     setLang(l);
@@ -680,140 +345,6 @@ export default function TourPage() {
     restartInCurrentLanguage();
   }, [rooms, roomIdx, refreshViewerHotspots, restartInCurrentLanguage]);
 
-  // ŽIVI PREVIEW POMERANJA: čim se pendingCoords promeni dok se edituje POSTOJEĆA
-  // tačka (editingIndex !== null), odmah vizuelno pomeri marker na novu poziciju
-  // na vieweru, bez čekanja da se klikne "Sačuvaj". Ovo NE upisuje ništa u bazu -
-  // samo daje trenutni vizuelni fidbek dok pozicioniraš tačku.
-  useEffect(() => {
-    if (!pendingCoords || editingIndex === null) return;
-    const currentRoom = rooms[roomIdx];
-    if (!currentRoom) return;
-
-    const waypointsList = parseWaypoints(currentRoom.waypoints_i18n);
-    if (!waypointsList[editingIndex]) return;
-
-    const previewList = waypointsList.map((wp, idx) =>
-      idx === editingIndex ? { ...wp, yaw: pendingCoords.yaw, pitch: pendingCoords.pitch } : wp
-    );
-
-    refreshViewerHotspots(previewList, langRef.current);
-  }, [pendingCoords, editingIndex, rooms, roomIdx, refreshViewerHotspots]);
-
-  // CANCEL & DELETE & SAVE HOTSPOTS (ADMIN REŽIM)
-  const handleCancelEdit = () => {
-    setPendingCoords(null);
-    setEditingIndex(null);
-    editingIndexRef.current = null;
-    setHotspotText('');
-    setHotspotTitle('');
-    setHotspotAudioUrl('');
-    setTargetRoomId('');
-  };
-
-  const handleSaveHotspot = async () => {
-  const currentRoom = rooms[roomIdx];
-  if (!currentRoom || !pendingCoords) return;
-
-  const updatedWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
-  let updatedEstablish = parseEstablish(currentRoom.establish_i18n);
-
-  if (hotspotType === 'establish') {
-    updatedEstablish = {
-      ...updatedEstablish,
-      fromYaw: pendingCoords.yaw,
-      pitch: pendingCoords.pitch,
-      audio_url_i18n: mergeAudioI18n(
-        hotspotAudioUrl,
-        updatedEstablish.audio_url_i18n ?? updatedEstablish.audio_url,
-        langRef.current
-      ),
-      text_i18n: buildI18nObject(hotspotText, updatedEstablish.text_i18n, langRef.current)
-    };
-  } else {
-    const existingWp = editingIndex !== null ? updatedWaypoints[editingIndex] : undefined;
-    
-    // VAŽNO: Dodat ...existingWp da se ne izgube prevođeni jezici!
-    const newWaypoint: Waypoint = {
-      ...existingWp, 
-      yaw: pendingCoords.yaw,
-      pitch: pendingCoords.pitch,
-      type: hotspotType,
-      targetRoomId: hotspotType === 'navigation' ? targetRoomId : undefined,
-      audio_url_i18n: mergeAudioI18n(
-        hotspotAudioUrl,
-        existingWp?.audio_url_i18n ?? existingWp?.audio_url,
-        langRef.current
-      ),
-      title_i18n: buildI18nObject(hotspotTitle, existingWp?.title_i18n, langRef.current),
-      text_i18n: buildI18nObject(hotspotText, existingWp?.text_i18n, langRef.current)
-    };
-
-    if (editingIndex !== null) {
-      updatedWaypoints[editingIndex] = newWaypoint;
-    } else {
-      updatedWaypoints.push(newWaypoint);
-    }
-  }
-
-  try {
-    const { error: dbErr } = await supabase
-      .from('rooms')
-      .update({
-        waypoints_i18n: updatedWaypoints,
-        establish_i18n: updatedEstablish
-      })
-      .eq('id', currentRoom.id as any);
-
-    if (dbErr) throw dbErr;
-
-    // Ažuriramo React state
-    const newRooms = rooms.map((r, i) => i === roomIdx ? {
-      ...r,
-      waypoints_i18n: updatedWaypoints,
-      establish_i18n: updatedEstablish
-    } : r);
-    
-    setRooms(newRooms);
-
-    handleCancelEdit();
-
-    // Ključno: Odmah osvežavamo prikaz tačaka u Pannellum-u koristeći SVEŽ niz
-    // (updatedWaypoints), a ne rooms state koji React još nije stigao da ažurira.
-    refreshViewerHotspots(updatedWaypoints, langRef.current);
-
-  } catch (err: any) {
-    alert('Greška pri čuvanju tačke: ' + err.message);
-  }
-};
-
-  const handleDeleteHotspot = async () => {
-    if (editingIndex === null) return;
-    const currentRoom = rooms[roomIdx];
-    if (!currentRoom) return;
-
-    const updatedWaypoints = parseWaypoints(currentRoom.waypoints_i18n);
-    updatedWaypoints.splice(editingIndex, 1);
-
-    try {
-      const { error: dbErr } = await supabase
-        .from('rooms')
-        .update({ waypoints_i18n: updatedWaypoints })
-        .eq('id', currentRoom.id as any);
-
-      if (dbErr) throw dbErr;
-
-      setRooms(prev => prev.map((r, i) => i === roomIdx ? {
-        ...r,
-        waypoints_i18n: updatedWaypoints
-      } : r));
-
-      handleCancelEdit();
-      refreshViewerHotspots(updatedWaypoints, langRef.current);
-    } catch (err: any) {
-      alert('Greška pri brisanju tačke: ' + err.message);
-    }
-  };
-
   // TourAdminTools javlja kad je napravio sobu: tura bez soba je do tada
   // stajala na ekranu sa greškom "nema soba", a sad treba da krene.
   const handleAdminRoomCreated = () => {
@@ -821,132 +352,8 @@ export default function TourPage() {
     setTourStarted(true);
   };
 
-  // Admin klikne na tlocrt (Skica modal) da postavi/pomeri oznaku TRENUTNE
-  // sobe (rooms[roomIdx]) na tu poziciju - procenat širine/visine slike, ne
-  // pikseli, da oznaka ostane tačna bez obzira na veličinu ekrana.
-  const handleSetFloorplanMarker = async (e: React.MouseEvent<HTMLImageElement>) => {
-    const currentRoom = rooms[roomIdx];
-    if (!currentRoom) return;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
-    const yPct = ((e.clientY - rect.top) / rect.height) * 100;
-
-    const { error: updateErr } = await supabase
-      .from('rooms')
-      // floorplan_x/floorplan_y nisu (još) u generisanim Supabase tipovima
-      // (types/supabase.ts) - as any dok se ne pokrene migracija i types ne
-      // regenerišu.
-      .update({ floorplan_x: xPct, floorplan_y: yPct } as any)
-      .eq('id', currentRoom.id as any);
-
-    if (updateErr) {
-      alert('Greška pri čuvanju pozicije na tlocrtu: ' + updateErr.message);
-      return;
-    }
-
-    setRooms((prev) =>
-      prev.map((r, idx) => (idx === roomIdx ? { ...r, floorplan_x: xPct, floorplan_y: yPct } : r))
-    );
-  };
-
-  // Da li i18n objekat ima BILO KAKVU vrednost, za bilo koji jezik - koristi
-  // se da se utvrdi da li je tura UOPŠTE ikad prošla kroz generisanje glasa,
-  // bez obzira na koji jezik.
-  const hasAnyLangValue = (data: unknown): boolean => {
-    if (!data) return false;
-    let obj: unknown = data;
-    if (typeof data === 'string') {
-      try {
-        obj = JSON.parse(data);
-      } catch {
-        return false;
-      }
-    }
-    if (obj && typeof obj === 'object') {
-      return Object.values(obj as Record<string, unknown>).some(
-        (v) => typeof v === 'string' && v.trim().length > 0
-      );
-    }
-    return false;
-  };
-
-  // Da li JE tura ikad dobila snimljen glas - u bilo kojoj sobi, na bilo
-  // kom jeziku. Razlikuje ture koje su prošle kroz TTS od onih koje nisu.
-  const tourHasAnyAudio = (): boolean => {
-    if (!rooms) return false;
-    for (const room of rooms) {
-      const establishData = parseEstablish(room.establish_i18n);
-      if (establishData.audio_url || hasAnyLangValue(establishData.audio_url_i18n)) return true;
-      const waypoints = parseWaypoints(room.waypoints_i18n);
-      for (const wp of waypoints) {
-        if (wp.audio_url || hasAnyLangValue(wp.audio_url_i18n)) return true;
-      }
-    }
-    return false;
-  };
-
-  const isLanguageAvailable = (l: Language): boolean => {
-    if (l === 'sr') return true;
-
-    const checkI18n = (data: any): boolean => {
-      if (!data) return false;
-      if (typeof data === 'object') return Boolean(data[l]);
-      if (typeof data === 'string') {
-        try {
-          const parsed = JSON.parse(data);
-          return Boolean(parsed && parsed[l]);
-        } catch {
-          return false;
-        }
-      }
-      return false;
-    };
-
-    // Čim je tura BAR JEDNOM prošla kroz generisanje glasa, jezik se nudi
-    // SAMO ako baš za njega postoji snimljen audio - inače bi posetilac
-    // izabrao jezik koji izgleda dostupan (ima prevod), a dobio turu bez
-    // vodiča dok ostali jezici zvuče profesionalno. Dok tura nikad nije
-    // dobila glas ni na jednom jeziku, ponašanje ostaje kao pre (dostupnost
-    // po prevedenom TEKSTU) - ne sakriva prevode koji tek čekaju na glas.
-    if (tourHasAnyAudio()) {
-      if (!rooms) return false;
-      for (const room of rooms) {
-        const establishData = parseEstablish(room.establish_i18n);
-        if (checkI18n(establishData.audio_url_i18n)) return true;
-        const waypoints = parseWaypoints(room.waypoints_i18n);
-        for (const wp of waypoints) {
-          if (checkI18n(wp.audio_url_i18n)) return true;
-        }
-      }
-      return false;
-    }
-
-    if (tour) {
-      if (
-        checkI18n(tour.title_i18n) ||
-        checkI18n(tour.about_text_i18n) ||
-        checkI18n(tour.faq_1_i18n) ||
-        checkI18n(tour.faq_2_i18n) ||
-        checkI18n(tour.faq_3_i18n) ||
-        checkI18n(tour.faq_4_i18n) ||
-        checkI18n(tour.faq_5_i18n)
-      ) return true;
-    }
-
-    if (rooms && rooms.length > 0) {
-      for (const room of rooms) {
-        if (checkI18n(room.title_i18n)) return true;
-        const waypoints = parseWaypoints(room.waypoints_i18n);
-        for (const wp of waypoints) {
-          if (checkI18n(wp.text_i18n) || checkI18n(wp.title_i18n)) return true;
-        }
-      }
-    }
-
-    return false;
-  };
-
+  // Koji jezici se nude - vidi tourLanguages.ts.
+  const isLanguageAvailable = (l: Language): boolean => isLanguageAvailableFor(l, tour, rooms);
   // Jezik iz linka (?lang=en) - sa engleske početne strane, ili kad agencija
   // deli turu na nemačkom. Primenjuje se jednom, čim su tura i sobe učitane,
   // i samo ako tura stvarno ima taj jezik; inače ostaje srpski.
@@ -964,60 +371,13 @@ export default function TourPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
 
-  const handleAdminLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError('');
-    setLoginLoading(true);
-
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: loginEmail.trim(),
-      password: loginPassword,
-    });
-
-    setLoginLoading(false);
-
-    if (authError) {
-      setLoginError('Pogrešan email ili lozinka.');
-      return;
-    }
-
-    // adminMode i showAdminLogin se ažuriraju automatski preko
-    // supabase.auth.onAuthStateChange listener-a gore.
-    setLoginPassword('');
-  };
-
   useEffect(() => {
     isMountedRef.current = true;
     setHasMounted(true);
-    const urlParams = new URLSearchParams(window.location.search);
-    const adminRequested = urlParams.get('admin') === '1';
-    setAdminRequested(adminRequested);
-    setGuideRequested(urlParams.get('vodic') === '1');
-
-    // Admin pristup ide isključivo preko Supabase Auth sesije - nema više
-    // hardkodirane lozinke u URL-u. Ako je admin već ulogovan (na BILO
-    // kojoj turi, ranije), sesija se automatski prepoznaje i ovde.
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!isMountedRef.current) return;
-      const loggedIn = Boolean(session);
-      setAdminMode(loggedIn);
-      adminModeRef.current = loggedIn;
-      if (!loggedIn && adminRequested) {
-        setShowAdminLogin(true);
-      }
-    });
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!isMountedRef.current) return;
-      const loggedIn = Boolean(session);
-      setAdminMode(loggedIn);
-      adminModeRef.current = loggedIn;
-      if (loggedIn) setShowAdminLogin(false);
-    });
+    setGuideRequested(new URLSearchParams(window.location.search).get('vodic') === '1');
 
     return () => {
       isMountedRef.current = false;
-      authListener.subscription.unsubscribe();
       stopAudio();
       stopCurrentAnimation();
       if (viewerRef.current) {
@@ -1030,105 +390,9 @@ export default function TourPage() {
     };
   }, [stopAudio, stopCurrentAnimation]);
 
-  // ---- Analitika ---------------------------------------------------------
-  // Događaji se šalju iz efekata, a ne iz pojedinačnih onClick-ova, jer se
-  // isto stanje menja sa više mesta (npr. tura se pokreće i dugmetom i
-  // automatski) - ovako nijedan put ne ostane nezabeležen.
-
-  useEffect(() => {
-    if (!slug || !tour || adminMode) return;
-    if (openTrackedRef.current) return;
-    openTrackedRef.current = true;
-    // langRef, a ne lang: jezik iz linka (?lang=) je u ref-u upisan u istom
-    // prolazu, dok lang state stiže tek u sledećem renderu.
-    trackEvent({ eventType: 'open', tourSlug: slug, lang: langRef.current });
-    // lang namerno nije zavisnost: otvaranje se beleži jednom, sa jezikom
-    // koji je tada bio aktivan.
-     
-  }, [slug, tour, adminMode]);
-
-  useEffect(() => {
-    if (!tourStarted || !slug || adminMode) return;
-    trackEvent({ eventType: 'start', tourSlug: slug, lang });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tourStarted, slug, adminMode]);
-
-  useEffect(() => {
-    if (!tourStarted || !slug || adminMode) return;
-    const rawRoomId = rooms[roomIdx]?.id;
-    if (!rawRoomId) return;
-    const roomId = String(rawRoomId);
-
-    const enteredAt = Date.now();
-    let flushed = false;
-
-    const flush = () => {
-      if (flushed) return;
-      flushed = true;
-      trackEvent({
-        eventType: 'room_view',
-        tourSlug: slug,
-        roomId,
-        durationMs: Date.now() - enteredAt,
-        lang
-      });
-    };
-
-    // pagehide hvata zatvaranje taba i prelazak na drugu stranicu, gde se
-    // cleanup efekta ne izvrši pouzdano.
-    window.addEventListener('pagehide', flush);
-    return () => {
-      window.removeEventListener('pagehide', flush);
-      flush();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tourStarted, slug, roomIdx, rooms, adminMode]);
-
-  // Panorame do kojih posetilac može da ode iz trenutne sobe skidaju se u
-  // pozadini, dok on još gleda ovu. Bez toga se svaki prelazak plaća čekanjem
-  // na ~1MB slike, što je na telefonu jasno vidljivo. R2 nema naplatu
-  // izlaznog saobraćaja, pa je jedina cena tuđi mobilni internet - zato ide
-  // samo prvi krug susednih soba, a ne cela tura.
-  useEffect(() => {
-    if (!tourStarted || rooms.length < 2) return;
-
-    const current = rooms[roomIdx];
-    if (!current) return;
-
-    const neighbours = new Set<string>();
-
-    for (const wp of parseWaypoints(current.waypoints_i18n)) {
-      if (!wp.targetRoomId) continue;
-      const target = rooms.find((r) => String(r.id) === String(wp.targetRoomId));
-      const url = target?.panorama_url_cf || target?.panorama_url;
-      if (url) neighbours.add(url);
-    }
-
-    // Strelice za napred/nazad postoje i kad soba nema nijedan hotspot za
-    // prelaz, pa su susedi po redosledu uvek kandidati.
-    for (const idx of [roomIdx + 1, roomIdx - 1]) {
-      const url = rooms[idx]?.panorama_url_cf || rooms[idx]?.panorama_url;
-      if (url) neighbours.add(url);
-    }
-
-    const currentUrl = current.panorama_url_cf || current.panorama_url;
-    if (currentUrl) neighbours.delete(currentUrl);
-
-    // Kratko odlaganje: prvo neka se učita panorama koju čovek gleda.
-    // preloadPanorama traži sliku u CORS režimu (kao Pannellum) i pamti je,
-    // pa je ne traži dvaput - vidi transition.ts.
-    const timer = setTimeout(() => {
-      for (const url of neighbours) void preloadPanorama(url);
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [tourStarted, rooms, roomIdx]);
-
-  useEffect(() => {
-    if (activeModal !== 'contact' || !slug || adminMode) return;
-    trackEvent({ eventType: 'contact', tourSlug: slug, lang });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeModal, slug, adminMode]);
+  // Merenje poseta i unapred skidanje susednih soba - vidi useTourAnalytics.ts.
+  useTourAnalytics({ slug, tour, adminMode, tourStarted, rooms, roomIdx, lang, langRef, activeModal });
+  useNeighbourPreload(tourStarted, rooms, roomIdx);
 
   // Deljenje linka trenutne ture: na mobilnom otvara native share meni
   // (WhatsApp, Viber, SMS, mejl...) preko Web Share API-ja; na desktopu (ili
@@ -1175,36 +439,6 @@ export default function TourPage() {
     }
   };
 
-  // Isti mehanizam kao isključivanje zvuka (pauseForMute čuva mesto u
-  // naraciji), plus zamrzavanje kamere - vidi checkCompletion/lingerTick
-  // (faza 1 i završno kruženje) i waitWhilePaused (tačke i uvod) niže,
-  // koji proveravaju isGuidePausedRef pre svakog sledećeg koraka.
-  const togglePauseGuide = () => {
-    const next = !isGuidePausedRef.current;
-    isGuidePausedRef.current = next;
-    setIsGuidePaused(next);
-    if (next) {
-      pauseForMute();
-    } else {
-      resumeAfterMute();
-    }
-  };
-
-  // Čeka dok je tura pauzirana - koristi se PRE svakog vidljivog koraka
-  // (pomeranje kamere ka tački, početak naracije) da pauza deluje i kad je
-  // kliknuta usred kratke pauze IZMEĐU koraka, ne samo usred naracije.
-  const waitWhilePaused = useCallback((): Promise<void> => {
-    return new Promise((resolve) => {
-      const check = () => {
-        if (!isMountedRef.current || !isGuidePausedRef.current) {
-          resolve();
-          return;
-        }
-        setTimeout(check, 200);
-      };
-      check();
-    });
-  }, []);
 
   useEffect(() => {
     if (!hasMounted) return;
@@ -1228,54 +462,6 @@ export default function TourPage() {
       stopCurrentAnimation();
     };
   }, [hasMounted, stopAudio, stopCurrentAnimation]);
-
-  useEffect(() => {
-    if (!slug || !hasMounted) return;
-    async function load() {
-      setLoading(true);
-      // Sobe ne zavise od ture, pa se oba upita šalju odjednom - redom bi
-      // svako otvaranje ture plaćalo jedan odlazak do baze više.
-      const [
-        { data: tourData, error: tourErr },
-        { data: roomRows, error: roomsErr }
-      ] = await Promise.all([
-        supabase.from('tours').select('*').eq('slug', slug).single(),
-        supabase.from('rooms').select('*').eq('tour_slug', slug).order('order_index', { ascending: true })
-      ]);
-
-      if (tourErr) console.error('[TOUR LOAD ERROR]', tourErr);
-      if (roomsErr) console.error('[ROOMS LOAD ERROR]', roomsErr);
-
-      if (!isMountedRef.current) return;
-
-      let loadedTour = tourData as Tour | null;
-      let loadedRooms = roomRows as Room[] | null;
-
-      // SAMO lokalno, za pregled malog tlocrta pre nego što ijedna tura ima
-      // skicu - vidi demoFloorplan.ts. Na pravom sajtu ova grana ne postoji.
-      if (
-        process.env.NODE_ENV === 'development' &&
-        loadedTour && loadedRooms?.length &&
-        new URLSearchParams(window.location.search).get('testskica') === '1'
-      ) {
-        const { withDemoFloorplan } = await import('./demoFloorplan');
-        ({ tour: loadedTour, rooms: loadedRooms } = withDemoFloorplan(loadedTour, loadedRooms));
-      }
-
-      if (!loadedTour) {
-        // VAŽNO: ako tura nije nađena, ne dozvoljavamo da rooms-provera dole prepiše ovu poruku
-        setError(tourErr ? `Greška (tours): ${tourErr.message}` : translations[langRef.current].tourNotFound);
-      } else {
-        setTour(loadedTour);
-        if (roomsErr) setError(`Greška (rooms): ${roomsErr.message}`);
-        else if (!loadedRooms || loadedRooms.length === 0) setError(translations[langRef.current].noRooms);
-        else setRooms(loadedRooms);
-      }
-
-      setLoading(false);
-    }
-    load();
-  }, [slug, hasMounted]);
 
   useEffect(() => {
     if (!tourStarted || rooms.length === 0 || !pannellumReady || !hasMounted) return;
@@ -1373,30 +559,12 @@ export default function TourPage() {
     });
     viewerRef.current = v;
 
-    // ADMIN MODE: KLIK ZA DODAVANJE NOVE TAČKE ILI POMERANJE POSTOJEĆE
+    // ADMIN: klik u panoramu dodaje novu tačku ili pomera onu koja se menja.
     v.on('mouseup', (e: MouseEvent) => {
-      if (adminModeRef.current && e.button === 0) {
-        // VAŽNO: Pannellum vraća [pitch, yaw] (ne [yaw, pitch])!
-        const coords = v.mouseEventToCoords(e);
-        if (coords) {
-          const clickedPitch = coords[0];
-          const clickedYaw = coords[1];
-
-          if (editingIndexRef.current !== null) {
-            // Već postoji tačka u režimu izmene -> ovaj klik je SAMO pomeranje
-            // na novu poziciju. Ne diramo editingIndex ni već unet naslov/tekst/audio,
-            // da se ne izgube podaci koje je korisnik već uneo.
-            setPendingCoords({ yaw: clickedYaw, pitch: clickedPitch });
-          } else {
-            // Nije aktivno editovanje - ovo je klik za kreiranje potpuno nove tačke
-            setPendingCoords({ yaw: clickedYaw, pitch: clickedPitch });
-            setHotspotText('');
-            setHotspotTitle('');
-            setHotspotAudioUrl('');
-            setTargetRoomId('');
-          }
-        }
-      }
+      if (!adminModeRef.current || e.button !== 0) return;
+      // VAŽNO: Pannellum vraća [pitch, yaw] (ne [yaw, pitch])!
+      const coords = v.mouseEventToCoords(e);
+      if (coords) handleViewerClick(coords[0], coords[1]);
     });
 
     const handlePanEnd = () => {
@@ -1409,117 +577,6 @@ export default function TourPage() {
       panoramaContainer.addEventListener('mouseup', handlePanEnd);
       panoramaContainer.addEventListener('touchend', handlePanEnd);
     }
-
-    const infoPoints = waypointsList
-      .map((wp, i) => ({ wp, i }))
-      .filter(item => item.wp.type === 'info' || (!item.wp.type && !item.wp.targetRoomId));
-
-    const startInfiniteGlide = () => {
-      if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
-      if (!sequenceActiveRef.current || isInterruptedRef.current) return;
-      stopCurrentAnimation();
-      setInfoBoxData({
-        titleRaw: translations[langRef.current].guideCompleted,
-        textRaw: translations[langRef.current].freeExplore
-      });
-
-      scheduleAfterNarration(() => {
-        if (!isMountedRef.current || currentSession !== roomSessionRef.current) return;
-        setInfoBoxData(null);
-        setIsRoomTourFullyCompleted(true);
-      }, 7000);
-
-      // NAPOMENA: koristimo Pannellum-ov UGRAĐENI startAutoRotate (isti onaj
-      // koji već radi u "Fazi 1" gore - rotatePromise), a NE ručno pozivanje
-      // setYaw() u requestAnimationFrame petlji. Ručno zvanje setYaw() svakih
-      // ~16ms je sa Pannellum-om davalo "statičnu" kameru, jer setYaw() po
-      // difoltu radi SOPSTVENU animaciju ka novoj vrednosti - pozivanje na
-      // svaki frejm je non-stop restartovalo tu internu animaciju umesto da
-      // glatko rotira. startAutoRotate() je pravljen tačno za ovaj slučaj
-      // (neprekidno, glatko okretanje) i ne pati od tog problema.
-      if (viewerRef.current) {
-        viewerRef.current.setHfov(pickHfov(DEFAULT_HFOV));
-        // Dok je žiroskop aktivan, posetilac već sam gleda pomeranjem
-        // telefona - naše okretanje bi se sudaralo sa tim (vidi startGyroscope).
-        if (!isGyroActiveRef.current) {
-          const idleRotateDegPerSec = 360 / 30; // 360° za 30 sekundi
-          viewerRef.current.startAutoRotate(idleRotateDegPerSec, targetEstablishPitch);
-        }
-      }
-    };
-
-    // Vodič ne prelazi u sledeću sobu ODMAH posle poslednje info-tačke -
-    // kamera još kruži ovoliko da posetilac stigne da pogleda okolo.
-    const GUIDE_ROOM_LINGER_MS = 7000;
-
-    // Kraj naracije sobe: u ručnom modu se kao i do sada samo mirno stoji
-    // (startInfiniteGlide); u automatskom vodič kruži GUIDE_ROOM_LINGER_MS,
-    // pa tek onda ide dalje. Kruženje namerno NIJE nasumično: brzina se
-    // računa tako da kamera stigne TAČNO do sledećih vrata (ili tačke ka
-    // sledećoj sobi) kad vreme istekne - isti obrazac kao "beginRotation"
-    // gore (ugao / trajanje = brzina), samo je ovde ugao razdaljina do
-    // vrata, ne fiksnih 240°. Ako nema sledećeg koraka (poslednja soba),
-    // kruži bez cilja, kao i pre.
-    const finishRoomSequence = () => {
-      if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
-      if (!sequenceActiveRef.current || isInterruptedRef.current) return;
-      roomSequenceFinishedRef.current = true;
-
-      if (guideModeRef.current === 'auto') {
-        // Brzina se preračuna svaki put kad kruženje (ponovo) krene - i na
-        // startu i posle svakog nastavka iz pauze - uvek na osnovu TRENUTNOG
-        // ugla kamere i PREOSTALOG vremena, pa uvek stigne do vrata bez
-        // obzira koliko je puta pauzirano usput.
-        const applyLingerRotation = (remainingMs: number) => {
-          if (!viewerRef.current || isGyroActiveRef.current) return;
-          const doorAhead = nextGuideDoor();
-          if (doorAhead) {
-            const fromYaw = normalizeYaw(viewerRef.current.getYaw());
-            // NAMERNO ne getShortestTargetYaw (taj bira kraći put, koji ume da
-            // bude suprotan smeru u kom je kamera već krenula u "Fazi 1" gore -
-            // posetilac bi video da se okretanje odjednom vrati unazad). Umesto
-            // toga uvek isti smer kao početna rotacija (pozitivan ugao/korak),
-            // makar to značilo da ide "dužim putem" do vrata.
-            const forwardDelta = (((doorAhead.yaw ?? 0) - fromYaw) % 360 + 360) % 360;
-            const turnSpeed = remainingMs > 0 ? forwardDelta / (remainingMs / 1000) : 0;
-            viewerRef.current.startAutoRotate(turnSpeed, clampPitch(doorAhead.pitch ?? targetEstablishPitch));
-          } else {
-            const idleRotateDegPerSec = 360 / 30; // 360° za 30 sekundi, bez cilja (poslednja soba)
-            viewerRef.current.startAutoRotate(idleRotateDegPerSec, targetEstablishPitch);
-          }
-        };
-
-        applyLingerRotation(GUIDE_ROOM_LINGER_MS);
-
-        let lingerElapsed = 0;
-        let lastTick = performance.now();
-        let wasPaused = isGuidePausedRef.current;
-        const lingerTick = (now: number) => {
-          if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
-          if (!sequenceActiveRef.current || isInterruptedRef.current) return;
-
-          const pausedNow = isGuidePausedRef.current;
-          if (pausedNow && !wasPaused) {
-            if (viewerRef.current) viewerRef.current.stopAutoRotate();
-          } else if (!pausedNow && wasPaused) {
-            applyLingerRotation(Math.max(0, GUIDE_ROOM_LINGER_MS - lingerElapsed));
-          }
-          wasPaused = pausedNow;
-          if (!pausedNow) lingerElapsed += now - lastTick;
-          lastTick = now;
-
-          if (lingerElapsed < GUIDE_ROOM_LINGER_MS) {
-            animFrameRef.current = requestAnimationFrame(lingerTick);
-          } else {
-            if (viewerRef.current) viewerRef.current.stopAutoRotate();
-            if (guideModeRef.current === 'auto') advanceGuide();
-          }
-        };
-        animFrameRef.current = requestAnimationFrame(lingerTick);
-      } else {
-        startInfiniteGlide();
-      }
-    };
 
     // Stara scena (iznad nove) nestaje; nova je već učitana ispod nje.
     const fadeOutPreviousScene = () => {
@@ -1568,174 +625,39 @@ export default function TourPage() {
 
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
-      const roomKey = String(currentRoom.id);
-      if (isGuidedStep && visitedGuideRoomsRef.current.has(roomKey)) {
-        // Vodič drugi put prolazi kroz VEĆ predstavljenu sobu (npr. hodnik
-        // kao prolaz između grana) - bez priče i bez stajanja: kadar se
-        // otvara i istovremeno okreće ka sledećim vratima, pa prilaz kreće
-        // pre nego što se okret sasvim završi.
-        const door = nextGuideDoor();
-        let turnMs = GUIDE_REVISIT_TURN_MIN_MS;
-        if (door && viewerRef.current && !prefersReducedMotion()) {
-          const fromYaw = normalizeYaw(viewerRef.current.getYaw());
-          const toYaw = getShortestTargetYaw(fromYaw, door.yaw ?? 0);
-          turnMs = revisitTurnMs(toYaw - fromYaw);
-          try {
-            viewerRef.current.lookAt(
-              clampPitch(door.pitch ?? 0),
-              toYaw,
-              zoomedIn ? scaledHfov(ARRIVE_HFOV) : pickHfov(DEFAULT_HFOV),
-              turnMs
-            );
-          } catch {}
-        }
-        window.setTimeout(() => {
-          if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
-          if (!sequenceActiveRef.current || isInterruptedRef.current) return;
-          if (guideModeRef.current === 'auto') advanceGuide();
-        }, Math.max(0, turnMs - GUIDE_REVISIT_OVERLAP_MS));
-        return;
-      }
-      visitedGuideRoomsRef.current.add(roomKey);
-
-      const introTextRaw = composeEstablishText(establishData) ||
-`${translations[langRef.current].welcomePrefix}${getLocalizedText(currentRoom.title_i18n, langRef.current)}`;
-      const introAudioUrl = establishData.audio_url_i18n ?? establishData.audio_url;
-
-      // Namena sobe i specifično za sobu se pišu kao dva odvojena polja
-      // (vidi TourAdminTools "📝 Naracija") i tako se i prikazuju - dva
-      // uzastopna infoboksa, ne jedan spojen tekst. Izuzetak: ako soba već
-      // ima SNIMLJEN audio (od pre nego što je TTS isključen), taj audio
-      // priča ceo spojeni tekst kao jednu celinu, pa prikaz ostaje spojen
-      // da se ne raziđe od onoga što se čuje - vidi [[project-voice-narration-pending]].
-      const hasRecordedAudio = Boolean(getLocalizedText(introAudioUrl, langRef.current));
-      const introOnlyText = getLocalizedText(establishData.intro_i18n, langRef.current);
-      const detailOnlyText = getLocalizedText(establishData.detail_i18n, langRef.current);
-
-      const playIntroNarration = async () => {
-        await waitWhilePaused();
-        if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
-        if (!sequenceActiveRef.current || isInterruptedRef.current) return;
-        if (hasRecordedAudio || (!introOnlyText && !detailOnlyText)) {
-          await playNarration(introAudioUrl, introTextRaw, currentRoom.title_i18n, undefined, 0);
-          return;
-        }
-        if (introOnlyText) {
-          await playNarration(undefined, establishData.intro_i18n, currentRoom.title_i18n, undefined, 0);
-        }
-        if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
-        if (!sequenceActiveRef.current || isInterruptedRef.current) return;
-        if (detailOnlyText) {
-          await playNarration(undefined, establishData.detail_i18n, currentRoom.title_i18n, undefined, 0);
-        }
-      };
-
-      const rotatePromise = new Promise<void>((resolve) => {
-        const durationPhase1 = 15000;
-        const totalDegrees = 250;
-        const speed = totalDegrees / (durationPhase1 / 1000);
-
-        const stillValid = () =>
-          currentSession === roomSessionRef.current && isMountedRef.current &&
-          sequenceActiveRef.current && !isInterruptedRef.current;
-
-        const beginRotation = () => {
-          if (!stillValid()) return resolve();
-
-          // Dok je žiroskop aktivan, ne pokrećemo i naše okretanje preko
-          // njega - posetilac sam okreće telefonom (vidi startGyroscope).
-          // Naracija i dalje traje puni durationPhase1 ispod, samo bez
-          // dodatnog kamerinog pomeranja koje bi se sudaralo sa senzorom.
-          if (viewerRef.current) {
-            if (entry) {
-              // Ušli smo kroz vrata: okretanje kreće odatle gde posetilac
-              // gleda, bez skoka na početni pogled sobe.
-              if (!isGyroActiveRef.current) viewerRef.current.startAutoRotate(speed, startPitch);
-            } else {
-              if (!zoomedIn) viewerRef.current.setHfov(pickHfov(DEFAULT_HFOV));
-              viewerRef.current.setYaw(targetEstablishYaw);
-              viewerRef.current.setPitch(targetEstablishPitch);
-              if (!isGyroActiveRef.current) viewerRef.current.startAutoRotate(speed, targetEstablishPitch);
-            }
-          }
-
-          // elapsedMs raste samo dok NIJE pauzirano - pauza tako prirodno
-          // zamrzne i odbrojavanje i kameru, bez posebnog "koliko je prošlo
-          // dok je stajalo" računanja.
-          let elapsedMs = 0;
-          let lastTick = performance.now();
-          let wasPaused = isGuidePausedRef.current;
-          const checkCompletion = (now: number) => {
-            if (!stillValid()) {
-              if (viewerRef.current) viewerRef.current.stopAutoRotate();
-              return resolve();
-            }
-            const pausedNow = isGuidePausedRef.current;
-            if (pausedNow && !wasPaused) {
-              if (viewerRef.current) viewerRef.current.stopAutoRotate();
-            } else if (!pausedNow && wasPaused && viewerRef.current && !isGyroActiveRef.current) {
-              viewerRef.current.startAutoRotate(speed, entry ? startPitch : targetEstablishPitch);
-            }
-            wasPaused = pausedNow;
-            if (!pausedNow) elapsedMs += now - lastTick;
-            lastTick = now;
-
-            if (elapsedMs < durationPhase1) {
-              animFrameRef.current = requestAnimationFrame(checkCompletion);
-            } else {
-              if (viewerRef.current) viewerRef.current.stopAutoRotate();
-              resolve();
-            }
-          };
-          animFrameRef.current = requestAnimationFrame(checkCompletion);
-        };
-
-        beginRotation();
+      // Uvod, info-tačke i kraj sobe (ili vodič dalje) - vidi roomSequence.ts.
+      await runRoomSequence({
+        currentSession,
+        roomSessionRef,
+        isMountedRef,
+        sequenceActiveRef,
+        isInterruptedRef,
+        viewerRef,
+        animFrameRef,
+        isGyroActiveRef,
+        isGuidePausedRef,
+        guideModeRef,
+        roomSequenceFinishedRef,
+        visitedGuideRoomsRef,
+        langRef,
+        currentRoom,
+        waypointsList,
+        establishData,
+        entry,
+        zoomedIn,
+        startPitch,
+        targetEstablishYaw,
+        targetEstablishPitch,
+        isGuidedStep,
+        stopCurrentAnimation,
+        setInfoBoxData,
+        setIsRoomTourFullyCompleted,
+        scheduleAfterNarration,
+        playNarration,
+        waitWhilePaused,
+        nextGuideDoor,
+        advanceGuide
       });
-
-      await Promise.all([rotatePromise, playIntroNarration()]);
-
-      if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
-      if (!sequenceActiveRef.current || isInterruptedRef.current) return;
-
-      const runInfoSequencePhase2 = async (index: number) => {
-        if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
-        if (!sequenceActiveRef.current || isInterruptedRef.current || !viewerRef.current) return;
-        if (index >= infoPoints.length) {
-          finishRoomSequence();
-          return;
-        }
-
-        // Pauzirano IZMEĐU tačaka (nema šta da se zamrzne, ništa se još ne
-        // pomera) - sledeći pogled ka tački čeka ovde dok se ne nastavi.
-        await waitWhilePaused();
-        if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
-        if (!sequenceActiveRef.current || isInterruptedRef.current || !viewerRef.current) return;
-
-        const item = infoPoints[index];
-        const currentYaw = normalizeYaw(viewerRef.current.getYaw());
-        const targetYaw = getShortestTargetYaw(currentYaw, item.wp.yaw);
-        const targetPitch = item.wp.pitch ?? 0;
-
-        viewerRef.current.lookAt(targetPitch, targetYaw, pickHfov(INFO_HFOV), 2200);
-
-        await new Promise(r => setTimeout(r, 2300));
-        if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
-        if (!sequenceActiveRef.current || isInterruptedRef.current) return;
-
-        await playNarration(item.wp.audio_url_i18n ?? item.wp.audio_url, item.wp.text_i18n, item.wp.title_i18n, item.i, 0);
-        if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
-        if (!sequenceActiveRef.current || isInterruptedRef.current) return;
-
-        await new Promise(r => setTimeout(r, 1000));
-        runInfoSequencePhase2(index + 1);
-      };
-
-      if (infoPoints.length > 0) {
-        runInfoSequencePhase2(0);
-      } else {
-        finishRoomSequence();
-      }
     });
 
     return () => {
@@ -1778,6 +700,7 @@ export default function TourPage() {
     stopCurrentAnimation,
     stopAudio,
     handleStartEditWaypoint,
+    handleViewerClick,
     playNarration,
     takeManualControl,
     buildHotspotConfig
@@ -1817,7 +740,7 @@ export default function TourPage() {
   if (error) return <Centered>{error}</Centered>;
 
   const fullTourTitle = getLocalizedText(tour?.title_i18n, lang);
-  const availableLanguages: Language[] = ['sr', 'en', 'de', 'ru'];
+  const availableLanguages = ALL_LANGUAGES;
   // Ista soba kao na share kartici (dnevna soba ako postoji) - koristi se i
   // na welcome ekranu i na ekranu zaključane ture.
   const welcomeCoverUrl = pickCoverRoom(rooms)?.preview_url ?? null;
@@ -1852,22 +775,7 @@ export default function TourPage() {
     displayedInfoText = getLocalizedText(infoBoxData.textRaw, lang);
   }
 
-  const currentCategory = tour?.category || 'rent';
-  const questionsList = categoryQuestions[currentCategory]?.[lang] || categoryQuestions['rent']['sr'];
-
-  const faqAnswersList = [
-    getLocalizedText(tour?.faq_1_i18n, lang),
-    getLocalizedText(tour?.faq_2_i18n, lang),
-    getLocalizedText(tour?.faq_3_i18n, lang),
-    getLocalizedText(tour?.faq_4_i18n, lang),
-    getLocalizedText(tour?.faq_5_i18n, lang)
-  ];
-
-  const faqList = questionsList.map((q, idx) => ({
-    question: q,
-    answer: faqAnswersList[idx] || ''
-  }));
-
+  const faqList = buildFaqList(tour, lang);
   const aboutText = getLocalizedText(tour?.about_text_i18n, lang);
   const factList = buildFactList(tour, lang);
 
@@ -1909,38 +817,7 @@ export default function TourPage() {
 
   return (
     <main style={{ position: 'relative', width: '100vw', height: '100dvh', backgroundColor: THEME.bg, overflow: 'hidden', fontFamily: THEME.fontBody }}>
-      <style>{`
-        .pnlm-load-box {
-          display: none !important;
-        }
-        @media (min-width: 1024px) {
-          .tour-ui-scale { zoom: 1.122; }
-          /* Zoom ide na unutrašnji omotač (.k360-hotspot-scale), NE na
-             .custom-nav-hotspot/.custom-info-hotspot - to je isti div koji
-             Pannellum svaki kadar pozicionira preko transform:translate(),
-             pa bi zoom na njemu skalirao i tu vrednost i tačka bi "plutala"
-             dok se gleda okolo (vidi komentar u theme.ts). */
-          .k360-hotspot-scale { zoom: 1.122; }
-        }
-        /* Blago pulsiranje tačaka u panorami, da posetilac odmah primeti šta
-           je klikabilno - plavo za navigaciju, žuto za info tačke. Ide preko
-           box-shadow (animacija ima prednost nad inline stilom iz JS-a). */
-        @keyframes k360HotspotPulse {
-          0% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(91, 146, 214, 0.55); }
-          70% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 10px rgba(91, 146, 214, 0); }
-          100% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(91, 146, 214, 0); }
-        }
-        @keyframes k360HotspotPulseInfo {
-          0% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(253, 230, 138, 0.55); }
-          70% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 10px rgba(253, 230, 138, 0); }
-          100% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(253, 230, 138, 0); }
-        }
-        .custom-nav-hotspot { animation: k360HotspotPulse 2.6s ease-out infinite; }
-        .custom-info-hotspot { animation: k360HotspotPulseInfo 2.6s ease-out infinite; }
-        @media (prefers-reduced-motion: reduce) {
-          .custom-nav-hotspot, .custom-info-hotspot { animation: none; }
-        }
-      `}</style>
+      <TourGlobalStyles />
 
       {!tourStarted && (
         <WelcomeScreen
@@ -2102,75 +979,26 @@ export default function TourPage() {
         />
       )}
 
-      {tourStarted && adminMode && (
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          pointerEvents: 'none',
-          zIndex: 25,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div style={{ position: 'absolute', width: '28px', height: '2px', backgroundColor: THEME.accent, boxShadow: '0 0 4px rgba(0,0,0,0.8)' }} />
-          <div style={{ position: 'absolute', width: '2px', height: '28px', backgroundColor: THEME.accent, boxShadow: '0 0 4px rgba(0,0,0,0.8)' }} />
-          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ffffff', border: '2px solid ' + THEME.accent }} />
-        </div>
-      )}
+      {tourStarted && adminMode && <AdminCrosshair />}
 
       {/* ADMIN EDIT / ADD HOTSPOT FORMA */}
       {pendingCoords && adminMode && (
         <HotspotForm
+          {...hotspotFormProps}
           coords={pendingCoords}
-          editing={editingIndex !== null}
           t={t}
           lang={lang}
           rooms={rooms}
-          type={hotspotType}
-          onType={setHotspotType}
-          targetRoomId={targetRoomId}
-          onTargetRoom={setTargetRoomId}
-          title={hotspotTitle}
-          onTitle={setHotspotTitle}
-          text={hotspotText}
-          onText={setHotspotText}
-          audioUrl={hotspotAudioUrl}
-          onAudioUrl={setHotspotAudioUrl}
-          onSave={handleSaveHotspot}
-          onDelete={handleDeleteHotspot}
-          onCancel={handleCancelEdit}
         />
       )}
 
       {roomLoading && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 20, backgroundColor: THEME.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '15px', padding: '20px', textAlign: 'center' }}>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <div style={{ width: '12px', height: '12px', backgroundColor: THEME.accent, borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.32s' }} />
-            <div style={{ width: '12px', height: '12px', backgroundColor: THEME.accent, borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both', animationDelay: '-0.16s' }} />
-            <div style={{ width: '12px', height: '12px', backgroundColor: THEME.accent, borderRadius: '50%', animation: 'pulseDot 1.4s infinite ease-in-out both' }} />
-          </div>
-          <style>{`
-            @keyframes pulseDot {
-              0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
-              40% { transform: scale(1.0); opacity: 1; }
-            }
-          `}</style>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '450px' }}>
-            {tour?.agency_name && (
-              <div style={{ color: THEME.accent, fontSize: '11px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                {tour.agency_name}
-              </div>
-            )}
-            <div style={{ color: THEME.textPrimary, fontSize: '16px', fontWeight: 600, letterSpacing: '0.5px' }}>
-              {fullTourTitle}
-            </div>
-            <div style={{ color: THEME.accent, fontSize: '14px', letterSpacing: '0.5px' }}>
-              {t.roomLoadingPrefix}<b style={{ color: THEME.textPrimary }}>{currentRoomTitle}</b>
-            </div>
-          </div>
-        </div>
+        <RoomLoadingScreen
+          agencyName={tour?.agency_name ?? null}
+          tourTitle={fullTourTitle}
+          loadingPrefix={t.roomLoadingPrefix}
+          roomTitle={currentRoomTitle}
+        />
       )}
 
       {infoBoxData && !pendingCoords && !activeModal && (
@@ -2193,14 +1021,9 @@ export default function TourPage() {
       {/* MODAL: ADMIN LOGIN (Supabase Auth - zamena za staru ?admin=... lozinku) */}
       {showAdminLogin && !adminMode && (
         <AdminLoginModal
-          email={loginEmail}
-          password={loginPassword}
-          onEmail={setLoginEmail}
-          onPassword={setLoginPassword}
+          {...loginForm}
           onSubmit={handleAdminLogin}
           onCancel={() => setShowAdminLogin(false)}
-          error={loginError}
-          loading={loginLoading}
           cancelLabel={t.cancel}
         />
       )}

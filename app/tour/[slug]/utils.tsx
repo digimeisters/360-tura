@@ -6,7 +6,8 @@ import {
   STRUCTURE_LABELS,
   BUILD_STATUS_LABELS,
   FINISH_STATUS_LABELS,
-  FLOOR_WORDS
+  FLOOR_WORDS,
+  categoryQuestions
 } from './translations';
 
 export const normalizeYaw = (yaw: number): number => {
@@ -228,4 +229,17 @@ export function Centered({ children }: { children: React.ReactNode }) {
       <div style={{ color: THEME.accent, fontSize: '16px', letterSpacing: '1px', fontWeight: 500 }}>{children}</div>
     </div>
   );
+}
+
+/**
+ * Pet pitanja za prozor "Pitanja": pitanja zavise od vrste oglasa
+ * (categoryQuestions), a odgovori stoje u faq_1..5 na istim mestima.
+ * Prazan odgovor ostaje u spisku - prozor tada pokaže "Odgovor uskoro".
+ */
+export function buildFaqList(tour: Tour | null | undefined, lang: Language): { question: string; answer: string }[] {
+  const questions = categoryQuestions[tour?.category || 'rent']?.[lang] || categoryQuestions.rent.sr;
+  const answers = [tour?.faq_1_i18n, tour?.faq_2_i18n, tour?.faq_3_i18n, tour?.faq_4_i18n, tour?.faq_5_i18n].map(
+    (value) => getLocalizedText(value, lang)
+  );
+  return questions.map((question, idx) => ({ question, answer: answers[idx] || '' }));
 }

@@ -62,7 +62,16 @@ app/
   en/page.tsx             /en (engleski) → <HomePage lang="en" />
   HomePage.tsx            JEDAN raspored početne za oba jezika + sav CSS početne
   tour/[slug]/
-    page.tsx              prikaz ture (veliki klijentski fajl, oko 2100 redova)
+    page.tsx              sklapa turu: stanje, Pannellum scena (efekat koji pravi sobu), raspored ekrana
+    useRoomNavigation.ts  kretanje između soba (klik, vrata, strelice) + automatski vodič i pauza
+    roomSequence.ts       "koreografija" sobe posle učitavanja: uvod, info-tačke, kraj / vodič dalje
+    useTourData.ts        učitavanje ture i soba
+    useAdminSession.ts    admin prijava u turi
+    useHotspotEditor.ts   admin: dodavanje/pomeranje/brisanje tačaka, oznaka na tlocrtu
+    useTourAnalytics.ts   merenje poseta (tour_events) + unapred skidanje susednih soba
+    tourLanguages.ts      koji jezici se nude (tekst / snimljen glas)
+    TourOverlays.tsx      globalni CSS ture, ekran učitavanja, admin nišan
+    TourSeoSummary.tsx    tekst ture za Google i čitače ekrana (renderuje layout.tsx)
     TourAdminTools.tsx    admin alati u turi (poseban chunk, samo za admina)
     layout.tsx            metadata ture (naslov, opis, OG)
     getTourMeta.ts        serversko čitanje ture za metadata / OG (pickLang, realValue)
@@ -159,7 +168,7 @@ Polja `*_i18n` su objekti po jezicima: `{ "sr": "...", "en": "...", "de": "...",
 - Modali: **Skica** (tlocrt sa markerima soba), **Lokacija** (Google mapa u iframe-u), **Info** (tabela osnovnih podataka, `buildFactList()` u `utils.tsx`, plus opciona kratka napomena `about_text_i18n`), **Pitanja** (FAQ 1–5, svako pitanje uska tema, odgovor jedan kratak red), **Kontakt** (agent, poziv, mejl).
 - Dodaci: auto-rotacija, žiroskop na telefonu, deljenje (Web Share), zvuk.
 - **`?lang=en|de|ru`** otvara turu na tom jeziku, ako ga tura ima.
-- **Admin režim:** prijava preko `?admin=1`; sesija se posle pamti. Admin alati su u `TourAdminTools.tsx` (dugmad se ubacuju u gornju traku preko portala), a uređivanje tačaka ostaje u `page.tsx`.
+- **Admin režim:** prijava preko `?admin=1`; sesija se posle pamti. Admin alati su u `TourAdminTools.tsx` (dugmad se ubacuju u gornju traku preko portala), a uređivanje tačaka je u `useHotspotEditor.ts`.
 - Neobjavljena tura vraća „tura nije pronađena" svima osim adminu.
 
 ---
@@ -268,7 +277,6 @@ Samo imena. **Vrednosti se nikad ne upisuju u kod, dokumente ni poruke.** Stoje 
 
 **Tehnički dug**
 - rate limit je u memoriji, pa na više Vercel instanci važi približno
-- `app/tour/[slug]/page.tsx` je velik (oko 2100 redova); uređivanje tačaka bi moglo u poseban modul
 
 ---
 
