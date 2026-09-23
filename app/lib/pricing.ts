@@ -58,11 +58,6 @@ export const PROMO = {
   endDate: '2026-11-01'
 } as const;
 
-/** Cena sa promo popustom, zaokružena na ceo evro. */
-export function withPromo(amount: number, promoActive: boolean): number {
-  return promoActive ? Math.round(amount * (1 - PROMO.discount)) : amount;
-}
-
 export function isPromoActive(now: Date = new Date()): boolean {
   const start = new Date(`${PROMO.startDate}T00:00:00`);
   const end = new Date(`${PROMO.endDate}T23:59:59`);
@@ -95,20 +90,6 @@ export function tierMax(index: number): number | null {
   return next ? next.min - 1 : null;
 }
 
-/** Cena same ture za dati paket (Premium nosi dodatak za jezike). */
-export function tourPrice(tier: PriceTier, pkg: PackageType, promoActive = false): number {
-  return withPromo(tier.tour + (pkg === 'premium' ? PREMIUM_EXTRA : 0), promoActive);
-}
-
-/**
- * Cena HDR fotografija po nekretnini, KAO DEO PAKETA (uz turu). Ide u promo
- * popust isto kao tura - vidi standaloneHdrPrice() za cenu kad se
- * fotografije naručuju SAME, koja u popust ne ide.
- */
-export function hdrPrice(tier: PriceTier, promoActive = false): number {
-  return withPromo(tier.hdr, promoActive);
-}
-
 /**
  * Cena HDR fotografija kad se naručuju SAME, bez ture - uvek redovna, bez
  * obzira na promociju (vidi PROMO). Koristi je isključivo cenovnik po
@@ -120,37 +101,10 @@ export function standaloneHdrPrice(tier: PriceTier): number {
 }
 
 /**
- * Tura + HDR po nekretnini, kao PAKET - oba idu u popust, pa ceo paket
- * padne za PROMO.discount (zaokruženo po stavci).
- */
-export function perProperty(tier: PriceTier, pkg: PackageType, promoActive = false): number {
-  return tourPrice(tier, pkg, promoActive) + hdrPrice(tier, promoActive);
-}
-
-/** Ukupna cena za dati broj nekretnina (kartice paketa). */
-export function packagePrice(count: number, pkg: PackageType = 'basic', promoActive = false): number {
-  return count * perProperty(PRICE_TIERS[tierIndexFor(count)], pkg, promoActive);
-}
-
-/**
- * Stvarni popust na CEO paket (tura + HDR), zaokružen na ceo procenat. Blizu
- * je PROMO.discount (30%), ali ume malo da odstupi (npr. 29%) jer se
- * zaokruživanje dešava po stavci (tura i HDR svaka za sebe), pre zbira.
- * Koristi ga nalepnica na kartici paketa (SaleSticker), da uvek pokaže tačan
- * broj za taj paket, ne paušalnih "−30%" na svakom.
- */
-export function packageDiscountPercent(count: number, pkg: PackageType = 'basic'): number {
-  const regular = packagePrice(count, pkg, false);
-  const promo = packagePrice(count, pkg, true);
-  return regular > 0 ? Math.round(((regular - promo) / regular) * 100) : 0;
-}
-
-/**
  * Prikaz cene: dinari na srpskoj strani (lokalno tržište plaća u dinarima),
  * evri na engleskoj (strani kupci i dijaspora i dalje misle u evrima - ne
- * konvertujemo njima ništa). SVA računica cenovnika (stepeni, popust,
- * premium dodatak) i dalje radi u evrima - ovo je samo poslednji korak,
- * ono što posetilac na kraju vidi napisano.
+ * konvertujemo njima ništa). Cenovnik se zadaje u evrima (PRICE_TIERS), a
+ * funkcije display* ispod ga prevode u ono što posetilac vidi napisano.
  */
 
 /**
@@ -166,12 +120,117 @@ export function toRSD(eurAmount: number): number {
 }
 
 /**
- * Cena spremna za prikaz na stranici. `lang` je namerno običan string, ne
- * `HomeLang` iz lib/homeCopy.ts - taj fajl uvozi odavde, pa obrnut uvoz
- * pravi krug.
+ * Jezik prikaza cene. Namerno običan tip, ne `HomeLang` iz lib/homeCopy.ts -
+ * taj fajl uvozi odavde, pa obrnut uvoz pravi krug.
  */
-export function formatPrice(eurAmount: number, lang: 'sr' | 'en'): string {
-  if (lang === 'sr') return `${toRSD(eurAmount).toLocaleString('sr-RS')} din.`;
+export type PriceLang = 'sr' | 'en';
+
+/*
+ * CENE ZA PRIKAZ (valuta posetioca).
+ *
+ * Svaka STAVKA (tura, HDR) se pretvara u valutu prikaza i
+ * zaokružuje ZA SEBE, pa se tek onda primenjuje promo, a svi zbirovi (paket,
+ * kartica za 3 ture, kalkulator) se sabiraju od tih već zaokruženih stavki.
+ * Ranije se u evrima prvo sabiralo pa tek onda pretvaralo u dinare, pa se
+ * stavke nisu sabirale u prikazani zbir, a kartica "3 ture" i kalkulator
+ * su za isti obim pokazivali različit iznos (16.000 naspram 3 × 5.500).
+ *
+ * Na engleskoj strani (evri) ovo daje iste brojeve kao ranije.
+ */
+
+/**
+ * Zaokruživanje PROMO iznosa. Redovne dinarske cene su na 500 (toRSD), ali
+ * popust od 30% zaokružen na 500 bi stvarni pad pomerao na 25-33% po stavci,
+ * pa se promo cene zaokružuju na 100 - popust tako ostaje oko 30%.
+ */
+function roundForDisplay(amount: number, lang: PriceLang): number {
+  return lang === 'sr' ? Math.round(amount / 100) * 100 : Math.round(amount);
+}
+
+/** Evro iznos u valuti prikaza: dinari (zaokruženo na 500) ili evri. */
+export function inDisplayCurrency(eurAmount: number, lang: PriceLang): number {
+  return lang === 'sr' ? toRSD(eurAmount) : eurAmount;
+}
+
+function applyPromo(amount: number, lang: PriceLang, promoActive: boolean): number {
+  if (!promoActive) return amount;
+  // toFixed skida grešku pokretnog zareza: 5500 * 0.7 = 3849.9999..., što bi
+  // se zaokružilo na 3.800 umesto na 3.900.
+  return roundForDisplay(Number((amount * (1 - PROMO.discount)).toFixed(6)), lang);
+}
+
+/** Tura (sa premium dodatkom, ako je Premium), u valuti prikaza. */
+export function displayTourPrice(
+  tier: PriceTier,
+  pkg: PackageType,
+  lang: PriceLang,
+  promoActive = false
+): number {
+  // Premium tura se pretvara kao jedna stavka (tura + dodatak), ne kao dve
+  // zaokružene - inače bi dva zaokruživanja na 500 napumpala cenu.
+  const base =
+    inDisplayCurrency(tier.tour + (pkg === 'premium' ? PREMIUM_EXTRA : 0), lang);
+  return applyPromo(base, lang, promoActive);
+}
+
+/**
+ * HDR fotografije KAO DEO PAKETA (uz turu), u valuti prikaza. Idu u promo
+ * isto kao tura - vidi standaloneHdrPrice() za fotografije naručene SAME.
+ */
+export function displayHdrPrice(tier: PriceTier, lang: PriceLang, promoActive = false): number {
+  return applyPromo(inDisplayCurrency(tier.hdr, lang), lang, promoActive);
+}
+
+/**
+ * Za koliko je Premium tura skuplja od Osnovne na datom stepenu - razlika
+ * već zaokruženih cena, da se "+X po turi" uvek slaže sa karticama.
+ */
+export function displayPremiumExtra(tier: PriceTier, lang: PriceLang, promoActive = false): number {
+  return (
+    displayTourPrice(tier, 'premium', lang, promoActive) - displayTourPrice(tier, 'basic', lang, promoActive)
+  );
+}
+
+/** Tura + HDR po nekretnini (paket), u valuti prikaza. */
+export function displayPerProperty(
+  tier: PriceTier,
+  pkg: PackageType,
+  lang: PriceLang,
+  promoActive = false
+): number {
+  return displayTourPrice(tier, pkg, lang, promoActive) + displayHdrPrice(tier, lang, promoActive);
+}
+
+/** Ukupno za dati broj nekretnina (kartice paketa), u valuti prikaza. */
+export function displayPackagePrice(
+  count: number,
+  pkg: PackageType,
+  lang: PriceLang,
+  promoActive = false
+): number {
+  return count * displayPerProperty(PRICE_TIERS[tierIndexFor(count)], pkg, lang, promoActive);
+}
+
+/**
+ * Stvarni popust na CEO paket (tura + HDR), zaokružen na ceo procenat, u
+ * valuti te strane. Blizu je PROMO.discount (30%), ali ume da odstupi jer
+ * se zaokružuje po stavci. Koristi ga nalepnica na kartici (SaleSticker),
+ * da pokaže tačan broj za taj paket, ne paušalnih "−30%".
+ */
+export function packageDiscountPercent(count: number, pkg: PackageType, lang: PriceLang): number {
+  const regular = displayPackagePrice(count, pkg, lang, false);
+  const promo = displayPackagePrice(count, pkg, lang, true);
+  return regular > 0 ? Math.round(((regular - promo) / regular) * 100) : 0;
+}
+
+/** Iznos koji je VEĆ u valuti prikaza, kao tekst ("6.000 din." / "€50"). */
+export function formatAmount(amount: number, lang: PriceLang): string {
+  if (lang === 'sr') return `${amount.toLocaleString('sr-RS')} din.`;
   // Nelomivi razmak nije potreban ovde - € stoji ispred broja, ne posle.
-  return `€${eurAmount}`;
+  return `€${amount}`;
+}
+
+/** Evro iznos kao tekst u valuti prikaza. */
+export function formatPrice(eurAmount: number, lang: PriceLang): string {
+  return formatAmount(inDisplayCurrency(eurAmount, lang), lang);
 }

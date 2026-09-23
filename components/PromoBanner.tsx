@@ -1,7 +1,7 @@
 'use client';
 
 import type { HomeLang } from '../app/lib/homeCopy';
-import { REFERENCE_AREA_SQM, PRICE_TIERS, PROMO, formatPrice, perProperty } from '../app/lib/pricing';
+import { REFERENCE_AREA_SQM, PRICE_TIERS, PROMO, displayPerProperty, formatAmount } from '../app/lib/pricing';
 import { usePromoActive, usePromoDaysLeft } from './usePromoActive';
 
 /**
@@ -27,9 +27,10 @@ const TEXT = {
     until: (date: string) => `Važi do ${date}.`,
     // "Paket", ne "tura" - iznos je tura + HDR fotografije zajedno.
     // Samostalne fotografije (bez ture) u popust ne idu - vidi
-    // standaloneHdrPrice u lib/pricing.ts.
+    // standaloneHdrPrice u lib/pricing.ts. Cena ne sme da stoji na kraju
+    // rečenice: "din." već nosi tačku, pa bi ispalo "din..".
     example: (promoPrice: string, regularPrice: string) =>
-      `Paket (tura + HDR fotografije) već od ${promoPrice}, umesto ${regularPrice}.`,
+      `Paket (tura + HDR fotografije) već od ${promoPrice} umesto ${regularPrice} po nekretnini.`,
     terms: `Cene za stan od oko ${REFERENCE_AREA_SQM}m².`,
     daysLeft: (n: number) => (n <= 0 ? 'Poslednji dan' : `Još ${n} ${srDays(n)}`)
   },
@@ -38,7 +39,7 @@ const TEXT = {
     headline: (percent: number) => `Packages are ${percent}% cheaper`,
     until: (date: string) => `Through ${date}.`,
     example: (promoPrice: string, regularPrice: string) =>
-      `Package (tour + HDR photos) already from ${promoPrice}, instead of ${regularPrice}.`,
+      `Package (tour + HDR photos) already from ${promoPrice} instead of ${regularPrice} per property.`,
     terms: `Prices for a flat of about ${REFERENCE_AREA_SQM}m².`,
     daysLeft: (n: number) => (n <= 0 ? 'Last day' : `${n} ${n === 1 ? 'day' : 'days'} left`)
   }
@@ -53,8 +54,8 @@ export default function PromoBanner({ lang = 'sr' }: { lang?: HomeLang }) {
   const entryTier = PRICE_TIERS[0];
   // Ulazna cena Osnovnog paketa (1-2 nekretnine) - najniža koju posetilac
   // može da vidi, pa stoji uz "od".
-  const promoPrice = formatPrice(perProperty(entryTier, 'basic', true), lang);
-  const regularPrice = formatPrice(perProperty(entryTier, 'basic'), lang);
+  const promoPrice = formatAmount(displayPerProperty(entryTier, 'basic', lang, true), lang);
+  const regularPrice = formatAmount(displayPerProperty(entryTier, 'basic', lang), lang);
   const percent = Math.round(PROMO.discount * 100);
 
   const end = new Date(`${PROMO.endDate}T23:59:59`);

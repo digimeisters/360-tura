@@ -6,7 +6,7 @@ import ContactForm from '../components/ContactForm';
 import SiteTracker from '../components/SiteTracker';
 import PriceCalculator from '../components/PriceCalculator';
 import PromoBanner from '../components/PromoBanner';
-import { ItemPrice, PlanPrice, SaleSticker } from '../components/PromoPrice';
+import { ItemPrice, PlanItemList, PlanPrice, SaleSticker } from '../components/PromoPrice';
 import NavScrollSpy from '../components/NavScrollSpy';
 import { getShowcaseTours, pickHeroTour } from './lib/showcaseTours';
 import { SITE_NAME, CONTACT, CONTACT_LINKS, whatsappLink } from './lib/site';
@@ -293,7 +293,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
               {copy.pricing.plans.map((plan) => (
                 <div key={plan.track} className={`card price-card${plan.badge ? ' featured' : ''}`}>
                   {plan.badge && <span className="price-badge">{plan.badge}</span>}
-                  <SaleSticker count={plan.count} packageType={plan.packageType} />
+                  <SaleSticker count={plan.count} packageType={plan.packageType} lang={lang} />
                   <span className="price-audience">{plan.audience}</span>
                   <h3>{plan.title}</h3>
                   <PlanPrice
@@ -303,11 +303,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
                     unit={plan.unit}
                     lang={lang}
                   />
-                  <ul className="price-list">
-                    {plan.items.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
+                  <PlanItemList items={plan.items} count={plan.count} lang={lang} />
                   <a className="btn btn-primary price-cta" href="#kontakt" data-track={`cta:${plan.track}`}>
                     {plan.cta}
                   </a>

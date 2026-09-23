@@ -1,23 +1,14 @@
 // Tekst početne strane na srpskom (/) i engleskom (/en). Raspored je jedan
 // (app/HomePage.tsx), pa se nova rečenica dodaje ovde u oba jezika.
 
-import { PREMIUM_EXTRA, PRICE_TIERS, formatPrice, tierIndexFor, tourPrice, type PackageType } from './pricing';
+import type { PackageType } from './pricing';
 
-// Veliki iznos na kartici NIJE ovde - računa ga components/PromoPrice.tsx na
-// klijentu, da bi mogao da pokaže promo cenu dok kampanja traje, a da posle
-// isteka sam prestane, bez novog deploy-a.
+// Iznosi NISU ovde - ni veliki broj na kartici ni iznosi u stavkama. Računa
+// ih components/PromoPrice.tsx na klijentu, da bi dok kampanja traje
+// pokazivali promo cenu, a posle isteka sami prestali, bez novog deploy-a.
 //
-// Stavke u spisku jesu ovde, i prikazuju se odvojeno (tura + HDR), da se
-// cena ne čita kao da cela ide na samu turu. To su REDOVNE cene - popust na
-// njih objašnjavaju nalepnica i traka iznad kartica.
-//
-// srTour/srHdr daju dinare (lokalno tržište), enTour/enHdr evre (strani
-// kupci i dijaspora i dalje misle u evrima) - vidi formatPrice u pricing.ts.
-const tierFor = (count: number) => PRICE_TIERS[tierIndexFor(count)];
-const srTour = (count: number, pkg: PackageType = 'basic') => formatPrice(tourPrice(tierFor(count), pkg), 'sr');
-const enTour = (count: number, pkg: PackageType = 'basic') => formatPrice(tourPrice(tierFor(count), pkg), 'en');
-const srHdr = (count: number) => formatPrice(tierFor(count).hdr, 'sr');
-const enHdr = (count: number) => formatPrice(tierFor(count).hdr, 'en');
+// Stavke (tura, HDR) se ipak prikazuju odvojeno, da se cena ne čita kao da
+// cela ide na samu turu - ovde stoji samo njihov tekst i koja je stavka.
 
 export type HomeLang = 'sr' | 'en';
 
@@ -40,6 +31,15 @@ export type RateItem = {
   items: string[];
 };
 
+/** Koju stavku kartice iznos prikazuje (računa ga PlanLinePrice). */
+export type PlanLineAmount = 'tour' | 'hdr' | 'premiumExtra';
+
+/**
+ * Red na kartici paketa: običan tekst, ili stavka sa iznosom koji se računa
+ * na klijentu - "{label} — {iznos} {suffix}".
+ */
+export type PlanItem = string | { label: string; amount: PlanLineAmount; suffix?: string };
+
 export type PricePlan = {
   audience: string;
   title: string;
@@ -49,7 +49,7 @@ export type PricePlan = {
   count: number;
   packageType: PackageType;
   unit: string;
-  items: string[];
+  items: PlanItem[];
   cta: string;
   // Oznaka za merenje klikova (data-track="cta:<track>").
   track: 'price_single' | 'price_premium' | 'price_basic';
@@ -300,8 +300,8 @@ const sr: HomeCopy = {
         packageType: 'basic',
         unit: '/ nekretnina',
         items: [
-          `360° tura sa audio vodičem — ${srTour(1)}`,
-          `HDR fotografije, jedna po prostoriji — ${srHdr(1)}`,
+          { label: '360° tura sa audio vodičem', amount: 'tour' },
+          { label: 'HDR fotografije, jedna po prostoriji', amount: 'hdr' },
           'Audio vodič na srpskom + jednom jeziku po izboru',
           'Isporuka za 48h'
         ],
@@ -316,8 +316,8 @@ const sr: HomeCopy = {
         packageType: 'basic',
         unit: '/ mesečno (3 ture)',
         items: [
-          `360° tura sa audio vodičem — ${srTour(3)} po turi`,
-          `HDR fotografije, jedna po prostoriji — ${srHdr(3)} po nekretnini`,
+          { label: '360° tura sa audio vodičem', amount: 'tour', suffix: 'po turi' },
+          { label: 'HDR fotografije, jedna po prostoriji', amount: 'hdr', suffix: 'po nekretnini' },
           'Audio vodič na srpskom + jednom jeziku po izboru (EN, DE ili RU)',
           'Plan stana uz svaku turu',
           'Isporuka za 48h'
@@ -335,7 +335,7 @@ const sr: HomeCopy = {
         unit: '/ mesečno (3 ture)',
         items: [
           'Sve iz Osnovnog paketa, plus:',
-          `Audio vodič na sva 4 jezika (SR, EN, DE, RU) — +${formatPrice(PREMIUM_EXTRA, 'sr')} po turi`,
+          { label: 'Audio vodič na sva 4 jezika (SR, EN, DE, RU)', amount: 'premiumExtra', suffix: 'po turi' },
           'Izrada plana stana ako ga nekretnina nema',
           'Lokacija na mapi uz svaku turu',
           'Prioritetno zakazivanje termina',
@@ -519,8 +519,8 @@ const en: HomeCopy = {
         packageType: 'basic',
         unit: '/ property',
         items: [
-          `360° tour with audio guide — ${enTour(1)}`,
-          `HDR photos, one per room — ${enHdr(1)}`,
+          { label: '360° tour with audio guide', amount: 'tour' },
+          { label: 'HDR photos, one per room', amount: 'hdr' },
           'Audio guide in Serbian + a language of your choice',
           'Delivery within 48 hours'
         ],
@@ -535,8 +535,8 @@ const en: HomeCopy = {
         packageType: 'basic',
         unit: '/ month (3 tours)',
         items: [
-          `360° tour with audio guide — ${enTour(3)} per tour`,
-          `HDR photos, one per room — ${enHdr(3)} per property`,
+          { label: '360° tour with audio guide', amount: 'tour', suffix: 'per tour' },
+          { label: 'HDR photos, one per room', amount: 'hdr', suffix: 'per property' },
           'Audio guide in Serbian + one language of your choice (EN, DE or RU)',
           'Floor plan with every tour',
           'Delivery within 48 hours'
@@ -554,7 +554,7 @@ const en: HomeCopy = {
         unit: '/ month (3 tours)',
         items: [
           'Everything in Basic, plus:',
-          `Audio guide in all 4 languages (SR, EN, DE, RU) — +€${PREMIUM_EXTRA} per tour`,
+          { label: 'Audio guide in all 4 languages (SR, EN, DE, RU)', amount: 'premiumExtra', suffix: 'per tour' },
           'We draw the floor plan if the property doesn’t have one',
           'Location on the map with every tour',
           'Priority scheduling',

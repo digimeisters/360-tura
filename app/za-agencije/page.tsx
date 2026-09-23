@@ -4,7 +4,7 @@ import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 import ContactForm from '../../components/ContactForm';
 import PriceCalculator from '../../components/PriceCalculator';
 import PromoBanner from '../../components/PromoBanner';
-import { PlanPrice, SaleSticker } from '../../components/PromoPrice';
+import { PlanItemList, PlanPrice, SaleSticker } from '../../components/PromoPrice';
 import SiteTracker from '../../components/SiteTracker';
 import NavScrollSpy from '../../components/NavScrollSpy';
 import { SITE_STYLES } from '../lib/siteStyles';
@@ -151,7 +151,7 @@ export default async function AgencyPage() {
               {AGENCY_PLANS.map((plan) => (
                 <div key={plan.track} className={`card price-card${plan.badge ? ' featured' : ''}`}>
                   {plan.badge && <span className="price-badge">{plan.badge}</span>}
-                  <SaleSticker count={plan.count} packageType={plan.packageType} />
+                  <SaleSticker count={plan.count} packageType={plan.packageType} lang="sr" />
                   <span className="price-audience">{plan.audience}</span>
                   <h3>{plan.title}</h3>
                   <PlanPrice
@@ -161,11 +161,7 @@ export default async function AgencyPage() {
                     unit={plan.unit}
                     lang="sr"
                   />
-                  <ul className="price-list">
-                    {plan.items.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
+                  <PlanItemList items={plan.items} count={plan.count} lang="sr" />
                   <a
                     className="btn btn-primary price-cta"
                     href="#kontakt"

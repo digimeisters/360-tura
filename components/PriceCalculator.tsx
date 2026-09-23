@@ -4,11 +4,11 @@ import { useState } from 'react';
 import type { HomeLang } from '../app/lib/homeCopy';
 import {
   CALC_MAX_COUNT,
-  PREMIUM_EXTRA,
   PRICE_TIERS,
   PROMO,
-  formatPrice,
-  perProperty,
+  displayPerProperty,
+  displayPremiumExtra,
+  formatAmount,
   tierIndexFor,
   tierMax,
   type PackageType
@@ -97,7 +97,7 @@ export default function PriceCalculator({ lang = 'sr' }: { lang?: HomeLang }) {
   const promoActive = usePromoActive();
   const activeTier = tierIndexFor(count);
 
-  const price = (n: number) => formatPrice(n, lang);
+  const price = (n: number) => formatAmount(n, lang);
 
   const promoEnd = new Date(`${PROMO.endDate}T00:00:00`);
   // Intl daje nominativ ("1. novembar") - posle "do" treba genitiv.
@@ -156,7 +156,7 @@ export default function PriceCalculator({ lang = 'sr' }: { lang?: HomeLang }) {
                   onClick={() => setCount(tier.min)}
                 >
                   <small>{max === null ? `${tier.min}+` : tier.min === max ? tier.min : `${tier.min}–${max}`}</small>
-                  <b>{price(perProperty(tier, packageType, promoActive))}</b>
+                  <b>{price(displayPerProperty(tier, packageType, lang, promoActive))}</b>
                 </button>
               );
             })}
@@ -182,7 +182,7 @@ export default function PriceCalculator({ lang = 'sr' }: { lang?: HomeLang }) {
               onClick={() => setPackageType('premium')}
             >
               <b>{t.premiumName}</b>
-              <small>{t.premiumDesc(price(PREMIUM_EXTRA))}</small>
+              <small>{t.premiumDesc(price(displayPremiumExtra(PRICE_TIERS[activeTier], lang, promoActive)))}</small>
             </button>
           </div>
         </div>
