@@ -140,3 +140,14 @@ export const BUILD_STATUS_OPTIONS = ['Novogradnja', 'Starogradnja', 'Starogradnj
  * u sivoj fazi, starogradnja ume da bude potpuno nameštena).
  */
 export const FINISH_STATUS_OPTIONS = ['Siva faza', 'Polunamešteno', 'Namešteno'];
+
+/** Spoljni prostor. "Nema" je pravi odgovor, ne isto što i prazno polje. */
+export const TERRACE_OPTIONS = ['Terasa', 'Balkon', 'Lođa', 'Francuski balkon', 'Nema'];
+
+export const PARKING_OPTIONS = ['Garaža', 'Parking mesto', 'Ulični parking', 'Nema'];
+
+/** Samo izdavanje. Zatvorena lista (ne iznos) da bi tura mogla sama da je prevede. */
+export const DEPOSIT_OPTIONS = ['Bez depozita', 'Jedna kirija', 'Dve kirije', 'Tri kirije'];
+
+/** Samo prodaja. */
+export const REGISTRATION_OPTIONS = ['Da', 'Ne', 'U procesu'];

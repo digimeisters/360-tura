@@ -181,6 +181,11 @@ export async function POST(req: Request) {
       heating: String(answers['Grejanje'] || '').trim() || null,
       build_status: String(answers['Status gradnje'] || '').trim() || null,
       finish_status: String(answers['Stanje'] || '').trim() || null,
+      // Migracija 017. Depozit/uknjiženost pitaju samo odeljci Izdavanje/Prodaja.
+      terrace: String(answers['Terasa'] || '').trim() || null,
+      parking: String(answers['Parking'] || '').trim() || null,
+      deposit: processed.category === 'rent' ? String(answers['Depozit'] || '').trim() || null : null,
+      registration: processed.category === 'sale' ? String(answers['Uknjiženost'] || '').trim() || null : null,
       location_map_url: processed.location_map_url,
       floorplan_url: floorplanUrl,
       faq_1_i18n: processed.faq_1_i18n,
@@ -206,7 +211,7 @@ export async function POST(req: Request) {
     // bolje nego da agentu propadne ceo unos. Popunjavaju se u /admin/ture.
     if (
       error &&
-      /\b(city|structure|district|area_sqm|price|floor|has_elevator|has_basement|heating|build_status|finish_status)\b/i.test(
+      /\b(city|structure|district|area_sqm|price|floor|has_elevator|has_basement|heating|build_status|finish_status|terrace|parking|deposit|registration)\b/i.test(
         error.message
       )
     ) {
@@ -222,11 +227,15 @@ export async function POST(req: Request) {
         heating,
         build_status,
         finish_status,
+        terrace,
+        parking,
+        deposit,
+        registration,
         ...bezFiltera
       } = payload;
       console.warn(
-        '[api/unos] nedostaje kolona za filtere (migracije 011-015) - upis bez njih:',
-        { city, structure, district, area_sqm, price, floor, has_elevator, has_basement, heating, build_status, finish_status }
+        '[api/unos] nedostaje kolona za filtere (migracije 011-017) - upis bez njih:',
+        { city, structure, district, area_sqm, price, floor, has_elevator, has_basement, heating, build_status, finish_status, terrace, parking, deposit, registration }
       );
       ({ error } = await supabase.from('tours').insert(bezFiltera));
     }

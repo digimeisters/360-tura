@@ -85,6 +85,9 @@ const DETAIL_COLUMNS = [
   'faq_5_i18n'
 ].join(', ');
 
+// Migracija 017 - posebno, da tura radi i dok ona nije pokrenuta u bazi.
+const FACTS_017 = 'terrace, parking, deposit, registration';
+
 /**
  * Sirov red ture za sažetak - isti oblik koji tura koristi u pregledaču
  * (types.ts Tour), da buildFactList radi isto na oba mesta.
@@ -103,13 +106,18 @@ export type TourMetaFull = TourMeta & {
 export const getTourMeta = cache(async (slug: string): Promise<TourMetaFull | null> => {
   // Cast jer lista kolona nije doslovan tekst (slaže se iz DETAIL_COLUMNS), pa
   // supabase-js ne može sam da izvede tip reda - daje ga maybeSingle ispod.
-  const { data, error } = await supabase
-    .from('tours')
-    .select(
-      `slug, title, title_i18n, agency_name, about_text_i18n, address, category, property_type, ${DETAIL_COLUMNS}` as '*'
-    )
-    .eq('slug', slug)
-    .maybeSingle<Tour & { title: string | null; address: string | null; property_type: string | null; created_at: string | null }>();
+  const read = (extra: string) =>
+    supabase
+      .from('tours')
+      .select(
+        `slug, title, title_i18n, agency_name, about_text_i18n, address, category, property_type, ${DETAIL_COLUMNS}${extra}` as '*'
+      )
+      .eq('slug', slug)
+      .maybeSingle<Tour & { title: string | null; address: string | null; property_type: string | null; created_at: string | null }>();
+  let { data, error } = await read(`, ${FACTS_017}`);
+  if (error && /\b(terrace|parking|deposit|registration)\b/i.test(error.message)) {
+    ({ data, error } = await read(''));
+  }
 
   if (error || !data) return null;
 

@@ -13,6 +13,10 @@ import {
   YES_NO,
   BUILD_STATUS_OPTIONS,
   FINISH_STATUS_OPTIONS,
+  TERRACE_OPTIONS,
+  PARKING_OPTIONS,
+  DEPOSIT_OPTIONS,
+  REGISTRATION_OPTIONS,
   neighbourhoodsFor
 } from '../../lib/propertyTaxonomy';
 import { categoryQuestions } from '../../tour/[slug]/translations';
@@ -36,6 +40,10 @@ type TourRow = {
   heating: string | null;
   build_status: string | null;
   finish_status: string | null;
+  terrace: string | null;
+  parking: string | null;
+  deposit: string | null;
+  registration: string | null;
   category: string | null;
   property_type: string | null;
   agent_name: string | null;
@@ -78,6 +86,10 @@ type FormState = {
   heating: string;
   build_status: string;
   finish_status: string;
+  terrace: string;
+  parking: string;
+  deposit: string;
+  registration: string;
   property_type: string;
   category: string;
   agent_name: string;
@@ -102,6 +114,10 @@ const EMPTY_FORM: FormState = {
   heating: '',
   build_status: '',
   finish_status: '',
+  terrace: '',
+  parking: '',
+  deposit: '',
+  registration: '',
   property_type: '',
   category: 'rent',
   agent_name: '',
@@ -412,6 +428,10 @@ export default function ToursAdminPage() {
       heating: tour.heating || '',
       build_status: tour.build_status || '',
       finish_status: tour.finish_status || '',
+      terrace: tour.terrace || '',
+      parking: tour.parking || '',
+      deposit: tour.deposit || '',
+      registration: tour.registration || '',
       property_type: tour.property_type || '',
       category: tour.category || 'rent',
       agent_name: tour.agent_name || '',
@@ -778,6 +798,71 @@ export default function ToursAdminPage() {
               </select>
             </Field>
           </div>
+
+          <div style={twoCol}>
+            <Field label="Terasa / balkon">
+              <select
+                id="tour-terrace"
+                value={form.terrace}
+                onChange={(e) => setForm({ ...form, terrace: e.target.value })}
+                style={inputStyle}
+              >
+                <option value="">— nije određeno —</option>
+                {TERRACE_OPTIONS.map((v) => (
+                  <option key={v}>{v}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Parking">
+              <select
+                id="tour-parking"
+                value={form.parking}
+                onChange={(e) => setForm({ ...form, parking: e.target.value })}
+                style={inputStyle}
+              >
+                <option value="">— nije određeno —</option>
+                {PARKING_OPTIONS.map((v) => (
+                  <option key={v}>{v}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          {/* Depozit samo za izdavanje, uknjiženost samo za prodaju - tura ih
+              ionako prikazuje samo za tu vrstu oglasa. */}
+          {(form.category === 'rent' || form.category === 'sale') && (
+            <div style={twoCol}>
+              {form.category === 'rent' ? (
+              <Field label="Depozit">
+                <select
+                  id="tour-deposit"
+                  value={form.deposit}
+                  onChange={(e) => setForm({ ...form, deposit: e.target.value })}
+                  style={inputStyle}
+                >
+                  <option value="">— nije određeno —</option>
+                  {DEPOSIT_OPTIONS.map((v) => (
+                    <option key={v}>{v}</option>
+                  ))}
+                </select>
+              </Field>
+                ) : (
+              <Field label="Uknjiženost">
+                <select
+                  id="tour-registration"
+                  value={form.registration}
+                  onChange={(e) => setForm({ ...form, registration: e.target.value })}
+                  style={inputStyle}
+                >
+                  <option value="">— nije određeno —</option>
+                  {REGISTRATION_OPTIONS.map((v) => (
+                    <option key={v}>{v}</option>
+                  ))}
+                </select>
+              </Field>
+                )}
+            </div>
+          )}
 
           <div style={twoCol}>
             <Field label="Tip nekretnine" hint="npr. Dvosoban stan">

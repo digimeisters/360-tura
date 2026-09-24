@@ -84,6 +84,11 @@ export type Tour = {
   heating?: string | null;
   build_status?: string | null;
   finish_status?: string | null;
+  /** Migracija 017 - zatvorene liste, vidi propertyTaxonomy.ts. */
+  terrace?: string | null;
+  parking?: string | null;
+  deposit?: string | null;
+  registration?: string | null;
   faq_1_i18n?: Record<string, string> | string;
   faq_2_i18n?: Record<string, string> | string;
   faq_3_i18n?: Record<string, string> | string;

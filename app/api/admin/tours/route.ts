@@ -29,11 +29,30 @@ const LIMITS: Record<string, number> = {
   heating: 40,
   build_status: 40,
   finish_status: 40,
+  terrace: 40,
+  parking: 40,
+  deposit: 40,
+  registration: 20,
   property_type: 80,
   agent_name: 120,
   agent_phone: 60,
   agent_email: 160
 };
+
+/** Polja iz migracije 017 (terasa, parking, depozit, uknjiženost). */
+const FACTS_017 = ['terrace', 'parking', 'deposit', 'registration'] as const;
+const MISSING_017 = /\b(terrace|parking|deposit|registration)\b/i;
+
+function facts017(body: Record<string, unknown>) {
+  return Object.fromEntries(FACTS_017.map((k) => [k, clean(body[k], k) || null]));
+}
+
+/** Isti red bez polja iz 017 - za bazu u kojoj ta migracija još nije pokrenuta. */
+function strip017<R extends Record<string, unknown>>(row: R): R {
+  const copy: Record<string, unknown> = { ...row };
+  for (const k of FACTS_017) delete copy[k];
+  return copy as R;
+}
 
 function clean(value: unknown, field: string): string {
   if (typeof value !== 'string') return '';
@@ -144,7 +163,7 @@ export async function GET(req: Request) {
 
   const [toursResult, { data: rooms }] = await Promise.all([
     readTours(
-      `${BASE_COLUMNS}, district, structure, area_sqm, price, floor, has_elevator, has_basement, heating, build_status, finish_status, faq_1_i18n, faq_2_i18n, faq_3_i18n, faq_4_i18n, faq_5_i18n`
+      `${BASE_COLUMNS}, district, structure, area_sqm, price, floor, has_elevator, has_basement, heating, build_status, finish_status, terrace, parking, deposit, registration, faq_1_i18n, faq_2_i18n, faq_3_i18n, faq_4_i18n, faq_5_i18n`
     ),
     ctx.supabase.from('rooms').select('tour_slug, panorama_url, panorama_url_cf')
   ]);
@@ -152,11 +171,11 @@ export async function GET(req: Request) {
 
   if (
     error &&
-    /\b(district|structure|area_sqm|price|floor|has_elevator|has_basement|heating|build_status|finish_status)\b/i.test(
+    /\b(district|structure|area_sqm|price|floor|has_elevator|has_basement|heating|build_status|finish_status|terrace|parking|deposit|registration)\b/i.test(
       error.message
     )
   ) {
-    console.warn('[api/admin/tours] nedostaju migracije 012-015 - čitanje bez tih polja.');
+    console.warn('[api/admin/tours] nedostaju migracije 012-017 - čitanje bez tih polja.');
     ({ data: tours, error } = await readTours(BASE_COLUMNS));
   }
 
@@ -221,7 +240,7 @@ export async function POST(req: Request) {
   // kreiranje ture - tura samo ostaje bez pina na mapi.
   const coords = await geocodeAddress(address, city);
 
-  const { error } = await ctx.supabase.from('tours').insert({
+  const newRow = {
     slug,
     title,
     // Nova tura nema nijednu sobu, pa kreće kao nacrt - objavljuje se tek kad
@@ -248,8 +267,14 @@ export async function POST(req: Request) {
     agent_name: clean(body.agent_name, 'agent_name') || null,
     agent_phone: clean(body.agent_phone, 'agent_phone') || null,
     agent_email: clean(body.agent_email, 'agent_email') || null,
-    category
-  });
+    category,
+    ...facts017(body)
+  };
+  let { error } = await ctx.supabase.from('tours').insert(newRow);
+  if (error && MISSING_017.test(error.message)) {
+    console.warn('[api/admin/tours] nedostaje migracija 017 - tura se pravi bez terase/parkinga/depozita/uknjiženosti.');
+    ({ error } = await ctx.supabase.from('tours').insert(strip017(newRow)));
+  }
 
   if (error) {
     console.error('[api/admin/tours] insert failed:', error.message);
@@ -389,9 +414,7 @@ export async function PATCH(req: Request) {
 
   const faq = await buildFaqUpdate(body.faq, current as Record<string, unknown> | null, titleI18n);
 
-  const { error } = await ctx.supabase
-    .from('tours')
-    .update({
+  const changes = {
       title,
       title_i18n: titleI18n,
       agency_name: clean(body.agency_name, 'agency_name') || null,
@@ -414,9 +437,14 @@ export async function PATCH(req: Request) {
       agent_phone: clean(body.agent_phone, 'agent_phone') || null,
       agent_email: clean(body.agent_email, 'agent_email') || null,
       category: CATEGORIES.has(body.category) ? body.category : 'rent',
-      ...faq.update
-    })
-    .eq('slug', slug);
+      ...faq.update,
+      ...facts017(body)
+  };
+  let { error } = await ctx.supabase.from('tours').update(changes).eq('slug', slug);
+  if (error && MISSING_017.test(error.message)) {
+    console.warn('[api/admin/tours] nedostaje migracija 017 - izmena bez terase/parkinga/depozita/uknjiženosti.');
+    ({ error } = await ctx.supabase.from('tours').update(strip017(changes)).eq('slug', slug));
+  }
 
   if (error) {
     console.error('[api/admin/tours] update failed:', error.message);

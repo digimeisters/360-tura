@@ -265,3 +265,33 @@ export const MODAL_ICONS:Record<Exclude<ActiveModal, null>, (p: IconProps) => Re
 
 /** Prevodi imaju emoji ispred naziva ("📍 Lokacija") - ovde treba samo naziv. */
 export const withoutEmoji = (label: string) => label.replace(/^[^\s]+\s*/, '');
+
+export const IconTerrace = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 20V9h16v11" />
+    <path d="M4 14h16M8 14v6M12 14v6M16 14v6" />
+    <path d="M7 9V4h10v5" />
+  </Svg>
+);
+
+export const IconParking = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3.5" y="3.5" width="17" height="17" rx="3" />
+    <path d="M9.5 17V7.5h3.5a3 3 0 0 1 0 6H9.5" />
+  </Svg>
+);
+
+export const IconWallet = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="6" width="18" height="14" rx="2" />
+    <path d="M3 10h18M16 15h2" />
+    <path d="M6 6l9-3 1 3" />
+  </Svg>
+);
+
+export const IconDocument = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+    <path d="M14 3v5h5M9 13l2 2 4-4" />
+  </Svg>
+);

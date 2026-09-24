@@ -118,6 +118,10 @@ export const FACT_LABELS: Record<
     heating: string;
     buildStatus: string;
     finishStatus: string;
+    terrace: string;
+    parking: string;
+    deposit: string;
+    registration: string;
     yes: string;
     no: string;
   }
@@ -132,6 +136,10 @@ export const FACT_LABELS: Record<
     heating: 'Grejanje',
     buildStatus: 'Status gradnje',
     finishStatus: 'Stanje',
+    terrace: 'Terasa',
+    parking: 'Parking',
+    deposit: 'Depozit',
+    registration: 'Uknjiženo',
     yes: 'Da',
     no: 'Ne'
   },
@@ -145,6 +153,10 @@ export const FACT_LABELS: Record<
     heating: 'Heating',
     buildStatus: 'Build status',
     finishStatus: 'Finish',
+    terrace: 'Terrace',
+    parking: 'Parking',
+    deposit: 'Deposit',
+    registration: 'Registered title',
     yes: 'Yes',
     no: 'No'
   },
@@ -158,6 +170,10 @@ export const FACT_LABELS: Record<
     heating: 'Heizung',
     buildStatus: 'Baustatus',
     finishStatus: 'Ausbauzustand',
+    terrace: 'Balkon / Terrasse',
+    parking: 'Parken',
+    deposit: 'Kaution',
+    registration: 'Grundbucheintrag',
     yes: 'Ja',
     no: 'Nein'
   },
@@ -171,6 +187,10 @@ export const FACT_LABELS: Record<
     heating: 'Отопление',
     buildStatus: 'Статус строительства',
     finishStatus: 'Отделка',
+    terrace: 'Терраса',
+    parking: 'Парковка',
+    deposit: 'Депозит',
+    registration: 'Право собственности',
     yes: 'Да',
     no: 'Нет'
   }
@@ -331,6 +351,34 @@ export const FINISH_STATUS_LABELS: Record<string, Record<Language, string>> = {
   Namešteno: { sr: 'Namešteno', en: 'Furnished', de: 'Möbliert', ru: 'Меблированная' }
 };
 
+export const TERRACE_LABELS: Record<string, Record<Language, string>> = {
+  Terasa: { sr: 'Terasa', en: 'Terrace', de: 'Terrasse', ru: 'Терраса' },
+  Balkon: { sr: 'Balkon', en: 'Balcony', de: 'Balkon', ru: 'Балкон' },
+  'Lođa': { sr: 'Lođa', en: 'Loggia', de: 'Loggia', ru: 'Лоджия' },
+  'Francuski balkon': { sr: 'Francuski balkon', en: 'French balcony', de: 'Französischer Balkon', ru: 'Французский балкон' },
+  Nema: { sr: 'Nema', en: 'None', de: 'Keine', ru: 'Нет' }
+};
+
+export const PARKING_LABELS: Record<string, Record<Language, string>> = {
+  'Garaža': { sr: 'Garaža', en: 'Garage', de: 'Garage', ru: 'Гараж' },
+  'Parking mesto': { sr: 'Parking mesto', en: 'Parking space', de: 'Stellplatz', ru: 'Парковочное место' },
+  'Ulični parking': { sr: 'Ulični parking', en: 'Street parking', de: 'Straßenparkplatz', ru: 'Парковка на улице' },
+  Nema: { sr: 'Nema', en: 'None', de: 'Keiner', ru: 'Нет' }
+};
+
+export const DEPOSIT_LABELS: Record<string, Record<Language, string>> = {
+  'Bez depozita': { sr: 'Bez depozita', en: 'No deposit', de: 'Keine Kaution', ru: 'Без депозита' },
+  'Jedna kirija': { sr: 'Jedna kirija', en: 'One month’s rent', de: 'Eine Monatsmiete', ru: 'Одна месячная плата' },
+  'Dve kirije': { sr: 'Dve kirije', en: 'Two months’ rent', de: 'Zwei Monatsmieten', ru: 'Две месячные платы' },
+  'Tri kirije': { sr: 'Tri kirije', en: 'Three months’ rent', de: 'Drei Monatsmieten', ru: 'Три месячные платы' }
+};
+
+export const REGISTRATION_LABELS: Record<string, Record<Language, string>> = {
+  Da: { sr: 'Da', en: 'Yes', de: 'Ja', ru: 'Да' },
+  Ne: { sr: 'Ne', en: 'No', de: 'Nein', ru: 'Нет' },
+  'U procesu': { sr: 'U procesu', en: 'In progress', de: 'In Bearbeitung', ru: 'В процессе' }
+};
+
 export const translations: Record<Language, Record<string, string>> = {
   sr: {
     secBasics: 'Osnovni podaci',
@@ -382,6 +430,7 @@ export const translations: Record<Language, Record<string, string>> = {
     planHere: 'Ovde ste',
     planSeen: 'Viđeno',
     planNew: 'Još niste bili',
+    tourBy: '360° turu izradio',
     planIntroTitle: 'Tlocrt — raspored prostorija',
     planIntroText: 'Svaka tačka je jedna prostorija iz 360° ture. Kliknite na tačku da uđete u nju.',
     noLocation: 'Mapa lokacije još nije dostupna za ovu nekretninu.',
@@ -471,6 +520,7 @@ export const translations: Record<Language, Record<string, string>> = {
     planHere: 'You are here',
     planSeen: 'Seen',
     planNew: 'Not visited yet',
+    tourBy: '360° tour by',
     planIntroTitle: 'Floor plan — room layout',
     planIntroText: 'Each dot is a room in the 360° tour. Click a dot to step into it.',
     noLocation: 'Location map is currently not available for this property.',
@@ -560,6 +610,7 @@ export const translations: Record<Language, Record<string, string>> = {
     planHere: 'Sie sind hier',
     planSeen: 'Gesehen',
     planNew: 'Noch nicht besucht',
+    tourBy: '360°-Tour von',
     planIntroTitle: 'Grundriss — Raumaufteilung',
     planIntroText: 'Jeder Punkt ist ein Raum der 360°-Tour. Klicken Sie auf einen Punkt, um ihn zu betreten.',
     noLocation: 'Die Standortkarte ist derzeit für diese Immobilie nicht verfügbar.',
@@ -649,6 +700,7 @@ export const translations: Record<Language, Record<string, string>> = {
     planHere: 'Вы здесь',
     planSeen: 'Просмотрено',
     planNew: 'Ещё не были',
+    tourBy: '360° тур от',
     planIntroTitle: 'Планировка — расположение комнат',
     planIntroText: 'Каждая точка — комната из 360° тура. Нажмите на точку, чтобы перейти в неё.',
     noLocation: 'Карта расположения временно недоступна.',

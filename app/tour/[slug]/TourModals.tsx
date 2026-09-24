@@ -24,13 +24,18 @@ import {
   IconRooms,
   IconShare,
   IconStairs,
-  IconText
+  IconText,
+  IconTerrace,
+  IconParking,
+  IconWallet,
+  IconDocument
 } from './icons';
 import { getLocalizedText, type FactKey, type FactRow } from './utils';
 import { translations } from './translations';
 import type { ActiveModal, Language, Room, Tour } from './types';
 import { VIEWING_TEXT } from './ViewingRequestModal';
 import { formatListingPrice } from '../../lib/listingPrice';
+import { SITE_URL } from '../../lib/site';
 
 /**
  * Modali ture: skica, lokacija, info, pitanja i kontakt. Sve je prikaz
@@ -85,7 +90,11 @@ const FACT_ICONS: Record<FactKey, (p: { size?: number; color?: string }) => Reac
   basement: IconBox,
   heating: IconFlame,
   buildStatus: IconHome,
-  finishStatus: IconBrush
+  finishStatus: IconBrush,
+  terrace: IconTerrace,
+  parking: IconParking,
+  deposit: IconWallet,
+  registration: IconDocument
 };
 
 /** Plavi kvadratić sa ikonicom, levo u kartici. */
@@ -241,7 +250,14 @@ export function TourModals({
       ? `${formatListingPrice(priceNum / areaNum, 'sale', lang)?.amount}/m²`
       : null;
   type SpecRow = { key: string; icon: React.ReactNode; label: string; value: string; tone?: 'yes' | 'no' };
-  const toneOf = (v: string | null | undefined): SpecRow['tone'] => (v === 'Da' ? 'yes' : v === 'Ne' ? 'no' : undefined);
+  const toneOf = (v: string | null | undefined): SpecRow['tone'] => (v === 'Da' ? 'yes' : v === 'Ne' || v === 'Nema' ? 'no' : undefined);
+  const TONE_SOURCE: Partial<Record<FactKey, string | null | undefined>> = {
+    elevator: tour?.has_elevator,
+    basement: tour?.has_basement,
+    registration: tour?.registration,
+    terrace: tour?.terrace,
+    parking: tour?.parking
+  };
   const specRows: SpecRow[] = [
     ...(city ? [{ key: 'city', icon: <IconGlobe size={18} />, label: t.cityLabel, value: city }] : []),
     ...(street ? [{ key: 'street', icon: <IconPin size={18} />, label: t.addressLabel, value: street }] : []),
@@ -249,7 +265,7 @@ export function TourModals({
       .filter((f) => !KEY_FACTS.includes(f.key))
       .map((f) => {
         const FactIcon = FACT_ICONS[f.key];
-        const tone = f.key === 'elevator' ? toneOf(tour?.has_elevator) : f.key === 'basement' ? toneOf(tour?.has_basement) : undefined;
+        const tone = toneOf(TONE_SOURCE[f.key]);
         return { key: f.key, icon: <FactIcon size={18} />, label: f.label, value: f.value, tone };
       })
   ];
@@ -626,6 +642,18 @@ export function TourModals({
               )}
             </div>
           )}
+
+          {/* Tiho potpisivanje: ko je pravio turu, za posetioca koga to zanima. */}
+          <a
+            href={`${SITE_URL}/?utm_source=tura&utm_medium=potpis&utm_campaign=${encodeURIComponent(tour?.slug ?? '')}`}
+            target="_blank"
+            rel="noopener"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', marginTop: '22px', fontSize: '11.5px', color: '#9A9CA1', textDecoration: 'none' }}
+          >
+            {t.tourBy}
+            <svg aria-hidden="true" width="11" height="11" viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M14 2 L26 14 L14 26 L2 14 Z" /></svg>
+            <b style={{ fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 700 }}>Kvadrat360</b>
+          </a>
         </div>
 
         {footer && (

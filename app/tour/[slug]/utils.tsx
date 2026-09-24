@@ -6,6 +6,10 @@ import {
   STRUCTURE_LABELS,
   BUILD_STATUS_LABELS,
   FINISH_STATUS_LABELS,
+  TERRACE_LABELS,
+  PARKING_LABELS,
+  DEPOSIT_LABELS,
+  REGISTRATION_LABELS,
   FLOOR_WORDS,
   categoryQuestions
 } from './translations';
@@ -100,7 +104,7 @@ export const composeEstablishText = (establishData: EstablishData): Record<strin
 };
 
 /** `key` bira ikonicu kartice u Info prozoru (TourModals). */
-export type FactKey = 'neighbourhood' | 'area' | 'structure' | 'floor' | 'elevator' | 'basement' | 'heating' | 'buildStatus' | 'finishStatus';
+export type FactKey = 'neighbourhood' | 'area' | 'structure' | 'floor' | 'elevator' | 'basement' | 'heating' | 'buildStatus' | 'finishStatus' | 'terrace' | 'parking' | 'deposit' | 'registration';
 export type FactRow = { key: FactKey; label: string; value: string };
 
 // Postgres `numeric` (area_sqm) stiže kao tekst kroz PostgREST.
@@ -153,7 +157,13 @@ export function buildFactList(tour: Tour | null | undefined, lang: Language): Fa
     { key: 'basement', label: t.basement, value: yesNo(tour.has_basement) },
     { key: 'heating', label: t.heating, value: fromList(HEATING_LABELS, tour.heating) },
     { key: 'buildStatus', label: t.buildStatus, value: fromList(BUILD_STATUS_LABELS, tour.build_status) },
-    { key: 'finishStatus', label: t.finishStatus, value: fromList(FINISH_STATUS_LABELS, tour.finish_status) }
+    { key: 'finishStatus', label: t.finishStatus, value: fromList(FINISH_STATUS_LABELS, tour.finish_status) },
+    { key: 'terrace', label: t.terrace, value: fromList(TERRACE_LABELS, tour.terrace) },
+    { key: 'parking', label: t.parking, value: fromList(PARKING_LABELS, tour.parking) },
+    // Depozit ima smisla samo kod izdavanja, uknjiženost samo kod prodaje -
+    // ostatak iz ranije promene vrste oglasa se ne prikazuje.
+    { key: 'deposit', label: t.deposit, value: tour.category === 'rent' ? fromList(DEPOSIT_LABELS, tour.deposit) : '' },
+    { key: 'registration', label: t.registration, value: tour.category === 'sale' ? fromList(REGISTRATION_LABELS, tour.registration) : '' }
   ];
 
   return rows.filter((row) => row.value !== '');

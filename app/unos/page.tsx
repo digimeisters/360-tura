@@ -12,6 +12,10 @@ import {
   YES_NO,
   BUILD_STATUS_OPTIONS,
   FINISH_STATUS_OPTIONS,
+  TERRACE_OPTIONS,
+  PARKING_OPTIONS,
+  DEPOSIT_OPTIONS,
+  REGISTRATION_OPTIONS,
   neighbourhoodsFor
 } from '../lib/propertyTaxonomy';
 import { shrinkImage } from '../lib/shrinkImage';
@@ -514,6 +518,24 @@ export default function UnosPage() {
             </select>
           </Field>
 
+          <Field label="Terasa / balkon" required hint="Izaberite „Nema“ ako nema — prazno i „nema“ nisu isto.">
+            <select id="terasa" value={values['Terasa'] || ''} onChange={set('Terasa')} required style={inputStyle}>
+              <option value="">Izaberite</option>
+              {TERRACE_OPTIONS.map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Parking" required>
+            <select id="parking" value={values['Parking'] || ''} onChange={set('Parking')} required style={inputStyle}>
+              <option value="">Izaberite</option>
+              {PARKING_OPTIONS.map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+          </Field>
+
           <Field label="Google Maps embed link" hint="Nije obavezno — mapa se sama postavlja po adresi. Popunite samo ako imate tačan embed link.">
             <input
               id="mapa"
@@ -687,8 +709,13 @@ export default function UnosPage() {
             <Field label="Mesečna zakupnina" required>
               <input id="zakupnina" value={values['Mesečna zakupnina'] || ''} onChange={set('Mesečna zakupnina')} placeholder="npr. 450 EUR" required style={inputStyle} />
             </Field>
-            <Field label="Depozit (iznos i uslovi)" required>
-              <input id="depozit" value={values['Depozit'] || ''} onChange={set('Depozit')} placeholder="npr. jedna mesečna kirija" required style={inputStyle} />
+            <Field label="Depozit" required>
+              <select id="depozit" value={values['Depozit'] || ''} onChange={set('Depozit')} required style={inputStyle}>
+                <option value="">Izaberite</option>
+                {DEPOSIT_OPTIONS.map((t) => (
+                  <option key={t}>{t}</option>
+                ))}
+              </select>
             </Field>
             <Field label="Minimalni period zakupa" required>
               <input id="period" value={values['Minimalni period zakupa'] || ''} onChange={set('Minimalni period zakupa')} placeholder="npr. 12 meseci" required style={inputStyle} />
@@ -738,7 +765,7 @@ export default function UnosPage() {
             </Field>
             <Field label="Uknjiženost" required>
               <select id="uknjizenost" value={pick('Uknjiženost')} onChange={set('Uknjiženost')} style={inputStyle}>
-                {['Da', 'Ne', 'U procesu'].map((t) => (
+                {REGISTRATION_OPTIONS.map((t) => (
                   <option key={t}>{t}</option>
                 ))}
               </select>
