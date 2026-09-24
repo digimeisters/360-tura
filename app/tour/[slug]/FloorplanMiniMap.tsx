@@ -46,7 +46,7 @@ export function FloorplanMiniMap({
           border-radius: 20px; background: #FFFFFF; color: #111113; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
           font-family: ${THEME.fontBody}; zoom: 0.9; }
         .k360-minimap__head { display: flex; align-items: center; justify-content: space-between; padding: 0 2px 6px 4px; }
-        .k360-minimap__label { font-family: var(--font-serif), Georgia, serif; font-style: italic; font-size: 19px; color: #1E5AA8; line-height: 1; }
+        .k360-minimap__label { font-family: var(--font-urbanist), var(--font-jakarta), system-ui, sans-serif; font-weight: 800; font-size: 15px; letter-spacing: -0.01em; color: #1E5AA8; line-height: 1; }
         .k360-minimap__expand { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; padding: 0;
           border: none; border-radius: 50%; background: #F1F1EC; color: #5B5D63; cursor: pointer; }
         .k360-minimap__expand:hover { background: #E4E4DE; }

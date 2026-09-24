@@ -280,7 +280,7 @@ export function InfoCard({
       </div>
 
       {title && (
-        <h3 style={{ margin: '0 0 6px', paddingRight: headRoom, fontFamily: 'var(--font-serif), Georgia, serif', fontStyle: 'italic', fontSize: '25px', lineHeight: 1.1, fontWeight: 400, color: '#fff', textWrap: 'balance' }}>
+        <h3 style={{ margin: '0 0 6px', paddingRight: headRoom, fontFamily: 'var(--font-urbanist), var(--font-jakarta), system-ui, sans-serif', fontSize: '20px', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.01em', color: '#fff', textWrap: 'balance' }}>
           {title}
         </h3>
       )}

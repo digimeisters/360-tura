@@ -334,7 +334,7 @@ export function TourModals({
       <style>{'@media (max-width: 720px){.k360-modal-wrap{align-items:flex-end!important;padding:0!important}.k360-modal{border-radius:30px 30px 0 0!important;max-height:88vh!important;border-left:0!important;border-right:0!important;border-bottom:0!important}}'}</style>
       <div className="k360-modal" style={{ background: 'linear-gradient(180deg, #E6EEF9 0px, #F6F8FC 130px)', border: '1px solid ' + THEME.border, borderRadius: '24px', width: '100%', maxWidth: activeModal === 'about' ? '900px' : '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px 6px' }}>
-          <h2 style={{ color: THEME.accent, fontSize: '30px', margin: 0, fontWeight: 400, fontStyle: 'italic', letterSpacing: '-0.005em', fontFamily: 'var(--font-serif), Georgia, serif', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <h2 style={{ color: THEME.accent, fontSize: '24px', margin: 0, fontWeight: 800, letterSpacing: '-0.015em', fontFamily: 'var(--font-urbanist), var(--font-jakarta), system-ui, sans-serif', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Icon size={22} color={THEME.accent} />
             {withoutEmoji(title)}
           </h2>
@@ -506,12 +506,16 @@ export function TourModals({
                       {pricePerSqm && <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#CFE0F5' }}>{pricePerSqm}</p>}
                       {keyFacts.length > 0 && (
                         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${keyFacts.length}, minmax(0, 1fr))`, marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.22)' }}>
-                          {keyFacts.map((row, i) => (
+                          {keyFacts.map((row, i) => {
+                            // "Četvorosoban (4.0)" - oznaka u zagradi je za filtere, ovde samo lomi red.
+                            const value = row.value.replace(/\s*\([^)]*\)$/, '');
+                            return (
                             <div key={row.key} style={{ textAlign: 'center', padding: '0 4px', minWidth: 0, borderLeft: i ? '1px solid rgba(255, 255, 255, 0.22)' : 'none' }}>
-                              <span style={{ display: 'block', fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 800, fontSize: '20px', lineHeight: 1.1, overflowWrap: 'anywhere' }}>{row.value}</span>
+                              <span style={{ display: 'block', fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 800, fontSize: value.length > 9 ? '16px' : '20px', lineHeight: 1.15, overflowWrap: 'break-word', hyphens: 'auto' }}>{value}</span>
                               <span style={{ display: 'block', fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#CFE0F5', marginTop: '3px' }}>{row.label}</span>
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>

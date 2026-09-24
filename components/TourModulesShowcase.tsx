@@ -195,7 +195,7 @@ const STYLES = `
 .mods-screen::before{content:""; position:absolute; inset:0; background:rgba(9,12,20,.5);}
 .mods-sheet{position:absolute; left:0; right:0; bottom:0; height:80%; background:linear-gradient(180deg,#E6EEF9 0,#F6F8FC 120px); border-radius:26px 26px 0 0; padding:14px 14px 0; overflow:hidden; font-family:var(--font-inter),Inter,system-ui,sans-serif;}
 .mods-sh-h{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
-.mods-sh-h b{font-family:var(--font-instrument),Georgia,serif; font-style:italic; font-weight:400; font-size:26px; color:#1E5AA8;}
+.mods-sh-h b{font-family:var(--font-urbanist),sans-serif; font-weight:800; font-size:21px; letter-spacing:-.01em; color:#1E5AA8;}
 .mods-x{width:32px; height:32px; border-radius:50%; background:#fff; border:1.5px solid #9DBBE3; color:#1E5AA8; display:flex; align-items:center; justify-content:center;}
 .mods-card{background:#fff; border:1.5px solid #9DBBE3; border-radius:16px;}
 .mods-hero{border-radius:16px; padding:12px 13px; background:linear-gradient(135deg,#1E5AA8,#2C6FC4); color:#fff;}
