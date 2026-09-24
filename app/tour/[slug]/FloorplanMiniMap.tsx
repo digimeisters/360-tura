@@ -1,7 +1,7 @@
 'use client';
 
 import type { Language, Room } from './types';
-import { THEME, GLASS } from './theme';
+import { THEME } from './theme';
 import { getLocalizedText } from './utils';
 import { IconExpand } from './icons';
 
@@ -13,7 +13,7 @@ type FloorplanMiniMapProps = {
   lang: Language;
   onSelectRoom: (roomId: Room['id']) => void;
   onExpand: () => void;
-  labels: { title: string; expand: string };
+  labels: { title: string; expand: string; here: string; seen: string; unseen: string };
 };
 
 // Ista plava kao tačka na vratima i u traci sa sobama.
@@ -38,20 +38,24 @@ export function FloorplanMiniMap({
   if (!marked.length) return null;
 
   return (
-    <div className="k360-minimap" style={{ ...GLASS }}>
+    <div className="k360-minimap">
       <style>{`
         /* Ova skica se već prikazuje samo od 1024px (pravilo ispod), pa joj
            uvećanje ne treba u posebnom media upitu - uvek je "na računaru". */
-        .k360-minimap { position: absolute; left: 12px; bottom: 12px; z-index: 34; width: 232px; padding: 8px 8px 9px;
-          border-radius: 16px; color: #fff; font-family: ${THEME.fontBody}; zoom: 1.122; }
+        .k360-minimap { position: absolute; left: 12px; bottom: 12px; z-index: 34; width: 250px; padding: 10px 10px 10px;
+          border-radius: 20px; background: #FFFFFF; color: #111113; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+          font-family: ${THEME.fontBody}; zoom: 1.122; }
         .k360-minimap__head { display: flex; align-items: center; justify-content: space-between; padding: 0 2px 6px 4px; }
-        .k360-minimap__label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: rgba(255, 255, 255, 0.72); }
-        .k360-minimap__expand { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; padding: 0;
-          border: none; border-radius: 50%; background: rgba(255, 255, 255, 0.1); color: #fff; cursor: pointer; }
-        .k360-minimap__expand:hover { background: rgba(255, 255, 255, 0.22); }
+        .k360-minimap__label { font-family: var(--font-serif), Georgia, serif; font-style: italic; font-size: 19px; color: #1E5AA8; line-height: 1; }
+        .k360-minimap__expand { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; padding: 0;
+          border: none; border-radius: 50%; background: #F1F1EC; color: #5B5D63; cursor: pointer; }
+        .k360-minimap__expand:hover { background: #E4E4DE; }
+        .k360-minimap__legend { display: flex; justify-content: center; gap: 10px; margin-top: 6px; font-size: 10.5px; font-weight: 600; color: #5B5D63; }
+        .k360-minimap__legend span { display: flex; align-items: center; gap: 4px; }
+        .k360-minimap__legend i { width: 9px; height: 9px; border-radius: 50%; }
         .k360-minimap__planwrap { display: flex; justify-content: center; }
         .k360-minimap__plan { position: relative; line-height: 0; }
-        .k360-minimap__plan img { display: block; max-width: 100%; max-height: 180px; border-radius: 10px; background: #fff; }
+        .k360-minimap__plan img { display: block; max-width: 100%; max-height: 190px; background: #fff; }
         .k360-minimap__dot { position: absolute; transform: translate(-50%, -50%); padding: 0; cursor: pointer; border-radius: 50%;
           width: 10px; height: 10px; border: 2px solid #fff; background: rgba(15, 23, 42, 0.55);
           box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); transition: transform 0.15s ease; }
@@ -69,7 +73,7 @@ export function FloorplanMiniMap({
       <div className="k360-minimap__head">
         <span className="k360-minimap__label">{labels.title}</span>
         <button type="button" className="k360-minimap__expand" onClick={onExpand} title={labels.expand} aria-label={labels.expand}>
-          <IconExpand size={14} />
+          <IconExpand size={14} color="#5B5D63" />
         </button>
       </div>
 
@@ -99,6 +103,11 @@ export function FloorplanMiniMap({
           );
         })}
       </div>
+      </div>
+      <div className="k360-minimap__legend">
+        <span><i style={{ background: DOT_BLUE }} />{labels.here}</span>
+        <span><i style={{ background: '#fff', border: '2px solid #334155' }} />{labels.seen}</span>
+        <span><i style={{ background: 'rgba(15, 23, 42, 0.55)' }} />{labels.unseen}</span>
       </div>
     </div>
   );

@@ -212,21 +212,14 @@ export function TourModals({
             factList.length > 0 || aboutText ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                 {factList.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', borderRadius: '12px', overflow: 'hidden', border: '1px solid ' + THEME.border }}>
-                    {factList.map((row, i) => (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px' }}>
+                    {factList.map((row) => (
                       <div
                         key={row.label}
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          gap: '12px',
-                          padding: '11px 14px',
-                          backgroundColor: i % 2 === 0 ? THEME.surfaceAlt : 'transparent',
-                          borderTop: i === 0 ? 'none' : '1px solid ' + THEME.border
-                        }}
+                        style={{ background: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '16px', padding: '12px 14px', minWidth: 0 }}
                       >
-                        <span style={{ color: THEME.textSecondary, fontSize: '14.5px' }}>{row.label}</span>
-                        <span style={{ color: THEME.textPrimary, fontSize: '14.5px', fontWeight: 600, textAlign: 'right' }}>{row.value}</span>
+                        <span style={{ display: 'block', color: THEME.textMuted, fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{row.label}</span>
+                        <span style={{ display: 'block', color: THEME.textPrimary, fontFamily: THEME.fontDisplay, fontSize: '16.5px', fontWeight: 700, marginTop: '3px', overflowWrap: 'anywhere' }}>{row.value}</span>
                       </div>
                     ))}
                   </div>
@@ -240,26 +233,31 @@ export function TourModals({
 
           {activeModal === 'faq' && (
             faqList.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', borderBottom: '1px solid ' + THEME.borderStrong }}>
                 {faqList.map((item, index) => (
                   <button
                     key={index}
                     onClick={() => onSelectFaq(index)}
                     style={{
                       textAlign: 'left',
-                      backgroundColor: THEME.surfaceAlt,
-                      border: '1px solid ' + THEME.border,
-                      borderRadius: '12px',
-                      padding: '14px 16px',
+                      background: 'none',
+                      border: 'none',
+                      borderTop: '1px solid ' + THEME.borderStrong,
+                      padding: '15px 2px',
                       color: THEME.textPrimary,
                       fontSize: '16px',
                       fontWeight: 600,
                       cursor: 'pointer',
                       width: '100%',
-                      lineHeight: '1.4'
+                      lineHeight: '1.4',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '12px'
                     }}
                   >
-                    {item.question}
+                    <span>{item.question}</span>
+                    <span aria-hidden="true" style={{ color: THEME.accent, fontSize: '20px', fontWeight: 500, flexShrink: 0 }}>+</span>
                   </button>
                 ))}
               </div>
@@ -285,41 +283,37 @@ export function TourModals({
                 </div>
               )}
 
-              {tour?.agent_name && (
-                <div style={{ backgroundColor: THEME.surfaceAlt, padding: '16px', borderRadius: '12px', border: '1px solid ' + THEME.border }}>
-                  <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: THEME.textSecondary }}>{t.agentLabel}</p>
-                  <p style={{ margin: 0, fontSize: '17px', fontWeight: 'bold', color: THEME.textPrimary }}>{tour.agent_name}</p>
-                </div>
-              )}
-
-              {tour?.agent_phone && (
-                <div style={{ backgroundColor: THEME.surfaceAlt, padding: '16px', borderRadius: '12px', border: '1px solid ' + THEME.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: THEME.textSecondary }}>{t.phoneLabel}</p>
-                    <p style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: THEME.textPrimary }}>{tour.agent_phone}</p>
+              {(tour?.agent_name || tour?.agency_name) && (
+                <div style={{ background: '#111113', color: '#FFFFFF', borderRadius: '22px', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <span aria-hidden="true" style={{ width: '52px', height: '52px', borderRadius: '50%', background: THEME.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: THEME.fontDisplay, fontWeight: 800, fontSize: '19px', flexShrink: 0 }}>
+                    {initials(tour.agent_name || tour.agency_name || '')}
+                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    {tour.agent_name && (
+                      <p style={{ margin: 0, fontFamily: THEME.fontDisplay, fontSize: '17px', fontWeight: 700 }}>{tour.agent_name}</p>
+                    )}
+                    {tour.agency_name && (
+                      <p style={{ margin: tour.agent_name ? '2px 0 0' : 0, fontSize: tour.agent_name ? '13.5px' : '17px', fontWeight: tour.agent_name ? 500 : 700, color: tour.agent_name ? '#A8A9AE' : '#FFFFFF' }}>{tour.agency_name}</p>
+                    )}
+                    {tour.agent_phone && (
+                      <p style={{ margin: '2px 0 0', fontSize: '13.5px', color: '#A8A9AE' }}>{tour.agent_phone}</p>
+                    )}
                   </div>
-                  <a href={`tel:${tour.agent_phone}`} style={{ ...btnStyle, backgroundColor: THEME.accent, color: '#fff', borderColor: THEME.accent, textDecoration: 'none', padding: '10px 18px', fontSize: '14px' }}>
-                    {t.callBtn}
-                  </a>
                 </div>
               )}
 
-              {tour?.agent_email && (
-                <div style={{ backgroundColor: THEME.surfaceAlt, padding: '16px', borderRadius: '12px', border: '1px solid ' + THEME.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ overflow: 'hidden', paddingRight: '8px' }}>
-                    <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: THEME.textSecondary }}>{t.emailLabel}</p>
-                    <p style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: THEME.textPrimary, textOverflow: 'ellipsis', overflow: 'hidden' }}>{tour.agent_email}</p>
-                  </div>
-                  <a href={`mailto:${tour.agent_email}`} style={{ ...btnStyle, backgroundColor: THEME.accent, color: '#fff', borderColor: THEME.accent, textDecoration: 'none', padding: '10px 18px', fontSize: '14px', flexShrink: 0 }}>
-                    {t.emailBtn}
-                  </a>
-                </div>
-              )}
-
-              {tour?.agency_name && (
-                <div style={{ backgroundColor: THEME.surfaceAlt, padding: '16px', borderRadius: '12px', border: '1px solid ' + THEME.border }}>
-                  <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: THEME.textSecondary }}>{t.agencyLabel}</p>
-                  <p style={{ margin: 0, fontSize: '17px', fontWeight: 'bold', color: THEME.textPrimary }}>{tour.agency_name}</p>
+              {(tour?.agent_phone || tour?.agent_email) && (
+                <div style={{ display: 'grid', gridTemplateColumns: tour.agent_phone && tour.agent_email ? '1fr 1fr' : '1fr', gap: '8px' }}>
+                  {tour.agent_phone && (
+                    <a href={`tel:${tour.agent_phone}`} style={{ ...btnStyle, backgroundColor: THEME.accent, color: '#fff', borderColor: THEME.accent, textDecoration: 'none', padding: '13px', fontSize: '15px', fontWeight: 700, borderRadius: '999px', textAlign: 'center' }}>
+                      {t.callBtn}
+                    </a>
+                  )}
+                  {tour.agent_email && (
+                    <a href={`mailto:${tour.agent_email}`} style={{ ...btnStyle, backgroundColor: THEME.surfaceAlt, color: THEME.textPrimary, borderColor: THEME.surfaceAlt, boxShadow: 'none', textDecoration: 'none', padding: '13px', fontSize: '15px', fontWeight: 700, borderRadius: '999px', textAlign: 'center' }}>
+                      {t.emailBtn}
+                    </a>
+                  )}
                 </div>
               )}
 
@@ -383,4 +377,14 @@ export function FaqAnswerModal({
       </div>
     </div>
   );
+}
+
+/** Inicijali za krug u kartici agenta: "Marko Marković" -> "MM", "Immoblick Wien" -> "IW". */
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join('');
 }

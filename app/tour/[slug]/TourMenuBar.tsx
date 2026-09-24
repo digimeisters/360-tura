@@ -81,8 +81,8 @@ export function TourMenuBar({
         width: 'calc(100% - 24px)',
         maxWidth: '520px',
         boxSizing: 'border-box',
-        padding: '5px',
-        borderRadius: '16px',
+        padding: '6px',
+        borderRadius: '26px',
         justifyContent: 'center'
       }}>
         {MENU_ORDER.map((modal) => {
@@ -96,13 +96,15 @@ export function TourMenuBar({
                 ...overlayNavButtonStyle,
                 flex: 1,
                 minWidth: 0,
-                color: active ? GLASS_ACCENT : '#fff',
-                background: active ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-                fontSize: '12.5px',
+                color: '#fff',
+                background: active ? 'rgba(127, 176, 236, 0.18)' : 'transparent',
+                borderRadius: '18px',
+                fontSize: '12px',
+                fontWeight: 600,
                 fontFamily: THEME.fontBody
               }}
             >
-              <Icon size={22} color={GLASS_ACCENT} />
+              <Icon size={22} color={active ? GLASS_ACCENT : '#fff'} />
               <span style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {withoutEmoji(labels[modal])}
               </span>

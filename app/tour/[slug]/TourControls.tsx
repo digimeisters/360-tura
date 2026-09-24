@@ -240,11 +240,11 @@ export function InfoCard({
       width: 'calc(100% - 24px)',
       maxWidth: '520px',
       boxSizing: 'border-box',
-      background: 'rgba(15, 23, 42, 0.68)',
-      backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
-      border: '1px solid rgba(255, 255, 255, 0.28)',
-      borderRadius: '16px',
+      background: 'rgba(15, 18, 28, 0.62)',
+      backdropFilter: 'blur(14px)',
+      WebkitBackdropFilter: 'blur(14px)',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '24px',
       padding: '14px 18px 16px',
       color: '#fff',
       boxShadow: '0 6px 20px rgba(0, 0, 0, 0.25)',
@@ -284,7 +284,7 @@ export function InfoCard({
       </button>
 
       {title && (
-        <h3 style={{ margin: '0 0 7px', paddingRight: '34px', fontFamily: THEME.fontDisplay, fontSize: '17px', lineHeight: 1.2, fontWeight: 700, color: '#fff', textWrap: 'balance' }}>
+        <h3 style={{ margin: '0 0 6px', paddingRight: '34px', fontFamily: 'var(--font-serif), Georgia, serif', fontStyle: 'italic', fontSize: '25px', lineHeight: 1.1, fontWeight: 400, color: '#fff', textWrap: 'balance' }}>
           {title}
         </h3>
       )}

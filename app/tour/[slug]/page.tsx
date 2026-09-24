@@ -941,7 +941,7 @@ export default function TourPage() {
               lang={lang}
               onSelectRoom={(id) => changeRoomById(id)}
               onExpand={() => setActiveModal('plan')}
-              labels={{ title: withoutEmoji(t.btnPlan), expand: withoutEmoji(t.btnPlan) }}
+              labels={{ title: withoutEmoji(t.btnPlan), expand: withoutEmoji(t.btnPlan), here: t.planHere, seen: t.planSeen, unseen: t.planNew }}
             />
           )}
         </>
