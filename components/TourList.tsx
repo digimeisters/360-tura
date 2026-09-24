@@ -623,7 +623,7 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
       {showMap && <TourMap tours={shown} lang={lang} />}
 
       {shown.length > 0 ? (
-        <div className={`tours-grid ${shown.length === 1 ? 'n-1' : shown.length === 2 || shown.length === 4 ? 'n-2' : 'n-3'}`}>
+        <div className="tours-grid n-4">
           {shown.map((tour) => (
             <TourCard key={tour.slug} tour={tour} labels={CARD_LABELS} lang={lang} />
           ))}
