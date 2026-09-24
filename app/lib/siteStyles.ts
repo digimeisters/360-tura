@@ -168,8 +168,8 @@ export const SITE_STYLES = `
   /* Kartica koja lebdi pri vrhu - isti oblik kao gornja traka u turi. */
   .nav{position:sticky; top:0; z-index:40; background:color-mix(in srgb, var(--bg) 88%, transparent); -webkit-backdrop-filter:saturate(140%) blur(12px); backdrop-filter:saturate(140%) blur(12px); border-bottom:1px solid var(--line);}
   .nav-bar{display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.8rem 0;}
-  .nav .btn-primary{background:var(--ink); color:var(--bg); box-shadow:none;}
-  .nav .btn-primary:hover{background:var(--accent); color:var(--on-accent);}
+  .nav .btn-primary{background:#1E5AA8; color:#FFFFFF; box-shadow:none;}
+  .nav .btn-primary:hover{background:#17447E; color:#FFFFFF;}
   .brand{text-decoration:none; display:inline-flex;}
   .navlinks{display:flex; align-items:center; gap:.2rem; list-style:none; margin:0; padding:0;}
   .navlinks a{display:block; white-space:nowrap; text-decoration:none; font-size:.88rem; font-weight:600; color:var(--ink-soft); padding:.45rem .85rem; border-radius:999px; transition:background .15s ease, color .15s ease;}
@@ -447,10 +447,9 @@ export const SITE_STYLES = `
   @media (max-width:920px){ .price-grid, .price-grid.n-2{grid-template-columns:1fr;} }
   .price-card{position:relative; padding:2.2rem 2rem; display:flex; flex-direction:column; gap:1.1rem; min-width:0; box-shadow:none;}
   .price-card.featured{border:0; box-shadow:0 30px 60px -20px rgba(17,17,19,.45);}
-  /* Dugme u običnoj kartici je obrub, u istaknutoj (tamnoj) belo. */
-  .price-card:not(.featured) .price-cta{background:transparent; color:var(--ink); border:2px solid var(--ink); box-shadow:none;}
-  .price-card:not(.featured) .price-cta:hover{background:var(--ink); color:var(--bg);}
-  .price-card.featured .price-cta{background:#FFFFFF; color:#111113; box-shadow:none;}
+  /* Sva CTA dugmad su plava (boja sajta), i u običnoj i u istaknutoj (tamnoj) kartici. */
+  .price-card .price-cta{background:#1E5AA8; color:#FFFFFF; border:0; box-shadow:none;}
+  .price-card .price-cta:hover{background:#17447E; color:#FFFFFF;}
   .price-badge{position:absolute; top:-.8rem; left:1.5rem; background:var(--accent); color:var(--on-accent); font-family:var(--font-display); font-size:.66rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; padding:.35rem .75rem; border-radius:999px; box-shadow:0 4px 12px var(--accent-glow);}
   /* Nalepnica sa popustom, u uglu kartice - kao pečat u prospektu. Crvena, da
      se ne stopi sa plavim čipom u suprotnom uglu (components/PromoPrice.tsx). */
@@ -588,7 +587,8 @@ export const SITE_STYLES = `
   .bridge-points{list-style:none; margin:.3rem 0 0; padding:0; display:flex; flex-wrap:wrap; gap:.5rem 1.4rem;}
   .bridge-points li{display:flex; align-items:center; gap:.5rem; font-size:.9rem; color:var(--ink-soft);}
   .bridge-points li::before{content:"✓"; color:var(--accent); font-weight:700; flex:none;}
-  .agency-bridge .btn{white-space:nowrap; background:#FFFFFF; color:#111113; box-shadow:none;}
+  .agency-bridge .btn{white-space:nowrap; background:#1E5AA8; color:#FFFFFF; box-shadow:none;}
+  .agency-bridge .btn:hover{background:#17447E;}
   .agency-bridge .bridge-points li{font-size:1rem;}
 
   .integration{background:var(--dark-bg); color:var(--dark-ink);}
@@ -608,7 +608,8 @@ export const SITE_STYLES = `
     --ink:#FFFFFF; --ink-soft:rgba(255,255,255,.85); --ink-faint:rgba(255,255,255,.66); --line:rgba(255,255,255,.28); --line-strong:rgba(255,255,255,.4); --surface:rgba(255,255,255,.12); --accent:#FFFFFF; --accent-soft:rgba(255,255,255,.16); --on-accent:#1E5AA8; --shadow:none; color:var(--ink);}
   @media (max-width:640px){ .contact .wrap{border-radius:26px;} }
   .contact .contact-form{--surface:#FFFFFF; --surface-2:#F4F4F0; --ink:#111113; --ink-soft:#5B5D63; --ink-faint:#8C8E93; --line:#E4E4DE; --line-strong:#D3D3CB; --accent:#1E5AA8; --accent-soft:#E9EFF6; --on-accent:#FFFFFF; --shadow:0 2px 8px rgba(17,17,19,.08); background:#FFFFFF; color:#111113; border:0;}
-  .contact .contact-form .btn-primary{background:#111113; color:#FFFFFF; box-shadow:none;}
+  .contact .contact-form .btn-primary{background:#1E5AA8; color:#FFFFFF; box-shadow:none;}
+  .contact .contact-form .btn-primary:hover{background:#17447E;}
   .contact .info-list > div{background:none; border:0; box-shadow:none; padding:.3rem 0;}
   .contact-head{grid-column:1 / -1; display:flex; flex-direction:column; gap:1.1rem;}
   @media (max-width:880px){ .contact .wrap{grid-template-columns:1fr;} }
@@ -667,7 +668,6 @@ export const SITE_STYLES = `
   .faq-split .faq-item p{padding:0 0 1.4rem; font-size:1rem; line-height:1.65;}
 
   footer{border-top:1px solid var(--line); padding-block:2.2rem; margin-top:clamp(3rem,6vw,5rem);}
-  @media (max-width:720px){ footer{padding-bottom:6.5rem;} }
 
   /* ---------- TAMNI DELOVI ---------- */
   /* Iste komponente, tamne boje: menjaju se samo promenljive. */
@@ -683,20 +683,14 @@ export const SITE_STYLES = `
     --ink:#FFFFFF; --ink-soft:rgba(255,255,255,.85); --accent:#FFFFFF; color:var(--ink);}
   @media (max-width:640px){ .cta-band{border-radius:24px;} }
   .cta-band .section-head{margin-bottom:0;}
-  .cta-band .btn-primary{background:#FFFFFF; color:#111113; box-shadow:none;}
+  /* Blok je već plav, pa je dugme belo sa plavim tekstom (plavo na plavom se ne bi videlo). */
+  .cta-band .btn-primary{background:#FFFFFF; color:#1E5AA8; box-shadow:none;}
   .cta-band .blog-related a{color:#FFFFFF; text-decoration:underline; text-underline-offset:3px;}
 
   /* ---------- TRAKE ---------- */
   .promo-top{display:block; text-align:center; background:#1E5AA8; color:#FFFFFF; font-size:.86rem; font-weight:500; padding:.6rem 1rem; text-decoration:none; line-height:1.4;}
   .promo-top b{font-weight:700;}
   .promo-top:hover{background:#17447E;}
-  /* Stalno dugme pri dnu ekrana telefona (components/MobileCtaBar.tsx). */
-  .mobile-cta{display:none;}
-  @media (max-width:720px){
-    .mobile-cta{position:fixed; z-index:50; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom)); display:flex; gap:8px; padding:6px; border-radius:999px; background:rgba(17,17,19,.92); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); box-shadow:0 10px 30px rgba(0,0,0,.25);}
-    .mobile-cta-main{flex:1; text-align:center; background:#1E5AA8; color:#FFFFFF; font-family:var(--font-display); font-weight:700; font-size:.95rem; padding:.85rem 1rem; border-radius:999px; text-decoration:none;}
-    .mobile-cta-call{flex:none; width:46px; display:grid; place-items:center; background:#FFFFFF; color:#111113; border-radius:999px;}
-  }
   footer .wrap{display:flex; flex-wrap:wrap; justify-content:space-between; gap:1rem; align-items:center;}
   footer p{font-size:.85rem; color:var(--ink-soft);}
 `;

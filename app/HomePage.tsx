@@ -19,7 +19,6 @@ import { getPublicOpenCount } from './lib/tourStats';
 import { tourHref } from './lib/tourHref';
 import { accent } from './lib/accent';
 import PromoTopBar from '../components/PromoTopBar';
-import MobileCtaBar from '../components/MobileCtaBar';
 
 /**
  * Početna strana, jedan raspored za obe jezičke verzije: app/page.tsx (/,
@@ -412,7 +411,6 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
       </main>
 
       <SiteFooter note={copy.footer} />
-      <MobileCtaBar href="#kontakt" label={nav.cta} callLabel={contact.call} track="cta:mobile_bar" />
     </div>
   );
 }

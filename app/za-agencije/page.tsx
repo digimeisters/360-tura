@@ -6,7 +6,6 @@ import HeroDevice from '../../components/HeroDevice';
 import PriceCalculator from '../../components/PriceCalculator';
 import PromoBanner from '../../components/PromoBanner';
 import PromoTopBar from '../../components/PromoTopBar';
-import MobileCtaBar from '../../components/MobileCtaBar';
 import FromPrice from '../../components/FromPrice';
 import { PlanItemList, PlanPrice, SaleSticker } from '../../components/PromoPrice';
 import SiteTracker from '../../components/SiteTracker';
@@ -580,7 +579,6 @@ export default async function AgencyPage() {
       </main>
 
       <SiteFooter note={copy.footer} />
-      <MobileCtaBar href="#kontakt" label={nav.cta} callLabel={contact.call} track="cta:agency_mobile_bar" />
     </div>
   );
 }
