@@ -44,7 +44,7 @@ export function FloorplanMiniMap({
            uvećanje ne treba u posebnom media upitu - uvek je "na računaru". */
         .k360-minimap { position: absolute; left: 12px; bottom: 12px; z-index: 34; width: 250px; padding: 10px 10px 10px;
           border-radius: 20px; background: #FFFFFF; color: #111113; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
-          font-family: ${THEME.fontBody}; zoom: 1.122; }
+          font-family: ${THEME.fontBody}; zoom: 0.9; }
         .k360-minimap__head { display: flex; align-items: center; justify-content: space-between; padding: 0 2px 6px 4px; }
         .k360-minimap__label { font-family: var(--font-serif), Georgia, serif; font-style: italic; font-size: 19px; color: #1E5AA8; line-height: 1; }
         .k360-minimap__expand { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; padding: 0;

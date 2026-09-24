@@ -94,6 +94,23 @@ export function applyGlassHotspotStyle(hotSpotDiv: HTMLDivElement, isNav: boolea
   hotSpotDiv.style.cursor = 'pointer';
 
   const inner = document.createElement('div');
+
+  if (isNav) {
+    // Prelaz u drugu sobu: gore pulsirajući "far" (dva talasa), ispod njega
+    // miran natpis sa imenom sobe. Natpis je apsolutno pozicioniran, pa je
+    // omotač veličine samog fara - Pannellum centrira baš far na tačku.
+    // Izgled je u TourOverlays (.k360-hs-nav, .k360-hs-beacon, .k360-hs-label).
+    inner.className = 'k360-hotspot-scale k360-hs-nav';
+    const name = document.createElement('span');
+    name.className = 'k360-hs-label';
+    name.textContent = label;
+    inner.innerHTML = '<span class="k360-hs-beacon"></span>';
+    inner.appendChild(name);
+    hotSpotDiv.innerHTML = '';
+    hotSpotDiv.appendChild(inner);
+    return;
+  }
+
   inner.className = 'k360-hotspot-scale';
   inner.style.backgroundColor = 'rgba(15, 23, 42, 0.32)';
   // @ts-ignore - backdropFilter nije u starijim CSSProperties tipovima za sve DOM lib verzije
@@ -101,29 +118,19 @@ export function applyGlassHotspotStyle(hotSpotDiv: HTMLDivElement, isNav: boolea
   // @ts-ignore
   inner.style.webkitBackdropFilter = 'blur(6px)';
   inner.style.border = '1px solid rgba(255, 255, 255, 0.7)';
-  inner.style.borderRadius = isNav ? '50px' : '50%';
-  inner.style.color = '#fff';
+  inner.style.borderRadius = '50%';
+  inner.style.color = '#fde68a';
   inner.style.textShadow = '0 1px 2px rgba(0, 0, 0, 0.45)';
   inner.style.display = 'flex';
   inner.style.alignItems = 'center';
   inner.style.justifyContent = 'center';
-  inner.style.gap = isNav ? '5px' : '4px';
-  inner.style.padding = isNav ? '2px 8px 2px 3px' : '0.5px';
-  inner.style.width = isNav ? 'auto' : '22px';
-  inner.style.height = isNav ? 'auto' : '22px';
+  inner.style.padding = '0.5px';
+  inner.style.width = '22px';
+  inner.style.height = '22px';
   inner.style.fontWeight = '700';
-  inner.style.fontSize = isNav ? '9.5px' : '12px';
+  inner.style.fontSize = '12px';
   inner.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
-  inner.style.whiteSpace = 'nowrap';
-
-  if (isNav) {
-    // Puna plava tačka sa belim obrubom i talasom koji pulsira (.k360-hs-dot u TourOverlays) - odmah se vidi šta je klikabilno.
-    const dot = '<span class="k360-hs-dot"></span>';
-    inner.innerHTML = `${dot}<span>${label}</span>`;
-  } else {
-    inner.style.color = '#fde68a';
-    inner.innerHTML = 'ℹ';
-  }
+  inner.innerHTML = 'ℹ';
 
   hotSpotDiv.innerHTML = '';
   hotSpotDiv.appendChild(inner);

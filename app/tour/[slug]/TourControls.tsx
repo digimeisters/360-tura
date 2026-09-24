@@ -52,7 +52,7 @@ export function LanguageChips({
 /** Agencija i naziv nekretnine, u staklenoj kartici u levom vrhu. */
 export function TourTitleCard({ agencyName, title }: { agencyName: string | null; title: string }) {
   return (
-    <div style={{ ...GLASS, borderRadius: '12px', padding: '6px 12px 7px', pointerEvents: 'auto', maxWidth: '55%' }}>
+    <div className="k360-top__title" style={{ ...GLASS, borderRadius: '12px', padding: '6px 12px 7px', pointerEvents: 'auto', maxWidth: '55%' }}>
       {agencyName && (
         <div style={{ color: GLASS_ACCENT, fontSize: '12px', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {agencyName}
@@ -221,15 +221,16 @@ export function InfoCard({
   text,
   onClose,
   closeLabel,
-  above
+  action
 }: {
   title: string | null;
   text: string;
   onClose: () => void;
   closeLabel: string;
-  /** Element prikačen tik iznad kartice, desno (dugme "Pozovi"). */
-  above?: React.ReactNode;
+  /** Dugme u zaglavlju kartice, levo od zatvaranja ("Pozovi"). */
+  action?: React.ReactNode;
 }) {
+  const headRoom = action ? '128px' : '34px';
   return (
     <div className="tour-ui-scale" style={{
       position: 'absolute',
@@ -250,17 +251,11 @@ export function InfoCard({
       boxShadow: '0 6px 20px rgba(0, 0, 0, 0.25)',
       fontFamily: THEME.fontBody
     }}>
-      {/* Kartica menja visinu sa tekstom, pa je dugme vezano za NJU, a ne
-          za dno ekrana - tako uvek stoji tik iznad, ma koliko teksta bilo. */}
-      {above && (
-        <div style={{ position: 'absolute', right: 0, bottom: 'calc(100% + 6px)' }}>{above}</div>
-      )}
+      <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+      {action}
       <button
         onClick={onClose}
         style={{
-          position: 'absolute',
-          top: '10px',
-          right: '10px',
           width: '28px',
           height: '28px',
           display: 'flex',
@@ -282,13 +277,14 @@ export function InfoCard({
       >
         ×
       </button>
+      </div>
 
       {title && (
-        <h3 style={{ margin: '0 0 6px', paddingRight: '34px', fontFamily: 'var(--font-serif), Georgia, serif', fontStyle: 'italic', fontSize: '25px', lineHeight: 1.1, fontWeight: 400, color: '#fff', textWrap: 'balance' }}>
+        <h3 style={{ margin: '0 0 6px', paddingRight: headRoom, fontFamily: 'var(--font-serif), Georgia, serif', fontStyle: 'italic', fontSize: '25px', lineHeight: 1.1, fontWeight: 400, color: '#fff', textWrap: 'balance' }}>
           {title}
         </h3>
       )}
-      <p style={{ margin: 0, fontSize: '13.5px', lineHeight: 1.55, color: 'rgba(255, 255, 255, 0.9)', paddingRight: '6px' }}>
+      <p style={{ margin: 0, fontSize: '13.5px', lineHeight: 1.55, color: 'rgba(255, 255, 255, 0.9)', paddingRight: title ? '6px' : headRoom }}>
         {text}
       </p>
     </div>

@@ -856,7 +856,7 @@ export default function TourPage() {
 
       {tourStarted && (
         <>
-          <div className="tour-ui-scale" style={{
+          <div className={adminMode ? 'tour-ui-scale' : 'tour-ui-scale k360-top--visitor'} style={{
             position: 'absolute',
             // Maksimalno uz vrh, ali ispod notch-a/zaobljene ivice
             // (env(safe-area-inset-*), uključeno preko viewportFit:'cover').
@@ -899,7 +899,7 @@ export default function TourPage() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div className="k360-top__roomnav" style={{ display: 'flex', justifyContent: 'center' }}>
               <RoomNavBar
                 rooms={rooms}
                 roomIdx={roomIdx}
@@ -1019,7 +1019,7 @@ export default function TourPage() {
             setInfoBoxData(null);
             setIsInfoboxManuallyClosed(true);
           }}
-          above={callButton}
+          action={callButton}
         />
       )}
 

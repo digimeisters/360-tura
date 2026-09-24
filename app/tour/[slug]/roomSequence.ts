@@ -251,6 +251,14 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
     }, Math.max(0, turnMs - GUIDE_REVISIT_OVERLAP_MS));
     return;
   }
+  if (!isGuidedStep && visitedGuideRoomsRef.current.has(roomKey)) {
+    // Ručni povratak u sobu koja je već ispričana: bez priče i bez kruženja -
+    // posetilac sam gleda, info-tačke i dalje pričaju na klik.
+    stopCurrentAnimation();
+    roomSequenceFinishedRef.current = true;
+    setIsRoomTourFullyCompleted(true);
+    return;
+  }
   visitedGuideRoomsRef.current.add(roomKey);
 
   const introTextRaw = composeEstablishText(establishData) ||

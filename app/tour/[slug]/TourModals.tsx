@@ -19,6 +19,7 @@ import {
   IconMail,
   IconPhone,
   IconPin,
+  IconPlan,
   IconQuestion,
   IconRooms,
   IconShare,
@@ -123,6 +124,18 @@ function FactCard({ icon, label, value }: { icon: React.ReactNode; label: string
   );
 }
 
+/** Plavi naslov unutar bele kartice ("OPIS", "OSNOVNI PODACI"). */
+const cardHead: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', padding: '13px 16px 4px', fontSize: '11.5px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: THEME.accent };
+
+/**
+ * Samo ulica, bez kućnog broja: "Maglićka 12, Kragujevac" -> "Maglićka".
+ * Tačan broj posetilac dobija od agenta, pred razgledanje.
+ */
+function streetOnly(address: string | null | undefined): string {
+  const first = address?.split(',')[0]?.trim() || '';
+  return first.replace(/\s+(bb|b\.b\.|\d+[a-zA-Z]?(\s*[/-]\s*\d+[a-zA-Z]?)?)$/i, '').trim();
+}
+
 // Na telefonu dve kolone, na računaru tri - uže kartice bi lomile reči.
 const factGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(190px, 42%), 1fr))', gap: '8px' };
 
@@ -213,6 +226,33 @@ export function TourModals({
   const city = tour?.city?.trim() || '';
   const neighbourhood = tour?.district?.trim() || '';
   const neighbourhoodLabel = factList.find((f) => f.key === 'neighbourhood')?.label;
+  const map = tour?.location_map_url ? parseMapUrl(tour.location_map_url) : null;
+  const street = streetOnly(tour?.address) || streetOnly(map?.address);
+
+  // Info: kvadratura, struktura i sprat idu kao veliki brojevi u plavu karticu,
+  // sve ostalo u jedan spisak.
+  const KEY_FACTS: FactKey[] = ['area', 'structure', 'floor'];
+  const keyFacts = KEY_FACTS.map((k) => factList.find((f) => f.key === k)).filter((f): f is FactRow => Boolean(f));
+  const locationLine = [city, neighbourhood].filter(Boolean).join(' · ');
+  const areaNum = Number(tour?.area_sqm);
+  const priceNum = Number(tour?.price);
+  const pricePerSqm =
+    tour?.category === 'sale' && areaNum > 0 && priceNum > 0
+      ? `${formatListingPrice(priceNum / areaNum, 'sale', lang)?.amount}/m²`
+      : null;
+  type SpecRow = { key: string; icon: React.ReactNode; label: string; value: string; tone?: 'yes' | 'no' };
+  const toneOf = (v: string | null | undefined): SpecRow['tone'] => (v === 'Da' ? 'yes' : v === 'Ne' ? 'no' : undefined);
+  const specRows: SpecRow[] = [
+    ...(city ? [{ key: 'city', icon: <IconGlobe size={18} />, label: t.cityLabel, value: city }] : []),
+    ...(street ? [{ key: 'street', icon: <IconPin size={18} />, label: t.addressLabel, value: street }] : []),
+    ...factList
+      .filter((f) => !KEY_FACTS.includes(f.key))
+      .map((f) => {
+        const FactIcon = FACT_ICONS[f.key];
+        const tone = f.key === 'elevator' ? toneOf(tour?.has_elevator) : f.key === 'basement' ? toneOf(tour?.has_basement) : undefined;
+        return { key: f.key, icon: <FactIcon size={18} />, label: f.label, value: f.value, tone };
+      })
+  ];
 
   const empty = (text: string) => (
     <p style={{ textAlign: 'center', color: THEME.textMuted, fontSize: '16px' }}>{text}</p>
@@ -241,7 +281,6 @@ export function TourModals({
       </div>
     );
   }
-  const map = tour?.location_map_url ? parseMapUrl(tour.location_map_url) : null;
   if (activeModal === 'location' && tour?.location_map_url && (map?.openUrl || onRequestViewing)) {
     footer = (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -273,13 +312,11 @@ export function TourModals({
     );
   }
 
-  const seenCount = rooms.filter((r) => r.id === currentRoom?.id || seenRoomIds.has(String(r.id))).length;
-
   return (
     <div className="tour-ui-scale k360-modal-wrap" style={{ position: 'absolute', inset: 0, zIndex: 80, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
       {/* Na telefonu prozor izlazi odozdo kao list (zaobljen gore), na računaru je kartica u sredini. */}
       <style>{'@media (max-width: 720px){.k360-modal-wrap{align-items:flex-end!important;padding:0!important}.k360-modal{border-radius:30px 30px 0 0!important;max-height:88vh!important;border-left:0!important;border-right:0!important;border-bottom:0!important}}'}</style>
-      <div className="k360-modal" style={{ background: 'linear-gradient(180deg, #E6EEF9 0px, #F6F8FC 130px)', border: '1px solid ' + THEME.border, borderRadius: '24px', width: '100%', maxWidth: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
+      <div className="k360-modal" style={{ background: 'linear-gradient(180deg, #E6EEF9 0px, #F6F8FC 130px)', border: '1px solid ' + THEME.border, borderRadius: '24px', width: '100%', maxWidth: activeModal === 'about' ? '900px' : '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px 6px' }}>
           <h2 style={{ color: THEME.accent, fontSize: '30px', margin: 0, fontWeight: 400, fontStyle: 'italic', letterSpacing: '-0.005em', fontFamily: 'var(--font-serif), Georgia, serif', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Icon size={22} color={THEME.accent} />
@@ -338,11 +375,17 @@ export function TourModals({
                     border: 2.5px solid #5B92D6; animation: k360PlanPulse 1.8s ease-out infinite; }
                   @keyframes k360PlanPulse { from { transform: scale(0.6); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
                   @media (prefers-reduced-motion: reduce) { .k360-plan-dot[data-state="current"]::after { animation: none; } }
-                  .k360-room-btn:hover { border-color: ${THEME.accent} !important; }
                 `}</style>
                 {/* Unutrašnji omotač je tačno veličine slike: oznake su u
                     procentima slike, a spoljni okvir je širi kad je skica
                     visoka - tada bi oznake stajale pomereno. */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '0 2px 12px' }}>
+                  <Chip solid><IconPlan size={18} /></Chip>
+                  <div>
+                    <p style={{ margin: 0, fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 800, fontSize: '17px' }}>{t.planIntroTitle}</p>
+                    <p style={{ margin: '2px 0 0', fontSize: '13.5px', lineHeight: 1.45, color: THEME.textSecondary }}>{t.planIntroText}</p>
+                  </div>
+                </div>
                 <div style={{ ...BOX_STRONG, padding: '10px', display: 'flex', justifyContent: 'center' }}>
                   <div style={{ position: 'relative', lineHeight: 0 }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -391,48 +434,6 @@ export function TourModals({
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><i style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#fff', border: '2px solid #334155' }} />{t.planSeen}</span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><i style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'rgba(15,23,42,.55)', border: '2px solid #fff', boxShadow: '0 0 0 1px #D3D3CB' }} />{t.planNew}</span>
                 </div>
-                {/* Spisak prostorija: isto što i tačke, ali lakše za prst i
-                    vidi se i soba koja nema oznaku na planu. */}
-                {rooms.length > 1 && (
-                  <>
-                    <Section icon={<IconRooms size={14} />}>
-                      {t.roomsLabel} · {t.roomsSeen.replace('{seen}', String(seenCount)).replace('{total}', String(rooms.length))}
-                    </Section>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '7px' }}>
-                      {rooms.map((r, i) => {
-                        const isCurrent = r.id === currentRoom?.id;
-                        const seen = seenRoomIds.has(String(r.id));
-                        const name = getLocalizedText(r.title_i18n, lang);
-                        return (
-                          <button
-                            key={r.id}
-                            type="button"
-                            className="k360-room-btn"
-                            aria-current={isCurrent ? 'location' : undefined}
-                            onClick={() => {
-                              onChangeRoom(r.id);
-                              onClose();
-                            }}
-                            style={{ ...(isCurrent ? BOX_STRONG : BOX), background: isCurrent ? THEME.accentSoft : '#FFFFFF', padding: '9px 10px', display: 'flex', alignItems: 'center', gap: '8px', font: 'inherit', fontSize: '13.5px', fontWeight: 650, color: THEME.textPrimary, cursor: 'pointer', textAlign: 'left' }}
-                          >
-                            <span style={{ width: '24px', height: '24px', borderRadius: '8px', background: THEME.accentSoft, color: THEME.accent, fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 800, fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</span>
-                            <span style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
-                            <i
-                              aria-hidden="true"
-                              style={
-                                isCurrent
-                                  ? { width: '12px', height: '12px', borderRadius: '50%', background: '#5B92D6', boxShadow: '0 0 0 4px rgba(91,146,214,.25)', flexShrink: 0 }
-                                  : seen
-                                    ? { width: '10px', height: '10px', borderRadius: '50%', background: '#fff', border: '2px solid #334155', flexShrink: 0 }
-                                    : { width: '10px', height: '10px', borderRadius: '50%', background: 'rgba(15,23,42,.55)', flexShrink: 0 }
-                              }
-                            />
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
               </div>
             ) : empty(t.noPlan)
           )}
@@ -444,12 +445,12 @@ export function TourModals({
                   <div style={{ width: '100%', height: '300px' }}>
                     <iframe src={tour.location_map_url} width="100%" height="100%" style={{ border: 0, display: 'block' }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
                   </div>
-                  {map?.address && (
+                  {street && (
                     <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px', borderTop: '1.5px solid ' + FRAME }}>
                       <Chip><IconPin size={18} /></Chip>
                       <div style={{ minWidth: 0 }}>
                         <span style={smallLabel}>{t.addressLabel}</span>
-                        <span style={{ ...bigValue, fontSize: '15px' }}>{map.address}</span>
+                        <span style={{ ...bigValue, fontSize: '15px' }}>{[street, city].filter(Boolean).join(', ')}</span>
                       </div>
                     </div>
                   )}
@@ -465,45 +466,62 @@ export function TourModals({
           )}
 
           {activeModal === 'about' && (
-            factList.length > 0 || aboutText || price ? (
-              <div>
-                {/* Glavna kartica: vrsta oglasa, naslov i cena. */}
-                {(price || categoryLabel) && (
-                  <div style={{ ...BOX_STRONG, padding: '16px', background: `linear-gradient(135deg, ${THEME.accent} 0%, #2C6FC4 100%)`, color: '#FFFFFF' }}>
-                    {(categoryLabel || city) && (
-                      <span style={{ display: 'block', fontSize: '10.5px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#CFE0F5' }}>
-                        {[categoryLabel, city].filter(Boolean).join(' · ')}
-                      </span>
-                    )}
-                    {tour && (
-                      <p style={{ margin: '8px 0 0', fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 700, fontSize: '15.5px', lineHeight: 1.35 }}>
-                        {getLocalizedText(tour.title_i18n, lang)}
-                      </p>
-                    )}
-                    {price && (
-                      <p style={{ margin: '8px 0 0', display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
-                        <span style={{ fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 800, fontSize: '30px', letterSpacing: '-0.02em' }}>{price.amount}</span>
-                        {price.unit && <span style={{ fontSize: '14px', color: '#CFE0F5' }}>{price.unit}</span>}
-                      </p>
-                    )}
+            factList.length > 0 || aboutText || price || city ? (
+              <div className="k360-about">
+                <style>{'.k360-about{display:grid;gap:12px;align-items:start}@media (min-width: 821px){.k360-about{grid-template-columns:1fr 1fr;grid-template-areas:"hero spec" "desc spec";gap:16px}.k360-about__hero{grid-area:hero}.k360-about__spec{grid-area:spec}.k360-about__desc{grid-area:desc}}'}</style>
+                  {/* Glavna kartica: vrsta oglasa, gde je, cena i tri ključna broja. */}
+                  {(price || categoryLabel || locationLine) && (
+                    <div className="k360-about__hero" style={{ borderRadius: '20px', padding: '16px 16px 14px', background: `linear-gradient(135deg, ${THEME.accent} 0%, #2C6FC4 100%)`, color: '#FFFFFF', boxShadow: '0 10px 24px -12px rgba(30, 90, 168, 0.8)' }}>
+                      {categoryLabel && (
+                        <span style={{ display: 'block', fontSize: '10.5px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#CFE0F5' }}>{categoryLabel}</span>
+                      )}
+                      {locationLine && (
+                        <p style={{ margin: categoryLabel ? '8px 0 0' : 0, display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 700, fontSize: '15.5px' }}>
+                          <IconPin size={16} color="#FFFFFF" />
+                          {locationLine}
+                        </p>
+                      )}
+                      {price && (
+                        <p style={{ margin: '6px 0 0', display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
+                          <span style={{ fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 800, fontSize: '32px', letterSpacing: '-0.02em' }}>{price.amount}</span>
+                          {price.unit && <span style={{ fontSize: '14px', color: '#CFE0F5' }}>{price.unit}</span>}
+                        </p>
+                      )}
+                      {pricePerSqm && <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#CFE0F5' }}>{pricePerSqm}</p>}
+                      {keyFacts.length > 0 && (
+                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${keyFacts.length}, minmax(0, 1fr))`, marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.22)' }}>
+                          {keyFacts.map((row, i) => (
+                            <div key={row.key} style={{ textAlign: 'center', padding: '0 4px', minWidth: 0, borderLeft: i ? '1px solid rgba(255, 255, 255, 0.22)' : 'none' }}>
+                              <span style={{ display: 'block', fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 800, fontSize: '20px', lineHeight: 1.1, overflowWrap: 'anywhere' }}>{row.value}</span>
+                              <span style={{ display: 'block', fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#CFE0F5', marginTop: '3px' }}>{row.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                {/* Svi ostali podaci u JEDNOJ kartici: naziv levo, vrednost desno. */}
+                {specRows.length > 0 && (
+                  <div className="k360-about__spec" style={{ ...BOX, borderRadius: '20px' }}>
+                    <div style={cardHead}><IconInfo size={14} />{t.secBasics}</div>
+                    <ul style={{ listStyle: 'none', margin: 0, padding: '0 16px 6px' }}>
+                      {specRows.map((row, i) => (
+                        <li key={row.key} style={{ display: 'flex', alignItems: 'center', gap: '11px', padding: '11px 0', borderTop: i ? '1px solid #EDF1F7' : 'none' }}>
+                          <span aria-hidden="true" style={{ display: 'flex', flexShrink: 0 }}>{row.icon}</span>
+                          <span style={{ flex: 1, color: THEME.textSecondary, fontSize: '14px' }}>{row.label}</span>
+                          <span style={{ fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 700, fontSize: '15.5px', textAlign: 'right', overflowWrap: 'anywhere', color: row.tone === 'yes' ? '#1E7A4C' : row.tone === 'no' ? '#9A9CA1' : THEME.textPrimary }}>
+                            {row.tone === 'yes' ? '✓ ' : ''}{row.value}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
-                {factList.length > 0 && (
-                  <>
-                    <Section icon={<IconInfo size={14} />}>{t.secBasics}</Section>
-                    <div style={factGrid}>
-                      {factList.map((row) => {
-                        const FactIcon = FACT_ICONS[row.key];
-                        return <FactCard key={row.key} icon={<FactIcon size={18} />} label={row.label} value={row.value} />;
-                      })}
-                    </div>
-                  </>
-                )}
                 {aboutText && (
-                  <>
-                    <Section icon={<IconText size={14} />}>{t.secDescription}</Section>
-                    <p style={{ ...BOX, borderLeft: '4px solid ' + THEME.accent, margin: 0, padding: '14px 16px', lineHeight: 1.6, color: '#2A2B30', whiteSpace: 'pre-wrap', fontSize: '15px' }}>{aboutText}</p>
-                  </>
+                  <div className="k360-about__desc" style={{ ...BOX, borderRadius: '20px' }}>
+                    <div style={cardHead}><IconText size={14} />{t.secDescription}</div>
+                    <p style={{ margin: 0, padding: '4px 16px 16px', lineHeight: 1.6, color: '#2A2B30', whiteSpace: 'pre-wrap', fontSize: '15px' }}>{aboutText}</p>
+                  </div>
                 )}
               </div>
             ) : empty(t.noAbout)

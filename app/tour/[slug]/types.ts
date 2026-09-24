@@ -71,6 +71,8 @@ export type Tour = {
    */
   /** Grad (migracija 011). */
   city?: string | null;
+  /** "Ulica broj, Grad" - u turi se prikazuje samo ulica (TourModals streetOnly). */
+  address?: string | null;
   district?: string | null;
   area_sqm?: number | string | null;
   /** Cena u evrima (migracija 013) - značenje zavisi od `category`, vidi lib/listingPrice.ts. */
