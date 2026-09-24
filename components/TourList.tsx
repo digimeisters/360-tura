@@ -86,8 +86,12 @@ const LABELS = {
   area: 'Kvadratura',
   price: 'Cena',
   priceNeedsCategory: 'izaberite vrstu oglasa',
+  any: 'Bilo koja',
+  clearAll: 'Obriši sve',
+  map: 'Mapa',
+  hideMap: 'Sakrij mapu',
   count: (shown: number, total: number) =>
-    shown === total ? `Prikazano: ${total} ${tourNoun(total)}` : `Prikazano: ${shown} od ${total}`,
+    shown === total ? `${total} ${tourNoun(total)}` : `${shown} od ${total} ${tourNoun(total)}`,
   empty: 'Za izabrane filtere nema tura. Sklonite neki filter da vidite ostale.',
   reset: 'Poništi filtere',
   clearOne: 'Poništi',
@@ -412,6 +416,10 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
     apply(next, key === 'kategorija' ? { ...ranges, cena: null } : ranges);
   };
 
+  // Jedna vrsta oglasa u isto vreme; druga vrsta = drugi red veličine cene.
+  const setCategory = (value: string | null) =>
+    apply({ ...filters, kategorija: value ? [value] : [] }, { ...ranges, cena: null });
+
   const clear = (key: FilterKey) =>
     apply({ ...filters, [key]: [] }, key === 'kategorija' ? { ...ranges, cena: null } : ranges);
 
@@ -422,24 +430,17 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
     apply(filters, { ...ranges, [key]: full ? null : range });
   };
 
-  const menu = (
-    key: FilterKey,
-    title: string,
-    options: string[],
-    optionLabel?: (value: string) => string,
-    alwaysShow = false
-  ) => {
-    // Filter se inače prikazuje samo ako može nešto da suzi: ili ima bar dve
+  const menu = (key: FilterKey, title: string, options: string[]) => {
+    // Filter se prikazuje samo ako može nešto da suzi: ili ima bar dve
     // vrednosti, ili neka tura tu vrednost nema pa je izbor izbacuje.
     const narrows = options.length > 1 || tours.some((t) => !VALUE_OF[key](t));
-    if (!options.length || (!narrows && !alwaysShow)) return null;
+    if (!options.length || !narrows) return null;
 
     return (
       <FilterMenu
         key={key}
         label={title}
         options={options}
-        optionLabel={optionLabel}
         selected={filters[key]}
         onToggle={(value) => toggle(key, value)}
         onClear={() => clear(key)}
@@ -450,67 +451,115 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
     );
   };
 
-  const slider = (
-    key: RangeKey,
-    title: string,
-    format: (value: number) => string,
-    missingWhat: string
-  ) => {
+  const formatRange: Record<RangeKey, (v: number) => string> = {
+    kvadratura: (v) => `${v} m²`,
+    // Jedinica (mesečno / noć) je u nazivu polja, ne uz svaki broj.
+    cena: (v) => `${v.toLocaleString('sr-RS')} €`
+  };
+
+  const priceUnit = listingPriceUnit(priceCategory, lang);
+  const rangeTitle: Record<RangeKey, string> = {
+    kvadratura: labels.area,
+    cena: priceUnit ? `${labels.price} ${priceUnit}` : labels.price
+  };
+  const missingWhat: Record<RangeKey, string> = { kvadratura: 'kvadraturu', cena: 'cenu' };
+
+  const slider = (key: RangeKey) => {
     const limit = bounds[key];
     if (!limit) return null;
 
     return (
       <RangeFilter
         key={key}
-        label={title}
+        label={rangeTitle[key]}
         min={limit.min}
         max={limit.max}
         step={limit.step}
         value={clampRange(ranges[key], limit)}
         onChange={(range) => setRange(key, range)}
-        format={format}
-        note={limit.missing > 0 ? labels.missing(limit.missing, missingWhat) : undefined}
+        format={formatRange[key]}
+        note={limit.missing > 0 ? labels.missing(limit.missing, missingWhat[key]) : undefined}
       />
+    );
+  };
+
+  /** Raspon kao polje u traci: zatvoreno piše izbor, otvoreno ima klizač. */
+  const rangeField = (key: RangeKey) => {
+    const limit = bounds[key];
+    if (!limit) {
+      // Cena bez izabrane vrste oglasa: polje stoji, ali sivo, sa objašnjenjem.
+      if (key !== 'cena' || priceCategory || !tours.some((t) => t.price !== null)) return null;
+      return <FieldPopover key={key} label={labels.price} value={labels.priceNeedsCategory} disabled />;
+    }
+    const active = Boolean(ranges[key]);
+    const [low, high] = clampRange(ranges[key], limit);
+    return (
+      <FieldPopover
+        key={key}
+        label={rangeTitle[key]}
+        value={active ? `${formatRange[key](low)} – ${formatRange[key](high)}` : labels.any}
+        active={active}
+        onClear={() => apply(filters, { ...ranges, [key]: null })}
+        clearLabel={labels.clearOne}
+        confirmLabel={labels.confirmOne}
+      >
+        {slider(key)}
+      </FieldPopover>
     );
   };
 
   const anyFilter =
     FILTER_KEYS.some((key) => filters[key].length) || RANGE_KEYS.some((key) => ranges[key] && bounds[key]);
 
-  // "Vrsta oglasa" stoji uvek i uvek sa sve tri mogućnosti: to je prvo po
-  // čemu kupac bira, pa se ne skriva ni kad su sve ture iste vrste.
   const menus = [
-    menu('kategorija', labels.category, [...CATEGORY_ORDER], (v) => FILTER_CATEGORY_LABELS[v], true),
     menu('grad', labels.city, cities),
     menu('naselje', labels.district, districts),
     menu('struktura', labels.structure, structures),
     menu('agencija', labels.agency, agencies)
   ].filter(Boolean);
 
-  const priceUnit = listingPriceUnit(priceCategory, lang);
-
-  // Dok vrsta oglasa nije izabrana, na mestu klizača cene stoji objašnjenje
-  // zašto ga nema - ako bar neka tura ima cenu, pa bi klizač imao smisla.
-  const priceHint =
-    !priceCategory && tours.some((t) => t.price !== null) ? (
-      <div key="cena" className="range-filter">
-        <div className="range-head">
-          <span className="range-label">{labels.price}</span>
-          <span className="range-value">{labels.priceNeedsCategory}</span>
-        </div>
-      </div>
-    ) : null;
-
-  const sliders = [
-    slider('kvadratura', labels.area, (v) => `${v}\u00a0m²`, 'kvadraturu'),
-    slider(
-      'cena',
-      priceUnit ? `${labels.price} ${priceUnit}` : labels.price,
-      // Jedinica (mesečno / noć) je u nazivu klizača, ne uz svaki broj.
-      (v) => `${v.toLocaleString('sr-RS')} €`,
-      'cenu'
-    ) ?? priceHint
+  const barFields = [
+    ...menus,
+    rangeField('kvadratura'),
+    rangeField('cena')
   ].filter(Boolean);
+
+  const sliders = RANGE_KEYS.map(slider).filter(Boolean);
+
+  // Vrsta oglasa je prvi izbor (od nje zavisi i cena), pa stoji iznad trake
+  // kao četiri dugmeta. Jedna vrsta u isto vreme - cene različitih vrsta ne
+  // idu na istu skalu.
+  const picked = filters.kategorija;
+  const categorySeg = (
+    <div className="tl-seg" role="group" aria-label={labels.category}>
+      <button type="button" aria-pressed={picked.length === 0} onClick={() => setCategory(null)}>
+        {labels.all}
+      </button>
+      {CATEGORY_ORDER.map((c) => (
+        <button key={c} type="button" aria-pressed={picked.length === 1 && picked[0] === c} onClick={() => setCategory(c)}>
+          {FILTER_CATEGORY_LABELS[c]}
+        </button>
+      ))}
+    </div>
+  );
+
+  // Izabrano, kao plave oznake sa × - vidi se šta sužava spisak i skida se
+  // jednim klikom, bez otvaranja menija.
+  const chips = [
+    ...FILTER_KEYS.flatMap((key) =>
+      filters[key].map((value) => ({
+        id: `${key}:${value}`,
+        label: key === 'kategorija' ? FILTER_CATEGORY_LABELS[value] ?? value : value,
+        remove: () => toggle(key, value)
+      }))
+    ),
+    ...RANGE_KEYS.flatMap((key) => {
+      const limit = bounds[key];
+      if (!ranges[key] || !limit) return [];
+      const [low, high] = clampRange(ranges[key], limit);
+      return [{ id: key, label: `${formatRange[key](low)} – ${formatRange[key](high)}`, remove: () => apply(filters, { ...ranges, [key]: null }) }];
+    })
+  ];
 
   // Broj UKLJUČENIH filtera, ne izabranih vrednosti: posetioca zanima
   // koliko uslova sužava spisak, a ne koliko je naselja štiklirao.
@@ -518,18 +567,62 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
     FILTER_KEYS.filter((key) => filters[key].length).length +
     RANGE_KEYS.filter((key) => ranges[key] && bounds[key]).length;
 
-  const controls = (
-    <>
-      {menus.length > 0 && <div className="filters">{menus}</div>}
-      {sliders.length > 0 && <div className="filter-ranges">{sliders}</div>}
-    </>
-  );
+  const hasControls = barFields.length > 0;
 
-  const hasControls = menus.length > 0 || sliders.length > 0;
+  const mapButton = (className: string) => (
+    <button
+      type="button"
+      className={`map-toggle-btn ${className}${showMap ? ' on' : ''}`}
+      onClick={() => setShowMap((v) => !v)}
+      aria-pressed={showMap}
+    >
+      <PinIcon />
+      {showMap ? labels.hideMap : locatedCount > 0 ? `${labels.map} · ${locatedCount}` : labels.map}
+    </button>
+  );
 
   return (
     <>
-      <div ref={blockRef}>{controls}</div>
+      {/* Na računaru mapa stoji desno od filtera (tamo je bilo prazno), na
+          telefonu ispod njih - vidi .tl-top u siteStyles. */}
+      <div className={`tl-top${showMap ? ' with-map' : ''}`}>
+        <div className="tl-left">
+          <div ref={blockRef}>
+            {categorySeg}
+            {hasControls && <div className="tl-bar">{barFields}</div>}
+            {/* Telefon: umesto trake jedno dugme koje otvara list sa filterima. */}
+            <div className="tl-mobile">
+              {hasControls && (
+                <button type="button" className="tl-mobile-btn" onClick={() => setSheetOpen(true)}>
+                  {labels.filters}
+                  {activeCount > 0 && <span className="filter-bar-count">{activeCount}</span>}
+                </button>
+              )}
+              {mapButton('tl-mobile-btn')}
+            </div>
+          </div>
+          <div className="tl-meta">
+            {chips.map((chip) => (
+              <button key={chip.id} type="button" className="tl-chip" onClick={chip.remove} aria-label={`${labels.clearOne}: ${chip.label}`}>
+                {chip.label}
+                <span aria-hidden="true">×</span>
+              </button>
+            ))}
+            {chips.length > 0 && (
+              <button type="button" className="filter-reset" onClick={() => apply(NO_FILTERS, NO_RANGES)}>
+                {labels.clearAll}
+              </button>
+            )}
+            <p className="tl-count" role="status">{labels.count(shown.length, tours.length)}</p>
+            {mapButton('tl-map-desk')}
+          </div>
+        </div>
+        {showMap && (
+          <div className="tl-map">
+            <TourMap tours={shown} lang={lang} />
+          </div>
+        )}
+      </div>
 
       {/* Pilula se pojavljuje tek kad filteri odu iznad ekrana, i otvara ih
           na licu mesta - bez nje je posetilac morao da se vrati na vrh
@@ -572,7 +665,11 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
                 ×
               </button>
             </div>
-            <div className="filter-sheet-body">{controls}</div>
+            <div className="filter-sheet-body">
+              {categorySeg}
+              {menus.length > 0 && <div className="filters">{menus}</div>}
+              {sliders.length > 0 && <div className="filter-ranges">{sliders}</div>}
+            </div>
             <div className="filter-sheet-foot">
               <button
                 type="button"
@@ -594,33 +691,6 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
         </div>
       )}
 
-      <p className="filter-count" role="status">
-        {labels.count(shown.length, tours.length)}
-        {anyFilter && (
-          <button
-            type="button"
-            className="filter-reset"
-            onClick={() => apply(NO_FILTERS, NO_RANGES)}
-          >
-            {labels.reset}
-          </button>
-        )}
-      </p>
-
-      <div className="map-cta">
-        <p className="map-cta-text">Proverite tačnu lokaciju pre nego što pozovete.</p>
-        <button
-          type="button"
-          className={`map-toggle-btn map-toggle-btn-lg${showMap ? ' on' : ''}`}
-          onClick={() => setShowMap((v) => !v)}
-          aria-pressed={showMap}
-        >
-          <PinIcon size={19} />
-          {showMap ? 'Sakrij mapu' : locatedCount > 0 ? `Mapa · ${locatedCount}` : 'Mapa'}
-        </button>
-      </div>
-
-      {showMap && <TourMap tours={shown} lang={lang} />}
 
       {shown.length > 0 ? (
         <div className="tours-grid n-4">
@@ -632,5 +702,79 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
         <p className="note">{labels.empty}</p>
       )}
     </>
+  );
+}
+
+/**
+ * Polje u traci filtera koje se otvara u mali meni (kvadratura, cena) - isto
+ * ponašanje kao FilterMenu: zatvara ga klik izvan, Escape ili "Potvrdi".
+ */
+function FieldPopover({
+  label,
+  value,
+  active = false,
+  disabled = false,
+  onClear,
+  clearLabel,
+  confirmLabel,
+  children
+}: {
+  label: string;
+  value: string;
+  active?: boolean;
+  disabled?: boolean;
+  onClear?: () => void;
+  clearLabel?: string;
+  confirmLabel?: string;
+  children?: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div className="filter-menu tl-field" ref={wrapRef}>
+      <button
+        type="button"
+        className={`filter-toggle${active ? ' on' : ''}`}
+        aria-expanded={open}
+        aria-haspopup="true"
+        disabled={disabled}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="filter-toggle-label">{label}</span>
+        <span className="filter-toggle-value">{value}</span>
+        <span className="filter-caret" aria-hidden="true" />
+      </button>
+
+      {open && (
+        <div className="filter-panel tl-range-panel" role="group" aria-label={label}>
+          {children}
+          <div className="filter-panel-foot">
+            <button type="button" className="filter-panel-clear" onClick={onClear} disabled={!active}>
+              {clearLabel}
+            </button>
+            <button type="button" className="filter-panel-done" onClick={() => setOpen(false)}>
+              {confirmLabel}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

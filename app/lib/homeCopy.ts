@@ -134,7 +134,15 @@ export type HomeCopy = {
      * ne naraste. Strana je za sada samo na srpskom, pa traka postoji samo
      * tamo (kao ranije allTours).
      */
-    database?: { text: string; filters: string[]; cta: string };
+    database?: {
+      title: string;
+      text: string;
+      /** Natpisi polja mini-pretrage; vrednosti idu u adresu /ture kao filteri. */
+      fields: { category: string; city: string; structure: string };
+      all: string;
+      categories: { rent: string; sale: string; booking: string };
+      cta: string;
+    };
   };
   benefits: { eyebrow: string; title: string; note: string; items: Titled[] };
   modules: ModulesCopy;
@@ -225,9 +233,12 @@ const sr: HomeCopy = {
     title: 'Prošetajte kroz *pravu turu*',
     note: 'Ture koje su trenutno objavljene — otvaraju se u pretraživaču, na telefonu ili računaru, bez instaliranja aplikacije.',
     database: {
-      text: 'Ovo su samo neke od tura. Kompletna baza ima filtere po gradu, naselju, strukturi, kvadraturi i ceni.',
-      filters: ['Grad', 'Naselje', 'Struktura', 'Kvadratura', 'Cena'],
-      cta: 'Otvorite spisak tura →'
+      title: 'Pronađite turu',
+      text: 'Cela baza, sa mapom i filterima po naselju, kvadraturi i ceni.',
+      fields: { category: 'Vrsta oglasa', city: 'Grad', structure: 'Struktura' },
+      all: 'Sve',
+      categories: { rent: 'Izdavanje', sale: 'Prodaja', booking: 'Stan na dan' },
+      cta: 'Prikaži ture →'
     }
   },
   benefits: {

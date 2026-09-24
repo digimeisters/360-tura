@@ -18,6 +18,7 @@ import TourCard, { tourCardLabels } from '../components/TourCard';
 import { getPublicOpenCount } from './lib/tourStats';
 import { tourHref } from './lib/tourHref';
 import { accent } from './lib/accent';
+import { STRUCTURE_ORDER } from './lib/propertyTaxonomy';
 import PromoTopBar from '../components/PromoTopBar';
 import TourModulesShowcase from '../components/TourModulesShowcase';
 
@@ -68,6 +69,9 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
 
   const [tours, openCount] = await Promise.all([getShowcaseTours(lang), getPublicOpenCount()]);
   const heroTour = pickHeroTour(tours, lang);
+  // Mini-pretraga nudi samo vrednosti koje postoje u objavljenim turama.
+  const searchCities = [...new Set(tours.map((t) => t.city).filter((c): c is string => Boolean(c)))].sort((a, b) => a.localeCompare(b, 'sr'));
+  const searchStructures = STRUCTURE_ORDER.filter((st) => tours.some((t) => t.structure === st));
   const address = [CONTACT.street, CONTACT.city, contact.country].filter(Boolean).join(', ');
 
   return (
@@ -174,20 +178,50 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
                 ))}
               </div>
               {copy.examples.database && (
-                <div className="db-teaser">
-                  <span className="db-teaser-icon" aria-hidden="true">🔍</span>
+                // Obična GET forma: radi i bez JavaScript-a, a /ture čita
+                // ?kategorija=&grad=&struktura= iz adrese (prazno = bez filtera).
+                <form className="db-teaser" action="/ture" method="get">
                   <div className="db-teaser-body">
+                    <h3 className="db-teaser-title">{copy.examples.database.title}</h3>
                     <p className="db-teaser-text">{copy.examples.database.text}</p>
-                    <div className="db-teaser-filters">
-                      {copy.examples.database.filters.map((f) => (
-                        <span key={f} className="chip">{f}</span>
-                      ))}
-                    </div>
                   </div>
-                  <Link className="btn btn-primary db-teaser-cta" href="/ture" data-track="cta:all_tours">
-                    {copy.examples.database.cta}
-                  </Link>
-                </div>
+                  <div className="db-search">
+                    <label className="db-field">
+                      <span>{copy.examples.database.fields.category}</span>
+                      <select name="kategorija" defaultValue="">
+                        <option value="">{copy.examples.database.all}</option>
+                        {(['rent', 'sale', 'booking'] as const).map((c) => (
+                          <option key={c} value={c}>{copy.examples.database!.categories[c]}</option>
+                        ))}
+                      </select>
+                    </label>
+                    {searchCities.length > 1 && (
+                      <label className="db-field">
+                        <span>{copy.examples.database.fields.city}</span>
+                        <select name="grad" defaultValue="">
+                          <option value="">{copy.examples.database.all}</option>
+                          {searchCities.map((c) => (
+                            <option key={c}>{c}</option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                    {searchStructures.length > 1 && (
+                      <label className="db-field">
+                        <span>{copy.examples.database.fields.structure}</span>
+                        <select name="struktura" defaultValue="">
+                          <option value="">{copy.examples.database.all}</option>
+                          {searchStructures.map((c) => (
+                            <option key={c}>{c}</option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                    <button type="submit" className="btn btn-primary db-teaser-cta" data-track="cta:all_tours">
+                      {copy.examples.database.cta}
+                    </button>
+                  </div>
+                </form>
               )}
             </div>
           </section>

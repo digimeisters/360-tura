@@ -36,6 +36,7 @@ function pinIcon(L: typeof import('leaflet')) {
 export default function TourMap({ tours, lang = 'sr' }: { tours: ShowcaseTour[]; lang?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import('leaflet').Map | null>(null);
+  const resizeRef = useRef<ResizeObserver | null>(null);
 
   const located = tours.filter(
     (t): t is ShowcaseTour & { lat: number; lng: number } => t.lat !== null && t.lng !== null
@@ -73,6 +74,13 @@ export default function TourMap({ tours, lang = 'sr' }: { tours: ShowcaseTour[];
         markers.push(marker);
       });
 
+      // Mapa pored filtera menja visinu kad se dodaju oznake izbora -
+      // bez ovoga bi Leaflet ostavio sive pločice na novom delu.
+      const container = containerRef.current;
+      const observer = new ResizeObserver(() => map.invalidateSize());
+      observer.observe(container);
+      resizeRef.current = observer;
+
       if (markers.length > 0) {
         const group = L.featureGroup(markers);
         if (markers.length === 1) {
@@ -85,6 +93,8 @@ export default function TourMap({ tours, lang = 'sr' }: { tours: ShowcaseTour[];
 
     return () => {
       cancelled = true;
+      resizeRef.current?.disconnect();
+      resizeRef.current = null;
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;

@@ -364,6 +364,62 @@ export const SITE_STYLES = `
   .tour-map .leaflet-popup-content-wrapper{border-radius:10px;}
   @media (max-width:560px){ .tour-map{height:320px;} }
   .filter-reset{background:none; border:none; padding:0; font:inherit; color:var(--accent); font-weight:650; cursor:pointer; text-decoration:underline;}
+
+  /* /ture: vrsta oglasa kao četiri dugmeta, ostali filteri u jednoj traci. */
+  .tl-seg{display:inline-flex; gap:2px; max-width:100%; background:var(--surface); border:1px solid var(--line-strong); border-radius:999px; padding:4px;}
+  .tl-seg button{border:0; background:none; font:inherit; font-size:.9rem; font-weight:600; color:var(--ink-soft); padding:.5rem 1.05rem; border-radius:999px; cursor:pointer; white-space:nowrap;}
+  .tl-seg button:hover{color:var(--ink);}
+  .tl-seg button[aria-pressed="true"]{background:var(--accent); color:var(--on-accent);}
+  .tl-bar{display:flex; margin-top:.9rem; background:var(--surface); border:1px solid var(--line-strong); border-radius:22px; box-shadow:var(--shadow-lg);}
+  .tl-bar > .filter-menu{flex:1 1 0; width:auto; min-width:0; border-left:1px solid var(--line);}
+  .tl-bar > .filter-menu:first-child{border-left:0;}
+  .tl-bar .filter-toggle{display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-areas:"label label" "value caret"; row-gap:.15rem; column-gap:.4rem; background:none; border:0; border-radius:21px; padding:.7rem 1.1rem; text-align:left;}
+  .tl-bar .filter-toggle:hover:not(:disabled){background:var(--surface-2);}
+  .tl-bar .filter-toggle:disabled{cursor:default;}
+  .tl-bar .filter-toggle:disabled .filter-toggle-value{color:var(--ink-faint); font-weight:500;}
+  .tl-bar .filter-toggle-label{grid-area:label; font-size:.66rem; font-weight:800;}
+  .tl-bar .filter-toggle-value{grid-area:value; margin:0; text-align:left; font-size:.92rem; font-weight:600;}
+  .tl-bar .filter-caret{grid-area:caret;}
+  .tl-bar .filter-toggle.on{background:none; color:var(--ink);}
+  .tl-bar .filter-toggle.on:hover{background:var(--surface-2);}
+  .tl-bar .filter-toggle.on .filter-toggle-label{color:var(--accent); opacity:1;}
+  .tl-bar .filter-panel{right:auto; min-width:15rem;}
+  .tl-bar > .filter-menu:nth-last-child(-n+2) .filter-panel{left:auto; right:0;}
+  .tl-range-panel{min-width:18rem !important; padding:.9rem 1rem .45rem;}
+  /* Mapa desno od filtera: traka tada ide u dva reda po tri polja. */
+  .tl-top{margin-bottom:1.6rem;}
+  .tl-top .tl-meta{margin-bottom:0;}
+  .tl-map{margin-top:1rem;}
+  .tl-map .tour-map, .tl-map .tour-map-empty{margin:0;}
+  @media (min-width:861px){
+    .tl-top.with-map{display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:1.4rem; align-items:stretch;}
+    .tl-top.with-map .tl-map{margin:0; min-height:300px; display:flex;}
+    .tl-top.with-map .tl-map .tour-map{flex:1; height:auto; min-height:300px;}
+    .tl-top.with-map .tl-map .tour-map-empty{flex:1; display:grid; place-items:center;}
+    .tl-top.with-map .tl-bar{display:grid; grid-template-columns:repeat(3,minmax(0,1fr));}
+    .tl-top.with-map .tl-bar > .filter-menu{border-left:1px solid var(--line); border-top:1px solid var(--line);}
+    .tl-top.with-map .tl-bar > .filter-menu:nth-child(3n+1){border-left:0;}
+    .tl-top.with-map .tl-bar > .filter-menu:nth-child(-n+3){border-top:0;}
+    .tl-top.with-map .tl-bar > .filter-menu .filter-panel{left:0; right:auto;}
+    .tl-top.with-map .tl-bar > .filter-menu:nth-child(3n) .filter-panel{left:auto; right:0;}
+  }
+  .tl-meta{display:flex; align-items:center; flex-wrap:wrap; gap:.5rem; margin:1rem 0 1.2rem;}
+  .tl-chip{display:inline-flex; align-items:center; gap:.4rem; background:var(--accent-soft); color:var(--accent); border:0; border-radius:999px; padding:.35rem .45rem .35rem .8rem; font:inherit; font-size:.84rem; font-weight:650; cursor:pointer;}
+  .tl-chip span{display:inline-grid; place-items:center; width:1.15rem; height:1.15rem; border-radius:50%; background:var(--surface); font-size:.8rem; line-height:1;}
+  .tl-chip:hover span{background:var(--accent); color:var(--on-accent);}
+  .tl-count{margin:0 0 0 auto; font-size:.9rem; color:var(--ink-soft);}
+  .tl-mobile{display:none; gap:.5rem; margin-top:.8rem;}
+  .tl-mobile-btn{flex:1; justify-content:center; font-size:.92rem; padding:.7rem 1rem; border-radius:14px;}
+  button.tl-mobile-btn{display:inline-flex; align-items:center; gap:.5rem; font-family:var(--font-display); font-weight:700; color:var(--ink); background:var(--surface); border:1px solid var(--line-strong); cursor:pointer;}
+  button.tl-mobile-btn.on{background:var(--accent); color:var(--on-accent); border-color:var(--accent);}
+  .filter-sheet-body .tl-seg{display:flex; flex-wrap:wrap; border-radius:18px; margin-bottom:1rem;}
+  @media (max-width:860px){
+    .tl-bar, .tl-map-desk{display:none !important;}
+    .tl-mobile{display:flex;}
+    .tl-seg{display:flex; overflow-x:auto; scrollbar-width:none;}
+    .tl-seg::-webkit-scrollbar{display:none;}
+    .tl-count{margin-left:0; width:100%; order:-1;}
+  }
   /* Na telefonu meni ide preko cele širine kartice, da duga imena naselja
      ne isteraju panel van ekrana. */
   @media (max-width:560px){
@@ -560,10 +616,17 @@ export const SITE_STYLES = `
   .db-teaser-icon{flex:none; display:grid; place-items:center; width:2.4rem; height:2.4rem; border-radius:50%; background:var(--accent-soft); font-size:1.15rem;}
   .db-teaser-body{flex:1 1 16rem; min-width:0; display:flex; flex-direction:column; gap:.55rem;}
   .db-teaser-text{font-size:.9rem; color:var(--ink-soft); line-height:1.5;}
-  .db-teaser-filters{display:flex; flex-wrap:wrap; gap:.4rem;}
-  .db-teaser-filters .chip{font-size:.76rem; padding:.25rem .65rem; font-weight:650;}
+  .db-teaser-title{font-size:1.2rem; margin:0;}
+  /* Mini-pretraga: ista traka kao filteri na /ture. */
+  .db-search{flex:1.6 1 30rem; display:flex; align-items:stretch; background:var(--surface); border:1px solid var(--line-strong); border-radius:20px;}
+  .db-field{flex:1 1 0; min-width:0; display:flex; flex-direction:column; gap:.15rem; padding:.6rem 1rem; border-left:1px solid var(--line); cursor:pointer;}
+  .db-field:first-child{border-left:0;}
+  .db-field span{font-family:var(--font-display); font-size:.66rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint);}
+  .db-field select{font:inherit; font-size:.92rem; font-weight:600; color:var(--ink); background:none; border:0; padding:0; margin:0 -.2rem; cursor:pointer; min-width:0;}
+  .db-field select:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:6px;}
+  .db-search .db-teaser-cta{margin:.4rem; border-radius:14px;}
   .db-teaser-cta{flex:none;}
-  @media (max-width:640px){ .db-teaser{flex-direction:column; text-align:center; padding:1.2rem;} .db-teaser-body{align-items:center;} .db-teaser-filters{justify-content:center;} .db-teaser-cta{width:100%;} }
+  @media (max-width:640px){ .db-teaser{flex-direction:column; align-items:stretch; padding:1.2rem;} .db-search{flex-direction:column; flex-basis:auto;} .db-field{border-left:0; border-top:1px solid var(--line);} .db-field:first-child{border-top:0;} .db-search .db-teaser-cta{margin:.5rem;} }
   .tour-card{overflow:hidden; display:flex; flex-direction:column; text-decoration:none; color:inherit; border:0; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;}
   @media (hover:hover){ .tour-card:hover{transform:translateY(-3px); box-shadow:var(--shadow-lg);} .tour-card:hover .tour-open{border-color:var(--accent); color:var(--accent);} }
   .tour-photo{position:relative; aspect-ratio:1200/630; background:var(--surface-2);}
