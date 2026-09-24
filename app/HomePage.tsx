@@ -19,6 +19,7 @@ import { getPublicOpenCount } from './lib/tourStats';
 import { tourHref } from './lib/tourHref';
 import { accent } from './lib/accent';
 import PromoTopBar from '../components/PromoTopBar';
+import TourModulesShowcase from '../components/TourModulesShowcase';
 
 /**
  * Početna strana, jedan raspored za obe jezičke verzije: app/page.tsx (/,
@@ -207,6 +208,12 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section id="u-turi">
+          <div className="wrap">
+            <TourModulesShowcase copy={copy.modules} photoUrl={heroTour?.coverUrl ?? null} />
           </div>
         </section>
 

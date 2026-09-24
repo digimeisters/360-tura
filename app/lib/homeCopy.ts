@@ -14,6 +14,39 @@ export type HomeLang = 'sr' | 'en';
 
 type Titled = { title: string; text: string };
 
+export type TourModuleKey = 'about' | 'faq' | 'location' | 'plan' | 'contact';
+
+/** Sekcija "Pet dugmadi" - donji meni ture predstavljen kao koristi (TourModulesShowcase). */
+export type ModulesCopy = {
+  eyebrow: string;
+  title: string;
+  note: string;
+  hint: string;
+  buyerLabel: string;
+  youLabel: string;
+  items: { key: TourModuleKey; tab: string; title: string; text: string; buyer: string; you: string }[];
+  /** Primer sadržaja na telefonu - izmišljen stan, isti izgled kao u pravoj turi. */
+  preview: {
+    category: string;
+    place: string;
+    price: string;
+    keys: [string, string][];
+    rows: [string, string, boolean?][];
+    questions: string[];
+    answer: string;
+    addressLabel: string;
+    address: string;
+    openMaps: string;
+    planHeading: string;
+    agent: string;
+    agency: string;
+    call: string;
+    email: string;
+    viewing: string;
+    credit: string;
+  };
+};
+
 /**
  * Jedna stavka cenovnika: tura (osnovna ili premium) i HDR fotografije.
  *
@@ -104,6 +137,7 @@ export type HomeCopy = {
     database?: { text: string; filters: string[]; cta: string };
   };
   benefits: { eyebrow: string; title: string; note: string; items: Titled[] };
+  modules: ModulesCopy;
   steps: { eyebrow: string; title: string; note: string; items: Titled[]; deliverTitle: string; deliver: string[] };
   types: {
     eyebrow: string;
@@ -206,10 +240,44 @@ const sr: HomeCopy = {
       { title: 'Strani kupci bez prevodioca', text: 'Audio vodič govori srpski, engleski, nemački i ruski — kupac iz inostranstva čuje sve na svom jeziku.' },
       { title: 'Vođena tura, bez kliktanja', text: 'Posetilac bira: da ga vodič provede kroz sve prostorije i ispriča šta se gde nalazi, ili da razgleda sam, svojim tempom.' },
       { title: 'Brža odluka', text: 'Ko je već „prošetao“ kroz stan, na razgledanje dolazi sa manje pitanja i brže se odlučuje.' },
-      { title: 'Sve na jednom mestu', text: 'Plan stana, lokacija i vaš kontakt stoje u samoj turi — bez dodatnih poziva i mejlova.' },
+      { title: 'Vaše ime u svakoj turi', text: 'Naziv agencije stoji u turi od prvog do poslednjeg kadra — i kad se link deli dalje, kupac zna koga da pozove.' },
       { title: 'Profesionalan prvi utisak', text: 'Kvalitetna fotografija i uredna tura grade poverenje i pre prvog poziva.' },
       { title: 'Otvoreno 24 sata, na svakom uređaju', text: 'Stan je otvoren za razgledanje u svako doba — u pretraživaču na telefonu ili računaru, bez zakazivanja i bez instaliranja aplikacije.' }
     ]
+  },
+  modules: {
+    eyebrow: 'U samoj turi',
+    title: 'Pet dugmadi koja *odgovaraju umesto vas*',
+    note: 'Ispod svake ture stoji isti meni kao u aplikaciji. Kupac tu nađe ono što bi vas inače pitao telefonom — i zakaže razgledanje kad je spreman.',
+    hint: 'Kliknite na dugme — telefon pokazuje šta kupac vidi.',
+    buyerLabel: 'Kupac',
+    youLabel: 'Vi',
+    items: [
+      { key: 'about', tab: 'Info', title: 'Sve bitno na jednom listu', text: 'Cena, kvadratura, sprat, grejanje, terasa, parking, uknjiženost — pregledno, na jeziku posetioca. Bez listanja oglasa i bez nagađanja.', buyer: 'U pola minuta zna da li mu stan odgovara.', you: 'Nema više poziva „koji je sprat?“ i „ima li lift?“.' },
+      { key: 'faq', tab: 'Pitanja', title: 'Odgovori pre prvog poziva', text: 'Pet pitanja koja kupci uvek postave — drugačija za prodaju, izdavanje i stan na dan — sa odgovorima na srpskom, engleskom, nemačkom i ruskom.', buyer: 'Dobije odgovor odmah, i u ponoć.', you: 'Na razgledanje dolaze već informisani.' },
+      { key: 'location', tab: 'Lokacija', title: 'Gde je — bez otkrivanja broja', text: 'Mapa, ulica i naselje. Jednim dodirom otvara Google mape i put do stana. Kućni broj se ne prikazuje.', buyer: 'Odmah vidi kraj, prevoz i okolinu.', you: 'Tačnu adresu dajete tek kad zakažete razgledanje.' },
+      { key: 'plan', tab: 'Plan', title: 'Raspored jednim pogledom', text: 'Tlocrt stana sa tačkama prostorija. Dodir na tačku vodi pravo u tu prostoriju u 360° turi.', buyer: 'Razume raspored pre nego što prođe kroz stan.', you: 'Nema „a gde je kupatilo u odnosu na sobu?“.' },
+      { key: 'contact', tab: 'Kontakt', title: 'Razgledanje zakazano iz ture', text: 'Vaša kartica sa imenom i agencijom, poziv jednim dodirom i dugme „Zakaži razgledanje“ — ime, telefon i željeni termin.', buyer: 'Zakaže u trenutku kad mu se stan dopadne.', you: 'Upit nam stiže odmah, sa podacima o turi, i istog trenutka ga prosleđujemo vama.' }
+    ],
+    preview: {
+      category: 'Prodaja',
+      place: 'Kragujevac · Centar',
+      price: '98.000 €',
+      keys: [['54 m²', 'Kvadratura'], ['Dvosoban', 'Struktura'], ['3/5', 'Sprat']],
+      rows: [['Ulica', 'Maglićka'], ['Grejanje', 'Centralno'], ['Terasa', 'Terasa'], ['Parking', 'Garaža'], ['Lift', '✓ Da', true], ['Uknjiženo', '✓ Da', true]],
+      questions: ['Kolika je cena i da li je moguć kredit?', 'Kakvo je stanje objekta?', 'Da li je uknjižena?', 'Da li su porezi uključeni?', 'Šta sve ide uz stan?'],
+      answer: '98.000 €, kupovina na kredit je moguća.',
+      addressLabel: 'Adresa',
+      address: 'Maglićka, Kragujevac',
+      openMaps: 'Otvori u Google mapama',
+      planHeading: 'Tlocrt — raspored prostorija',
+      agent: 'Marko Marković',
+      agency: 'Vaša agencija',
+      call: 'Pozovi',
+      email: 'E-mail',
+      viewing: 'Zakaži razgledanje',
+      credit: '360° turu izradio ◇ Kvadrat360'
+    }
   },
   steps: {
     eyebrow: 'Kako radimo',
@@ -425,10 +493,44 @@ const en: HomeCopy = {
       { title: 'Reach buyers abroad', text: 'The audio guide is available in Serbian, English, German and Russian — no interpreter needed.' },
       { title: 'A guided walkthrough', text: 'Visitors choose: let the guide take them through every room and explain what is where, or explore on their own, at their own pace.' },
       { title: 'Faster decisions', text: 'A buyer or tenant who has already “walked” through the apartment comes to the viewing with fewer questions and decides faster.' },
-      { title: 'Everything in one place', text: 'The floor plan, location and your contact details are inside the same tour — no extra calls or emails.' },
+      { title: 'Your name on every tour', text: 'Your agency name stays on screen from the first room to the last — even when the link is passed on, the buyer knows who to call.' },
       { title: 'A professional first impression', text: 'Quality photography and a polished tour build trust before the first contact.' },
       { title: 'Open 24/7, on any device', text: 'The property is “open” for viewing at any time, in the browser on a phone or a computer — no appointments, no app to download.' }
     ]
+  },
+  modules: {
+    eyebrow: 'Inside the tour',
+    title: 'Five buttons that *answer for you*',
+    note: 'Every tour has the same menu along the bottom. Buyers find what they would otherwise call you about — and book a viewing when they are ready.',
+    hint: 'Tap a button — the phone shows what the buyer sees.',
+    buyerLabel: 'Buyer',
+    youLabel: 'You',
+    items: [
+      { key: 'about', tab: 'Info', title: 'Everything that matters, on one sheet', text: 'Price, floor area, floor, heating, terrace, parking, registered title — clear, in the visitor’s own language. No scrolling through listings, no guessing.', buyer: 'Knows in half a minute whether the place fits.', you: 'No more calls asking “which floor?” or “is there a lift?”.' },
+      { key: 'faq', tab: 'Questions', title: 'Answers before the first call', text: 'The five questions buyers always ask — different for sale, rent and short stays — answered in Serbian, English, German and Russian.', buyer: 'Gets an answer right away, even at midnight.', you: 'People arrive at the viewing already informed.' },
+      { key: 'location', tab: 'Location', title: 'Where it is — without the house number', text: 'Map, street and neighbourhood. One tap opens Google Maps with directions. The house number is never shown.', buyer: 'Sees the area, transport and surroundings at once.', you: 'You share the exact address only once a viewing is booked.' },
+      { key: 'plan', tab: 'Plan', title: 'The layout at a glance', text: 'A floor plan with a dot for every room. Tapping a dot takes the visitor straight into that room in the 360° tour.', buyer: 'Understands the layout before walking through.', you: 'No more “where is the bathroom from the bedroom?”.' },
+      { key: 'contact', tab: 'Contact', title: 'Viewings booked from the tour', text: 'Your card with name and agency, one-tap calling and a “Book a viewing” button — name, phone and preferred time.', buyer: 'Books the moment they like the place.', you: 'The request reaches us instantly, with the tour details, and we pass it straight to you.' }
+    ],
+    preview: {
+      category: 'For sale',
+      place: 'Kragujevac · Centre',
+      price: '€98,000',
+      keys: [['54 m²', 'Area'], ['2-room', 'Layout'], ['3/5', 'Floor']],
+      rows: [['Street', 'Maglićka'], ['Heating', 'Central'], ['Terrace', 'Terrace'], ['Parking', 'Garage'], ['Lift', '✓ Yes', true], ['Registered', '✓ Yes', true]],
+      questions: ['What’s the price, is a mortgage possible?', 'What’s the condition?', 'Is it registered?', 'Are taxes included?', 'What comes with it?'],
+      answer: '€98,000, and buying with a mortgage is possible.',
+      addressLabel: 'Address',
+      address: 'Maglićka, Kragujevac',
+      openMaps: 'Open in Google Maps',
+      planHeading: 'Floor plan — room layout',
+      agent: 'Marko Marković',
+      agency: 'Your agency',
+      call: 'Call',
+      email: 'Email',
+      viewing: 'Book a viewing',
+      credit: '360° tour by ◇ Kvadrat360'
+    }
   },
   steps: {
     eyebrow: 'How it works',

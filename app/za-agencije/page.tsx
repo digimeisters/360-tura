@@ -10,6 +10,7 @@ import FromPrice from '../../components/FromPrice';
 import { PlanItemList, PlanPrice, SaleSticker } from '../../components/PromoPrice';
 import SiteTracker from '../../components/SiteTracker';
 import NavScrollSpy from '../../components/NavScrollSpy';
+import TourModulesShowcase from '../../components/TourModulesShowcase';
 import { SITE_STYLES } from '../lib/siteStyles';
 import { AGENCY_COPY } from '../lib/agencyCopy';
 import { HOME_COPY } from '../lib/homeCopy';
@@ -454,6 +455,13 @@ export default async function AgencyPage() {
                 </div>
               </div>
             </details>
+          </div>
+        </section>
+
+        {/* Donji meni ture, predstavljen kao koristi. */}
+        <section id="u-turi">
+          <div className="wrap">
+            <TourModulesShowcase copy={HOME_COPY.sr.modules} photoUrl={heroTour?.coverUrl ?? null} />
           </div>
         </section>
 
