@@ -132,6 +132,129 @@ export const IconLink = (p: IconProps) => (
   </Svg>
 );
 
+// Ikonice za kartice u prozorima (Info, Lokacija, Kontakt).
+export const IconHome = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 11 12 4l8 7" />
+    <path d="M6 10v10h12V10" />
+  </Svg>
+);
+
+export const IconArea = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 20 20 4" />
+    <path d="M4 14v6h6" />
+    <path d="M14 4h6v6" />
+  </Svg>
+);
+
+export const IconRooms = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="4" width="18" height="16" rx="1.5" />
+    <path d="M12 4v16" />
+  </Svg>
+);
+
+export const IconStairs = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 20h5v-5h5v-5h5V5h3" />
+  </Svg>
+);
+
+export const IconElevator = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="5" y="3" width="14" height="18" rx="2" />
+    <path d="m9 9 3-3 3 3" />
+    <path d="m9 15 3 3 3-3" />
+  </Svg>
+);
+
+export const IconBox = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 8 12 3l9 5v8l-9 5-9-5z" />
+    <path d="m3 8 9 5 9-5" />
+    <path d="M12 13v8" />
+  </Svg>
+);
+
+export const IconFlame = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 21a6 6 0 0 0 6-6c0-4-3-6-4-10-2 2-3 4-3 6-1-1-1.5-2-1.5-3C7 10 6 12.5 6 15a6 6 0 0 0 6 6z" />
+  </Svg>
+);
+
+export const IconBuilding = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 21h18" />
+    <path d="M5 21V10l5-3v14" />
+    <path d="M10 21V4l9 4v13" />
+  </Svg>
+);
+
+export const IconBrush = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="4" y="3" width="16" height="6" rx="1.5" />
+    <path d="M12 9v3" />
+    <path d="M10 12h4v9h-4z" />
+  </Svg>
+);
+
+export const IconGlobe = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M3 12h18" />
+    <path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18" />
+  </Svg>
+);
+
+export const IconText = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M5 6h14" />
+    <path d="M5 11h14" />
+    <path d="M5 16h9" />
+  </Svg>
+);
+
+export const IconMail = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="m3 7 9 6 9-6" />
+  </Svg>
+);
+
+export const IconShare = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="18" cy="5" r="3" />
+    <circle cx="6" cy="12" r="3" />
+    <circle cx="18" cy="19" r="3" />
+    <path d="m8.6 13.5 6.8 4" />
+    <path d="m15.4 6.5-6.8 4" />
+  </Svg>
+);
+
+export const IconCalendar = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="5" width="18" height="16" rx="2" />
+    <path d="M3 10h18" />
+    <path d="M8 3v4" />
+    <path d="M16 3v4" />
+  </Svg>
+);
+
+export const IconCheck = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m5 12.5 5 4.5 9-10" />
+  </Svg>
+);
+
+export const IconExternal = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M14 4h6v6" />
+    <path d="M20 4 11 13" />
+    <path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+  </Svg>
+);
+
 export const MODAL_ICONS:Record<Exclude<ActiveModal, null>, (p: IconProps) => React.ReactElement> = {
   faq: IconQuestion,
   location: IconPin,

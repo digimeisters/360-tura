@@ -16,7 +16,7 @@ import { WelcomeScreen } from './WelcomeScreen';
 import { CallAgentButton, InfoCard, LanguageChips, OverlayButtons, StatusNotice, TourTitleCard } from './TourControls';
 import { TourMenuBar } from './TourMenuBar';
 import { ViewingRequestModal } from './ViewingRequestModal';
-import { FaqAnswerModal, TourModals } from './TourModals';
+import { TourModals } from './TourModals';
 import { AdminLoginModal, HotspotForm } from './TourAdminPanels';
 import { useTourData } from './useTourData';
 import { useAdminSession } from './useAdminSession';
@@ -145,7 +145,6 @@ export default function TourPage() {
 
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const [showViewing, setShowViewing] = useState(false);
-  const [selectedFaq, setSelectedFaq] = useState<number | null>(null);
   const [isRoomTourFullyCompleted, setIsRoomTourFullyCompleted] = useState(false);
   const [isInfoboxManuallyClosed, setIsInfoboxManuallyClosed] = useState(false);
 
@@ -1045,7 +1044,7 @@ export default function TourPage() {
       {hasMounted && activeModal && (
         <TourModals
           activeModal={activeModal}
-          onClose={() => { setActiveModal(null); setSelectedFaq(null); }}
+          onClose={() => setActiveModal(null)}
           t={t}
           tour={tour}
           rooms={rooms}
@@ -1057,7 +1056,6 @@ export default function TourPage() {
           aboutText={aboutText}
           factList={factList}
           faqList={faqList}
-          onSelectFaq={setSelectedFaq}
           onChangeRoom={(id) => changeRoomById(id)}
           onFloorplanClick={handleSetFloorplanMarker}
           onShare={handleShareTour}
@@ -1073,15 +1071,6 @@ export default function TourPage() {
           tourTitle={fullTourTitle}
           lang={lang}
           onClose={() => setShowViewing(false)}
-        />
-      )}
-
-      {hasMounted && selectedFaq !== null && faqList[selectedFaq] && (
-        <FaqAnswerModal
-          item={faqList[selectedFaq]}
-          onClose={() => setSelectedFaq(null)}
-          closeLabel={t.close}
-          comingSoon={t.comingSoon}
         />
       )}
     </main>

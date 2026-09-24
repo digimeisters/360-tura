@@ -99,7 +99,9 @@ export const composeEstablishText = (establishData: EstablishData): Record<strin
   return combined;
 };
 
-export type FactRow = { label: string; value: string };
+/** `key` bira ikonicu kartice u Info prozoru (TourModals). */
+export type FactKey = 'neighbourhood' | 'area' | 'structure' | 'floor' | 'elevator' | 'basement' | 'heating' | 'buildStatus' | 'finishStatus';
+export type FactRow = { key: FactKey; label: string; value: string };
 
 // Postgres `numeric` (area_sqm) stiže kao tekst kroz PostgREST.
 function asNumber(value: number | string | null | undefined): number | null {
@@ -143,15 +145,15 @@ export function buildFactList(tour: Tour | null | undefined, lang: Language): Fa
     value ? (dict[value]?.[lang] ?? value) : '';
 
   const rows: FactRow[] = [
-    { label: t.neighbourhood, value: tour.district?.trim() || '' },
-    { label: t.area, value: area !== null ? `${area} m²` : '' },
-    { label: t.structure, value: fromList(STRUCTURE_LABELS, tour.structure) },
-    { label: t.floor, value: formatFloor(tour.floor, lang) },
-    { label: t.elevator, value: yesNo(tour.has_elevator) },
-    { label: t.basement, value: yesNo(tour.has_basement) },
-    { label: t.heating, value: fromList(HEATING_LABELS, tour.heating) },
-    { label: t.buildStatus, value: fromList(BUILD_STATUS_LABELS, tour.build_status) },
-    { label: t.finishStatus, value: fromList(FINISH_STATUS_LABELS, tour.finish_status) }
+    { key: 'neighbourhood', label: t.neighbourhood, value: tour.district?.trim() || '' },
+    { key: 'area', label: t.area, value: area !== null ? `${area} m²` : '' },
+    { key: 'structure', label: t.structure, value: fromList(STRUCTURE_LABELS, tour.structure) },
+    { key: 'floor', label: t.floor, value: formatFloor(tour.floor, lang) },
+    { key: 'elevator', label: t.elevator, value: yesNo(tour.has_elevator) },
+    { key: 'basement', label: t.basement, value: yesNo(tour.has_basement) },
+    { key: 'heating', label: t.heating, value: fromList(HEATING_LABELS, tour.heating) },
+    { key: 'buildStatus', label: t.buildStatus, value: fromList(BUILD_STATUS_LABELS, tour.build_status) },
+    { key: 'finishStatus', label: t.finishStatus, value: fromList(FINISH_STATUS_LABELS, tour.finish_status) }
   ];
 
   return rows.filter((row) => row.value !== '');
