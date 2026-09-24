@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Instrument_Serif, Plus_Jakarta_Sans } from "next/font/google";
+import { Inter, Instrument_Serif, Plus_Jakarta_Sans, Urbanist } from "next/font/google";
 import "./globals.css";
 import ScrollToTop from "../components/ScrollToTop";
 import ErrorReporter from "../components/ErrorReporter";
@@ -27,6 +27,13 @@ const serif = Instrument_Serif({
   style: "italic",
   subsets: ["latin", "latin-ext"],
   variable: "--font-instrument",
+  display: "swap",
+});
+
+// Urbanist: moderan, topao font za info kutije u turi.
+const urbanist = Urbanist({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-urbanist",
   display: "swap",
 });
 
@@ -75,7 +82,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const cdn = cdnOrigin();
 
   return (
-    <html lang="sr" className={`${inter.variable} ${jakarta.variable} ${serif.variable}`}>
+    <html lang="sr" className={`${inter.variable} ${jakarta.variable} ${serif.variable} ${urbanist.variable}`}>
       <head>
         {cdn && <link rel="preconnect" href={cdn} />}
         {cdn && <link rel="preconnect" href={cdn} crossOrigin="anonymous" />}

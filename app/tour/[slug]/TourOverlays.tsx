@@ -36,13 +36,33 @@ export function TourGlobalStyles() {
         70% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 10px rgba(253, 230, 138, 0); }
         100% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(253, 230, 138, 0); }
       }
-      /* Navigacija: pulsira sama tačka (talas oko nje), ne cela pilula. */
-      .k360-hs-dot { position: relative; flex: none; width: 12px; height: 12px; border-radius: 50%; background: rgba(127, 176, 236, 0.7); border: 1.5px solid rgba(255, 255, 255, 0.75); box-shadow: 0 0 8px rgba(127, 176, 236, 0.55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
-      .k360-hs-dot::after { content: ''; position: absolute; inset: -7px; border-radius: 50%; border: 1.5px solid rgba(165, 200, 242, 0.7); animation: k360HsRing 1.8s ease-out infinite; }
-      @keyframes k360HsRing { from { transform: scale(0.55); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
+      /* Prelaz u drugu sobu: gore far koji pulsira (tamnija plava sajta
+         tačka + dva talasa u razmaku), dole miran natpis sa imenom sobe.
+         Na prelaz mišem far poraste i pojača se, a natpis postane plav. */
+      .k360-hs-nav { position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+      .k360-hs-beacon { position: relative; width: 24px; height: 24px; border-radius: 50%;
+        background: radial-gradient(circle at 50% 50%, #FFFFFF 0 20%, rgba(44, 111, 196, 0.9) 34%, rgba(30, 90, 168, 0.95) 100%);
+        border: 2px solid rgba(255, 255, 255, 0.9);
+        box-shadow: 0 0 0 1px rgba(23, 68, 126, 0.35), 0 0 16px 3px rgba(30, 90, 168, 0.6), 0 2px 8px rgba(0, 0, 0, 0.3);
+        -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+        transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease; }
+      .k360-hs-beacon::before, .k360-hs-beacon::after { content: ''; position: absolute; inset: -2px; border-radius: 50%;
+        border: 2.5px solid rgba(44, 111, 196, 0.9); animation: k360HsRing 6s ease-out infinite; pointer-events: none; }
+      .k360-hs-beacon::after { animation-delay: 3s; }
+      @keyframes k360HsRing { 0% { transform: scale(1); opacity: 0.9; } 100% { transform: scale(2.6); opacity: 0; } }
+      .k360-hs-label { position: absolute; top: calc(100% + 2px); left: 50%; transform: translateX(-50%); white-space: nowrap;
+        padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 650; letter-spacing: 0.01em; color: #FFFFFF;
+        background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255, 255, 255, 0.28);
+        -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); transition: background 0.2s ease, border-color 0.2s ease; }
+      .custom-nav-hotspot:hover .k360-hs-beacon { transform: scale(1.2);
+        background: radial-gradient(circle at 50% 50%, #FFFFFF 0 20%, #1E5AA8 34%, #17447E 100%);
+        box-shadow: 0 0 0 1px rgba(30, 90, 168, 0.4), 0 0 22px 6px rgba(30, 90, 168, 0.75), 0 2px 8px rgba(0, 0, 0, 0.3); }
+      .custom-nav-hotspot:hover .k360-hs-beacon::before, .custom-nav-hotspot:hover .k360-hs-beacon::after { animation-duration: 3.6s; }
+      .custom-nav-hotspot:hover .k360-hs-label { background: #1E5AA8; border-color: #1E5AA8; }
       .custom-info-hotspot { animation: k360HotspotPulseInfo 2.6s ease-out infinite; }
       @media (prefers-reduced-motion: reduce) {
-        .custom-info-hotspot, .k360-hs-dot::after { animation: none; }
+        .custom-info-hotspot, .k360-hs-beacon::before, .k360-hs-beacon::after { animation: none; }
       }
     `}</style>
   );

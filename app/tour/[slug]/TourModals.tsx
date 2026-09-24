@@ -65,7 +65,7 @@ const CTA: React.CSSProperties = {
   color: '#FFFFFF',
   border: 0,
   borderRadius: '999px',
-  fontFamily: THEME.fontDisplay,
+  fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay,
   fontWeight: 700,
   fontSize: '15px',
   padding: '14px',
@@ -98,7 +98,7 @@ function Chip({ children, solid = false }: { children: React.ReactNode; solid?: 
 
 /** Mali plavi naziv polja ("NASELJE") iznad vrednosti. */
 const smallLabel: React.CSSProperties = { display: 'block', fontSize: '10.5px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: THEME.accent };
-const bigValue: React.CSSProperties = { display: 'block', fontFamily: THEME.fontDisplay, fontSize: '16px', fontWeight: 700, color: THEME.textPrimary, marginTop: '2px', overflowWrap: 'break-word', hyphens: 'auto' };
+const bigValue: React.CSSProperties = { display: 'block', fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontSize: '16px', fontWeight: 700, color: THEME.textPrimary, marginTop: '2px', overflowWrap: 'break-word', hyphens: 'auto' };
 
 /** Plavi naslov dela prozora sa linijom koja bledi udesno. */
 function Section({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
@@ -261,7 +261,7 @@ export function TourModals({
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <Chip solid><IconQuestion size={18} /></Chip>
           <div>
-            <p style={{ margin: 0, fontFamily: THEME.fontDisplay, fontWeight: 700, fontSize: '15px' }}>{t.faqMoreTitle}</p>
+            <p style={{ margin: 0, fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 700, fontSize: '15px' }}>{t.faqMoreTitle}</p>
             <p style={{ margin: 0, fontSize: '13px', color: THEME.textSecondary }}>{t.faqMoreText}</p>
           </div>
         </div>
@@ -415,7 +415,7 @@ export function TourModals({
                             }}
                             style={{ ...(isCurrent ? BOX_STRONG : BOX), background: isCurrent ? THEME.accentSoft : '#FFFFFF', padding: '9px 10px', display: 'flex', alignItems: 'center', gap: '8px', font: 'inherit', fontSize: '13.5px', fontWeight: 650, color: THEME.textPrimary, cursor: 'pointer', textAlign: 'left' }}
                           >
-                            <span style={{ width: '24px', height: '24px', borderRadius: '8px', background: THEME.accentSoft, color: THEME.accent, fontFamily: THEME.fontDisplay, fontWeight: 800, fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</span>
+                            <span style={{ width: '24px', height: '24px', borderRadius: '8px', background: THEME.accentSoft, color: THEME.accent, fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 800, fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</span>
                             <span style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
                             <i
                               aria-hidden="true"
@@ -476,13 +476,13 @@ export function TourModals({
                       </span>
                     )}
                     {tour && (
-                      <p style={{ margin: '8px 0 0', fontFamily: THEME.fontDisplay, fontWeight: 700, fontSize: '15.5px', lineHeight: 1.35 }}>
+                      <p style={{ margin: '8px 0 0', fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 700, fontSize: '15.5px', lineHeight: 1.35 }}>
                         {getLocalizedText(tour.title_i18n, lang)}
                       </p>
                     )}
                     {price && (
                       <p style={{ margin: '8px 0 0', display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
-                        <span style={{ fontFamily: THEME.fontDisplay, fontWeight: 800, fontSize: '30px', letterSpacing: '-0.02em' }}>{price.amount}</span>
+                        <span style={{ fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 800, fontSize: '30px', letterSpacing: '-0.02em' }}>{price.amount}</span>
                         {price.unit && <span style={{ fontSize: '14px', color: '#CFE0F5' }}>{price.unit}</span>}
                       </p>
                     )}
@@ -522,7 +522,7 @@ export function TourModals({
                         onClick={() => setOpenFaq(open ? null : index)}
                         style={{ width: '100%', background: 'none', border: 0, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left', font: 'inherit', color: THEME.textPrimary, cursor: 'pointer' }}
                       >
-                        <span style={{ width: '30px', height: '30px', borderRadius: '10px', background: open ? THEME.accent : THEME.accentSoft, color: open ? '#FFFFFF' : THEME.accent, fontFamily: THEME.fontDisplay, fontWeight: 800, fontSize: '12.5px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span style={{ width: '30px', height: '30px', borderRadius: '10px', background: open ? THEME.accent : THEME.accentSoft, color: open ? '#FFFFFF' : THEME.accent, fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 800, fontSize: '12.5px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           {String(index + 1).padStart(2, '0')}
                         </span>
                         <span style={{ flex: 1, fontWeight: 650, fontSize: '15px', lineHeight: 1.35 }}>{item.question}</span>
@@ -546,12 +546,12 @@ export function TourModals({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {(tour?.agent_name || tour?.agency_name) && (
                 <div style={{ ...BOX_STRONG, padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <span aria-hidden="true" style={{ width: '56px', height: '56px', borderRadius: '50%', background: THEME.accent, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: THEME.fontDisplay, fontWeight: 800, fontSize: '20px', flexShrink: 0, boxShadow: '0 0 0 4px ' + THEME.accentSoft }}>
+                  <span aria-hidden="true" style={{ width: '56px', height: '56px', borderRadius: '50%', background: THEME.accent, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 800, fontSize: '20px', flexShrink: 0, boxShadow: '0 0 0 4px ' + THEME.accentSoft }}>
                     {initials(tour.agent_name || tour.agency_name || '')}
                   </span>
                   <div style={{ minWidth: 0 }}>
                     <span style={smallLabel}>{t.yourAgent}</span>
-                    <p style={{ margin: '2px 0 0', fontFamily: THEME.fontDisplay, fontSize: '17px', fontWeight: 700 }}>{tour.agent_name || tour.agency_name}</p>
+                    <p style={{ margin: '2px 0 0', fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontSize: '17px', fontWeight: 700 }}>{tour.agent_name || tour.agency_name}</p>
                     {(tour.agent_name && tour.agency_name) || phone ? (
                       <p style={{ margin: '1px 0 0', fontSize: '13px', color: THEME.textSecondary }}>
                         {[tour.agent_name ? tour.agency_name : '', phone].filter(Boolean).join(' · ')}
@@ -564,13 +564,13 @@ export function TourModals({
               {/* Pločice: poziv (glavna, plava), e-mail, deljenje ture. */}
               <div style={{ display: 'grid', gridTemplateColumns: `repeat(${1 + (phone ? 1 : 0) + (email ? 1 : 0)}, minmax(0, 1fr))`, gap: '8px' }}>
                 {phone && (
-                  <a href={`tel:${phone}`} style={{ ...BOX_STRONG, background: THEME.accent, color: '#FFFFFF', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', fontFamily: THEME.fontDisplay, fontWeight: 700, fontSize: '13px', textDecoration: 'none' }}>
+                  <a href={`tel:${phone}`} style={{ ...BOX_STRONG, background: THEME.accent, color: '#FFFFFF', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 700, fontSize: '13px', textDecoration: 'none' }}>
                     <span style={{ width: '36px', height: '36px', borderRadius: '12px', background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><IconPhone size={18} /></span>
                     {t.callBtn}
                   </a>
                 )}
                 {email && (
-                  <a href={`mailto:${email}`} style={{ ...BOX, padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', fontFamily: THEME.fontDisplay, fontWeight: 700, fontSize: '13px', color: THEME.textPrimary, textDecoration: 'none' }}>
+                  <a href={`mailto:${email}`} style={{ ...BOX, padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 700, fontSize: '13px', color: THEME.textPrimary, textDecoration: 'none' }}>
                     <Chip><IconMail size={18} /></Chip>
                     {t.emailShort}
                   </a>
@@ -578,7 +578,7 @@ export function TourModals({
                 <button
                   type="button"
                   onClick={onShare}
-                  style={{ ...BOX, borderColor: shareCopied ? THEME.success : FRAME, padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', fontFamily: THEME.fontDisplay, fontWeight: 700, fontSize: '13px', color: shareCopied ? THEME.success : THEME.textPrimary, cursor: 'pointer' }}
+                  style={{ ...BOX, borderColor: shareCopied ? THEME.success : FRAME, padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 700, fontSize: '13px', color: shareCopied ? THEME.success : THEME.textPrimary, cursor: 'pointer' }}
                 >
                   <Chip>{shareCopied ? <IconCheck size={18} /> : <IconShare size={18} />}</Chip>
                   {withoutEmoji(shareCopied ? t.linkCopied : t.shareTour)}
