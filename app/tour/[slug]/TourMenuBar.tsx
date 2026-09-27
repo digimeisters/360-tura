@@ -1,5 +1,5 @@
 import { THEME, GLASS, GLASS_ACCENT, overlayNavButtonStyle, SCREEN_BOTTOM } from './theme';
-import { IconLink, MODAL_ICONS, withoutEmoji } from './icons';
+import { IconShare, MODAL_ICONS, withoutEmoji } from './icons';
 import type { ActiveModal } from './types';
 
 /**
@@ -64,7 +64,7 @@ export function TourMenuBar({
       >
         {shareCopied ? copiedLabel : (
           <>
-            <IconLink size={16} color={GLASS_ACCENT} />
+            <IconShare size={16} color={GLASS_ACCENT} />
             {withoutEmoji(shareLabel)}
           </>
         )}

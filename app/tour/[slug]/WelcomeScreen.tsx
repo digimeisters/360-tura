@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { THEME, GLASS, GLASS_ACCENT } from './theme';
 import { Logo } from './Logo';
 import { LanguageChips } from './TourControls';
-import { IconLink } from './icons';
+import { IconShare } from './icons';
 import type { Language } from './types';
 import type { ListingPrice } from '../../lib/listingPrice';
 import { keepUnitsTogether } from '../../lib/typography';
@@ -146,7 +146,7 @@ export function WelcomeScreen({
             whiteSpace: 'nowrap'
           }}
         >
-          <IconLink size={16} color={shareCopied ? '#86efac' : '#fff'} />
+          <IconShare size={16} color={shareCopied ? '#86efac' : '#fff'} />
           {shareCopied ? shareCopiedLabel : shareLabel}
         </button>
       </div>

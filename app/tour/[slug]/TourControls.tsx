@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { THEME, GLASS, GLASS_ACCENT, overlayIconStyle, SCREEN_BOTTOM } from './theme';
-import { IconCollapse, IconCompass, IconExpand, IconHand, IconHeadphones, IconMute, IconPause, IconPhone, IconPlay, IconSound } from './icons';
+import { IconCheck, IconCollapse, IconCompass, IconExpand, IconHand, IconHeadphones, IconMute, IconPause, IconPhone, IconPlay, IconShare, IconSound } from './icons';
 import type { Language } from './types';
 
 /**
@@ -54,10 +54,27 @@ export function LanguageChips({
   );
 }
 
-/** Agencija i naziv nekretnine, u staklenoj kartici u levom vrhu. */
-export function TourTitleCard({ agencyName, title }: { agencyName: string | null; title: string }) {
+/**
+ * Agencija i naziv nekretnine, u staklenoj kartici u levom vrhu, sa dugmetom
+ * za deljenje - deli se baš ova nekretnina, pa stoji uz njen naziv (isto
+ * mesto kao na velikim oglasnicima).
+ */
+export function TourTitleCard({
+  agencyName,
+  title,
+  onShare,
+  shareLabel,
+  shareCopied = false
+}: {
+  agencyName: string | null;
+  title: string;
+  onShare?: () => void;
+  shareLabel?: string;
+  shareCopied?: boolean;
+}) {
   return (
-    <div className="k360-top__title" style={{ ...GLASS, borderRadius: '12px', padding: '6px 12px 7px', pointerEvents: 'auto', maxWidth: '55%' }}>
+    <div className="k360-top__title" style={{ ...GLASS, borderRadius: '12px', padding: onShare ? '5px 5px 5px 12px' : '6px 12px 7px', pointerEvents: 'auto', maxWidth: '55%', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ minWidth: 0, flex: 1 }}>
       {agencyName && (
         <div style={{ color: GLASS_ACCENT, fontSize: '12px', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {agencyName}
@@ -66,6 +83,32 @@ export function TourTitleCard({ agencyName, title }: { agencyName: string | null
       <div style={{ color: '#fff', fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {title}
       </div>
+      </div>
+      {onShare && (
+        <button
+          type="button"
+          onClick={onShare}
+          className="k360-tap"
+          title={shareLabel}
+          aria-label={shareLabel}
+          style={{
+            flexShrink: 0,
+            width: '36px',
+            height: '36px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 0,
+            border: 'none',
+            borderRadius: '10px',
+            background: shareCopied ? 'rgba(134, 239, 172, 0.22)' : 'rgba(255, 255, 255, 0.12)',
+            color: shareCopied ? '#86efac' : '#fff',
+            cursor: 'pointer'
+          }}
+        >
+          {shareCopied ? <IconCheck size={18} /> : <IconShare size={18} />}
+        </button>
+      )}
     </div>
   );
 }

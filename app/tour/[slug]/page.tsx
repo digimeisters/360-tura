@@ -875,7 +875,13 @@ export default function TourPage() {
             pointerEvents: 'none'
           }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', rowGap: '4px', width: '100%' }}>
-              <TourTitleCard agencyName={tour?.agency_name ?? null} title={fullTourTitle} />
+              <TourTitleCard
+                agencyName={tour?.agency_name ?? null}
+                title={fullTourTitle}
+                onShare={handleShareTour}
+                shareLabel={withoutEmoji(t.shareTour)}
+                shareCopied={shareCopied}
+              />
 
               <div style={{
                 ...GLASS,
@@ -983,7 +989,8 @@ export default function TourPage() {
           shareLabel={t.shareTour}
           copiedLabel={t.linkCopied}
           // Pre polaska deljenje već stoji gore desno na WelcomeScreen-u.
-          showShare={tourStarted}
+          // Deljenje je u kartici sa nazivom ture (gore levo) - vidi TourTitleCard.
+          showShare={false}
           labels={{
             faq: t.btnFaq,
             location: t.btnLocation,
