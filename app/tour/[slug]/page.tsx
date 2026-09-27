@@ -13,7 +13,8 @@ import { pickCoverRoom } from '../../lib/coverRoom';
 import { Logo } from './Logo';
 import { RoomNavBar, type RoomDot } from './RoomNavBar';
 import { WelcomeScreen } from './WelcomeScreen';
-import { CallAgentButton, InfoCard, LanguageChips, OverlayButtons, StatusNotice, TourTitleCard } from './TourControls';
+import { CallAgentButton, InfoCard, LanguageChips, LeaveTourDialog, OverlayButtons, StatusNotice, TourTitleCard } from './TourControls';
+import { useBackGuard } from './useBackGuard';
 import { TourMenuBar } from './TourMenuBar';
 import { ViewingRequestModal } from './ViewingRequestModal';
 import { TourModals } from './TourModals';
@@ -398,6 +399,30 @@ export default function TourPage() {
   // "Prevucite prstom da razgledate" pri prvom ulasku - vidi TourOverlays.tsx.
   const showDragHint = useFirstTimeDragHint(tourStarted);
   const immersive = useImmersiveWhileDragging(tourStarted && !adminMode);
+
+  const closeInfoCard = () => {
+    stopAudio();
+    setInfoBoxData(null);
+    setIsInfoboxManuallyClosed(true);
+  };
+
+  // Dugme "nazad": zatvara ono što je otvoreno, a tek onda pita za izlazak
+  // (vidi useBackGuard). Admin ga nema - on se kreće po turi i adminu.
+  const backGuard = useBackGuard(tourStarted && !adminMode, () => {
+    if (showViewing) {
+      setShowViewing(false);
+      return true;
+    }
+    if (activeModal) {
+      setActiveModal(null);
+      return true;
+    }
+    if (infoBoxData) {
+      closeInfoCard();
+      return true;
+    }
+    return false;
+  });
 
   // Deljenje linka trenutne ture: na mobilnom otvara native share meni
   // (WhatsApp, Viber, SMS, mejl...) preko Web Share API-ja; na desktopu (ili
@@ -832,7 +857,7 @@ export default function TourPage() {
           title={fullTourTitle}
           price={formatListingPrice(tour?.price, tour?.category, lang)}
           startHint={guideRequested && hasGuide ? t.startGuidedTourHint : t.exploreSelfHint}
-          help={{ link: t.howItWorks, steps: [t.howStep1, t.howStep2, t.howStep3, t.howStep4], gotIt: t.howGotIt }}
+          help={{ link: t.howItWorks, steps: [t.howStep1, t.howStep2, t.howStep3, t.howStep4], close: t.close }}
           startLabel={guideRequested && hasGuide ? t.startGuidedTour : t.startTour}
           onStart={startTour}
           // ?vodic=1 (agent-link) već je odlučen - zadržava stari jednodelan
@@ -1032,11 +1057,7 @@ export default function TourPage() {
           moreLabel={t.readMore}
           lessLabel={t.readLess}
           hidden={immersive}
-          onClose={() => {
-            stopAudio();
-            setInfoBoxData(null);
-            setIsInfoboxManuallyClosed(true);
-          }}
+          onClose={closeInfoCard}
           action={callButton}
         />
       )}
@@ -1045,6 +1066,16 @@ export default function TourPage() {
       {!infoBoxData && callButton}
 
       {/* MODAL: ADMIN LOGIN (Supabase Auth - zamena za staru ?admin=... lozinku) */}
+      {backGuard.askLeave && (
+        <LeaveTourDialog
+          title={t.leaveTitle}
+          stayLabel={t.leaveStay}
+          leaveLabel={t.leaveGo}
+          onStay={backGuard.stay}
+          onLeave={backGuard.leave}
+        />
+      )}
+
       {showAdminLogin && !adminMode && (
         <AdminLoginModal
           {...loginForm}

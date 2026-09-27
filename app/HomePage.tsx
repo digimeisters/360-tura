@@ -18,7 +18,7 @@ import TourCard, { tourCardLabels } from '../components/TourCard';
 import { getPublicOpenCount } from './lib/tourStats';
 import { tourHref } from './lib/tourHref';
 import { accent } from './lib/accent';
-import { STRUCTURE_ORDER } from './lib/propertyTaxonomy';
+import { STRUCTURE_ORDER, structureLabel } from './lib/propertyTaxonomy';
 import PromoTopBar from '../components/PromoTopBar';
 import TourModulesShowcase from '../components/TourModulesShowcase';
 
@@ -212,7 +212,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
                         <select name="struktura" defaultValue="">
                           <option value="">{copy.examples.database.all}</option>
                           {searchStructures.map((c) => (
-                            <option key={c}>{c}</option>
+                            <option key={c} value={c}>{structureLabel(c)}</option>
                           ))}
                         </select>
                       </label>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { THEME, GLASS, GLASS_ACCENT } from './theme';
 import { Logo } from './Logo';
 import { LanguageChips } from './TourControls';
@@ -52,7 +52,7 @@ export function WelcomeScreen({
   /** Kratak opis ispod natpisa jedinog dugmeta (kad nema izbora vodiča). */
   startHint: string;
   /** Tekstovi prozora "Kako radi?". */
-  help: { link: string; steps: [string, string, string, string]; gotIt: string };
+  help: { link: string; steps: [string, string, string, string]; close: string };
   onStart: () => void;
   guideChoice?: {
     guidedLabel: string;
@@ -71,6 +71,24 @@ export function WelcomeScreen({
   onChangeLanguage: (l: Language) => void;
 }) {
   const [showHelp, setShowHelp] = useState(false);
+
+  // "Nazad" dok je otvoren "Kako radi 360° tura?" zatvara samo taj prozor:
+  // otvaranje dodaje korak istorije, "nazad" ga troši. Zatvaranje preko ×
+  // taj korak sklanja samo, da sledeće "nazad" ne bi ostalo "prazno".
+  useEffect(() => {
+    if (!showHelp) return;
+    if (!(window.history.state as { k360Help?: boolean } | null)?.k360Help) {
+      window.history.pushState({ k360Help: true }, '');
+    }
+    const onPopState = () => setShowHelp(false);
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [showHelp]);
+
+  const closeHelp = () => {
+    if ((window.history.state as { k360Help?: boolean } | null)?.k360Help) window.history.back();
+    setShowHelp(false);
+  };
 
   return (
     <div
@@ -198,7 +216,7 @@ export function WelcomeScreen({
         </button>
       </div>
 
-      {showHelp && <HowItWorks help={help} onClose={() => setShowHelp(false)} />}
+      {showHelp && <HowItWorks help={help} onClose={closeHelp} />}
     </div>
   );
 }
@@ -265,7 +283,7 @@ function HowItWorks({
   help,
   onClose
 }: {
-  help: { link: string; steps: [string, string, string, string]; gotIt: string };
+  help: { link: string; steps: [string, string, string, string]; close: string };
   onClose: () => void;
 }) {
   const tile: React.CSSProperties = {
@@ -319,9 +337,21 @@ function HowItWorks({
         onClick={(e) => e.stopPropagation()}
         style={{ background: 'linear-gradient(180deg, #E6EEF9 0px, #F6F8FC 110px)', color: THEME.textPrimary, borderRadius: '24px', padding: '22px 18px 18px', width: '100%', maxWidth: '380px', maxHeight: '90%', overflowY: 'auto', textAlign: 'left', fontFamily: THEME.fontBody, boxShadow: THEME.shadowLg }}
       >
-        <h2 id="how-title" style={{ margin: '0 2px 16px', fontSize: '22px', fontWeight: 800, letterSpacing: '-0.015em', color: THEME.accent, fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, lineHeight: 1.2 }}>
-          {help.link}
-        </h2>
+        {/* Zatvaranje isto kao u modulima ture: okruglo × gore desno. */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', margin: '0 0 16px 2px' }}>
+          <h2 id="how-title" style={{ margin: 0, fontSize: '22px', fontWeight: 800, letterSpacing: '-0.015em', color: THEME.accent, fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, lineHeight: 1.2 }}>
+            {help.link}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            title={help.close}
+            aria-label={help.close}
+            style={{ flexShrink: 0, width: '44px', height: '44px', borderRadius: '50%', background: '#FFFFFF', border: '1.5px solid #9DBBE3', color: THEME.accent, fontSize: '22px', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
+          >
+            ×
+          </button>
+        </div>
         <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {help.steps.map((step, i) => (
             <li
@@ -333,13 +363,6 @@ function HowItWorks({
             </li>
           ))}
         </ol>
-        <button
-          type="button"
-          onClick={onClose}
-          style={{ marginTop: '16px', width: '100%', padding: '14px', borderRadius: '999px', border: 'none', background: THEME.accent, color: '#fff', fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontSize: '15px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 8px 20px -8px rgba(30, 90, 168, 0.7)' }}
-        >
-          {help.gotIt}
-        </button>
       </div>
     </div>
   );

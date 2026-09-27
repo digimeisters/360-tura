@@ -476,3 +476,58 @@ export function CallAgentButton({
     </a>
   );
 }
+
+/**
+ * "Da li želite da napustite turu?" - pojavljuje se na dugme "nazad" kad
+ * ništa drugo nije otvoreno (vidi useBackGuard). Dodir van prozora = ostani.
+ */
+export function LeaveTourDialog({
+  title,
+  stayLabel,
+  leaveLabel,
+  onStay,
+  onLeave
+}: {
+  title: string;
+  stayLabel: string;
+  leaveLabel: string;
+  onStay: () => void;
+  onLeave: () => void;
+}) {
+  const font = 'var(--font-urbanist), var(--font-jakarta), system-ui, sans-serif';
+  const btn: React.CSSProperties = {
+    flex: 1,
+    height: '48px',
+    borderRadius: '999px',
+    fontFamily: font,
+    fontSize: '15px',
+    fontWeight: 700,
+    cursor: 'pointer'
+  };
+  return (
+    <div
+      onClick={onStay}
+      style={{ position: 'absolute', inset: 0, zIndex: 90, background: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+    >
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="k360-leave-title"
+        onClick={(e) => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: '340px', background: 'linear-gradient(180deg, #E6EEF9 0px, #F6F8FC 90px)', border: '1px solid ' + THEME.border, borderRadius: '24px', padding: '22px 18px 18px', boxShadow: THEME.shadowLg, textAlign: 'center' }}
+      >
+        <h2 id="k360-leave-title" style={{ margin: '0 0 18px', fontFamily: font, fontSize: '20px', fontWeight: 800, letterSpacing: '-0.015em', lineHeight: 1.25, color: THEME.accent }}>
+          {title}
+        </h2>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button type="button" onClick={onLeave} style={{ ...btn, background: '#FFFFFF', color: THEME.accent, border: '1.5px solid ' + THEME.accent }}>
+            {leaveLabel}
+          </button>
+          <button type="button" autoFocus onClick={onStay} style={{ ...btn, background: THEME.accent, color: '#FFFFFF', border: 'none', boxShadow: '0 8px 20px -8px rgba(30, 90, 168, 0.7)' }}>
+            {stayLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

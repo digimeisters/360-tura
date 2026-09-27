@@ -52,6 +52,15 @@ export const STRUCTURE_ORDER: string[] = [
   ...new Set(PROPERTY_TYPES.flatMap((type) => STRUCTURES[type] ?? []))
 ];
 
+/**
+ * Struktura za prikaz posetiocu: "Dvosoban (2.0)" -> "Dvosoban". Oznaka u
+ * zagradi pomaže agentu u upitniku, a posetiocu samo smeta. U bazi, u adresi
+ * filtera (?struktura=) i u poređenju ostaje pun naziv - ovo je samo natpis.
+ */
+export function structureLabel(value: string): string {
+  return value.replace(/\s*\(\d+(?:[.,]\d+)?\+?\)\s*$/, '');
+}
+
 /** Poslednja stavka u meniju naselja - otvara polje za ručni unos. */
 export const OTHER_NEIGHBOURHOOD = '__drugo__';
 

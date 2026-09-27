@@ -1,4 +1,5 @@
 import { Language, Waypoint, EstablishData, Tour } from './types';
+import { structureLabel } from '../../lib/propertyTaxonomy';
 import { THEME } from './theme';
 import {
   FACT_LABELS,
@@ -151,7 +152,7 @@ export function buildFactList(tour: Tour | null | undefined, lang: Language): Fa
   const rows: FactRow[] = [
     { key: 'neighbourhood', label: t.neighbourhood, value: tour.district?.trim() || '' },
     { key: 'area', label: t.area, value: area !== null ? `${area} m²` : '' },
-    { key: 'structure', label: t.structure, value: fromList(STRUCTURE_LABELS, tour.structure) },
+    { key: 'structure', label: t.structure, value: structureLabel(fromList(STRUCTURE_LABELS, tour.structure)) },
     { key: 'floor', label: t.floor, value: formatFloor(tour.floor, lang) },
     { key: 'elevator', label: t.elevator, value: yesNo(tour.has_elevator) },
     { key: 'basement', label: t.basement, value: yesNo(tour.has_basement) },

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import type { ShowcaseTour } from '../app/lib/showcaseTours';
-import { STRUCTURE_ORDER } from '../app/lib/propertyTaxonomy';
+import { STRUCTURE_ORDER, structureLabel } from '../app/lib/propertyTaxonomy';
 import { listingPriceUnit } from '../app/lib/listingPrice';
 import FilterMenu from './FilterMenu';
 import RangeFilter from './RangeFilter';
@@ -430,7 +430,7 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
     apply(filters, { ...ranges, [key]: full ? null : range });
   };
 
-  const menu = (key: FilterKey, title: string, options: string[]) => {
+  const menu = (key: FilterKey, title: string, options: string[], optionLabel?: (value: string) => string) => {
     // Filter se prikazuje samo ako može nešto da suzi: ili ima bar dve
     // vrednosti, ili neka tura tu vrednost nema pa je izbor izbacuje.
     const narrows = options.length > 1 || tours.some((t) => !VALUE_OF[key](t));
@@ -441,6 +441,7 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
         key={key}
         label={title}
         options={options}
+        optionLabel={optionLabel}
         selected={filters[key]}
         onToggle={(value) => toggle(key, value)}
         onClear={() => clear(key)}
@@ -514,7 +515,7 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
   const menus = [
     menu('grad', labels.city, cities),
     menu('naselje', labels.district, districts),
-    menu('struktura', labels.structure, structures),
+    menu('struktura', labels.structure, structures, structureLabel),
     menu('agencija', labels.agency, agencies)
   ].filter(Boolean);
 
@@ -549,7 +550,7 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
     ...FILTER_KEYS.flatMap((key) =>
       filters[key].map((value) => ({
         id: `${key}:${value}`,
-        label: key === 'kategorija' ? FILTER_CATEGORY_LABELS[value] ?? value : value,
+        label: key === 'kategorija' ? FILTER_CATEGORY_LABELS[value] ?? value : key === 'struktura' ? structureLabel(value) : value,
         remove: () => toggle(key, value)
       }))
     ),
