@@ -215,8 +215,12 @@ export const SITE_STYLES = `
   .section-head h2{font-size:clamp(2.1rem,4.2vw,3.5rem); line-height:1.06; max-width:24ch;}
   .section-head .note{max-width:60ch; color:var(--ink-soft); font-size:clamp(1rem,1.3vw,1.18rem); line-height:1.6;}
   .section-head.left{margin-bottom:0;}
-  .section-head .eyebrow{color:var(--ink-soft); display:flex; align-items:baseline; gap:1.1rem;}
-  .section-head .eyebrow::before{counter-increment:chapter; content:counter(chapter, decimal-leading-zero); color:var(--accent); font-weight:800; letter-spacing:0;}
+  .section-head .eyebrow{color:var(--ink-soft); display:flex; align-items:center; gap:.8rem;}
+  /* Broj poglavlja u kvadratu - isti znak kao u imenu Kvadrat360. */
+  .section-head .eyebrow::before{counter-increment:chapter; content:counter(chapter, decimal-leading-zero); color:var(--accent); font-weight:800; letter-spacing:0;
+    display:inline-grid; place-items:center; width:2.3em; height:2.3em; flex:none; font-size:.82em; line-height:1;
+    border:1.5px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius:7px;
+    background:color-mix(in srgb, var(--accent) 9%, transparent);}
 
   /* ---------- HERO ---------- */
   .hero{padding-block:clamp(2rem,6vw,5rem) clamp(3rem,7vw,6rem);}
@@ -627,8 +631,14 @@ export const SITE_STYLES = `
   .db-search .db-teaser-cta{margin:.4rem; border-radius:14px;}
   .db-teaser-cta{flex:none;}
   @media (max-width:640px){ .db-teaser{flex-direction:column; align-items:stretch; padding:1.2rem;} .db-search{flex-direction:column; flex-basis:auto;} .db-field{border-left:0; border-top:1px solid var(--line);} .db-field:first-child{border-top:0;} .db-search .db-teaser-cta{margin:.5rem;} }
-  .tour-card{overflow:hidden; display:flex; flex-direction:column; text-decoration:none; color:inherit; border:0; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;}
+  .tour-card{position:relative; overflow:hidden; display:flex; flex-direction:column; text-decoration:none; color:inherit; border:0; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;}
   @media (hover:hover){ .tour-card:hover{transform:translateY(-3px); box-shadow:var(--shadow-lg);} .tour-card:hover .tour-open{border-color:var(--accent); color:var(--accent);} }
+  /* Reflektor koji prati miš (--mx/--my postavlja components/CardSpotlight.tsx)
+     + tanak plavi okvir. Na telefonu nema miša, pa ni ovoga. */
+  .tour-card::after{content:""; position:absolute; inset:0; z-index:2; pointer-events:none; border-radius:inherit; opacity:0; transition:opacity .25s ease;
+    background:radial-gradient(280px circle at var(--mx, 50%) var(--my, 0%), color-mix(in srgb, var(--accent) 18%, transparent) 0%, transparent 70%);
+    box-shadow:inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 35%, transparent);}
+  @media (hover:hover){ .tour-card:hover::after{opacity:1;} }
   .tour-photo{position:relative; aspect-ratio:1200/630; background:var(--surface-2);}
   .tour-photo img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;}
   .tour-photo .glass.tag{position:absolute; top:.75rem; left:.75rem;}
@@ -730,7 +740,15 @@ export const SITE_STYLES = `
   .faq-split .faq-item summary{padding:1.4rem 0; font-size:1.15rem;}
   .faq-split .faq-item p{padding:0 0 1.4rem; font-size:1rem; line-height:1.65;}
 
-  footer{border-top:1px solid var(--line); padding-block:2.2rem; margin-top:clamp(3rem,6vw,5rem);}
+  /* Podnožje: tamno, sa istim reflektorom i mrežom (vidi REFLEKTOR I MREŽA)
+     i velikim obrisom znaka u uglu. Logo prati --ink/--accent, pa sam prelazi
+     u svetlu verziju. */
+  footer{position:relative; overflow:hidden; padding-block:clamp(2.6rem,6vw,4rem); margin-top:clamp(3rem,6vw,5rem);
+    --ink:#F5F5F3; --ink-soft:#A8A9AE; --accent:#7FB0EC; --line:#2C2C30;
+    background-color:#0E0E10; color:var(--ink);}
+  footer::after{content:""; position:absolute; right:-170px; bottom:-190px; width:320px; height:320px; border-radius:56px; transform:rotate(45deg);
+    border:3px solid rgba(127,176,236,.2); pointer-events:none;}
+  footer .wrap{position:relative; z-index:1;}
 
   /* ---------- TAMNI DELOVI ---------- */
   /* Iste komponente, tamne boje: menjaju se samo promenljive. */
@@ -739,10 +757,71 @@ export const SITE_STYLES = `
     --accent:#7FB0EC; --accent-strong:#A5C8F2; --accent-soft:rgba(127,176,236,.14); --on-accent:#0B0E1A; --shadow:none;
     background:var(--surface); color:var(--ink); border-color:var(--line);
   }
-  .agency-bridge{background:#0E0E10;}
+  .agency-bridge{background-color:#0E0E10;}
+
+  /* ---------- REFLEKTOR I MREŽA ---------- */
+  /* Potpis sajta: svetlo pada odozgo, ispod njega fina mreža kvadrata (tlocrt,
+     kvadrati, Kvadrat360) koja ka dnu bledi, pa tekst ostaje na čistoj podlozi.
+     Isti recept na tamnim, plavim i sivim blokovima - razlikuju se samo
+     promenljive:
+       --k-cell   veličina kvadrata (kartica 22px, cela sekcija 30-32px)
+       --k-line   boja linija mreže
+       --k-glow   boja svetla;  --k-size / --k-at  oblik i mesto svetla
+       --k-fade   boja podloge u koju mreža bledi (= boja samog bloka)
+       --k-fade-end  gde mreža potpuno nestaje (% za kartice, px za sekcije,
+                  da na dugačkoj sekciji ne pokrije ceo spisak)
+       --k-base   donji sloj (plavi blokovi: prelaz iz svetlije u tamniju plavu)
+     Redosled slojeva: svetlo, bleđenje, mreža, podloga. */
+  .agency-bridge, .steps-side .deliver-card, .cat-card:nth-child(2), .price-card.featured, .blog-callout, .blog-card:nth-child(2n), .is-dark, .integration, .band, .contact .wrap, .cta-band, .hero, footer{
+    --k-cell:22px; --k-line:rgba(255,255,255,.07);
+    --k-glow:rgba(91,146,214,.45); --k-size:85% 60%; --k-at:50% -14%;
+    --k-fade:#111113; --k-fade-end:88%;
+    --k-base:linear-gradient(transparent, transparent);
+    background-image:
+      radial-gradient(var(--k-size) at var(--k-at), var(--k-glow) 0%, transparent 70%),
+      linear-gradient(180deg, transparent 0%, var(--k-fade) var(--k-fade-end)),
+      linear-gradient(var(--k-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--k-line) 1px, transparent 1px),
+      var(--k-base);
+    background-size:100% 100%, 100% 100%, var(--k-cell) var(--k-cell), var(--k-cell) var(--k-cell), 100% 100%;
+    background-position:0 0, 0 0, -1px -1px, -1px -1px, 0 0;
+    background-repeat:no-repeat, no-repeat, repeat, repeat, no-repeat;
+  }
+  /* Sekcije preko cele širine: naslovi su levo, pa i svetlo pada levo. */
+  .agency-bridge, .integration, .is-dark:is(section){
+    --k-cell:30px; --k-fade:#0E0E10; --k-fade-end:min(92%, 620px);
+    --k-size:60% 95%; --k-at:16% -22%;
+  }
+  .is-dark:is(section){--k-fade:#111113;}
+  /* Sive sekcije: ista mreža, jedva vidljiva, boja prati svetlu i tamnu temu. */
+  .band{
+    --k-cell:32px; --k-line:color-mix(in srgb, var(--ink) 5.5%, transparent);
+    --k-glow:color-mix(in srgb, var(--accent) 11%, transparent);
+    --k-size:60% 70%; --k-at:12% -18%;
+    --k-fade:var(--surface-2); --k-fade-end:min(90%, 560px);
+  }
+  /* Vrh strane: prvo što posetilac vidi - mreža iza naslova, svetlo levo
+     gore, sve bledi pre dugmadi da ništa ne smeta čitanju. */
+  .hero{
+    --k-cell:32px; --k-line:color-mix(in srgb, var(--ink) 5%, transparent);
+    --k-glow:color-mix(in srgb, var(--accent) 13%, transparent);
+    --k-size:55% 80%; --k-at:10% -20%;
+    --k-fade:var(--bg); --k-fade-end:min(95%, 640px);
+  }
+  footer{
+    --k-cell:30px; --k-fade:#0E0E10; --k-fade-end:100%;
+    --k-size:50% 120%; --k-at:12% -40%; --k-glow:rgba(91,146,214,.3);
+  }
+  /* Plavi blokovi: prelaz ka tamnijoj plavoj + belo svetlo. */
+  .contact .wrap, .cta-band{
+    --k-cell:30px; --k-line:rgba(255,255,255,.085);
+    --k-glow:rgba(165,200,242,.5); --k-size:70% 65%; --k-at:22% -18%;
+    --k-fade:#17447E; --k-fade-end:95%;
+    --k-base:linear-gradient(180deg, #1E5AA8 0%, #17447E 100%);
+  }
 
   /* Završni poziv (/ture, tekst na blogu): plavi blok kao kontakt na početnoj. */
-  .cta-band{background:#1E5AA8; border-radius:32px; padding:clamp(1.8rem,5vw,4rem); max-width:calc(1280px - 5rem); width:calc(100% - clamp(1.5rem,6vw,5rem));
+  .cta-band{background-color:#1E5AA8; border-radius:32px; padding:clamp(1.8rem,5vw,4rem); max-width:calc(1280px - 5rem); width:calc(100% - clamp(1.5rem,6vw,5rem));
     --ink:#FFFFFF; --ink-soft:rgba(255,255,255,.85); --accent:#FFFFFF; color:var(--ink);}
   @media (max-width:640px){ .cta-band{border-radius:24px;} }
   .cta-band .section-head{margin-bottom:0;}
@@ -750,10 +829,45 @@ export const SITE_STYLES = `
   .cta-band .btn-primary{background:#FFFFFF; color:#1E5AA8; box-shadow:none;}
   .cta-band .blog-related a{color:#FFFFFF; text-decoration:underline; text-underline-offset:3px;}
 
+  /* ---------- DUGMAD (uz reflektor i mrežu) ---------- */
+  /* Glavno dugme: ista plava svuda (i u tamnoj temi, i na tamnim blokovima),
+     sa blagim prelazom odozgo nadole i svetlom ivicom na vrhu - kao da i na
+     njega pada isti reflektor. Pri prelazu mišem svetlo je jače. */
+  .btn-primary, .nav .btn-primary, .price-card .price-cta, .agency-bridge .btn, .contact .contact-form .btn-primary{
+    background:linear-gradient(180deg, #3A77C9 0%, #1E5AA8 55%, #1A4F96 100%);
+    color:#FFFFFF; border-color:rgba(10,30,70,.25);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.3), 0 8px 18px -8px rgba(30,90,168,.65);
+  }
+  .btn-primary:hover, .nav .btn-primary:hover, .price-card .price-cta:hover, .agency-bridge .btn:hover, .contact .contact-form .btn-primary:hover{
+    background:linear-gradient(180deg, #4885D6 0%, #2463B5 55%, #1C5399 100%);
+    color:#FFFFFF;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.36), 0 12px 24px -8px rgba(30,90,168,.75);
+  }
+  /* Na plavom bloku glavno dugme je belo - isti prelaz, samo u beloj. */
+  .cta-band .btn-primary, .cta-band .btn-primary:hover{
+    background:linear-gradient(180deg, #FFFFFF 0%, #EAF1FB 100%); color:#1E5AA8; border-color:rgba(255,255,255,.6);
+    box-shadow:inset 0 -1px 0 rgba(30,90,168,.14), 0 10px 22px -10px rgba(5,20,50,.55);
+  }
+  .cta-band .btn-primary:hover{background:#FFFFFF;}
+  /* Sporedno dugme: pločica koja blago tamni ka dnu (svetla i tamna tema). */
+  .btn-secondary:not(.tour-open){
+    background:linear-gradient(180deg, var(--surface) 0%, color-mix(in srgb, var(--surface-2) 55%, var(--surface)) 100%);
+  }
+  /* Na tamnim i plavim blokovima sporedno dugme je staklo: vidi se mreža kroz njega. */
+  :is(.agency-bridge, .steps-side .deliver-card, .cat-card:nth-child(2), .price-card.featured, .blog-callout, .blog-card:nth-child(2n), .is-dark, .integration, .contact .wrap, .cta-band) .btn-secondary:not(.contact-form .btn-secondary){
+    background:rgba(255,255,255,.08); color:#FFFFFF; border-color:rgba(255,255,255,.22);
+    -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.18);
+  }
+  :is(.agency-bridge, .steps-side .deliver-card, .cat-card:nth-child(2), .price-card.featured, .blog-callout, .blog-card:nth-child(2n), .is-dark, .integration, .contact .wrap, .cta-band) .btn-secondary:not(.contact-form .btn-secondary):hover{
+    background:rgba(255,255,255,.16); color:#FFFFFF; border-color:rgba(255,255,255,.4);
+  }
+
   /* ---------- TRAKE ---------- */
-  .promo-top{display:block; text-align:center; background:#1E5AA8; color:#FFFFFF; font-size:.86rem; font-weight:500; padding:.6rem 1rem; text-decoration:none; line-height:1.4;}
+  .promo-top{display:block; text-align:center; background:#1E5AA8; color:#FFFFFF; font-size:.86rem; font-weight:500; padding:.6rem 1rem; text-decoration:none; line-height:1.4;
+    background-image:radial-gradient(40% 180% at 50% -40%, rgba(165,200,242,.45) 0%, transparent 70%), linear-gradient(90deg, #17447E 0%, #1E5AA8 50%, #17447E 100%);}
   .promo-top b{font-weight:700;}
-  .promo-top:hover{background:#17447E;}
+  .promo-top:hover{background-color:#17447E; background-image:radial-gradient(40% 180% at 50% -40%, rgba(165,200,242,.6) 0%, transparent 70%), linear-gradient(90deg, #17447E 0%, #2463B5 50%, #17447E 100%);}
   footer .wrap{display:flex; flex-wrap:wrap; justify-content:space-between; gap:1rem; align-items:center;}
   footer p{font-size:.85rem; color:var(--ink-soft);}
 `;

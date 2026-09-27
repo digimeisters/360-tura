@@ -52,6 +52,18 @@ export type FaqItem = { question: string; answer: string };
 
 // Plavi okviri kartica: svetliji za obična polja, pun plavi za glavno polje.
 const FRAME = '#9DBBE3';
+
+// Pozadina modula: isti potpis kao na sajtu ("reflektor i mreža", vidi
+// app/lib/siteStyles.ts) - svetlo levo gore, mreža kvadrata iza naslova koja
+// bledi do ~150px, dalje čista podloga ispod sadržaja. Slojevi, odozgo:
+// svetlo, bleđenje, mreža (2 sloja), osnovni prelaz.
+const MODAL_BACKGROUND = [
+  'radial-gradient(60% 150px at 12% 0, rgba(30,90,168,0.16) 0%, transparent 100%)',
+  'linear-gradient(180deg, rgba(246,248,252,0) 20px, #F6F8FC 160px)',
+  'linear-gradient(rgba(30,90,168,0.11) 1px, transparent 1px) -1px -1px / 22px 22px',
+  'linear-gradient(90deg, rgba(30,90,168,0.11) 1px, transparent 1px) -1px -1px / 22px 22px',
+  'linear-gradient(180deg, #E6EEF9 0px, #F6F8FC 130px)'
+].join(', ');
 const BOX: React.CSSProperties = {
   background: '#FFFFFF',
   border: '1.5px solid ' + FRAME,
@@ -337,7 +349,7 @@ export function TourModals({
     <div className="tour-ui-scale k360-modal-wrap" style={{ position: 'absolute', inset: 0, zIndex: 80, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
       {/* Na telefonu prozor izlazi odozdo kao list (zaobljen gore), na računaru je kartica u sredini. */}
       <style>{'@media (max-width: 720px){.k360-modal-wrap{align-items:flex-end!important;padding:0!important}.k360-modal{border-radius:30px 30px 0 0!important;max-height:88vh!important;border-left:0!important;border-right:0!important;border-bottom:0!important}}'}</style>
-      <div className="k360-modal" style={{ background: 'linear-gradient(180deg, #E6EEF9 0px, #F6F8FC 130px)', border: '1px solid ' + THEME.border, borderRadius: '24px', width: '100%', maxWidth: activeModal === 'about' ? '900px' : '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
+      <div className="k360-modal" style={{ background: MODAL_BACKGROUND, border: '1px solid ' + THEME.border, borderRadius: '24px', width: '100%', maxWidth: activeModal === 'about' ? '900px' : '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadowLg }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px 6px' }}>
           <h2 style={{ color: THEME.accent, fontSize: '24px', margin: 0, fontWeight: 800, letterSpacing: '-0.015em', fontFamily: 'var(--font-urbanist), var(--font-jakarta), system-ui, sans-serif', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Icon size={22} color={THEME.accent} />

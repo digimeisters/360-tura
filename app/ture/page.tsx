@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import SiteTracker from '../../components/SiteTracker';
+import CardSpotlight from '../../components/CardSpotlight';
 import TourList from '../../components/TourList';
 import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 
@@ -93,6 +94,7 @@ export default async function ToursPage() {
       <style dangerouslySetInnerHTML={{ __html: SITE_STYLES }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <SiteTracker />
+      <CardSpotlight />
 
       <SiteNav
         brandHref="/"

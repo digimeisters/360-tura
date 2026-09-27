@@ -3,7 +3,7 @@
 Kompletan tok, od unosa nekretnine do objavljene ture.
 
 > Ovaj dokument je živ — kad promenimo neku funkciju, izmena se upisuje ovde.
-> Poslednja izmena: 18.09.2026.
+> Poslednja izmena: 27.09.2026.
 
 ---
 
@@ -33,17 +33,18 @@ Ovo je glavni put. Agent popunjava, tura se pravi sama.
 
 | Odeljak | Polja |
 |---|---|
-| Osnovni podaci | tip i struktura nekretnine, naslov, adresa, grad, naselje, sprat, lift, podrum, grejanje, status gradnje, stanje enterijera, Google Maps embed link (opciono), kratak opis (opciono, ≤2 rečenice), tlocrt |
+| Osnovni podaci | tip i struktura nekretnine, naslov, adresa, grad, naselje, sprat, lift, podrum, grejanje, status gradnje, stanje enterijera, terasa, parking, Google Maps embed link (opciono), kratak opis (opciono, ≤2 rečenice), tlocrt |
 | Oglašivač | svojstvo, naziv agencije, ime, telefon, e-mail |
 | Vrsta oglasa | Izdavanje / Prodaja / Stan na dan + jezici ture |
-| Uslovi | pitanja se menjaju prema izabranoj vrsti oglasa (cena, kvadratura, uslovi ugovora/kredita/otkazivanja...) |
+| Uslovi | pitanja se menjaju prema izabranoj vrsti oglasa (cena, kvadratura, uslovi ugovora/kredita/otkazivanja...); **depozit** samo za izdavanje, **uknjiženost** samo za prodaju |
 | Slanje | **kod za slanje** |
 
 Napomene:
 
 - **Kod za slanje** je vrednost iz `FORM_ACCESS_CODE` (Vercel → Settings → Environment Variables). Daje se agenciji zajedno sa linkom. Menja se izmenom te varijable i redeploy-om; stari kod odmah prestaje da važi.
 - **Link se ne kuca** — pravi se iz naslova. Naša slova i ćirilica se preslovljavaju, a ako naslov već postoji, dodaje se broj na kraj.
-- **Slanje traje do pola minuta** — u tom trenutku AI čisti podatke, piše kratku napomenu i pet FAQ odgovora na svim izabranim jezicima. Naselje, kvadratura, struktura, sprat, lift, podrum, grejanje, status gradnje i stanje **ne prolaze kroz AI** — agent ih bira sa zatvorene liste ili kuca, upisuju se tačno tako, a aplikacija ih sama prevodi za posetioca ture.
+- **Slanje traje do pola minuta** — u tom trenutku AI čisti podatke, piše kratku napomenu i pet FAQ odgovora na svim izabranim jezicima. Naselje, kvadratura, struktura, sprat, lift, podrum, grejanje, status gradnje, stanje, terasa, parking, depozit i uknjiženost **ne prolaze kroz AI** — agent ih bira sa zatvorene liste ili kuca, upisuju se tačno tako, a aplikacija ih sama prevodi za posetioca ture.
+- **Struktura se posetiocu prikazuje bez oznake u zagradi** — agent bira „Dvosoban (2.0)", a u turi, na `/ture` i na početnoj piše „Dvosoban". U bazi i u linku filtera ostaje pun naziv.
 - **Lift i podrum nemaju podrazumevan odgovor** — moraju se ručno izabrati (Da/Ne), namerno: pogrešan da/ne podatak je gori od praznog.
 - **Ništa se ne gubi** — pogrešan kod ostavlja formular popunjen, a nacrt se čuva u pretraživaču i ako se stranica osveži.
 - **Tlocrt mora biti slika** (JPG, PNG, WEBP). PDF se ne prihvata jer se u turi crta kao slika.
@@ -53,14 +54,16 @@ Napomene:
 
 Za tvoje unose i za ispravke. Prijava administratorskim nalogom.
 
-- Formular pravi turu: naslov, agencija, tip oglasa, adresa, grad, naselje, struktura, kvadratura, cena, sprat, lift, podrum, grejanje, status gradnje, stanje enterijera, tip nekretnine, podaci agenta.
+- Formular pravi turu: naslov, agencija, tip oglasa, adresa, grad, naselje, struktura, kvadratura, cena, sprat, lift, podrum, grejanje, status gradnje, stanje enterijera, terasa, parking, depozit (izdavanje), uknjiženost (prodaja), tip nekretnine, podaci agenta.
+- Pri **izmeni** se uređuju i odgovori na pet pitanja (modul „Pitanja").
+- Posle čuvanja sa adresom tura sama dobija koordinate za mapu na `/ture`.
 - Link se generiše iz naslova i vidi se uživo dok kucaš.
 - **Izmena** postojeće ture menja samo prikazane podatke — **link se ne menja**, jer su za njega vezani podeljeni linkovi i zabeležena analitika.
 - Lista pokazuje sve ture, stanje (**Objavljena** / **U pripremi**), broj soba i crveno upozorenje kad tura nema sobe ili neka soba nema panoramu.
 - **`Objavi` / `Skini`** menja stanje jednim klikom. Objava se ne da ako tura nema nijednu sobu, a pita za potvrdu ako neka soba nema panoramu. Skidanje sa objave takođe pita — podeljeni linkovi tad prestaju da rade.
-- **Nema brisanja ture** — nepovratno je i povuklo bi sobe i analitiku. Briše se u Supabase-u, uz razmišljanje.
+- **`Obriši`** trajno uklanja turu, sobe, panorame i statistiku. Traži da upišeš slug ture za potvrdu, jer se ne može vratiti.
 
-Razlika: upitnik popunjava i opis i svih pet odgovora; ručni panel ne — njega koristi za osnovne podatke i ispravke.
+Razlika: upitnik popunjava i opis i svih pet odgovora; ručni panel pravi turu bez njih — njega koristi za osnovne podatke i ispravke (odgovori se dopisuju kroz `Izmeni`).
 
 ---
 
@@ -74,8 +77,18 @@ Otvori `kvadrat360.com/tour/<slug>?admin=1` i prijavi se. Zatim:
 
 - Podržano: JPG, PNG, WEBP, do 40MB.
 - Slika se na serveru pretvara u **WebP u punoj rezoluciji** — oko 90% manja bez vidljive razlike. Rezolucija se ne dira.
-- Usput se pravi i mala sličica za share karticu.
+- Usput se prave još dve kopije: mala sličica za share karticu i **lakša panorama za telefone** (6000 px širine). Telefon učitava nju — ista oštrina na malom ekranu, a skoro upola manje memorije, pa stariji iPhone ne ruši turu. Računar i dalje učitava punu panoramu.
 - **Zamena pogrešne slike** radi: otpremi novu i potvrdi pitanje. Svaka zamena dobija novu adresu, pa se odmah vidi.
+
+Ostali alati u gornjoj admin traci:
+
+| Dugme | Šta radi |
+|---|---|
+| `✏️ Preimenuj` | menja naziv trenutne sobe |
+| `🗑️ Soba` | trajno briše sobu, njenu panoramu i strelice iz drugih soba koje vode u nju |
+| `🗑️ Panorama` | briše samo sliku (npr. pogrešno otpremljenu); soba ostaje |
+| `📝` uvodna naracija | menja tekst kojim vodič otvara sobu |
+| putanja vodiča | redosled soba kojim ide automatski vodič, brojevi odvojeni zarezom |
 
 ---
 
@@ -153,6 +166,18 @@ Na kraj linka dodaj `?lang=` i tura se otvara odmah na tom jeziku, bez biranja n
 
 Ako tura nema traženi jezik, otvara se na srpskom. Posetilac i dalje može da promeni jezik u turi.
 
+### Šta posetilac vidi u turi
+
+Korisno kad agenciji objašnjavaš turu ili proveravaš da li nešto radi kako treba.
+
+- **Početni ekran:** izbor jezika, „Istražite sami" ili „Automatsko vođenje", i link „Kako radi 360° tura?" — prozor sa 4 slikovna koraka, zatvara se na ×.
+- **Kartica sa naslovom** (gore levo) nosi i dugme za **deljenje ture**.
+- **Kartica sa tekstom** (naracija i info-tačke) pokazuje naziv i dva reda teksta; ostatak otvara „Više".
+- **Donji moduli:** Plan (tlocrt, uz objašnjenje da je to mapa stana i da tačka vodi u prostoriju), Lokacija, Info (grad, ulica, cena, cena po m² i sve činjenice u jednoj čitkoj celini), Pitanja (sa pozivom i mejlom agenta na dnu), Kontakt. U dnu modula diskretno stoji „360° turu izradio Kvadrat360" — link na naš sajt, meri se kao `utm_source=tura`.
+- **Prostorija koju je posetilac već obišao** ne priča ponovo svoju priču kad se u nju vrati.
+- **Na telefonu:** dok posetilac prstom okreće panoramu, dugmad se povlače u stranu i vraćaju se sekund i po posle.
+- **Dugme „nazad"** (Android) i povlačenje od ivice (iPhone) prvo zatvaraju ono što je otvoreno (modul, karticu, formu). Kad ništa nije otvoreno, tura pita „Da li želite da napustite turu?"; još jedno „nazad" izlazi. Ako je tura otvorena direktno iz poruke (nema strane pre nje), izlazak vodi na početnu stranu sajta.
+
 ---
 
 ## 7. Analitika — `kvadrat360.com/admin/analitika`
@@ -195,14 +220,13 @@ Ovo se popunjava **samo pri prvom unosu kroz upitnik**. Naknadna izmena ide dire
 
 | Sadržaj | Kolona |
 |---|---|
-| Kratka napomena ispod tabele u modalu „Info" | `about_text_i18n` |
-| Odgovori u modalu „Pitanja" | `faq_1_i18n` … `faq_5_i18n` |
-| Slika tlocrta | `floorplan_url` |
+| Kratka napomena u modulu „Info" | `about_text_i18n` |
+| Slika tlocrta | `floorplan_url` (ili šematski plan: `/admin/ture` → `🗺 Plan`) |
 | Mapa lokacije | `location_map_url` |
 
-Sami redovi tabele u modalu „Info" (naselje, kvadratura, struktura, sprat, lift, podrum, grejanje, status gradnje, stanje) **se uređuju** kroz `/admin/ture`, kao i grad i cena.
+Sve ostalo u modulu „Info" (grad, ulica, cena i cena po m², naselje, kvadratura, struktura, sprat, lift, podrum, grejanje, status gradnje, stanje, terasa, parking, depozit, uknjiženost) i odgovori u modulu „Pitanja" **se uređuju** kroz `/admin/ture` → `Izmeni`.
 
-Ako gornja četiri polja počnu često da trebaju izmenu, sledeći korak je dopuna `/admin/ture` da i njih uređuje kroz formular.
+Prazno polje se u turi ne prikazuje — red jednostavno izostane. Zato je bolje ostaviti prazno nego upisati netačno.
 
 ---
 

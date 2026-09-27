@@ -2,7 +2,7 @@
 
 Ovo je prvi dokument koji AI agent (Claude, Codex, Gemini...) treba da pročita pre rada na projektu. Kaže šta je Kvadrat360, kako je sistem složen, gde šta stoji i koja pravila vlasnik traži.
 
-Stanje opisano ovde važi na dan **18. 9. 2026**. Ako se kod i ovaj dokument razilaze, **kod je tačan**. Tada ispravi i dokument.
+Stanje opisano ovde važi na dan **27. 9. 2026**. Ako se kod i ovaj dokument razilaze, **kod je tačan**. Tada ispravi i dokument.
 
 Uputstvo za ljude (kako se pravi tura, korak po korak) je u [`uputstvo-kreiranje-ture.md`](uputstvo-kreiranje-ture.md).
 
@@ -34,6 +34,8 @@ Vlasnik govori srpski, vodi se proizvodom i dizajnom, nije programer. Objašnjen
 | Admin, analitika | `/admin/analitika` | vlasnik | Posete tura i početne strane, klikovi, izvori poseta |
 | Admin u turi | `/tour/[slug]?admin=1` | vlasnik | Dodavanje soba, otpremanje panorama, AI popuna, prevodi, tačke, tlocrt |
 | Izveštaj agencije | `/izvestaj/[token]?mesec=YYYY-MM` | agencija | Mesečni izveštaj o posetama njenih tura. Tajni potpisan link (`lib/agencyReport.ts`), bez prijave; linkovi su u `/admin/ture` → „Izveštaji za agencije". Nije za Google. |
+| Sve ture | `/ture` | posetioci | Baza objavljenih tura: jedna traka filtera, Leaflet mapa pored filtera (računar), kartice 4 u redu |
+| Za agencije | `/za-agencije` | agencije | Prodajna strana za agencije iz Kragujevca; živa tura u vrhu, moduli ture kao benefiti |
 | Šematski plan | `/admin/plan/[slug]` | vlasnik | Editor tlocrta: automatski nacrt iz tačaka vrata (`lib/schematicFloorplan.ts`) koji se ispravlja povlačenjem; čuvanje crta SVG (`lib/floorplanLayout.ts`), stavlja ga na R2 kao `<slug>/floorplan-schematic.svg` (+ `.json` sa rasporedom za kasniju izmenu) i upisuje `floorplan_url` i oznake soba. Pravi tlocrt se ne menja bez potvrde. Dugme „🗺 Plan" u `/admin/ture`. |
 
 ---
@@ -57,7 +59,8 @@ Vlasnik govori srpski, vodi se proizvodom i dizajnom, nije programer. Objašnjen
 
 ```
 app/
-  layout.tsx              root layout: fontovi (next/font: Inter + Plus Jakarta Sans), preconnect na CDN
+  layout.tsx              root layout: fontovi (next/font: Inter, Plus Jakarta Sans, Instrument Serif
+                          samo za kurziv u naslovima sajta, Urbanist za naslove u turi), preconnect na CDN
   globals.css             --font-body / --font-display (koristi ih i THEME)
   page.tsx                / (srpski) → <HomePage lang="sr" />
   en/page.tsx             /en (engleski) → <HomePage lang="en" />
@@ -65,13 +68,26 @@ app/
   tour/[slug]/
     page.tsx              sklapa turu: stanje, Pannellum scena (efekat koji pravi sobu), raspored ekrana
     useRoomNavigation.ts  kretanje između soba (klik, vrata, strelice) + automatski vodič i pauza
-    roomSequence.ts       "koreografija" sobe posle učitavanja: uvod, info-tačke, kraj / vodič dalje
+    roomSequence.ts       "koreografija" sobe posle učitavanja: uvod, info-tačke, kraj / vodič dalje;
+                          ručni povratak u već obiđenu sobu preskače priču
+    transition.ts         prelaz između soba; panoramaUrlFor() bira lakšu panoramu za telefon
+    useViewerControls.ts  ceo ekran (i webkit) i žiroskop; canFullscreen / canGyro sakrivaju dugme gde ne radi
+    useBackGuard.ts       dugme "nazad": zatvara gornji sloj, pa pita "napustiti turu?", pa izlazi
+    useTourNarration.ts   zvuk naracije
+    WelcomeScreen.tsx     početni ekran + prozor "Kako radi 360° tura?" (4 koraka, ×, "nazad" ga zatvara)
+    TourControls.tsx      jezici, kartica naslova (sa deljenjem), dugmad preko panorame, InfoCard
+                          (2 reda + Više/Manje), Pozovi, LeaveTourDialog
+    TourMenuBar.tsx       donja traka modula
+    TourModals.tsx        moduli Plan / Lokacija / Info / Pitanja / Kontakt + potpis Kvadrat360
+    ViewingRequestModal.tsx  "Zakaži razgledanje"
+    RoomNavBar.tsx, FloorplanMiniMap.tsx  traka soba (na računaru u vrhu) i mala mapa levo
     useTourData.ts        učitavanje ture i soba
     useAdminSession.ts    admin prijava u turi
     useHotspotEditor.ts   admin: dodavanje/pomeranje/brisanje tačaka, oznaka na tlocrtu
     useTourAnalytics.ts   merenje poseta (tour_events) + unapred skidanje susednih soba
     tourLanguages.ts      koji jezici se nude (tekst / snimljen glas)
-    TourOverlays.tsx      globalni CSS ture, ekran učitavanja, admin nišan
+    TourOverlays.tsx      globalni CSS ture (.k360-tap, .k360-top-ui), ekran učitavanja, admin nišan,
+                          useImmersiveWhileDragging (sakriva dugmad dok se prstom vuče)
     TourSeoSummary.tsx    tekst ture za Google i čitače ekrana (renderuje layout.tsx)
     TourAdminTools.tsx    admin alati u turi (poseban chunk, samo za admina)
     layout.tsx            metadata ture (naslov, opis, OG)
@@ -85,9 +101,11 @@ app/
   api/                    rute (vidi §8)
   lib/                    zajednička logika (vidi ispod)
   sitemap.ts, robots.ts, opengraph-image.tsx
-components/               komponente početne: HeroDevice, ContactForm, PriceCalculator, SiteTracker
-supabase/migrations/      001–015+, SQL koji vlasnik ručno pokreće u Supabase SQL editoru
-scripts/                  jednokratni skriptovi + gen-db-types.mjs (npm run db:types)
+components/               komponente sajta: HeroDevice, ContactForm, PriceCalculator, SiteTracker,
+                          TourList + TourMap (/ture), TourModulesShowcase (moduli ture kao benefiti)
+supabase/migrations/      001–018, SQL koji vlasnik ručno pokreće u Supabase SQL editoru
+scripts/                  jednokratni skriptovi + gen-db-types.mjs (npm run db:types),
+                          backfill-mobile-panoramas.mjs (lakše panorame za postojeće sobe; urađeno za sve)
 types/supabase.ts         generisani tipovi baze (`npm run db:types`, vidi §5)
 docs/                     uputstvo-kreiranje-ture.md, ovaj fajl
 ```
@@ -108,7 +126,9 @@ Najvažnije u `app/lib/`:
 | `authFetch.ts` | `adminAuthHeader()` za klijentske pozive admin ruta |
 | `rateLimit.ts` | ograničenje broja zahteva po IP-u (u memoriji, približno) |
 | `track.ts` | `trackEvent` (ture) i `trackSiteEvent` (početna), sendBeacon |
-| `r2.ts`, `panoramaPreview.ts` | R2 klijent; WebP konverzija i sličica 1200×630 |
+| `r2.ts`, `panoramaPreview.ts` | R2 klijent; WebP konverzija, sličica 1200×630 i kopija za telefone (`MOBILE_PANORAMA_WIDTH = 6000`, `mobilePanoramaKey`) |
+| `propertyTaxonomy.ts` | zatvorene liste (tip, struktura, naselja, grejanje, terasa, parking, depozit, uknjiženost); `structureLabel()` skida „(2.0)" za prikaz |
+| `geocode.ts` | adresa → koordinate (Nominatim) za mapu na `/ture` |
 | `structuredData.ts` | JSON-LD (WebSite, LocalBusiness, FAQPage) |
 | `slug.ts` | slug od naziva (latinica i ćirilica, jedinstven) |
 | `telegram.ts` | slanje poruke na Telegram |
@@ -121,13 +141,13 @@ Najvažnije u `app/lib/`:
 
 | Tabela | Šta | Važne kolone |
 |---|---|---|
-| `tours` | jedna nekretnina | `slug` (ključ za URL), `title_i18n`, `category` (`sale`/`rent`/`booking`), `about_text_i18n` (kratka napomena, ≤2 rečenice), `faq_1..5_i18n`, `location_map_url`, `floorplan_url`, `agency_name`, `agent_*`, `address`, `city` (011), `structure`, `district` (012), `area_sqm`, `price` (013), `floor`, `has_elevator`, `has_basement`, `heating` (014), `build_status`, `finish_status` (015), `property_type`, `status` (010, aktivna/izdato/prodato/pauza), **`published`** (007) |
-| `rooms` | prostorija u turi | `tour_slug` (FK na `tours.slug`), `order_index`, `title_i18n`, `panorama_url_cf` (R2/CDN), `panorama_url` (stari Supabase URL), `preview_url` (004), `waypoints_i18n`, `establish_i18n`, `floorplan_x/y` (003) |
+| `tours` | jedna nekretnina | `slug` (ključ za URL), `title_i18n`, `category` (`sale`/`rent`/`booking`), `about_text_i18n` (kratka napomena, ≤2 rečenice), `faq_1..5_i18n`, `location_map_url`, `floorplan_url`, `agency_name`, `agent_*`, `address`, `city` (011), `structure`, `district` (012), `area_sqm`, `price` (013), `floor`, `has_elevator`, `has_basement`, `heating` (014), `build_status`, `finish_status` (015), `lat`, `lng` (016, geokodirano), `terrace`, `parking`, `deposit` (samo izdavanje), `registration` (samo prodaja) (017), `property_type`, `status` (010, aktivna/izdato/prodato/pauza), **`published`** (007) |
+| `rooms` | prostorija u turi | `tour_slug` (FK na `tours.slug`), `order_index`, `title_i18n`, `panorama_url_cf` (R2/CDN), `panorama_url_mobile` (018, 6000 px kopija za telefone; prazno = telefon uzima punu), `panorama_url` (stari Supabase URL), `preview_url` (004), `waypoints_i18n`, `establish_i18n`, `floorplan_x/y` (003) |
 | `contact_requests` | upiti sa forme | `name`, `contact`, `package`, `agency`, `listing_type`, `size`, `message` (prvi red može biti „Željeni termin: ..."), `source` (`landing` / `landing_en`) |
 | `tour_events` | analitika tura | `tour_slug`, `event_type` (`open`, `start`, `room_view`, `share`, `contact`), `session_id`, `room_id`, `duration_ms`, `lang` |
 | `site_events` | analitika početne (008) | `event_type` (`page_view`, `cta_click`, `contact_click`, `form_submit`), `target`, `session_id`, `device`, `source` |
 
-**Tabela osnovnih podataka u turi** (migracije 012–015: `structure`, `district`, `area_sqm`, `floor`, `has_elevator`, `has_basement`, `heating`, `build_status`, `finish_status`) namerno **nema i18n kolone**. Agent u `/unos` bira sa zatvorene liste (vidi `app/lib/propertyTaxonomy.ts`) ili kuca broj/tekst; AI to ne dodiruje. Prevod na EN/DE/RU radi statički rečnik u `app/tour/[slug]/translations.ts` (`FACT_LABELS`, `STRUCTURE_LABELS`, `HEATING_LABELS`, `BUILD_STATUS_LABELS`, `FINISH_STATUS_LABELS`) — proširiti listu u `propertyTaxonomy.ts` znači dodati i prevod tamo, za sva 4 jezika, inače nova vrednost ostaje neprevedena na EN/DE/RU (i dalje se prikazuje, samo na srpskom).
+**Tabela osnovnih podataka u turi** (migracije 012–015 i 017: `structure`, `district`, `area_sqm`, `floor`, `has_elevator`, `has_basement`, `heating`, `build_status`, `finish_status`, `terrace`, `parking`, `deposit`, `registration`) namerno **nema i18n kolone**. Agent u `/unos` bira sa zatvorene liste (vidi `app/lib/propertyTaxonomy.ts`) ili kuca broj/tekst; AI to ne dodiruje. Prevod na EN/DE/RU radi statički rečnik u `app/tour/[slug]/translations.ts` (`FACT_LABELS`, `STRUCTURE_LABELS`, `HEATING_LABELS`, `BUILD_STATUS_LABELS`, `FINISH_STATUS_LABELS`, `TERRACE_LABELS`, `PARKING_LABELS`, `DEPOSIT_LABELS`, `REGISTRATION_LABELS`). Struktura se posetiocu uvek prikazuje kroz `structureLabel()` („Dvosoban (2.0)" → „Dvosoban"); u bazi i u `?struktura=` ostaje pun naziv — proširiti listu u `propertyTaxonomy.ts` znači dodati i prevod tamo, za sva 4 jezika, inače nova vrednost ostaje neprevedena na EN/DE/RU (i dalje se prikazuje, samo na srpskom).
 
 ### Višejezični sadržaj (JSONB)
 
@@ -155,7 +175,8 @@ Polja `*_i18n` su objekti po jezicima: `{ "sr": "...", "en": "...", "de": "...",
 
 ## 6. Mediji (R2)
 
-- Panorama sobe: `<roomId>-panorama.webp` (WebP, **puna rezolucija**; smanjivanje bi pokvarilo zumiranje)
+- Panorama sobe: `<roomId>-panorama.webp` (WebP, **puna rezolucija**; smanjivanje bi pokvarilo zumiranje), u folderu ture
+- Kopija za telefone: `<roomId>-panorama-m.webp` (6000×3000; ~72 MB u memoriji telefona umesto ~128 MB). Pravi je `/api/upload-panorama/finish`; brisanje sobe ili panorame briše i nju. Telefon = `(pointer: coarse)` ili širina < 1024 (`panoramaUrlFor` u `transition.ts`).
 - Sličica sobe: `<roomId>-preview.jpg` (1200×630, isečak oko horizonta; za OG i početnu)
 - URL-ovi se u bazu upisuju sa `?v=<vreme>`, da CDN posle zamene ne vraća staru sliku.
 - ⚠️ Folderi **`Maglicka/`** i **`Slavisa -booking/`** u bucketu sadrže **originalne panorame** na koje nijedan red u bazi ne pokazuje. To **nisu siročići** i **nikad se ne brišu**. Pri čišćenju R2 briše se samo po tačnom obrascu ključeva soba, uvek prvo suvim hodom.
@@ -165,9 +186,15 @@ Polja `*_i18n` su objekti po jezicima: `{ "sr": "...", "en": "...", "de": "...",
 ## 7. Tura (`/tour/[slug]`)
 
 - Klijentska komponenta. Tura i sobe se učitavaju paralelno, a susedne panorame se unapred skidaju.
-- Početni ekran ima dugme „▶ Pokreni turu" i izbor jezika. Posle starta Pannellum prikazuje sobu, radi uvodna naracija (establish), pa tačke (waypoints).
-- Modali: **Skica** (tlocrt sa markerima soba), **Lokacija** (Google mapa u iframe-u), **Info** (tabela osnovnih podataka, `buildFactList()` u `utils.tsx`, plus opciona kratka napomena `about_text_i18n`), **Pitanja** (FAQ 1–5, svako pitanje uska tema, odgovor jedan kratak red), **Kontakt** (agent, poziv, mejl).
-- Dodaci: auto-rotacija, žiroskop na telefonu, deljenje (Web Share), zvuk.
+- Početni ekran ima izbor jezika, „Istražite sami" / „Automatsko vođenje" i prozor „Kako radi 360° tura?" (4 slikovna koraka sa pravim `.k360-hs-beacon`, zatvara se na ×). Posle starta Pannellum prikazuje sobu, radi uvodna naracija (establish), pa tačke (waypoints). Ručni povratak u već obiđenu sobu **ne ponavlja** priču.
+- Moduli (donja traka): **Plan** (tlocrt sa uvodom `planIntroTitle/Text` da je to mapa stana; bez spiska soba), **Lokacija** (Google mapa u iframe-u), **Info** (hero kartica + ključne činjenice + redovi: grad, ulica, cena, cena po m², ostalo iz `buildFactList()` u `utils.tsx`; opciona napomena `about_text_i18n`), **Pitanja** (FAQ 1–5, u dnu jedan red sa okruglim dugmadima poziv/mejl), **Kontakt** (agent, poziv, mejl, „Zakaži razgledanje"). Svaki modul u dnu ima diskretan potpis „360° turu izradio Kvadrat360" → `SITE_URL/?utm_source=tura&utm_medium=potpis&utm_campaign=<slug>`.
+- Gornji deo: jezici, kartica naslova sa dugmetom za **deljenje** (Web Share). Na računaru traka soba stoji u vrhu, mala mapa levo. „Pozovi" je u kartici sa tekstom.
+- **InfoCard** (naracija / info-tačka): naslov + 2 reda, „Više/Manje" samo kad tekst ne staje (ResizeObserver).
+- **Veličine dodira:** okrugla dugmad 44 px, pilule 36 px sa `.k360-tap` (nevidljivo `::after` −4px proširuje metu). Na računaru ceo UI ture ima zoom 1.122.
+- **Telefon:** dok se prstom vuče panorama (>12 px), gornji UI se sklanja (`is-immersive`) i vraća 1,5 s posle; dugme za ceo ekran i žiroskop se prikazuju samo gde rade (iPhone nema fullscreen).
+- **Dugme „nazad"** (`useBackGuard`): jedan `{k360Guard:true}` korak istorije. Nazad zatvara redom: zakazivanje → modul → InfoCard; ako ništa nije otvoreno, `LeaveTourDialog` („Da li želite da napustite turu?"); drugo nazad izlazi. Bez strane pre ture ide na `/`. Admin ga nema. Next 16 zadržava `__NA` u stanju istorije — ne dirati `history.state` ručno van ovog hook-a.
+- **Fontovi:** naslovi u turi su **Urbanist** bold; kurziv sa serifima samo na sajtu.
+- Dodaci: auto-rotacija, žiroskop na telefonu, zvuk.
 - **`?lang=en|de|ru`** otvara turu na tom jeziku, ako ga tura ima.
 - **Admin režim:** prijava preko `?admin=1`; sesija se posle pamti. Admin alati su u `TourAdminTools.tsx` (dugmad se ubacuju u gornju traku preko portala), a uređivanje tačaka je u `useHotspotEditor.ts`.
 - Neobjavljena tura vraća „tura nije pronađena" svima osim adminu.
@@ -184,8 +211,9 @@ Polja `*_i18n` su objekti po jezicima: `{ "sr": "...", "en": "...", "de": "...",
 | `GET/POST /api/admin/floorplan` | `requireAdmin` | Raspored šematskog plana (sačuvan ili nov nacrt) / čuvanje plana u turu |
 | `POST /api/track` | 120 / min, botovi se odbacuju | Događaji tura (`tour_events`) i, uz `scope: 'site'`, početne (`site_events`) |
 | `POST /api/unos` | kod `FORM_ACCESS_CODE`; 10 slanja / h; 5 pogrešnih kodova / 15 min | Upitnik agenta → Gemini nacrt → neobjavljena tura |
-| `GET/POST/PATCH /api/admin/tours` | `requireAdmin` | Spisak, nova tura, izmena, objava. Posle izmene osvežava `/`, `/en` i sitemap |
-| `POST /api/upload-panorama` | `requireAdmin` | Fajl panorame → WebP na R2 + sličica → `rooms` |
+| `GET/POST/PATCH/DELETE /api/admin/tours` | `requireAdmin` | Spisak, nova tura, izmena (uklj. FAQ, geokodiranje), objava, brisanje (sa R2 fajlovima). Posle izmene osvežava `/`, `/en`, `/ture`, `/za-agencije` i sitemap (`lib/revalidatePublic.ts`) |
+| `POST /api/upload-panorama` + `POST .../finish` | `requireAdmin` | Presigned R2 PUT (Vercel prima najviše 4,5 MB), pa `finish`: WebP + sličica + kopija za telefone → `rooms`. `DELETE` briše panoramu sobe (i `-m.webp`) |
+| `DELETE /api/admin/rooms` | `requireAdmin` | Brisanje sobe sa panoramama i strelicama koje vode u nju |
 | `POST /api/upload-to-r2` | `requireAdmin` | Migracija panorame sa starog Supabase URL-a na R2 |
 | `POST /api/ai/auto-populate-room` | `requireAdmin` | `generate_draft` (Gemini gleda panoramu i predlaže naziv, tekst i tačke), `translate_step` (prevodi); `generate_voice` vraća 501 |
 | `GET /api/analytics` | `requireAdmin` | Zbir za admin analitiku (ture i početna) |
@@ -200,7 +228,7 @@ Nova ruta koja menja podatke **mora** imati `requireAdmin` ili ograničenje broj
 - Temperature: `TEMP_EXTRACT = 0.2` (izvlačenje podataka), `TEMP_DESCRIPTIVE = 0.6` (opisni tekst).
 - Nacrt sobe dobija tip oglasa ture (`listingType`); ograničenja su 3 reči za naziv tačke, 180 znakova za tekst tačke i 320 za naraciju.
 - **Poznato i prihvaćeno:** AI i dalje ne postavlja tačke precizno u panoramu. Vlasnik to prihvata; ne popravljati bez njegovog zahteva.
-- **Glasovna naracija (TTS) je namerno isključena** dok vlasnik ne kupi ElevenLabs. Tada se vraća handler iz commita `0d8491e`.
+- **Glasovna naracija (TTS) je još isključena** (`generate_voice` vraća 501). ElevenLabs je plaćen 23. 9. 2026, ali tekstovi još nisu spremni. Kad vlasnik kaže, vraća se handler iz commita `0d8491e`. Dogovoreno za tada: automatski vodič kreće sa zvukom uz kratko obaveštenje „🔊 Zvuk je uključen · Isključi" (3 s), a u automatskom režimu idu i titlovi.
 
 ---
 
@@ -210,7 +238,10 @@ Nova ruta koja menja podatke **mora** imati `requireAdmin` ili ograničenje broj
 - Statična je i osvežava se na sat (`revalidate = 3600`), a odmah posle objave, skidanja ili izmene ture.
 - **Ture (odeljak "Ture", `#primeri`)** i **kadar u vrhu** su prave objavljene ture (`showcaseTours.ts`). Na `/en` prednost ima tura koja ima engleski. Posle prikazanih tura stoji traka koja najavljuje kompletnu bazu sa filterima i vodi na `/ture`.
 - **Cene:** samo u `lib/pricing.ts`. Tura i HDR se prikazuju kao odvojene stavke (§4 tamo), a paketi (tura+HDR) idu po stepenu obima: 1–2 → 70 €, 3–4 → 62 €, 5–9 → 55 €, 10+ → 48 € (Osnovni; Premium +15 € na turu). Kartice paketa i kalkulator se računaju odatle. Uvodna promocija (`PROMO` u `pricing.ts`) daje −30% na pakete do datuma u `PROMO.endDate`; HDR naručen **samostalno** (bez ture) se **nikad** ne spušta (`standaloneHdrPrice()`) - namerno, da se ne isplati poručiti samo fotografije.
-- **/ture:** spisak svih objavljenih tura sa filterima (vrsta oglasa, grad, naselje, struktura, agencija - padajući meniji sa više izbora) i klizačima (kvadratura, cena). `components/TourList.tsx` + `FilterMenu.tsx` + `RangeFilter.tsx`.
+- **/ture:** spisak svih objavljenih tura. Vrsta oglasa je segmentirano dugme (`tl-seg`), ostali filteri (grad, naselje, struktura, agencija, kvadratura, cena) su jedna traka polja (`tl-bar`) sa iskačućim menijem (`FieldPopover`) i čipovima aktivnih filtera. Na računaru (≥ 861 px) Leaflet mapa stoji desno od filtera (`tl-top`), kartice idu 4 u redu; na telefonu dugme „Filteri". `components/TourList.tsx` + `TourMap.tsx` + `FilterMenu.tsx` + `RangeFilter.tsx`, stil u `lib/siteStyles.ts`. Adresa filtera: `?kategorija=&grad=&struktura=`.
+- **Pretraga na početnoj** (`db-teaser`) je obična GET forma ka `/ture` sa istim parametrima.
+- **Vizuelni potpis „reflektor i mreža"** (od 27. 9. 2026): hero, sive (`.band`), tamne i plave sekcije, podnožje i zaglavlja modula ture imaju svetlo odozgo i finu mrežu kvadrata koja bledi ka dnu. Jedan recept u `siteStyles.ts` (odeljak REFLEKTOR I MREŽA), blok menja samo `--k-*` promenljive. Glavno dugme je plavi prelaz sa svetlom ivicom; sporedno na tamnom/plavom je „staklo". Brojevi poglavlja su u kvadratu. Kartice tura: svetlo prati miš (`components/CardSpotlight.tsx`). U turi: `MODAL_BACKGROUND` u `TourModals.tsx`.
+- **Moduli ture kao benefiti:** `TourModulesShowcase` (početna i `/za-agencije`), tekst u `homeCopy.ts`.
 - **Forma:** vrednosti polja (paket, tip) stižu **na srpskom** i sa engleske strane. Na Telegramu ide oznaka „🌐 Sa engleske strane".
 - **Kalkulator → forma:** događaj `k360:estimate` (`lib/estimateEvent.ts`).
 - **Merenje:** element sa `data-track="cta:cilj"` ili `data-track="contact:cilj"` se broji sam (`SiteTracker`). Novi cilj treba dodati i u `TARGET_LABELS` u `admin/analitika/page.tsx`. Posete admina se ne broje (proverava se ključ `sb-*-auth-token` u localStorage).
@@ -246,7 +277,7 @@ Samo imena. **Vrednosti se nikad ne upisuju u kod, dokumente ni poruke.** Stoje 
 ### Pravila vlasnika (obavezna)
 
 1. **Nikad commit ni push dok vlasnik izričito ne napiše „pushuj"** (ili „push"). „Nastavi", „continue" i „ok" **nisu** dozvola za push.
-2. Folder **`.claude/` nikad ne ide u commit.**
+2. Folder **`.claude/` nikad ne ide u commit.** Isto važi za `docs/cowork/` (repo je javan), `public/mockup/` i `welcome-screen.png`, osim ako vlasnik ne traži.
 3. **Ne menjaj nazive tura** (`title` / `title_i18n`). To radi vlasnik u `/admin/ture` → Izmeni.
 4. Pri brisanju **ne pravi rezervne kopije**, osim ako vlasnik to traži. Uvek prvo **suvi hod** i pokaži šta će biti obrisano.
 5. R2 folderi sa originalima (§6) se ne diraju.
@@ -267,6 +298,8 @@ Samo imena. **Vrednosti se nikad ne upisuju u kod, dokumente ni poruke.** Stoje 
 - Stanje deploya ne proveravaj učestalim `curl` pozivima ka sajtu, jer se tako upali Vercel Security Checkpoint. Umesto toga pitaj GitHub: `curl -s https://api.github.com/repos/digimeisters/360-tura/commits/<sha>/status` (Vercel tamo upisuje `pending` / `success` i opis). GitHub CLI (`gh`) nije instaliran.
 - Ako Vercel ne primi push (nema statusa), prazan commit na vlasnikov „pushuj" ga pokreće.
 - Windows: posle gašenja `next start` proces ume da ostane na portu. Ugasi ga po portu (`Get-NetTCPConnection -LocalPort 3100`).
+- Posle pusha **proveri da je izmena stvarno živa** (npr. da traženi tekst postoji u živom JS-u) — Vercel je jednom preskočio deploy.
+- Deo fajlova u `app/tour/[slug]/` ima CRLF kraj reda. Veće izmene radi skriptom u privremenom folderu (čita, normalizuje na LF, vraća CRLF), ne kroz `node -e` u komandnoj liniji: escape-ovanje tamo je jednom pretvorilo `\b` u backspace i srušilo `getTourMeta`.
 
 ---
 
@@ -274,11 +307,19 @@ Samo imena. **Vrednosti se nikad ne upisuju u kod, dokumente ni poruke.** Stoje 
 
 **Čeka vlasnika**
 - Registracija firme, pa naziv, PIB i MB u podnožju + strana „Politika privatnosti"
-- ElevenLabs, pa vraćanje glasovne naracije
+- Tekstovi za naraciju, pa vraćanje glasovne naracije (ElevenLabs je plaćen)
 - 2–3 para fotografija (telefon / HDR), pa klizač „pre i posle" za HDR
+- Dopuna podataka po turama (vlasnik sam upisuje, npr. depozit, terasa, parking; 3 ture imaju samo srpski)
+
+**Predloženo, nije započeto** (samo na zahtev vlasnika)
+- zahtev za razgledanje direktno agentu (mejl/SMS), ne samo vlasniku na Telegram
+- link na tačnu sobu (`?soba=`)
+- bogatija analitika (moduli, deljenja po kanalu)
+- test na pravom iPhone-u i Android-u (dugme nazad, žiroskop, ceo ekran)
 
 **Tehnički dug**
 - rate limit je u memoriji, pa na više Vercel instanci važi približno
+- `/api/unos` još šalje fajlove kroz telo zahteva (limit 4,5 MB na Vercelu) — treba presigned R2 kao kod panorama
 
 ---
 
@@ -293,6 +334,10 @@ Samo imena. **Vrednosti se nikad ne upisuju u kod, dokumente ni poruke.** Stoje 
 **Nova admin ruta:** `const ctx = await requireAdmin(req); if (!ctx.ok) return ...`, pa radi sa `ctx.supabase` (service role). Klijent šalje `adminAuthHeader()`.
 
 **Nova javna ruta:** `rateLimit(req, 'naziv', limit, prozorMs)` + `tooManyRequests(...)`; skrati dužine polja pre upisa.
+
+**Nova činjenica u modulu Info** (kao terasa/parking u 017): migracija sa `text` kolonom → lista u `propertyTaxonomy.ts` → polje u `/unos` (+ `api/unos`) i `/admin/ture` (+ `api/admin/tours`) → red u `buildFactList()` (`utils.tsx`) → `FACT_LABELS` i rečnik vrednosti u `translations.ts` za sva 4 jezika → `npm run db:types`.
+
+**Novi sloj u turi koji se zatvara** (modul, forma): dodaj ga u `closeTopLayer` koji `page.tsx` daje `useBackGuard`-u, inače ga dugme „nazad" preskače i odmah pita za izlazak.
 
 **Novi klik za merenje:** dodaj `data-track="cta:naziv"` na element i `naziv` u `TARGET_LABELS` (admin analitika).
 

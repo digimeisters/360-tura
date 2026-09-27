@@ -4,6 +4,7 @@ import { SiteNav, SiteFooter } from '../components/SiteChrome';
 import HeroDevice from '../components/HeroDevice';
 import ContactForm from '../components/ContactForm';
 import SiteTracker from '../components/SiteTracker';
+import CardSpotlight from '../components/CardSpotlight';
 import PriceCalculator from '../components/PriceCalculator';
 import PromoBanner from '../components/PromoBanner';
 import { ItemPrice, PlanItemList, PlanPrice, SaleSticker } from '../components/PromoPrice';
@@ -85,6 +86,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(homeJsonLd(faq, lang)) }}
       />
       <SiteTracker />
+      <CardSpotlight />
       <NavScrollSpy />
       <PromoTopBar lang={lang} href="#cenovnik" />
 
