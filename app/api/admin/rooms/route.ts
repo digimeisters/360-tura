@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { mobilePanoramaKey } from '@/app/lib/panoramaPreview';
 import { DeleteObjectsCommand } from '@aws-sdk/client-s3';
 import { requireAdmin } from '@/app/lib/adminAuth';
 import { r2Client } from '@/app/lib/r2';
@@ -56,8 +57,11 @@ export async function DELETE(req: Request) {
     const bucket = process.env.R2_BUCKET_NAME;
     const cdnUrl = process.env.NEXT_PUBLIC_CDN_URL;
     if (bucket && cdnUrl) {
+      const panoramaKey = r2KeyFromUrl((room as any).panorama_url_cf, cdnUrl);
       const keys = [
-        r2KeyFromUrl((room as any).panorama_url_cf, cdnUrl),
+        panoramaKey,
+        // Kopija za telefone (migracija 018) - ime je izvedeno iz glavne.
+        panoramaKey ? mobilePanoramaKey(panoramaKey) : null,
         r2KeyFromUrl((room as any).preview_url, cdnUrl)
       ].filter((k): k is string => Boolean(k));
       if (keys.length > 0) {

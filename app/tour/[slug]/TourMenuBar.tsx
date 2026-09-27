@@ -39,7 +39,7 @@ export function TourMenuBar({
       {showShare && (
       <button
         onClick={onShare}
-        className="tour-ui-scale"
+        className="tour-ui-scale k360-tap"
         style={{
           ...GLASS,
           position: 'absolute',
@@ -50,7 +50,9 @@ export function TourMenuBar({
           display: 'flex',
           alignItems: 'center',
           gap: '7px',
-          padding: '7px 14px',
+          height: '36px',
+          boxSizing: 'border-box',
+          padding: '0 16px',
           borderRadius: '999px',
           color: shareCopied ? '#86efac' : '#fff',
           fontSize: '13px',
@@ -96,6 +98,7 @@ export function TourMenuBar({
                 ...overlayNavButtonStyle,
                 flex: 1,
                 minWidth: 0,
+                minHeight: '52px',
                 color: '#fff',
                 background: active ? 'rgba(127, 176, 236, 0.18)' : 'transparent',
                 borderRadius: '18px',

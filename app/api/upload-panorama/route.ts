@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PutObjectCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3';
+import { mobilePanoramaKey } from '@/app/lib/panoramaPreview';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { r2Client } from '@/app/lib/r2';
 import { requireAdmin } from '@/app/lib/adminAuth';
@@ -151,8 +152,11 @@ export async function DELETE(req: Request) {
     const bucket = process.env.R2_BUCKET_NAME;
     const cdnUrl = process.env.NEXT_PUBLIC_CDN_URL;
     if (bucket && cdnUrl) {
+      const panoramaKey = r2KeyFromUrl((room as any).panorama_url_cf, cdnUrl);
       const keys = [
-        r2KeyFromUrl((room as any).panorama_url_cf, cdnUrl),
+        panoramaKey,
+        // Kopija za telefone (migracija 018) - ime je izvedeno iz glavne.
+        panoramaKey ? mobilePanoramaKey(panoramaKey) : null,
         r2KeyFromUrl((room as any).preview_url, cdnUrl)
       ].filter((k): k is string => Boolean(k));
 
@@ -167,10 +171,12 @@ export async function DELETE(req: Request) {
       }
     }
 
-    const { error: updateError } = await ctx.supabase
-      .from('rooms')
-      .update({ panorama_url_cf: null, panorama_url: null, preview_url: null })
-      .eq('id', roomId);
+    const cleared: Record<string, null> = { panorama_url_cf: null, panorama_url: null, preview_url: null, panorama_url_mobile: null };
+    let { error: updateError } = await ctx.supabase.from('rooms').update(cleared).eq('id', roomId);
+    if (updateError && /panorama_url_mobile/.test(updateError.message)) {
+      delete cleared.panorama_url_mobile;
+      ({ error: updateError } = await ctx.supabase.from('rooms').update(cleared).eq('id', roomId));
+    }
 
     if (updateError) {
       return NextResponse.json({ success: false, error: `Upis u bazu nije uspeo: ${updateError.message}` }, { status: 500 });

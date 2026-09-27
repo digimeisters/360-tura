@@ -7,6 +7,7 @@ import { r2Client } from '@/app/lib/r2';
 import { geocodeAddress } from '@/app/lib/geocode';
 import { translateTexts, type TargetLang } from '@/app/lib/translateTexts';
 import { agencyReportToken } from '@/app/lib/agencyReport';
+import { mobilePanoramaKey } from '@/app/lib/panoramaPreview';
 
 export const dynamic = 'force-dynamic';
 // Izmena odgovora na pitanja prevodi ih modelom na jezike ture (vidi
@@ -512,6 +513,7 @@ export async function DELETE(req: Request) {
         const a = r2KeyFromUrl(r.panorama_url_cf, cdnUrl);
         const b = r2KeyFromUrl(r.preview_url, cdnUrl);
         if (a) keys.add(a);
+        if (a) keys.add(mobilePanoramaKey(a));
         if (b) keys.add(b);
       }
 

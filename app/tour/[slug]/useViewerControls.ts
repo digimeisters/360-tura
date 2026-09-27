@@ -1,12 +1,30 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 
 /**
- * Ceo ekran i žiroskop - dve stvari koje idu zajedno: ulazak u ceo ekran
- * pali žiroskop, izlazak ga gasi, pa i stoje na jednom mestu.
+ * Ceo ekran i žiroskop - dve odvojene stvari.
+ *
+ * Ranije ih je vezivao ulazak u ceo ekran (on je palio žiroskop, a dugme za
+ * žiroskop se videlo samo u celom ekranu). iPhone Safari nema ceo ekran za
+ * stranice, pa na iPhone-u nije radilo ni jedno ni drugo. Sad:
+ * - žiroskop ima svoje dugme na svakom uređaju sa senzorom (telefon, tablet);
+ * - ceo ekran se nudi samo tamo gde ga pregledač podržava.
  *
  * `isGyroActiveRef` čita i ostatak ture (automatsko okretanje sobe), pa se
  * vraća uz stanje: stanje je za iscrtavanje, ref za proveru usred animacije.
  */
+
+type WebkitDocument = Document & {
+  webkitFullscreenElement?: Element | null;
+  webkitFullscreenEnabled?: boolean;
+  webkitExitFullscreen?: () => Promise<void> | void;
+};
+type WebkitElement = HTMLElement & { webkitRequestFullscreen?: () => Promise<void> | void };
+
+function fullscreenElement(): Element | null {
+  const doc = document as WebkitDocument;
+  return doc.fullscreenElement ?? doc.webkitFullscreenElement ?? null;
+}
+
 export function useViewerControls(viewerRef: RefObject<{
   startOrientation?: () => void;
   stopOrientation?: () => void;
@@ -15,6 +33,21 @@ export function useViewerControls(viewerRef: RefObject<{
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isGyroActive, setIsGyroActive] = useState(false);
   const isGyroActiveRef = useRef(false);
+
+  // Tura se crta tek u pregledaču (page.tsx čeka hasMounted), pa se ovo
+  // proverava odmah, bez efekta.
+  const [canFullscreen] = useState(() => {
+    if (typeof document === 'undefined') return false;
+    const doc = document as WebkitDocument;
+    const el = document.documentElement as WebkitElement;
+    return Boolean((doc.fullscreenEnabled || doc.webkitFullscreenEnabled) && (el.requestFullscreen || el.webkitRequestFullscreen));
+  });
+  const [canGyro] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      'DeviceOrientationEvent' in window &&
+      window.matchMedia('(pointer: coarse)').matches
+  );
 
   const stopGyroscope = useCallback(() => {
     if (viewerRef.current && typeof viewerRef.current.stopOrientation === 'function') {
@@ -44,6 +77,8 @@ export function useViewerControls(viewerRef: RefObject<{
       }
     };
 
+    // iPhone/iPad traže dozvolu, i to baš iz klika - zato se ovo zove samo
+    // iz dugmeta, nikad samo od sebe.
     const orientationEvent = DeviceOrientationEvent as unknown as {
       requestPermission?: () => Promise<string>;
     };
@@ -73,41 +108,40 @@ export function useViewerControls(viewerRef: RefObject<{
   }, [isGyroActive, startGyroscope, stopGyroscope]);
 
   const toggleFullscreen = useCallback(async () => {
-    if (!document.fullscreenElement) {
-      try {
-        await document.documentElement.requestFullscreen();
-        setIsFullscreen(true);
-        await startGyroscope();
-      } catch (err) {
-        console.error('Greška pri ulasku u Fullscreen:', err);
+    const doc = document as WebkitDocument;
+    const el = document.documentElement as WebkitElement;
+    try {
+      if (!fullscreenElement()) {
+        // iPad Safari zna samo za webkit verziju.
+        if (el.requestFullscreen) await el.requestFullscreen();
+        else await el.webkitRequestFullscreen?.();
+      } else if (doc.exitFullscreen) {
+        await doc.exitFullscreen();
+      } else {
+        await doc.webkitExitFullscreen?.();
       }
-    } else {
-      if (document.exitFullscreen) {
-        await document.exitFullscreen();
-      }
+    } catch (err) {
+      console.error('Greška pri promeni celog ekrana:', err);
     }
-  }, [startGyroscope]);
+  }, []);
 
-  // Izlazak iz celog ekrana može i mimo našeg dugmeta (Esc, gest pregledača).
+  // Stanje prati sam pregledač - ulazak i izlazak mogu i mimo našeg dugmeta
+  // (Esc, gest pregledača).
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      const isFS = Boolean(document.fullscreenElement);
-      setIsFullscreen(isFS);
-
-      if (!isFS) {
-        stopGyroscope();
-      }
-    };
-
+    const handleFullscreenChange = () => setIsFullscreen(Boolean(fullscreenElement()));
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
     };
-  }, [stopGyroscope]);
+  }, []);
 
   return {
     isFullscreen,
+    canFullscreen,
     isGyroActive,
+    canGyro,
     isGyroActiveRef,
     startGyroscope,
     stopGyroscope,

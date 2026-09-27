@@ -42,6 +42,8 @@ export type Room = {
   establish_i18n?: EstablishData | string;
   panorama_url?: string;
   panorama_url_cf?: string;
+  /** Kopija 6000px za telefone (migracija 018) - vidi panoramaUrlFor u transition.ts. */
+  panorama_url_mobile?: string | null;
   // Isečak panorame 1200x630 (migracija 004) - share kartica i početni ekran ture.
   preview_url?: string | null;
   // Pozicija ove sobe na tlocrtu ture (tour.floorplan_url), kao procenat

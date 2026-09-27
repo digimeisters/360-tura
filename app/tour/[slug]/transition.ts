@@ -165,3 +165,20 @@ export function preloadPanorama(url: string): Promise<void> {
 export function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+/**
+ * Koju panoramu sobe učitati: telefon i tablet dobijaju kopiju od 6000px
+ * (ista oštrina na njihovom ekranu, skoro upola manje memorije - vidi
+ * migraciju 018), računar punu. Soba bez kopije svuda daje punu.
+ */
+export function panoramaUrlFor(
+  room: { panorama_url_cf?: string; panorama_url?: string; panorama_url_mobile?: string | null } | undefined
+): string | undefined {
+  if (!room) return undefined;
+  const full = room.panorama_url_cf || room.panorama_url;
+  if (room.panorama_url_mobile && typeof window !== 'undefined') {
+    const phone = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 1024;
+    if (phone) return room.panorama_url_mobile;
+  }
+  return full;
+}

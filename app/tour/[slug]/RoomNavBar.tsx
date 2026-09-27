@@ -82,7 +82,7 @@ export function RoomNavBar({
         .k360-roomnav__glass { background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.28);
           box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25); }
-        .k360-roomnav__step { flex: none; width: 40px; height: 40px; border-radius: 50%; display: flex;
+        .k360-roomnav__step { flex: none; width: 44px; height: 44px; border-radius: 50%; display: flex;
           align-items: center; justify-content: center; font-size: 22px; line-height: 1; padding: 0 0 2px;
           cursor: pointer; transition: background 0.15s ease, transform 0.15s ease; }
         .k360-roomnav__step:not(:disabled):hover { background: rgba(15, 23, 42, 0.75); transform: scale(1.06); }
@@ -120,7 +120,6 @@ export function RoomNavBar({
         .k360-roomnav__seen { margin-left: auto; padding-left: 12px; font-size: 11px; color: rgba(255, 255, 255, 0.45); }
         @media (max-width: 560px) {
           .k360-roomnav { gap: 6px; }
-          .k360-roomnav__step { width: 36px; height: 36px; font-size: 20px; }
           .k360-roomnav__current { padding: 7px 13px 8px; }
           .k360-roomnav__name { font-size: 15px; max-width: 160px; }
         }

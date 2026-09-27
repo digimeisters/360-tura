@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { r2Client } from '@/app/lib/r2';
 import { refreshPublicPages } from '@/app/lib/revalidatePublic';
-import { generatePanoramaPreview, convertPanoramaToWebp } from '@/app/lib/panoramaPreview';
+import { generatePanoramaPreview, convertPanoramaToWebp, makeMobilePanorama, mobilePanoramaKey } from '@/app/lib/panoramaPreview';
 import { requireAdmin } from '@/app/lib/adminAuth';
 
 export const maxDuration = 60;
@@ -125,10 +125,28 @@ export async function POST(req: Request) {
       console.error('UPLOAD PANORAMA: preview nije generisan:', previewError);
     }
 
-    const updates: Record<string, string> = { panorama_url_cf: r2Url };
+    let mobileUrl: string | null = null;
+    try {
+      const mobile = await makeMobilePanorama(buffer);
+      const mobileKey = mobilePanoramaKey(finalKey);
+      await r2Client.send(
+        new PutObjectCommand({ Bucket: bucket, Key: mobileKey, Body: mobile, ContentType: 'image/webp' })
+      );
+      mobileUrl = `${base}/${mobileKey}?v=${version}`;
+    } catch (mobileError) {
+      console.error('UPLOAD PANORAMA: kopija za telefone nije napravljena:', mobileError);
+    }
+
+    const updates: Record<string, string | null> = { panorama_url_cf: r2Url, panorama_url_mobile: mobileUrl };
     if (previewUrl) updates.preview_url = previewUrl;
 
-    const { error: updateError } = await ctx.supabase.from('rooms').update(updates).eq('id', roomId);
+    let { error: updateError } = await ctx.supabase.from('rooms').update(updates).eq('id', roomId);
+    // Baza bez migracije 018: soba se upisuje bez kopije za telefone (telefon
+    // tada učitava punu panoramu, kao ranije) - bolje nego propao upload.
+    if (updateError && /panorama_url_mobile/.test(updateError.message)) {
+      delete updates.panorama_url_mobile;
+      ({ error: updateError } = await ctx.supabase.from('rooms').update(updates).eq('id', roomId));
+    }
     if (updateError) {
       throw new Error(`Supabase upis greška: ${updateError.message}`);
     }
@@ -148,6 +166,7 @@ export async function POST(req: Request) {
       roomId,
       r2Url,
       previewUrl,
+      mobileUrl,
       bytes: finalBody.length,
       originalBytes: buffer.length,
     });

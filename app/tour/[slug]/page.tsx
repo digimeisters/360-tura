@@ -23,7 +23,7 @@ import { useAdminSession } from './useAdminSession';
 import { useHotspotEditor, type RefreshHotspots } from './useHotspotEditor';
 import { useRoomNavigation } from './useRoomNavigation';
 import { runRoomSequence } from './roomSequence';
-import { AdminCrosshair, DragHint, RoomLoadingScreen, TourGlobalStyles, useFirstTimeDragHint } from './TourOverlays';
+import { AdminCrosshair, DragHint, RoomLoadingScreen, TourGlobalStyles, useFirstTimeDragHint, useImmersiveWhileDragging } from './TourOverlays';
 import { useNeighbourPreload, useTourAnalytics } from './useTourAnalytics';
 import { useViewerControls } from './useViewerControls';
 import { useTourNarration } from './useTourNarration';
@@ -42,6 +42,7 @@ import {
   SLOW_LOAD_HINT_MS,
   VIEW_MAX_HFOV,
   VIEW_MIN_HFOV,
+  panoramaUrlFor,
   pickHfov,
   scaledHfov,
   wait,
@@ -159,7 +160,9 @@ export default function TourPage() {
   // Ceo ekran i žiroskop - vidi useViewerControls.ts
   const {
     isFullscreen,
+    canFullscreen,
     isGyroActive,
+    canGyro,
     isGyroActiveRef,
     toggleGyroscope,
     toggleFullscreen
@@ -394,6 +397,7 @@ export default function TourPage() {
   useNeighbourPreload(tourStarted, rooms, roomIdx);
   // "Prevucite prstom da razgledate" pri prvom ulasku - vidi TourOverlays.tsx.
   const showDragHint = useFirstTimeDragHint(tourStarted);
+  const immersive = useImmersiveWhileDragging(tourStarted && !adminMode);
 
   // Deljenje linka trenutne ture: na mobilnom otvara native share meni
   // (WhatsApp, Viber, SMS, mejl...) preko Web Share API-ja; na desktopu (ili
@@ -472,7 +476,7 @@ export default function TourPage() {
     roomSequenceFinishedRef.current = false;
     sceneReadyRef.current = false;
     const currentRoom = rooms[roomIdx];
-    const resolvedPanoramaUrl = currentRoom?.panorama_url_cf || currentRoom?.panorama_url;
+    const resolvedPanoramaUrl = panoramaUrlFor(currentRoom);
 
     // Prelaz iz druge sobe (vidi transition.ts): stara scena je već sklonjena
     // u fadingLayerRef i ostaje na ekranu dok se ova ne učita.
@@ -695,6 +699,7 @@ export default function TourPage() {
     // Cloudflare), scena se mora ponovo učitati sa novim URL-om.
     rooms[roomIdx]?.panorama_url_cf,
     rooms[roomIdx]?.panorama_url,
+    rooms[roomIdx]?.panorama_url_mobile,
     walkToRoom,
     advanceGuide,
     nextGuideDoor,
@@ -856,7 +861,7 @@ export default function TourPage() {
 
       {tourStarted && (
         <>
-          <div className={adminMode ? 'tour-ui-scale' : 'tour-ui-scale k360-top--visitor'} style={{
+          <div className={`${adminMode ? 'tour-ui-scale' : 'tour-ui-scale k360-top--visitor'} k360-top-ui${immersive ? ' is-immersive' : ''}`} style={{
             position: 'absolute',
             // Maksimalno uz vrh, ali ispod notch-a/zaobljene ivice
             // (env(safe-area-inset-*), uključeno preko viewportFit:'cover').
@@ -879,10 +884,10 @@ export default function TourPage() {
                 flexWrap: 'wrap',
                 justifyContent: 'flex-end',
                 rowGap: '4px',
-                gap: '4px',
+                gap: '2px',
                 maxWidth: '55%',
-                borderRadius: '12px',
-                padding: '4px 6px',
+                borderRadius: '22px',
+                padding: '4px',
                 pointerEvents: 'auto'
               }}>
                 {/* Admin dugmad crta TourAdminTools kroz portal. display:
@@ -918,8 +923,10 @@ export default function TourPage() {
 
           <OverlayButtons
             isFullscreen={isFullscreen}
+            canFullscreen={canFullscreen}
             onToggleFullscreen={toggleFullscreen}
             isGyroActive={isGyroActive}
+            canGyro={canGyro}
             onToggleGyroscope={toggleGyroscope}
             isMuted={isMuted}
             onToggleMute={toggleMute}

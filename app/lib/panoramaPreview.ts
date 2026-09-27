@@ -5,11 +5,31 @@ export const PREVIEW_HEIGHT = 630;
 
 // Panorame stižu kao JPEG od 7-12MB, što je na mobilnoj mreži nekoliko
 // sekundi čekanja po prostoriji. Isti kadar u WebP-u je ispod 1MB bez
-// vidljivog gubitka - na uvećanju 1:1 razlika se ne primećuje. Zato se
-// rezolucija NE dira: smanjivanje bi oštetilo zumiranje u panorami, a
-// format sam po sebi rešava veličinu.
+// vidljivog gubitka - na uvećanju 1:1 razlika se ne primećuje. Glavna
+// kopija zato zadržava punu rezoluciju (računar, zumiranje).
 export async function convertPanoramaToWebp(panorama: Buffer): Promise<Buffer> {
   return sharp(panorama, { failOn: 'none', limitInputPixels: false })
+    .webp({ quality: 78 })
+    .toBuffer();
+}
+
+/**
+ * Širina kopije za telefone. Telefon prikazuje 65° vidnog polja na ~1170
+ * fizičkih piksela (~18 px/°); 6000px daje ~17 px/° - ista oštrina na oko,
+ * a ~72MB memorije umesto ~128MB kod 8000px, što starije iPhone-e drži
+ * dalje od pada pregledača. Vidi migraciju 018.
+ */
+export const MOBILE_PANORAMA_WIDTH = 6000;
+
+/** Ključ kopije za telefone izveden iz ključa glavne panorame. */
+export function mobilePanoramaKey(key: string): string {
+  return key.replace(/-panorama\.[a-z]+$/i, '-panorama-m.webp');
+}
+
+/** Kopija za telefone; panorama uža od MOBILE_PANORAMA_WIDTH se samo prepakuje. */
+export async function makeMobilePanorama(panorama: Buffer): Promise<Buffer> {
+  return sharp(panorama, { failOn: 'none', limitInputPixels: false })
+    .resize({ width: MOBILE_PANORAMA_WIDTH, withoutEnlargement: true })
     .webp({ quality: 78 })
     .toBuffer();
 }

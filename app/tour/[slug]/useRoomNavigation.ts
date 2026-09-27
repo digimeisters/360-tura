@@ -16,6 +16,7 @@ import {
   clampPitch,
   entryViewFor,
   pickHfov,
+  panoramaUrlFor,
   preloadPanorama,
   prefersReducedMotion,
   scaledHfov,
@@ -268,7 +269,7 @@ export function useRoomNavigation({
     stopAudio();
     setInfoBoxData(null);
 
-    const url = target.panorama_url_cf || target.panorama_url;
+    const url = panoramaUrlFor(target);
     const imageReady = url ? preloadPanorama(url) : Promise.resolve();
 
     const reduceMotion = prefersReducedMotion();

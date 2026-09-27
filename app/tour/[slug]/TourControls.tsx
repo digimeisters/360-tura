@@ -30,14 +30,18 @@ export function LanguageChips({
         <button
           key={l}
           onClick={() => onChange(l)}
+          className="k360-tap"
+          aria-pressed={lang === l}
           style={{
             background: lang === l ? selectedColor : 'transparent',
             color: lang === l ? '#fff' : `rgba(255, 255, 255, ${lg ? 0.78 : 0.75})`,
             border: 'none',
-            borderRadius: lg ? '999px' : '8px',
-            padding: lg ? '6px 14px' : '3px 7px',
-            fontSize: lg ? '13px' : '11px',
-            fontWeight: lang === l ? 'bold' : 'normal',
+            borderRadius: '999px',
+            height: lg ? '40px' : '36px',
+            minWidth: lg ? '48px' : '34px',
+            padding: lg ? '0 16px' : '0 7px',
+            fontSize: lg ? '14px' : '12.5px',
+            fontWeight: lang === l ? 700 : 500,
             cursor: 'pointer',
             transition: 'background 0.2s'
           }}
@@ -66,13 +70,15 @@ export function TourTitleCard({ agencyName, title }: { agencyName: string | null
 }
 
 /**
- * Uspravna dugmad uz desnu ivicu: ceo ekran, giroskop (samo u celom ekranu),
- * zvuk i prebacivanje vodič/ručno.
+ * Uspravna dugmad uz desnu ivicu: ceo ekran (gde ga pregledač podržava -
+ * iPhone ga nema), žiroskop (telefoni i tableti), zvuk i vodič/ručno.
  */
 export function OverlayButtons({
   isFullscreen,
+  canFullscreen,
   onToggleFullscreen,
   isGyroActive,
+  canGyro,
   onToggleGyroscope,
   isMuted,
   onToggleMute,
@@ -83,8 +89,10 @@ export function OverlayButtons({
   onTogglePauseGuide
 }: {
   isFullscreen: boolean;
+  canFullscreen: boolean;
   onToggleFullscreen: () => void;
   isGyroActive: boolean;
+  canGyro: boolean;
   onToggleGyroscope: () => void;
   isMuted: boolean;
   onToggleMute: () => void;
@@ -109,27 +117,30 @@ export function OverlayButtons({
         marginRight: '4px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '6px',
+        gap: '8px',
         pointerEvents: 'auto'
       }}
     >
-      <button
-        onClick={onToggleFullscreen}
-        style={overlayIconStyle}
-        title={isFullscreen ? 'Napusti ceo ekran' : 'Ceo ekran'}
-        aria-label={isFullscreen ? 'Napusti ceo ekran' : 'Ceo ekran'}
-      >
-        {isFullscreen ? <IconCollapse size={19} /> : <IconExpand size={19} />}
-      </button>
+      {canFullscreen && (
+        <button
+          onClick={onToggleFullscreen}
+          style={overlayIconStyle}
+          title={isFullscreen ? 'Napusti ceo ekran' : 'Ceo ekran'}
+          aria-label={isFullscreen ? 'Napusti ceo ekran' : 'Ceo ekran'}
+        >
+          {isFullscreen ? <IconCollapse size={21} /> : <IconExpand size={21} />}
+        </button>
+      )}
 
-      {isFullscreen && (
+      {canGyro && (
         <button
           onClick={onToggleGyroscope}
           style={{ ...overlayIconStyle, background: isGyroActive ? 'rgba(91, 146, 214, 0.55)' : GLASS.background }}
-          title={isGyroActive ? 'Ugasi giroskop' : 'Upali giroskop'}
-          aria-label={isGyroActive ? 'Ugasi giroskop' : 'Upali giroskop'}
+          title={isGyroActive ? 'Ugasi razgledanje pomeranjem telefona' : 'Razgledajte pomeranjem telefona'}
+          aria-label={isGyroActive ? 'Ugasi razgledanje pomeranjem telefona' : 'Razgledajte pomeranjem telefona'}
+          aria-pressed={isGyroActive}
         >
-          <IconCompass size={19} />
+          <IconCompass size={21} />
         </button>
       )}
 
@@ -139,7 +150,7 @@ export function OverlayButtons({
         title={isMuted ? 'Uključi zvuk' : 'Isključi zvuk'}
         aria-label={isMuted ? 'Uključi zvuk' : 'Isključi zvuk'}
       >
-        {isMuted ? <IconMute size={19} /> : <IconSound size={19} />}
+        {isMuted ? <IconMute size={21} /> : <IconSound size={21} />}
       </button>
 
       {hasGuide && guideMode === 'auto' && (
@@ -150,7 +161,7 @@ export function OverlayButtons({
           aria-label={isGuidePaused ? 'Nastavi turu' : 'Pauziraj turu'}
           aria-pressed={isGuidePaused}
         >
-          {isGuidePaused ? <IconPlay size={19} /> : <IconPause size={19} />}
+          {isGuidePaused ? <IconPlay size={21} /> : <IconPause size={21} />}
         </button>
       )}
 
@@ -162,7 +173,7 @@ export function OverlayButtons({
           aria-label={guideTitle}
           aria-pressed={guideMode === 'auto'}
         >
-          {guideMode === 'auto' ? <IconHeadphones size={19} /> : <IconHand size={19} />}
+          {guideMode === 'auto' ? <IconHeadphones size={21} /> : <IconHand size={21} />}
         </button>
       )}
     </div>
@@ -230,7 +241,7 @@ export function InfoCard({
   /** Dugme u zaglavlju kartice, levo od zatvaranja ("Pozovi"). */
   action?: React.ReactNode;
 }) {
-  const headRoom = action ? '128px' : '34px';
+  const headRoom = action ? '150px' : '44px';
   return (
     <div className="tour-ui-scale" style={{
       position: 'absolute',
@@ -251,13 +262,14 @@ export function InfoCard({
       boxShadow: '0 6px 20px rgba(0, 0, 0, 0.25)',
       fontFamily: THEME.fontBody
     }}>
-      <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
       {action}
       <button
         onClick={onClose}
+        className="k360-tap"
         style={{
-          width: '28px',
-          height: '28px',
+          width: '36px',
+          height: '36px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -265,7 +277,7 @@ export function InfoCard({
           border: 'none',
           borderRadius: '50%',
           color: 'rgba(255, 255, 255, 0.8)',
-          fontSize: '17px',
+          fontSize: '20px',
           lineHeight: '1',
           cursor: 'pointer',
           transition: 'background 0.15s ease'
@@ -318,7 +330,7 @@ export function CallAgentButton({
   return (
     <a
       href={`tel:${phone.replace(/[^\d+]/g, '')}`}
-      className={floating ? 'tour-ui-scale' : undefined}
+      className={floating ? 'tour-ui-scale k360-tap' : 'k360-tap'}
       onClick={(e) => {
         const touch = window.matchMedia('(pointer: coarse)').matches;
         if (touch) {
@@ -334,15 +346,17 @@ export function CallAgentButton({
           : {}),
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '5px',
-        padding: '5px 11px 5px 9px',
+        gap: '6px',
+        height: '36px',
+        boxSizing: 'border-box',
+        padding: '0 14px 0 12px',
         borderRadius: '999px',
         background: THEME.accent,
         border: '1px solid rgba(255, 255, 255, 0.35)',
         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)',
         color: '#fff',
         fontFamily: THEME.fontBody,
-        fontSize: '12.5px',
+        fontSize: '13.5px',
         fontWeight: 700,
         lineHeight: 1,
         textDecoration: 'none',
@@ -350,7 +364,7 @@ export function CallAgentButton({
         cursor: 'pointer'
       }}
     >
-      <IconPhone size={14} color="#fff" />
+      <IconPhone size={16} color="#fff" />
       {label}
     </a>
   );

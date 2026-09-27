@@ -341,7 +341,7 @@ export function TourModals({
           <button
             onClick={onClose}
             title={t.close}
-            style={{ background: '#FFFFFF', border: '1.5px solid ' + FRAME, color: THEME.accent, fontSize: '22px', cursor: 'pointer', width: '40px', height: '40px', borderRadius: '50%', lineHeight: '1', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ background: '#FFFFFF', border: '1.5px solid ' + FRAME, color: THEME.accent, fontSize: '22px', cursor: 'pointer', width: '44px', height: '44px', borderRadius: '50%', lineHeight: '1', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             ×
           </button>

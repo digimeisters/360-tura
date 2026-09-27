@@ -14,6 +14,15 @@ export function TourGlobalStyles() {
       .pnlm-load-box {
         display: none !important;
       }
+      /* Dugmad-pilule (jezici, Pozovi, Podeli, zatvaranje kartice) su 36px, a
+         ova nevidljiva ivica od 4px daje prstu punih 44px bez većeg izgleda. */
+      .k360-tap { position: relative; }
+      .k360-tap::after { content: ''; position: absolute; inset: -4px; }
+      /* Gornja traka i bočna dugmad se sklanjaju dok se prstom razgleda (useImmersiveWhileDragging). */
+      .k360-top-ui { transition: opacity 0.25s ease, transform 0.25s ease; }
+      .k360-top-ui.is-immersive { opacity: 0; transform: translateY(-8px); }
+      .k360-top-ui.is-immersive, .k360-top-ui.is-immersive * { pointer-events: none !important; }
+      @media (prefers-reduced-motion: reduce) { .k360-top-ui { transition: none; } }
       @media (min-width: 1024px) {
         .tour-ui-scale { zoom: 1.122; }
         /* Zoom ide na unutrašnji omotač (.k360-hotspot-scale), NE na
@@ -64,9 +73,10 @@ export function TourGlobalStyles() {
         box-shadow: 0 0 0 1px rgba(30, 90, 168, 0.4), 0 0 22px 6px rgba(100, 100, 110, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3); }
       .custom-nav-hotspot:hover .k360-hs-beacon::before, .custom-nav-hotspot:hover .k360-hs-beacon::after { animation-duration: 3.6s; }
       .custom-nav-hotspot:hover .k360-hs-label { background: rgba(100, 100, 110, 0.8); border-color: rgba(100, 100, 110, 0.8); }
-      .custom-info-hotspot { animation: k360HotspotPulseInfo 2.6s ease-out infinite; }
+      /* Puls na samoj tački, ne na omotaču - omotač ima nevidljivu marginu za prst. */
+      .custom-info-hotspot > .k360-hotspot-scale { animation: k360HotspotPulseInfo 2.6s ease-out infinite; }
       @media (prefers-reduced-motion: reduce) {
-        .custom-info-hotspot, .k360-hs-beacon::before, .k360-hs-beacon::after { animation: none; }
+        .custom-info-hotspot > .k360-hotspot-scale, .k360-hs-beacon::before, .k360-hs-beacon::after { animation: none; }
       }
     `}</style>
   );
@@ -221,4 +231,59 @@ export function DragHint({ text }: { text: string }) {
       {text}
     </div>
   );
+}
+
+/**
+ * Telefon: dok posetilac prstom razgleda panoramu, gornja traka i dugmad sa
+ * strane se sklanjaju (zauzimaju skoro četvrtinu ekrana), a vraćaju se čim
+ * pusti. Pali se tek na pomeranje prsta, ne na dodir - dodir tačke ili
+ * dugmeta ne sme ništa da sakrije.
+ */
+export function useImmersiveWhileDragging(enabled: boolean): boolean {
+  const [immersive, setImmersive] = useState(false);
+
+  useEffect(() => {
+    if (!enabled || !window.matchMedia('(pointer: coarse)').matches) return;
+    const panorama = document.getElementById('panorama');
+    if (!panorama) return;
+
+    let showTimer: ReturnType<typeof setTimeout> | null = null;
+    let startX = 0;
+    let startY = 0;
+    let dragging = false;
+
+    const onStart = (e: TouchEvent) => {
+      if (showTimer) clearTimeout(showTimer);
+      startX = e.touches[0]?.clientX ?? 0;
+      startY = e.touches[0]?.clientY ?? 0;
+      dragging = false;
+    };
+    const onMove = (e: TouchEvent) => {
+      if (dragging) return;
+      const t = e.touches[0];
+      if (!t || Math.hypot(t.clientX - startX, t.clientY - startY) < 12) return;
+      dragging = true;
+      setImmersive(true);
+    };
+    const onEnd = () => {
+      if (!dragging) return;
+      dragging = false;
+      showTimer = setTimeout(() => setImmersive(false), 1500);
+    };
+
+    panorama.addEventListener('touchstart', onStart, { passive: true });
+    panorama.addEventListener('touchmove', onMove, { passive: true });
+    panorama.addEventListener('touchend', onEnd);
+    panorama.addEventListener('touchcancel', onEnd);
+    return () => {
+      if (showTimer) clearTimeout(showTimer);
+      panorama.removeEventListener('touchstart', onStart);
+      panorama.removeEventListener('touchmove', onMove);
+      panorama.removeEventListener('touchend', onEnd);
+      panorama.removeEventListener('touchcancel', onEnd);
+      setImmersive(false);
+    };
+  }, [enabled]);
+
+  return immersive;
 }

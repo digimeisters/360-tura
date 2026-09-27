@@ -48,8 +48,10 @@ export const overlayIconStyle: React.CSSProperties = {
   ...GLASS,
   color: '#fff',
   borderRadius: '50%',
-  width: '38px',
-  height: '38px',
+  // Okrugla kontrolna dugmad (desna kolona, strelice soba, zatvaranje
+  // prozora) su 44px - najmanja veličina koja se sigurno pogađa prstom.
+  width: '44px',
+  height: '44px',
   padding: 0,
   display: 'flex',
   alignItems: 'center',
@@ -92,6 +94,9 @@ export function applyGlassHotspotStyle(hotSpotDiv: HTMLDivElement, isNav: boolea
   hotSpotDiv.style.width = 'auto';
   hotSpotDiv.style.height = 'auto';
   hotSpotDiv.style.cursor = 'pointer';
+  // Nevidljiva margina oko tačke: prst pogađa 44px, a tačka ostaje mala.
+  // Ravnomerna je, pa Pannellum i dalje centrira tačku na isto mesto.
+  hotSpotDiv.style.padding = isNav ? '10px' : '8px';
 
   const inner = document.createElement('div');
 
@@ -125,10 +130,10 @@ export function applyGlassHotspotStyle(hotSpotDiv: HTMLDivElement, isNav: boolea
   inner.style.alignItems = 'center';
   inner.style.justifyContent = 'center';
   inner.style.padding = '0.5px';
-  inner.style.width = '22px';
-  inner.style.height = '22px';
+  inner.style.width = '28px';
+  inner.style.height = '28px';
   inner.style.fontWeight = '700';
-  inner.style.fontSize = '12px';
+  inner.style.fontSize = '14px';
   inner.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
   inner.innerHTML = 'ℹ';
 

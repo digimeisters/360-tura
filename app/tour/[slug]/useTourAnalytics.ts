@@ -1,7 +1,7 @@
 import { useEffect, useRef, type MutableRefObject } from 'react';
 import { trackEvent } from '../../lib/track';
 import { parseWaypoints } from './utils';
-import { preloadPanorama } from './transition';
+import { panoramaUrlFor, preloadPanorama } from './transition';
 import type { ActiveModal, Language, Room, Tour } from './types';
 
 /**
@@ -110,18 +110,18 @@ export function useNeighbourPreload(tourStarted: boolean, rooms: Room[], roomIdx
     for (const wp of parseWaypoints(current.waypoints_i18n)) {
       if (!wp.targetRoomId) continue;
       const target = rooms.find((r) => String(r.id) === String(wp.targetRoomId));
-      const url = target?.panorama_url_cf || target?.panorama_url;
+      const url = panoramaUrlFor(target);
       if (url) neighbours.add(url);
     }
 
     // Strelice za napred/nazad postoje i kad soba nema nijedan hotspot za
     // prelaz, pa su susedi po redosledu uvek kandidati.
     for (const idx of [roomIdx + 1, roomIdx - 1]) {
-      const url = rooms[idx]?.panorama_url_cf || rooms[idx]?.panorama_url;
+      const url = panoramaUrlFor(rooms[idx]);
       if (url) neighbours.add(url);
     }
 
-    const currentUrl = current.panorama_url_cf || current.panorama_url;
+    const currentUrl = panoramaUrlFor(current);
     if (currentUrl) neighbours.delete(currentUrl);
 
     // Kratko odlaganje: prvo neka se učita panorama koju čovek gleda.
