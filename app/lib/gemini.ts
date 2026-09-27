@@ -13,13 +13,22 @@ export const GEMINI_MODEL = 'gemini-3.1-flash-lite';
 // Pravi fallback mora da bude JAČI model, ne isti. Ako lite dva puta ne uspe,
 // najčešće je preopterećen ili mu je zadatak pretežak - ponavljanje istog
 // poziva tu ne pomaže.
-export const GEMINI_FALLBACK_MODEL = 'gemini-3.1-flash';
+//
+// Alias "-latest", ne broj verzije: ranije je ovde stajao 'gemini-3.1-flash',
+// koji Google ne nudi (404), pa rezerva nikad nije radila - a niko to nije
+// primetio jer se do nje retko stiže. Alias uvek pokazuje na aktuelni Flash.
+// Koristi ga i AI popuna sobe kao GLAVNI model (čitanje slike).
+export const GEMINI_FALLBACK_MODEL = 'gemini-flash-latest';
 
 // Niska temperatura za izvlačenje i prevod podataka: isti ulaz treba da daje
 // isti izlaz. Opisni tekst sobe sme da bude slobodniji, pa je to poseban izbor
 // na mestu poziva.
 export const TEMP_EXTRACT = 0.2;
 export const TEMP_DESCRIPTIVE = 0.6;
+// Opis onoga što se VIDI na slici (AI popuna sobe): dovoljno slobode za
+// prirodan tekst, a dovoljno nisko da model ne dopisuje ono čega na slici
+// nema. Na 0.6 je umeo da izmisli vezu sa kuhinjom ili "tih kraj".
+export const TEMP_GROUNDED = 0.35;
 
 let client: GoogleGenAI | null = null;
 

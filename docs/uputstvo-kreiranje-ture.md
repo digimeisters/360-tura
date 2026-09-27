@@ -94,7 +94,11 @@ Ostali alati u gornjoj admin traci:
 
 ## 3. Tekst, jezici i naracija
 
-**AI popuna (SR)** — čita samu panoramu i piše srpski opis sobe i predlog tačaka. Otvara se prozor `✏️ Pregled i Izmena AI Drafta (SR)` gde ispraviš šta treba pre nego što se sačuva. Tu biraš i na koje jezike da se prevede.
+**AI popuna (SR)** — čita samu panoramu i piše srpski opis sobe i predlog tačaka. Zna naziv sobe, podatke o stanu i šta je već rečeno u drugim sobama, pa ne izmišlja raspored i ne ponavlja uvode. Otvara se prozor `✏️ Pregled i Izmena AI Drafta (SR)` gde ispraviš šta treba pre nego što se sačuva. Tu biraš i na koje jezike da se prevede.
+
+U tom prozoru:
+- **Ispod svakog polja je brojač** (npr. `118/140`): crveno kad je tekst predugačak, žuto upozorenje za prazne pohvale („savršen", „idealan"…) i za ono što glas loše čita („m²", skraćenice).
+- **`🔍 Proveri i ispravi`** — AI lektor pregleda tekst pre prevoda: gramatiku, da li prirodno zvuči kad se izgovori, ponavljanja. Svaki predlog prihvatiš ili odbaciš (ili „Prihvati sve"). Za tvrdnje koje ne vidi na slici (npr. „hidromasaža", „bojler od 80 litara") napiše žuto „Proveri: …" ispod polja — to ne menja sam, jer ti znaš stan. Traje nekoliko sekundi. Vredi ga pustiti pre svakog prevoda, jer se greška u srpskom prenese na sve jezike.
 
 Tekst se piše prema **tipu oglasa ture**: za prodaju se naglašava vrednost i raspored, za izdavanje svakodnevna praktičnost, za stan na dan atmosfera i ugođaj. Tip se uzima sa same ture, pa ga ne biraš ručno.
 

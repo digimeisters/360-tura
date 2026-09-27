@@ -3,7 +3,22 @@ import { Type, Schema } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 import { requireAdmin } from '@/app/lib/adminAuth';
-import { generateJsonWithRetry, TEMP_DESCRIPTIVE, TEMP_EXTRACT } from '@/app/lib/gemini';
+import {
+  generateJsonWithRetry,
+  GEMINI_FALLBACK_MODEL,
+  GEMINI_MODEL,
+  TEMP_EXTRACT,
+  TEMP_GROUNDED
+} from '@/app/lib/gemini';
+import { structureLabel } from '@/app/lib/propertyTaxonomy';
+import {
+  EMPTY_PRAISE,
+  MAX_NARRATION_DETAIL_CHARS,
+  MAX_NARRATION_INTRO_CHARS,
+  MAX_WAYPOINT_TEXT_CHARS,
+  MAX_WAYPOINT_TITLE_WORDS,
+  MAX_WAYPOINTS
+} from '@/app/lib/roomDraftRules';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -23,21 +38,9 @@ export const dynamic = 'force-dynamic';
  * Rezultat: čistiji kod, bez tipskih greški, ista funkcionalnost.
  */
 
-// Manje tačaka, ali relevantnijih: sa fiksnim minimumom je model često
-// "izmišljao" tačku (generički prekidač za svetlo i sl.) samo da ispuni
-// kvotu - zato je donja granica ukinuta, prazan niz je validan odgovor.
-const MAX_WAYPOINTS = 4;
-
-// Tekst tačke ide u mali tooltip u panorami, pa dužina mora da bude
-// ograničena već u generisanju - posle je kasno, admin bi morao ručno da
-// skraćuje svaku tačku.
-const MAX_WAYPOINT_TITLE_WORDS = 3;
-const MAX_WAYPOINT_TEXT_CHARS = 180;
-// Uvodna naracija je podeljena na dva dela koja se čitaju jedan za drugim:
-// prvo namena sobe, pa nešto specifično za nju. Svaki deo ima sopstveni
-// limit da zbir ostane u ritmu prethodnog jednodelnog teksta (~320 znakova).
-const MAX_NARRATION_INTRO_CHARS = 140;
-const MAX_NARRATION_DETAIL_CHARS = 220;
+// Ograničenja dužine i broja tačaka su u app/lib/roomDraftRules.ts - po
+// istim pravilima i admin prozor broji znakove dok se kuca. Nema minimuma
+// tačaka: sa kvotom je model "izmišljao" tačku (prekidač za svetlo i sl.).
 
 // Panorama pokriva punih 360°, pa na 1024px širine ispada ~2.8° po pikselu -
 // premalo da model prepozna materijal poda, tip klime ili pogled kroz prozor.
@@ -53,7 +56,7 @@ const AI_TIMEOUT_MS = 25_000;
 type ListingType = 'sale' | 'rent' | 'booking';
 const LISTING_TYPES: ListingType[] = ['sale', 'rent', 'booking'];
 
-type ActionType = 'generate_draft' | 'translate_step';
+type ActionType = 'generate_draft' | 'translate_step' | 'review_draft';
 
 /**
  * ============================================================
@@ -81,8 +84,8 @@ function buildDraftSchema(): Schema {
           sr: {
             type: Type.STRING,
             description:
-              `Prva rečenica uvodne naracije na srpskom (latinica): NAMENA/uloga ove sobe u OVOM konkretnom domu ` +
-              `(npr. kako se nadovezuje na ostatak stana, čemu služi ukućanima) - ne generička definicija tipa sobe. ` +
+              `Prva rečenica uvodne naracije na srpskom (latinica): čemu ova soba služi u ovom stanu, oslonjeno na ` +
+              `ono što se vidi i na podatke o stanu iz uputstva - ne generička definicija tipa sobe. ` +
               `1 rečenica, najviše ${MAX_NARRATION_INTRO_CHARS} karaktera.`,
           },
         },
@@ -108,19 +111,15 @@ function buildDraftSchema(): Schema {
         items: {
           type: Type.OBJECT,
           properties: {
-            yaw: {
-              type: Type.NUMBER,
+            // Gemini je treniran da predmete na slici označava pravougaonikom u
+            // ovom obliku - u tome je znatno precizniji nego kad sam računa
+            // uglove. Uglove (yaw/pitch) iz centra pravougaonika računa naš kod.
+            box_2d: {
+              type: Type.ARRAY,
               description:
-                'Horizontal angle in degrees, from -180 to 180, computed as (x / imageWidth - 0.5) * 360 ' +
-                'where x is the horizontal pixel position of the object. 0 is the horizontal center of the image, ' +
-                'negative is the left half, positive is the right half.',
-            },
-            pitch: {
-              type: Type.NUMBER,
-              description:
-                'Vertical angle in degrees, from -90 to 90, computed as (0.5 - y / imageHeight) * 180 ' +
-                'where y is the vertical pixel position of the object. 0 is the horizon (vertical center of the image), ' +
-                'positive is above the horizon (toward the ceiling), negative is below it (toward the floor).',
+                'Bounding box of the object as [ymin, xmin, ymax, xmax], each an integer from 0 to 1000, ' +
+                'normalized to the image height (y) and width (x). Tight around the object only.',
+              items: { type: Type.INTEGER },
             },
             title_i18n: {
               type: Type.OBJECT,
@@ -143,7 +142,7 @@ function buildDraftSchema(): Schema {
               required: ['sr'],
             },
           },
-          required: ['yaw', 'pitch', 'title_i18n', 'text_i18n'],
+          required: ['box_2d', 'title_i18n', 'text_i18n'],
         },
       },
     },
@@ -192,45 +191,83 @@ function getClientStrategy(listingType: ListingType): string {
   }
 }
 
-function buildDraftPrompt(listingType: ListingType): string {
+/**
+ * Sve što model treba da zna o sobi a ne vidi na slici. Bez ovoga je dobijao
+ * samo panoramu, a prompt je tražio "kako se soba nadovezuje na ostatak
+ * stana" - pa je vezu sa drugim sobama izmišljao.
+ */
+type RoomContext = {
+  listingType: ListingType;
+  /** Naziv koji je admin već dao sobi (prazno ako je soba neimenovana). */
+  roomTitle: string;
+  /** Podaci o stanu: struktura, kvadratura, sprat, grad... */
+  facts: string[];
+  /** Ostale sobe u turi, redom obilaska, sa već napisanom naracijom. */
+  otherRooms: { title: string; narration: string }[];
+};
+
+// Nazivi koje admin panel daje novoj, još neimenovanoj sobi - to nije pravi naziv.
+const PLACEHOLDER_TITLE = /^(nova soba|soba \d+|room \d+|new room)?$/i;
+
+function buildDraftPrompt(ctx: RoomContext): string {
+  const facts = ctx.facts.length ? ctx.facts.map((f) => `- ${f}`).join('\n') : '- (no data)';
+  const others = ctx.otherRooms.length
+    ? ctx.otherRooms
+        .map((r) => `- ${r.title || '(unnamed)'}${r.narration ? `: "${r.narration}"` : ''}`)
+        .join('\n')
+    : '- (none yet)';
+  const titleRule = ctx.roomTitle
+    ? `The admin already named this room "${ctx.roomTitle}". Return exactly that as title_i18n.sr.`
+    : 'The room has no name yet - give it a short, plain Serbian name (e.g. "Dnevna soba", "Kupatilo").';
+
   return `
-You are a senior residential real-estate agent. Analyze this equirectangular 360 panorama image.
+You are a senior residential real-estate agent writing the voice-over for one room
+of a 360° virtual tour. Analyze this equirectangular 360° panorama image.
 
-${getClientStrategy(listingType)}
+${getClientStrategy(ctx.listingType)}
 
-STRICT INSTRUCTIONS FOR GENERATION:
-- Generate copy strictly and naturally in Serbian language using Latin script.
-- CRITICAL: Do NOT generate any other language keys (like 'de', 'en', 'ru'). Include ONLY the 'sr' key.
-- Base descriptions on visible details in the image. Name what you actually see -
-  the flooring material, the type of appliance, what the window looks out on -
-  instead of generic praise like "prostrana i svetla prostorija".
+WHAT YOU KNOW ABOUT THE PROPERTY (from the listing, reliable):
+${facts}
 
-INTRO NARRATION - TWO SEPARATE SENTENCES, PLAYED BACK TO BACK:
-- narration_intro_i18n = the room's PURPOSE in THIS specific home: how it relates
-  to the rest of the apartment/house, what it's for. NOT a generic dictionary
-  definition of the room type ("Dnevna soba je prostor za odmor..." is BAD).
-  Ground it in what the layout/photo actually shows, e.g. how it connects to
-  neighboring spaces.
-- narration_detail_i18n = one specific, concrete observation from the image
-  itself (material, furniture piece, view, light) that is NOT already covered
-  by a waypoint.
-- Never repeat the same phrasing pattern across rooms of the same type in a
-  tour - vary sentence structure so a visitor touring several similar rooms
-  doesn't hear the same opening every time.
+OTHER ROOMS IN THIS TOUR, in visiting order, with narration already written:
+${others}
 
-COORDINATE SYSTEM - READ CAREFULLY:
-The image is an equirectangular projection covering the full 360x180 degrees of the
-room. Every waypoint must carry the angles of the object it describes, converted
-from that object's pixel position in the image:
+THIS ROOM: ${titleRule}
 
-  yaw   = (x / imageWidth  - 0.5) * 360    -> -180..180, 0 is the horizontal center, positive to the right
-  pitch = (0.5 - y / imageHeight) * 180    -> -90..90, 0 is the horizon, positive upward
+LANGUAGE:
+- Write naturally in Serbian, Latin script. Include ONLY the 'sr' key.
 
-- Aim at the CENTER of the object, not its edge.
-- Furniture, flooring and appliances sit BELOW the horizon, so their pitch is
-  usually negative; ceiling lights and beams are above it, so pitch is positive.
-- Every waypoint must have DIFFERENT coordinates. Never return 0 for both yaw and
-  pitch, and never repeat the same pair twice.
+GROUNDING - THE MOST IMPORTANT RULE:
+- Say only what is clearly visible in this image or stated in the property data above.
+- NEVER claim: sizes or square meters of the room, age or year of renovation, brand or
+  model names, compass direction (north/south...), noise or quiet, smells, what is
+  outside the frame, or what is behind closed doors.
+- Mention a connection to another room ONLY if the opening/passage is visible in the
+  image (e.g. an open pass-through to the kitchen). Never guess the layout.
+- When unsure whether something is true, leave it out. Plain and correct beats vivid and wrong.
+- The property data is there so you never CONTRADICT it (e.g. call a studio "trosoban"),
+  not as content to insert. Do not mention heating, parking, floor, city or total area
+  in a room's narration unless that very room shows it (a radiator in view, a terrace
+  door...).
+- No empty superlatives: "idealan", "savršen", "maksimalan", "luksuzan", "jedinstven".
+- Name concrete things you see - flooring material, a piece of furniture, the kind of
+  window or light - instead of generic praise like "prostrana i svetla prostorija".
+
+INTRO NARRATION - TWO SEPARATE PARTS, PLAYED BACK TO BACK:
+- narration_intro_i18n = what this room is for in THIS home, grounded in what you see
+  and in the property data. NOT a dictionary definition ("Dnevna soba je prostor za
+  odmor..." is BAD).
+- narration_detail_i18n = one specific, concrete observation from the image (material,
+  furniture, light, view through a visible window) that no waypoint repeats.
+- Do not reuse the openings or sentence patterns of the other rooms' narration listed
+  above - a visitor hears them one after another.
+
+WAYPOINT LOCATION:
+- For every waypoint return box_2d = [ymin, xmin, ymax, xmax], integers 0-1000,
+  normalized to the image height and width, drawn TIGHTLY around the object itself.
+- The object must be clearly visible in the image. If you cannot point at it
+  precisely, do not create that waypoint.
+- Each waypoint is a different object in a different place.
 
 CRITICAL WAYPOINT RULES:
 - Generate AT MOST ${MAX_WAYPOINTS} waypoints - fewer is fine, and ZERO is
@@ -312,47 +349,128 @@ function extractText(value: unknown, lang: string = 'sr'): string {
   return String(parsed);
 }
 
+/** Uvodna naracija sobe kao jedan tekst (novi oblik intro+detail ili stari text). */
+function narrationOf(establish: unknown): string {
+  let value: unknown = establish;
+  if (typeof value === 'string') {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return '';
+    }
+  }
+  if (!value || typeof value !== 'object') return '';
+  const e = value as { intro_i18n?: unknown; detail_i18n?: unknown; text_i18n?: unknown };
+  const parts = [extractText(e.intro_i18n), extractText(e.detail_i18n)].filter(Boolean);
+  return (parts.length ? parts.join(' ') : extractText(e.text_i18n)).slice(0, 360);
+}
+
 /**
- * Tip oglasa određuje kome se soba obraća - kupcu, podstanaru ili gostu na
- * nekoliko noćenja. Frontend ga šalje iz učitane ture; ako ga nema (stariji
- * klijent, ručni poziv), čita se iz baze. Tek ako ni to ne uspe ide 'rent',
- * jer je pretpostavka bolja od praznog teksta - ali ne sme da bude prvi izbor,
- * kako je ranije bilo, pa je svaki stan opisivan kao da se izdaje.
+ * Kontekst za AI popunu, iz baze (service role - ruta je samo za admina):
+ * tip oglasa, naziv sobe, podaci o stanu i ostale sobe sa njihovom naracijom.
+ *
+ * Tip oglasa određuje kome se soba obraća - kupcu, podstanaru ili gostu. Prvo
+ * se uzima onaj koji je poslao frontend, pa iz baze, i tek ako ni to ne uspe
+ * 'rent' (pretpostavka je bolja od praznog teksta). Ako čitanje baze ne uspe,
+ * AI popuna i dalje radi - samo bez konteksta, kao ranije.
  */
-async function resolveListingType(roomId: string, provided: unknown): Promise<ListingType> {
-  const given = String(provided ?? '').toLowerCase();
-  if (LISTING_TYPES.includes(given as ListingType)) return given as ListingType;
+async function loadRoomContext(roomId: string, providedListingType: unknown): Promise<RoomContext> {
+  const given = String(providedListingType ?? '').toLowerCase();
+  const ctx: RoomContext = {
+    listingType: LISTING_TYPES.includes(given as ListingType) ? (given as ListingType) : 'rent',
+    roomTitle: '',
+    facts: [],
+    otherRooms: []
+  };
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseKey) return 'rent';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseKey) return ctx;
 
   try {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { data: room } = await supabase
       .from('rooms')
-      .select('tour_slug')
+      .select('tour_slug, title_i18n')
       .eq('id', roomId)
       .single();
+    if (!room?.tour_slug) return ctx;
 
-    if (!room?.tour_slug) return 'rent';
+    const ownTitle = extractText(room.title_i18n).trim();
+    ctx.roomTitle = PLACEHOLDER_TITLE.test(ownTitle) ? '' : ownTitle;
 
-    const { data: tour } = await supabase
-      .from('tours')
-      .select('category')
-      .eq('slug', room.tour_slug)
-      .single();
+    const [{ data: tour }, { data: rooms }] = await Promise.all([
+      supabase
+        .from('tours')
+        .select('category, property_type, structure, area_sqm, floor, city, terrace, parking, heating')
+        .eq('slug', room.tour_slug)
+        .single(),
+      supabase
+        .from('rooms')
+        .select('id, title_i18n, establish_i18n, order_index')
+        .eq('tour_slug', room.tour_slug)
+        .order('order_index', { ascending: true })
+    ]);
 
-    const category = String(tour?.category ?? '').toLowerCase();
-    if (LISTING_TYPES.includes(category as ListingType)) return category as ListingType;
+    if (tour) {
+      const category = String(tour.category ?? '').toLowerCase();
+      if (!LISTING_TYPES.includes(given as ListingType) && LISTING_TYPES.includes(category as ListingType)) {
+        ctx.listingType = category as ListingType;
+      }
+      const fact = (label: string, value: unknown) => {
+        if (value !== null && value !== undefined && String(value).trim()) ctx.facts.push(`${label}: ${value}`);
+      };
+      fact('Property type', tour.property_type);
+      fact('Structure', tour.structure ? structureLabel(String(tour.structure)) : null);
+      fact('Total area (whole property, m²)', tour.area_sqm);
+      fact('Floor', tour.floor);
+      fact('City', tour.city);
+      fact('Outdoor space', tour.terrace);
+      fact('Parking', tour.parking);
+      fact('Heating', tour.heating);
+    }
+
+    ctx.otherRooms = (rooms ?? [])
+      .filter((r) => String(r.id) !== String(roomId))
+      .slice(0, 15)
+      .map((r) => ({ title: extractText(r.title_i18n).trim(), narration: narrationOf(r.establish_i18n) }));
   } catch (err) {
-    console.warn('[AI] Tip oglasa nije pročitan iz baze, koristim "rent":', err);
+    console.warn('[AI] Kontekst sobe nije pročitan iz baze, radim bez njega:', err);
   }
 
-  return 'rent';
+  return ctx;
 }
+
+/**
+ * Pravougaonik koji je vratio model ([ymin, xmin, ymax, xmax], 0-1000) u
+ * uglove panorame. Vraća null za neispravan ili preveliki okvir - tačka bez
+ * jasnog predmeta ispod sebe gora je od nikakve.
+ */
+function boxToAngles(box: unknown): { yaw: number; pitch: number } | null {
+  if (!Array.isArray(box) || box.length !== 4) return null;
+  const [ymin, xmin, ymax, xmax] = box.map(Number);
+  if (![ymin, xmin, ymax, xmax].every((n) => Number.isFinite(n) && n >= 0 && n <= 1000)) return null;
+  if (xmax <= xmin || ymax <= ymin) return null;
+  // Okvir preko pola panorame nije "predmet" nego zid ili cela soba.
+  if (xmax - xmin > 500 || ymax - ymin > 700) return null;
+
+  const cx = (xmin + xmax) / 2 / 1000;
+  const cy = (ymin + ymax) / 2 / 1000;
+  return {
+    yaw: Math.round(clamp((cx - 0.5) * 360, -180, 180) * 10) / 10,
+    pitch: Math.round(clamp((0.5 - cy) * 180, -85, 85) * 10) / 10
+  };
+}
+
+/** Ugaona razdaljina dve tačke u panorami (stepeni), sa prelazom preko ±180. */
+function angularGap(a: { yaw: number; pitch: number }, b: { yaw: number; pitch: number }): number {
+  const dYaw = Math.abs(((a.yaw - b.yaw + 540) % 360) - 180);
+  return Math.hypot(dYaw, a.pitch - b.pitch);
+}
+
+// Dve tačke bliže od ovoga se u panorami preklapaju - ostaje prva.
+const MIN_WAYPOINT_GAP_DEG = 12;
 
 async function fetchPanorama(panoramaUrl: string) {
   const controller = new AbortController();
@@ -397,19 +515,27 @@ async function handleGenerateDraft(body: any) {
     return NextResponse.json({ success: false, error: 'Nedostaju roomId ili panoramaUrl.' }, { status: 400 });
   }
 
-  const safeListingType = await resolveListingType(roomId, body.listingType || body.listing_type);
-
-  const image = await fetchPanorama(panoramaUrl);
-  const prompt = buildDraftPrompt(safeListingType);
+  const [ctx, image] = await Promise.all([
+    loadRoomContext(roomId, body.listingType || body.listing_type),
+    fetchPanorama(panoramaUrl)
+  ]);
+  const safeListingType = ctx.listingType;
+  const prompt = buildDraftPrompt(ctx);
   const schema = buildDraftSchema();
 
+  // Za čitanje slike jači Flash (Lite je slabije prepoznavao predmete i više
+  // nagađao), Lite je rezerva. Po jedan pokušaj po modelu, da zbir ostane
+  // ispod maxDuration rute (60s) i sa preuzimanjem panorame.
   const { data: raw, usedModel } = await generateJsonWithRetry<any>({
     contents: [{ inlineData: { mimeType: image.contentType, data: image.base64 } }, { text: prompt }],
     config: {
       responseMimeType: 'application/json',
       responseSchema: schema,
-      temperature: TEMP_DESCRIPTIVE,
+      temperature: TEMP_GROUNDED,
     },
+    model: GEMINI_FALLBACK_MODEL,
+    fallbackModel: GEMINI_MODEL,
+    attempts: 1,
     timeoutMs: AI_TIMEOUT_MS,
     label: 'AI draft sobe',
   });
@@ -423,19 +549,24 @@ async function handleGenerateDraft(body: any) {
     throw new Error('Generisani draft ne sadrži sva obavezna polja.');
   }
 
-  const waypoints = raw.waypoints
-    .slice(0, MAX_WAYPOINTS)
-    .map((wp: any) => ({
-      yaw: clamp(Number(wp.yaw) || 0, -180, 180),
-      pitch: clamp(Number(wp.pitch) || 0, -90, 90),
-      type: 'info' as const,
-      title_i18n: extractText(wp.title_i18n, 'sr'),
-      text_i18n: extractText(wp.text_i18n, 'sr'),
-    }));
+  // Uglovi se računaju iz pravougaonika; tačka bez ispravnog okvira ili
+  // preblizu prethodnoj se odbacuje (model ume da stavi dve tačke na isti
+  // predmet sa različitim nazivom).
+  const waypoints: { yaw: number; pitch: number; type: 'info'; title_i18n: string; text_i18n: string }[] = [];
+  for (const wp of raw.waypoints) {
+    if (waypoints.length >= MAX_WAYPOINTS) break;
+    const angles = boxToAngles(wp?.box_2d);
+    const title = extractText(wp?.title_i18n, 'sr').trim();
+    const text = extractText(wp?.text_i18n, 'sr').trim();
+    if (!angles || !title || !text) continue;
+    if (waypoints.some((kept) => angularGap(kept, angles) < MIN_WAYPOINT_GAP_DEG)) continue;
+    waypoints.push({ ...angles, type: 'info', title_i18n: title, text_i18n: text });
+  }
 
   // Oblik koji frontend (handleAutoPopulateRoom -> aiDraft) očekuje:
   const draft = {
-    title: raw.title_i18n.sr,
+    // Naziv koji je admin već dao ostaje, čak i da ga je model promenio.
+    title: ctx.roomTitle || raw.title_i18n.sr,
     narrationIntro: raw.narration_intro_i18n.sr,
     narrationDetail: raw.narration_detail_i18n.sr,
     waypoints,
@@ -546,6 +677,184 @@ async function handleTranslateStep(body: any) {
 
 /**
  * ============================================================
+ * KORAK 1b: REVIEW_DRAFT ("Proveri i ispravi")
+ * ============================================================
+ *
+ * Drugi AI prolaz, pre prevoda i glasa: lektor i urednik, ne pisac. Ništa ne
+ * menja sam - vraća PREDLOGE (ceo novi tekst polja + razlog), koje admin
+ * prihvata ili odbacuje jedan po jedan, i NAPOMENE za tvrdnje koje ne vidi na
+ * slici (tu ne predlaže izmenu - admin zna stan). Greška u srpskom bi se
+ * posle umnožila na tri prevoda i u glas, zato je ovo pre "Potvrdi i prevedi".
+ */
+
+type ReviewField = 'title' | 'intro' | 'detail' | 'wpTitle' | 'wpText';
+const REVIEW_FIELDS: ReviewField[] = ['title', 'intro', 'detail', 'wpTitle', 'wpText'];
+
+function buildReviewSchema(): Schema {
+  const target = {
+    field: {
+      type: Type.STRING,
+      enum: REVIEW_FIELDS,
+      description: 'Which text: title, intro, detail, wpTitle (waypoint title) or wpText (waypoint text).',
+    },
+    index: {
+      type: Type.INTEGER,
+      description: 'Waypoint number starting at 0 for wpTitle/wpText; -1 for title, intro and detail.',
+    },
+  };
+  return {
+    type: Type.OBJECT,
+    properties: {
+      suggestions: {
+        type: Type.ARRAY,
+        description: 'Only real improvements. Empty array if the text is already good.',
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            ...target,
+            suggested: { type: Type.STRING, description: 'The whole corrected text of that field, in Serbian Latin.' },
+            reason: { type: Type.STRING, description: 'Why, in Serbian, one short sentence.' },
+          },
+          required: ['field', 'index', 'suggested', 'reason'],
+        },
+      },
+      checks: {
+        type: Type.ARRAY,
+        description: 'Claims you cannot confirm in the image. Empty array if everything is visible.',
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            ...target,
+            message: { type: Type.STRING, description: 'What to verify, in Serbian, one short sentence.' },
+          },
+          required: ['field', 'index', 'message'],
+        },
+      },
+    },
+    required: ['suggestions', 'checks'],
+  };
+}
+
+type ReviewInput = {
+  title: string;
+  intro: string;
+  detail: string;
+  waypoints: { title: string; text: string }[];
+};
+
+function buildReviewPrompt(input: ReviewInput, ctx: RoomContext): string {
+  const others = ctx.otherRooms
+    .filter((r) => r.narration)
+    .map((r) => `- ${r.title || '(unnamed)'}: "${r.narration}"`)
+    .join('\n');
+  return `
+You are a meticulous Serbian copy editor (lektor) reviewing the voice-over text for one
+room of a 360° real-estate virtual tour, BEFORE it is translated into three languages and
+read aloud by a text-to-speech voice. The image is the room's equirectangular panorama.
+
+TEXT TO REVIEW (Serbian, Latin script):
+${JSON.stringify(input, null, 2)}
+
+NARRATION ALREADY USED IN OTHER ROOMS OF THIS TOUR:
+${others || '- (none)'}
+
+CHECK, IN THIS ORDER:
+1. Grammar and spelling: cases (padeži), gender and number agreement, ekavica, capitals,
+   commas. Correct Serbian Latin with č ć š ž đ.
+2. Spoken naturalness: it will be READ ALOUD. Replace stiff bureaucratic verbs
+   ("sadrži", "poseduje", "vrši", "predstavlja") and split sentences that are too long to
+   say in one breath. Keep the meaning.
+3. Repetition: the same word or phrase repeated across title/intro/detail/waypoints, or an
+   opening that copies the other rooms' narration above.
+4. Empty praise: ${EMPTY_PRAISE.map((w) => `"${w}…"`).join(', ')} - replace with something
+   visible, or drop it.
+5. Length limits (hard): intro ≤ ${MAX_NARRATION_INTRO_CHARS} characters, detail ≤
+   ${MAX_NARRATION_DETAIL_CHARS}, waypoint text ≤ ${MAX_WAYPOINT_TEXT_CHARS}, waypoint title ≤
+   ${MAX_WAYPOINT_TITLE_WORDS} words with no trailing period.
+
+FACT CHECK (goes to "checks", NOT to "suggestions"):
+- Look at the image. For any claim you cannot confirm there (a material, an appliance, a
+  view, a brand, a size, a connection to another room), add a check telling the admin
+  what to verify. Do not rewrite it yourself - the admin knows the property.
+
+RULES FOR SUGGESTIONS:
+- Suggest only real improvements. If a field is fine, leave it out. Do not rephrase
+  just to rephrase, and never add information that is not in the original.
+- "suggested" is the WHOLE new text of that field, ready to paste.
+- The room title is the admin's choice: suggest a title change only for a spelling error.
+- "reason" and "message" are short and in Serbian.
+
+Output valid JSON matching the schema.
+`;
+}
+
+async function handleReviewDraft(body: any) {
+  const roomId = body.roomId || body.room_id || body.id;
+  const panoramaUrl = body.panoramaUrl || body.panorama_url;
+  const draft = body.draft;
+  if (!roomId || !panoramaUrl || !draft) {
+    return NextResponse.json({ success: false, error: 'Nedostaju roomId, panoramaUrl ili draft.' }, { status: 400 });
+  }
+
+  const input: ReviewInput = {
+    title: extractText(draft.title, 'sr'),
+    intro: extractText(draft.narrationIntro, 'sr'),
+    detail: extractText(draft.narrationDetail, 'sr'),
+    waypoints: Array.isArray(draft.waypoints)
+      ? draft.waypoints.map((wp: any) => ({ title: extractText(wp.title_i18n, 'sr'), text: extractText(wp.text_i18n, 'sr') }))
+      : [],
+  };
+
+  const [ctx, image] = await Promise.all([loadRoomContext(roomId, body.listingType), fetchPanorama(panoramaUrl)]);
+
+  const { data: raw, usedModel } = await generateJsonWithRetry<any>({
+    contents: [{ inlineData: { mimeType: image.contentType, data: image.base64 } }, { text: buildReviewPrompt(input, ctx) }],
+    config: { responseMimeType: 'application/json', responseSchema: buildReviewSchema(), temperature: TEMP_EXTRACT },
+    model: GEMINI_FALLBACK_MODEL,
+    fallbackModel: GEMINI_MODEL,
+    attempts: 1,
+    timeoutMs: AI_TIMEOUT_MS,
+    label: 'AI provera drafta',
+  });
+
+  // Tekst polja na koje se predlog odnosi - da se odbaci predlog za
+  // nepostojeću tačku i "ispravka" koja je ista kao original.
+  const current = (field: ReviewField, index: number): string | null => {
+    if (field === 'title') return input.title;
+    if (field === 'intro') return input.intro;
+    if (field === 'detail') return input.detail;
+    const wp = input.waypoints[index];
+    if (!wp) return null;
+    return field === 'wpTitle' ? wp.title : wp.text;
+  };
+  const target = (item: any) => {
+    const field = REVIEW_FIELDS.includes(item?.field) ? (item.field as ReviewField) : null;
+    const index = field === 'wpTitle' || field === 'wpText' ? Number(item?.index) : -1;
+    return field && current(field, index) !== null ? { field, index } : null;
+  };
+
+  const suggestions = (Array.isArray(raw?.suggestions) ? raw.suggestions : [])
+    .map((s: any) => {
+      const t = target(s);
+      const suggested = String(s?.suggested ?? '').trim();
+      if (!t || !suggested || suggested === current(t.field, t.index)?.trim()) return null;
+      return { ...t, original: current(t.field, t.index), suggested, reason: String(s?.reason ?? '').trim() };
+    })
+    .filter(Boolean);
+
+  const checks = (Array.isArray(raw?.checks) ? raw.checks : [])
+    .map((c: any) => {
+      const t = target(c);
+      const message = String(c?.message ?? '').trim();
+      return t && message ? { ...t, message } : null;
+    })
+    .filter(Boolean);
+
+  return NextResponse.json({ success: true, model: usedModel, roomId, suggestions, checks });
+}
+
+/**
+ * ============================================================
  * POST HANDLER
  * ============================================================
  */
@@ -575,10 +884,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const action: ActionType = body.action === 'translate_step' ? 'translate_step' : 'generate_draft';
+    const action: ActionType =
+      body.action === 'translate_step' || body.action === 'review_draft' ? body.action : 'generate_draft';
 
     if (action === 'translate_step') {
       return await handleTranslateStep(body);
+    }
+    if (action === 'review_draft') {
+      return await handleReviewDraft(body);
     }
 
     return await handleGenerateDraft(body);

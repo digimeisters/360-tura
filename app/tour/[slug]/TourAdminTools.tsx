@@ -10,6 +10,7 @@ import { THEME, btnStyle } from './theme';
 import { getLocalizedText, parseWaypoints, parseEstablish, composeEstablishText, buildI18nObject } from './utils';
 import { translateRoomToLanguages, hasExactLangText } from './adminUtils';
 import { describeGuidePathError, parseGuidePath, validateGuidePath } from './guidePath';
+import { checkDraftField, type DraftFieldKind } from '../../lib/roomDraftRules';
 
 /**
  * Admin alati ture: dodavanje sobe, otpremanje panorame, AI popuna, glas i
@@ -26,6 +27,49 @@ import { describeGuidePathError, parseGuidePath, validateGuidePath } from './gui
 const AVAILABLE_LANGUAGES: Language[] = ['sr', 'en', 'de', 'ru'];
 
 type AiDraft = { title: string; narrationIntro: string; narrationDetail: string; waypoints: Waypoint[] };
+
+/** Odgovor "Proveri i ispravi" (review_draft u /api/ai/auto-populate-room). */
+type ReviewField = 'title' | 'intro' | 'detail' | 'wpTitle' | 'wpText';
+type ReviewSuggestion = { field: ReviewField; index: number; original: string; suggested: string; reason: string };
+type ReviewCheck = { field: ReviewField; index: number; message: string };
+type DraftReview = { suggestions: ReviewSuggestion[]; checks: ReviewCheck[] };
+
+const REVIEW_FIELD_LABEL: Record<ReviewField, string> = {
+  title: 'Naziv sobe',
+  intro: 'Uvod – namena',
+  detail: 'Uvod – detalj',
+  wpTitle: 'Naslov tačke',
+  wpText: 'Tekst tačke'
+};
+
+function reviewTargetLabel(field: ReviewField, index: number): string {
+  return field === 'wpTitle' || field === 'wpText'
+    ? `${REVIEW_FIELD_LABEL[field]} ${index + 1}`
+    : REVIEW_FIELD_LABEL[field];
+}
+
+/**
+ * Brojač znakova i upozorenja ispod polja drafta - računa se dok se kuca,
+ * bez AI-ja (pravila su u lib/roomDraftRules.ts). Crveno = preko granice,
+ * žuto = upozorenje; napomene AI provere za to polje idu odmah ispod.
+ */
+function FieldHint({ kind, text, checks = [] }: { kind: DraftFieldKind; text: string; checks?: string[] }) {
+  const c = checkDraftField(kind, text);
+  const lines = [...c.warnings, ...checks];
+  return (
+    <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+      <span style={{ fontSize: '11px', fontWeight: 700, color: c.over ? '#dc2626' : THEME.textMuted, alignSelf: 'flex-end' }}>
+        {c.count}
+        {c.over && ' · predugačko'}
+      </span>
+      {lines.map((w) => (
+        <span key={w} style={{ fontSize: '11px', color: '#92400e', background: '#fef3c7', borderRadius: '6px', padding: '3px 7px' }}>
+          ⚠ {w}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export type TourAdminToolsProps = {
   /** 'full' = dugmad u traci i modali; 'empty' = samo dugme za prvu sobu. */
@@ -122,6 +166,8 @@ export default function TourAdminTools({
   const [aiLoading, setAiLoading] = useState(false);
   const [aiDraft, setAiDraft] = useState<AiDraft | null>(null);
   const [showDraftModal, setShowDraftModal] = useState(false);
+  const [review, setReview] = useState<DraftReview | null>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
   const [translationProgress, setTranslationProgress] = useState<string | null>(null);
   const [voiceProgress, setVoiceProgress] = useState<string | null>(null);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
@@ -441,6 +487,7 @@ export default function TourAdminTools({
       const result = await res.json();
       if (result.success && result.draft) {
         setAiDraft(result.draft);
+        setReview(null);
         setShowDraftModal(true);
       } else {
         alert('Greška pri obradi: ' + (result.error || 'Nepoznata greška'));
@@ -452,6 +499,67 @@ export default function TourAdminTools({
       setAiLoading(false);
     }
   };
+
+  // KORAK 1b: "Proveri i ispravi" - AI lektor pregleda draft pre prevoda i
+  // glasa. Vraća predloge (prihvataju se jedan po jedan) i napomene za
+  // tvrdnje koje ne vidi na slici. Sam ništa ne menja.
+  const handleReviewDraft = async () => {
+    const currentPanoramaUrl = currentRoom?.panorama_url_cf || currentRoom?.panorama_url;
+    if (!currentRoom || !currentPanoramaUrl || !aiDraft) return;
+    setReviewLoading(true);
+    try {
+      const res = await fetch('/api/ai/auto-populate-room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
+        body: JSON.stringify({
+          roomId: currentRoom.id,
+          panoramaUrl: currentPanoramaUrl,
+          listingType: tour?.category,
+          draft: aiDraft,
+          action: 'review_draft'
+        })
+      });
+      const result = await res.json();
+      if (result.success) {
+        setReview({ suggestions: result.suggestions ?? [], checks: result.checks ?? [] });
+      } else {
+        alert('Provera nije uspela: ' + (result.error || 'Nepoznata greška'));
+      }
+    } catch (err) {
+      console.error('AI Review Error:', err);
+      alert('Došlo je do greške prilikom provere teksta.');
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  /** Upisuje prihvaćen predlog u draft i sklanja ga sa spiska. */
+  const applySuggestion = (s: ReviewSuggestion) => {
+    setAiDraft((prev) => {
+      if (!prev) return prev;
+      if (s.field === 'title') return { ...prev, title: s.suggested };
+      if (s.field === 'intro') return { ...prev, narrationIntro: s.suggested };
+      if (s.field === 'detail') return { ...prev, narrationDetail: s.suggested };
+      const wps = [...prev.waypoints];
+      const wp = wps[s.index];
+      if (!wp) return prev;
+      wps[s.index] =
+        s.field === 'wpTitle'
+          ? { ...wp, title_i18n: buildI18nObject(s.suggested, wp.title_i18n, 'sr') }
+          : { ...wp, text_i18n: buildI18nObject(s.suggested, wp.text_i18n, 'sr') };
+      return { ...prev, waypoints: wps };
+    });
+    dismissSuggestion(s);
+  };
+
+  const dismissSuggestion = (s: ReviewSuggestion) =>
+    setReview((prev) => (prev ? { ...prev, suggestions: prev.suggestions.filter((x) => x !== s) } : prev));
+
+  /** Napomene AI provere za jedno polje ("proveri na slici: ..."). */
+  const reviewChecks = (field: ReviewField, index = -1): string[] =>
+    (review?.checks ?? [])
+      .filter((c) => c.field === field && c.index === index)
+      .map((c) => `Proveri: ${c.message}`);
 
   // Upload panorame sa računara za trenutnu sobu, u DVA koraka jer Vercel
   // funkcije imaju tvrd limit od 4.5MB po telu zahteva, a panorame su skoro
@@ -1104,6 +1212,11 @@ export default function TourAdminTools({
                   onChange={(e) => setAiDraft({ ...aiDraft, title: e.target.value })}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '14px', boxSizing: 'border-box' }}
                 />
+                {reviewChecks('title').map((w) => (
+                  <span key={w} style={{ display: 'block', marginTop: '4px', fontSize: '11px', color: '#92400e', background: '#fef3c7', borderRadius: '6px', padding: '3px 7px' }}>
+                    ⚠ {w}
+                  </span>
+                ))}
               </div>
 
               <div>
@@ -1114,6 +1227,7 @@ export default function TourAdminTools({
                   rows={2}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '14px', resize: 'vertical', boxSizing: 'border-box' }}
                 />
+                <FieldHint kind="intro" text={aiDraft.narrationIntro} checks={reviewChecks('intro')} />
               </div>
 
               <div>
@@ -1124,6 +1238,7 @@ export default function TourAdminTools({
                   rows={3}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', background: THEME.surfaceAlt, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '14px', resize: 'vertical', boxSizing: 'border-box' }}
                 />
+                <FieldHint kind="detail" text={aiDraft.narrationDetail} checks={reviewChecks('detail')} />
               </div>
 
               <div>
@@ -1146,6 +1261,7 @@ export default function TourAdminTools({
                         }}
                         style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', background: THEME.surface, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '12px', boxSizing: 'border-box' }}
                       />
+                      <FieldHint kind="wpTitle" text={getLocalizedText(wp.title_i18n, 'sr')} checks={reviewChecks('wpTitle', i)} />
                       <textarea
                         placeholder="Opis / Tekst tačke (SR)..."
                         value={getLocalizedText(wp.text_i18n, 'sr')}
@@ -1160,9 +1276,66 @@ export default function TourAdminTools({
                         rows={2}
                         style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', background: THEME.surface, color: THEME.textPrimary, border: '1px solid ' + THEME.borderStrong, fontSize: '12px', resize: 'vertical', boxSizing: 'border-box' }}
                       />
+                      <FieldHint kind="wpText" text={getLocalizedText(wp.text_i18n, 'sr')} checks={reviewChecks('wpText', i)} />
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {/* PROVERI I ISPRAVI - AI lektor pre prevoda i glasa */}
+              <div style={{ backgroundColor: THEME.surfaceAlt, padding: '12px 14px', borderRadius: '10px', border: '1px solid ' + THEME.border, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '12px', color: THEME.textSecondary, fontWeight: 600, flex: '1 1 260px' }}>
+                    Pre prevoda: AI lektor proverava gramatiku, prirodnost za glas, ponavljanja i ono što se ne vidi na slici. Ništa ne menja sam.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleReviewDraft}
+                    disabled={reviewLoading}
+                    style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: THEME.accent, color: '#fff', fontWeight: 700, fontSize: '13px', cursor: reviewLoading ? 'wait' : 'pointer', opacity: reviewLoading ? 0.7 : 1, flexShrink: 0 }}
+                  >
+                    {reviewLoading ? 'Proveravam…' : review ? '🔍 Proveri ponovo' : '🔍 Proveri i ispravi'}
+                  </button>
+                </div>
+
+                {review && (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: THEME.accent }}>
+                        {review.suggestions.length === 0 && review.checks.length === 0
+                          ? '✓ Tekst je u redu – nema predloga.'
+                          : `${review.suggestions.length} predlog(a) · ${review.checks.length} za proveru (žuto ispod polja)`}
+                      </span>
+                      {review.suggestions.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => review.suggestions.forEach(applySuggestion)}
+                          style={{ padding: '5px 10px', borderRadius: '6px', border: '1px solid ' + THEME.borderStrong, background: THEME.surface, color: THEME.textPrimary, fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                        >
+                          Prihvati sve
+                        </button>
+                      )}
+                    </div>
+                    {review.suggestions.map((s, i) => (
+                      <div key={`${s.field}-${s.index}-${i}`} style={{ background: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '8px', padding: '10px', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                          <b style={{ color: THEME.textPrimary }}>{reviewTargetLabel(s.field, s.index)}</b>
+                          <span style={{ display: 'flex', gap: '6px' }}>
+                            <button type="button" onClick={() => dismissSuggestion(s)} style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid ' + THEME.borderStrong, background: THEME.surface, color: THEME.textSecondary, fontSize: '12px', cursor: 'pointer' }}>
+                              Odbaci
+                            </button>
+                            <button type="button" onClick={() => applySuggestion(s)} style={{ padding: '4px 10px', borderRadius: '6px', border: 'none', background: THEME.accent, color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                              Prihvati
+                            </button>
+                          </span>
+                        </div>
+                        <span style={{ color: '#b91c1c', textDecoration: 'line-through' }}>{s.original}</span>
+                        <span style={{ color: '#15803d' }}>{s.suggested}</span>
+                        {s.reason && <span style={{ fontSize: '11px', color: THEME.textSecondary }}>{s.reason}</span>}
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
 
               {/* SELEKCIJA CILJNIH JEZIKA DIREKTNO U MODALU */}
