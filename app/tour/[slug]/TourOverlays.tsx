@@ -22,6 +22,10 @@ export function TourGlobalStyles() {
       .k360-top-ui { transition: opacity 0.25s ease, transform 0.25s ease; }
       .k360-top-ui.is-immersive { opacity: 0; transform: translateY(-8px); }
       .k360-top-ui.is-immersive, .k360-top-ui.is-immersive * { pointer-events: none !important; }
+      /* Kartica sa tekstom tačke: samo bledi (njen položaj drži inline transform). */
+      .k360-fade-ui { transition: opacity 0.25s ease; }
+      .k360-fade-ui.is-immersive { opacity: 0; }
+      .k360-fade-ui.is-immersive, .k360-fade-ui.is-immersive * { pointer-events: none !important; }
       @media (prefers-reduced-motion: reduce) { .k360-top-ui { transition: none; } }
       @media (min-width: 1024px) {
         .tour-ui-scale { zoom: 1.122; }

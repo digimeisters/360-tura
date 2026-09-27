@@ -1018,9 +1018,13 @@ export default function TourPage() {
 
       {infoBoxData && !pendingCoords && !activeModal && (
         <InfoCard
+          key={displayedInfoText}
           title={displayedInfoTitle}
           text={displayedInfoText}
           closeLabel={t.close}
+          moreLabel={t.readMore}
+          lessLabel={t.readLess}
+          hidden={immersive}
           onClose={() => {
             stopAudio();
             setInfoBoxData(null);

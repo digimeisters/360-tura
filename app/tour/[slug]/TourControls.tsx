@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { THEME, GLASS, GLASS_ACCENT, overlayIconStyle, SCREEN_BOTTOM } from './theme';
 import { IconCollapse, IconCompass, IconExpand, IconHand, IconHeadphones, IconMute, IconPause, IconPhone, IconPlay, IconSound } from './icons';
 import type { Language } from './types';
@@ -226,24 +227,50 @@ export function StatusNotice({
  * Kartica sa naracijom tačke, uz samo dno ekrana - isto tamno staklo kao
  * traka sa sobama, samo gušće, jer se ovde čita duži tekst preko svetlih
  * delova fotografije.
+ *
+ * Tekst je skraćen na dva reda sa "Više", da kartica ne pokriva trećinu
+ * panorame; ceo se otvara u istoj kartici. Nova tačka (drugi tekst) počinje
+ * opet skraćeno - page.tsx daje karticu sa key={tekst}.
  */
 export function InfoCard({
   title,
   text,
   onClose,
   closeLabel,
+  moreLabel,
+  lessLabel,
+  hidden = false,
   action
 }: {
   title: string | null;
   text: string;
   onClose: () => void;
   closeLabel: string;
+  moreLabel: string;
+  lessLabel: string;
+  /** Sklonjena dok se prstom razgleda panorama (useImmersiveWhileDragging). */
+  hidden?: boolean;
   /** Dugme u zaglavlju kartice, levo od zatvaranja ("Pozovi"). */
   action?: React.ReactNode;
 }) {
   const headRoom = action ? '150px' : '44px';
+  const [expanded, setExpanded] = useState(false);
+  // "Više" samo kad tekst stvarno ne staje u dva reda.
+  const [overflows, setOverflows] = useState(false);
+  const textRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    const el = textRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => {
+      if (!expanded) setOverflows(el.scrollHeight > el.clientHeight + 1);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [expanded, text]);
+
   return (
-    <div className="tour-ui-scale" style={{
+    <div className={`tour-ui-scale k360-fade-ui${hidden ? ' is-immersive' : ''}`} style={{
       position: 'absolute',
       bottom: SCREEN_BOTTOM,
       left: '50%',
@@ -296,9 +323,46 @@ export function InfoCard({
           {title}
         </h3>
       )}
-      <p style={{ margin: 0, fontSize: '13.5px', lineHeight: 1.55, color: 'rgba(255, 255, 255, 0.9)', paddingRight: title ? '6px' : headRoom }}>
+      <p
+        ref={textRef}
+        style={{
+          margin: 0,
+          fontSize: '13.5px',
+          lineHeight: 1.55,
+          color: 'rgba(255, 255, 255, 0.9)',
+          paddingRight: title ? '6px' : headRoom,
+          ...(expanded
+            ? { maxHeight: '40vh', overflowY: 'auto' as const }
+            : { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' })
+        }}
+      >
         {text}
       </p>
+      {(overflows || expanded) && (
+        <button
+          type="button"
+          className="k360-tap"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            marginTop: '4px',
+            padding: '2px 0',
+            background: 'none',
+            border: 'none',
+            color: GLASS_ACCENT,
+            fontFamily: THEME.fontBody,
+            fontSize: '13px',
+            fontWeight: 700,
+            cursor: 'pointer'
+          }}
+        >
+          {expanded ? lessLabel : moreLabel}
+          <span aria-hidden="true" style={{ display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}>▾</span>
+        </button>
+      )}
     </div>
   );
 }

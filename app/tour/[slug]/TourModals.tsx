@@ -20,7 +20,6 @@ import {
   IconPhone,
   IconPin,
   IconPlan,
-  IconQuestion,
   IconRooms,
   IconShare,
   IconStairs,
@@ -311,19 +310,25 @@ export function TourModals({
     );
   }
   if (activeModal === 'faq' && faqList.length > 0 && (phone || email)) {
+    // Jedan red: pitanje levo, poziv i mejl kao okrugla dugmad desno - ne
+    // sme da odnese pola prozora od samih pitanja.
+    const round: React.CSSProperties = { ...CTA, width: '44px', height: '44px', padding: 0, flexShrink: 0 };
     footer = (
-      <div style={{ ...BOX_STRONG, background: THEME.accentSoft, padding: '14px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Chip solid><IconQuestion size={18} /></Chip>
-          <div>
-            <p style={{ margin: 0, fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 700, fontSize: '15px' }}>{t.faqMoreTitle}</p>
-            <p style={{ margin: 0, fontSize: '13px', color: THEME.textSecondary }}>{t.faqMoreText}</p>
-          </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ margin: 0, fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 700, fontSize: '15px' }}>{t.faqMoreTitle}</p>
+          <p style={{ margin: 0, fontSize: '13px', color: THEME.textSecondary }}>{t.faqMoreText}</p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: phone && email ? '1fr 1fr' : '1fr', gap: '8px', marginTop: '12px' }}>
-          {phone && <a href={`tel:${phone}`} style={{ ...CTA, padding: '12px', fontSize: '14px' }}><IconPhone size={16} />{t.callBtn}</a>}
-          {email && <a href={`mailto:${email}`} style={{ ...CTA_OUTLINE, padding: '12px', fontSize: '14px' }}><IconMail size={16} />{t.emailShort}</a>}
-        </div>
+        {phone && (
+          <a href={`tel:${phone}`} aria-label={t.callBtn} title={t.callBtn} style={round}>
+            <IconPhone size={18} />
+          </a>
+        )}
+        {email && (
+          <a href={`mailto:${email}`} aria-label={t.emailShort} title={t.emailShort} style={{ ...round, ...CTA_OUTLINE, width: '44px', height: '44px', padding: 0 }}>
+            <IconMail size={18} />
+          </a>
+        )}
       </div>
     );
   }
