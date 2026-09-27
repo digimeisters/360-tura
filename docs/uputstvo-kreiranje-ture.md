@@ -61,6 +61,7 @@ Za tvoje unose i za ispravke. Prijava administratorskim nalogom.
 - **Izmena** postojeće ture menja samo prikazane podatke — **link se ne menja**, jer su za njega vezani podeljeni linkovi i zabeležena analitika.
 - Lista pokazuje sve ture, stanje (**Objavljena** / **U pripremi**), broj soba i crveno upozorenje kad tura nema sobe ili neka soba nema panoramu.
 - **`Objavi` / `Skini`** menja stanje jednim klikom. Objava se ne da ako tura nema nijednu sobu, a pita za potvrdu ako neka soba nema panoramu. Skidanje sa objave takođe pita — podeljeni linkovi tad prestaju da rade.
+- **`QR`** pravi QR kod ture sa logom Kvadrat360 u sredini (deo Premium paketa): `Preuzmi PNG` za oglas, poruku i društvene mreže, `Preuzmi SVG` za letak i izlog (oštar u svakoj veličini; na štampi najmanje 2,5 cm). Kod radi tek kad je tura objavljena.
 - **`Obriši`** trajno uklanja turu, sobe, panorame i statistiku. Traži da upišeš slug ture za potvrdu, jer se ne može vratiti.
 
 Razlika: upitnik popunjava i opis i svih pet odgovora; ručni panel pravi turu bez njih — njega koristi za osnovne podatke i ispravke (odgovori se dopisuju kroz `Izmeni`).

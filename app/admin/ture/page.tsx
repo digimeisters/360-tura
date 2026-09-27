@@ -7,6 +7,7 @@ import { Logo } from '../../tour/[slug]/Logo';
 import PasswordInput from '../../../components/PasswordInput';
 import { slugify } from '../../lib/slug';
 import { SITE_URL } from '../../lib/site';
+import TourQrDialog from './TourQrDialog';
 import {
   STRUCTURE_ORDER,
   HEATING_OPTIONS,
@@ -196,6 +197,8 @@ export default function ToursAdminPage() {
   const [updatingStatusSlug, setUpdatingStatusSlug] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
   const [copiedEmbedSlug, setCopiedEmbedSlug] = useState<string | null>(null);
+  // Tura čiji je QR prozor otvoren (Premium: QR kod za oglas, letak i izlog).
+  const [qrTour, setQrTour] = useState<TourRow | null>(null);
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
   // Tajni linkovi mesečnih izveštaja (lib/agencyReport.ts) - potpisuje ih server.
   const [agencyReports, setAgencyReports] = useState<{ agency: string; tours: number; path: string }[]>([]);
@@ -1110,6 +1113,13 @@ export default function ToursAdminPage() {
                         {copiedEmbedSlug === tour.slug ? 'Kopirano ✓' : 'Iframe'}
                       </button>
                       <button
+                        onClick={() => setQrTour(tour)}
+                        title="QR kod ture za oglas, letak i izlog (Premium) - PNG i SVG"
+                        style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', marginLeft: '6px' }}
+                      >
+                        QR
+                      </button>
+                      <button
                         onClick={() => void deleteTour(tour)}
                         disabled={deletingSlug === tour.slug}
                         title="Trajno briše turu, sobe, panorame i statistiku - ne može se vratiti"
@@ -1136,11 +1146,20 @@ export default function ToursAdminPage() {
         <p style={{ marginTop: '14px', fontSize: '12.5px', color: FORM.textMuted }}>
           {"„Uredi sadržaj“"} otvara turu u admin režimu, gde se dodaju sobe, panorame i hotspotovi.
           {"„Iframe“"} kopira gotov kod za ugradnju ture na sajt agencije — radi tek kad je tura objavljena.
+          {"„QR“"} pravi QR kod ture sa logom (PNG za oglas i poruke, SVG za štampu) — deo Premium paketa.
           {"„Obriši“"} trajno uklanja turu, sobe, panorame i statistiku — traži da upišeš slug ture za potvrdu,
           jer se ne može vratiti. Crveno kod broja soba znači da neka soba nema panoramu. Nova tura kreće
           {"„u pripremi“"} — link radi samo tebi dok je ne objaviš.
         </p>
       </div>
+      {qrTour && (
+        <TourQrDialog
+          slug={qrTour.slug}
+          title={pickTitle(qrTour)}
+          published={Boolean(qrTour.published)}
+          onClose={() => setQrTour(null)}
+        />
+      )}
     </main>
   );
 }
