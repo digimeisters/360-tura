@@ -33,6 +33,7 @@ import { getLocalizedText, type FactKey, type FactRow } from './utils';
 import { translations } from './translations';
 import type { ActiveModal, Language, Room, Tour } from './types';
 import { VIEWING_TEXT } from './ViewingRequestModal';
+import { ViewCone, type ViewReader } from './ViewCone';
 import { formatListingPrice } from '../../lib/listingPrice';
 import { SITE_URL } from '../../lib/site';
 
@@ -194,6 +195,7 @@ export function TourModals({
   faqList,
   onChangeRoom,
   onFloorplanClick,
+  getView,
   onShare,
   onRequestViewing,
   shareCopied
@@ -215,6 +217,8 @@ export function TourModals({
   onChangeRoom: (id: string | number) => void;
   /** Admin: klik po skici postavlja oznaku trenutne sobe. */
   onFloorplanClick: React.MouseEventHandler<HTMLImageElement>;
+  /** Pravac pogleda u turi, za konus na planu (vidi ViewCone). */
+  getView: ViewReader;
   onShare: () => void;
   /** Otvara formu "Zakaži razgledanje" - null kad je tura nema (admin, nepoznata tura). */
   onRequestViewing: (() => void) | null;
@@ -435,6 +439,8 @@ export function TourModals({
                       }
                       style={{ maxWidth: '100%', maxHeight: '52vh', borderRadius: '10px', cursor: placeMode ? 'crosshair' : 'default', display: 'block' }}
                     />
+                    {/* Konus: kuda posetilac gleda u sobi u kojoj je stao pre otvaranja plana. */}
+                    <ViewCone rooms={rooms} currentRoomId={currentRoom?.id} getView={getView} />
                     {rooms
                       .filter((r) => typeof r.floorplan_x === 'number' && typeof r.floorplan_y === 'number')
                       .map((r) => {

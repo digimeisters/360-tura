@@ -4,6 +4,7 @@ import type { Language, Room } from './types';
 import { THEME } from './theme';
 import { getLocalizedText } from './utils';
 import { IconExpand } from './icons';
+import { ViewCone, type ViewReader } from './ViewCone';
 
 type FloorplanMiniMapProps = {
   floorplanUrl: string;
@@ -13,6 +14,8 @@ type FloorplanMiniMapProps = {
   lang: Language;
   onSelectRoom: (roomId: Room['id']) => void;
   onExpand: () => void;
+  /** Pravac pogleda u turi, za konus na planu (vidi ViewCone). */
+  getView: ViewReader;
   labels: { title: string; expand: string; here: string; seen: string; unseen: string };
 };
 
@@ -32,6 +35,7 @@ export function FloorplanMiniMap({
   lang,
   onSelectRoom,
   onExpand,
+  getView,
   labels
 }: FloorplanMiniMapProps) {
   const marked = rooms.filter((r) => typeof r.floorplan_x === 'number' && typeof r.floorplan_y === 'number');
@@ -84,6 +88,7 @@ export function FloorplanMiniMap({
       <div className="k360-minimap__plan">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={floorplanUrl} alt="" />
+        <ViewCone rooms={rooms} currentRoomId={currentRoomId} getView={getView} />
         {marked.map((room) => {
           const isCurrent = String(room.id) === String(currentRoomId);
           const state = isCurrent ? 'current' : seenRoomIds.has(String(room.id)) ? 'seen' : 'unseen';

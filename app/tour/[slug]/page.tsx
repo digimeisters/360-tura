@@ -154,6 +154,19 @@ export default function TourPage() {
   const [infoBoxData, setInfoBoxData] = useState<{ titleRaw?: unknown; textRaw: unknown; index?: number; audio_url?: unknown } | null>(null);
 
   const viewerRef = useRef<any>(null);
+  // Pravac pogleda za konus na planu (ViewCone čita ovo u svakom kadru). Za
+  // vreme prelaza između soba viewer ume da bude u pola zamene - tada null.
+  const readView = useCallback(() => {
+    const v = viewerRef.current;
+    if (!v || typeof v.getYaw !== 'function') return null;
+    try {
+      const yaw = Number(v.getYaw());
+      const hfov = Number(v.getHfov());
+      return Number.isFinite(yaw) && Number.isFinite(hfov) ? { yaw, hfov } : null;
+    } catch {
+      return null;
+    }
+  }, []);
   const animFrameRef = useRef<number | null>(null);
   const sequenceActiveRef = useRef<boolean>(false);
   const isInterruptedRef = useRef<boolean>(false);
@@ -978,6 +991,7 @@ export default function TourPage() {
               lang={lang}
               onSelectRoom={(id) => changeRoomById(id)}
               onExpand={() => setActiveModal('plan')}
+              getView={readView}
               labels={{ title: withoutEmoji(t.btnPlan), expand: withoutEmoji(t.btnPlan), here: t.planHere, seen: t.planSeen, unseen: t.planNew }}
             />
           )}
@@ -1107,6 +1121,7 @@ export default function TourPage() {
           faqList={faqList}
           onChangeRoom={(id) => changeRoomById(id)}
           onFloorplanClick={handleSetFloorplanMarker}
+          getView={readView}
           onShare={handleShareTour}
           shareCopied={shareCopied}
           onRequestViewing={slug ? () => { setActiveModal(null); setShowViewing(true); } : null}

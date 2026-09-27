@@ -137,6 +137,12 @@ Posetilac zatim klikom na oznaku skače pravo u tu prostoriju.
 
 Ponovi za svaku sobu. Oznaka trenutne sobe je istaknuta drugom bojom.
 
+**Konus pogleda:** na maloj mapi i u modulu Plan, iz tačke sobe u kojoj je posetilac, plavi konus pokazuje kuda gleda i koliko široko (zum ga sužava). Pravac se računa sam, iz tačaka soba na planu i strelica za prelaz u panoramama, pa za tačan konus treba:
+- da svaka soba ima tačku na planu;
+- da strelice za prelaz vode u prave sobe.
+
+Soba bez ijedne strelice ka označenoj sobi nema konus, jer bi pokazivao nasumično.
+
 ---
 
 ## 6. Objava

@@ -81,6 +81,9 @@ app/
     TourModals.tsx        moduli Plan / Lokacija / Info / Pitanja / Kontakt + potpis Kvadrat360
     ViewingRequestModal.tsx  "Zakaži razgledanje"
     RoomNavBar.tsx, FloorplanMiniMap.tsx  traka soba (na računaru u vrhu) i mala mapa levo
+    ViewCone.tsx, planHeading.ts  konus pogleda na planu (mala mapa i modul Plan): pravac
+                          i širina prate yaw/hfov viewer-a uživo; poravnanje panorame sa
+                          planom se računa iz tačaka soba + strelica vrata (bez ručnog unosa)
     useTourData.ts        učitavanje ture i soba
     useAdminSession.ts    admin prijava u turi
     useHotspotEditor.ts   admin: dodavanje/pomeranje/brisanje tačaka, oznaka na tlocrtu
