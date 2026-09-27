@@ -570,37 +570,23 @@ export const SITE_STYLES = `
   }
 
   /* ---------- CENOVNIK ---------- */
-  /* Cene i stepeni su u lib/pricing.ts; ovde je samo izgled. */
-  .calc{margin-top:1.1rem; overflow:hidden; scroll-margin-top:90px;}
-  .calc-inputs{padding:1.5rem; display:flex; flex-direction:column; gap:1.3rem;}
-  .calc h3{font-size:1.2rem;}
-  .calc-sub{margin-top:.3rem; color:var(--ink-soft); font-size:.9rem;}
-  .ctl-label{display:flex; justify-content:space-between; align-items:baseline; gap:.6rem; font-size:.82rem; font-weight:600; color:var(--ink-soft); margin-bottom:.55rem;}
-  .ctl-hint{font-weight:500; color:var(--ink-faint); font-size:.76rem;}
-  .stepper{display:flex; align-items:center; gap:.9rem;}
-  .stepper button{flex:none; width:2.5rem; height:2.5rem; border-radius:50%; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); font:inherit; font-size:1.25rem; font-weight:700; line-height:1; cursor:pointer; box-shadow:var(--shadow); display:inline-flex; align-items:center; justify-content:center;}
-  .stepper button:disabled{opacity:.4; cursor:default; box-shadow:none;}
-  @media (hover:hover){ .stepper button:not(:disabled):hover{border-color:var(--accent); color:var(--accent);} }
-  .stepper output{font-family:var(--font-display); font-weight:800; font-size:1.8rem; min-width:2ch; text-align:center; font-variant-numeric:tabular-nums;}
-  .stepper .unit{color:var(--ink-soft); font-size:.92rem;}
-  .tiers{display:grid; grid-template-columns:repeat(4,1fr); gap:.4rem;}
-  .tier{font:inherit; color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:.5rem .3rem; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:.05rem; box-shadow:var(--shadow); transition:background .15s ease, border-color .15s ease;}
-  .tier small{font-size:.7rem; font-weight:600; color:var(--ink-faint); font-variant-numeric:tabular-nums;}
-  .tier b{font-family:var(--font-display); font-size:.95rem; font-variant-numeric:tabular-nums;}
-  .tier[aria-pressed="true"]{background:var(--accent); border-color:var(--accent);}
-  .tier[aria-pressed="true"] small, .tier[aria-pressed="true"] b{color:var(--on-accent);}
-  @media (hover:hover){ .tier:not([aria-pressed="true"]):hover{border-color:var(--accent);} }
-  /* Izbor paketa (Osnovni/Premium) - dva vidljiva dugmeta, ne prekidač:
-     to je odluka o tome ŠTA se dobija, ne sitno podešavanje. */
-  .pkg-choice{display:grid; grid-template-columns:repeat(2,1fr); gap:.4rem;}
-  .pkg-choice button{font:inherit; text-align:left; color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:.65rem .8rem; cursor:pointer; display:flex; flex-direction:column; gap:.15rem; box-shadow:var(--shadow); transition:background .15s ease, border-color .15s ease;}
-  .pkg-choice b{font-family:var(--font-display); font-size:.95rem;}
-  .pkg-choice small{font-size:.72rem; color:var(--ink-faint); line-height:1.35;}
-  .pkg-choice button[aria-pressed="true"]{background:var(--accent); border-color:var(--accent);}
-  .pkg-choice button[aria-pressed="true"] b, .pkg-choice button[aria-pressed="true"] small{color:var(--on-accent);}
-  @media (hover:hover){ .pkg-choice button:not([aria-pressed="true"]):hover{border-color:var(--accent);} }
-  .calc-note{font-size:.84rem; color:var(--ink); background:var(--surface); border:1px dashed var(--line-strong); border-radius:12px; padding:.6rem .8rem;}
-
+  /* Cene i stepeni su u lib/pricing.ts; ovde je samo izgled (components/Pricing.tsx). */
+  /* Od čega je cena sastavljena, odmah ispod velikog broja. */
+  .price-split{margin:.35rem 0 0; font-size:.86rem; color:var(--ink-soft); line-height:1.5; font-variant-numeric:tabular-nums;}
+  .price-split b{color:var(--accent); font-weight:800;}
+  /* Tabela obima: tri kolone, brojevi poravnati, red se ističe pod mišem. */
+  .vol-card{padding:.4rem 1.4rem; box-shadow:none; overflow-x:auto;}
+  .vol-table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums;}
+  .vol-table th, .vol-table td{text-align:left; padding:.85rem .6rem; border-bottom:1px solid var(--line); white-space:nowrap;}
+  .vol-table tbody tr:last-child th, .vol-table tbody tr:last-child td{border-bottom:0;}
+  .vol-table thead th{font-family:var(--font-display); font-size:.7rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint);}
+  .vol-table tbody th{font-family:var(--font-display); font-weight:800; font-size:1.05rem; color:var(--ink);}
+  .vol-table td b{font-family:var(--font-display); font-size:1.15rem; font-weight:800; color:var(--ink);}
+  .vol-table td .price-was{margin-left:.45rem; font-size:.84rem;}
+  @media (hover:hover){ .vol-table tbody tr:hover{background:color-mix(in srgb, var(--accent) 6%, transparent);} }
+  /* Jedan red za turu bez fotografija i fotografije bez ture. */
+  .price-single{margin-top:1.2rem; font-size:.95rem; color:var(--ink-soft);}
+  .price-single b{color:var(--ink); font-weight:700;}
   /* ---------- PRIMERI TURA ---------- */
   .tours-grid{display:grid; gap:1.2rem;}
   .tours-grid.n-1{grid-template-columns:minmax(0,560px); justify-content:center;}

@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState, FormEvent } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import { trackSiteEvent } from '../app/lib/track';
 import type { HomeLang } from '../app/lib/homeCopy';
 import { SLOT_WINDOWS, upcomingShootDays, type ShootDay, type SlotWindow } from '../app/lib/shootSlot';
 import { CONTACT_PACKAGES } from '../app/lib/pricing';
-import { ESTIMATE_EVENT, type EstimateDetail } from '../app/lib/estimateEvent';
 
 type Status = { kind: 'idle' | 'sending' | 'ok' | 'error'; text: string };
 
@@ -89,9 +88,9 @@ const TEXT: Record<
     contactPh: '+381 6x xxx xxxx or name@example.com',
     pkg: 'Package',
     packages: [
-      'Tour + photos',
-      'Agency — Basic (SR + language of choice)',
-      'Agency — Premium (SR/EN/DE/RU)',
+      'Basic (SR + language of choice)',
+      'Premium (all 4 languages)',
+      'Tour only or photos only',
       'Larger volume (custom)'
     ],
     agency: 'Agency name',
@@ -126,8 +125,7 @@ const TEXT: Record<
 
 export default function ContactForm({
   lang = 'sr',
-  // Strana za agencije unapred bira paket za agencije - posetilac tamo ne
-  // traži paket za jednu nekretninu, pa ne mora ništa da prepravlja.
+  // Paket koji je unapred izabran u formi (prvi = Osnovni).
   defaultPackage = PACKAGES[0]
 }: {
   lang?: HomeLang;
@@ -145,33 +143,6 @@ export default function ContactForm({
   useEffect(() => setDays(upcomingShootDays()), []);
 
   const pickedDay = days.find((d) => d.iso === slotDate) ?? null;
-
-  // "Pošalji upit sa ovim" iz kalkulatora: izabere paket i stavi procenu u
-  // prvi red poruke. Ponovni klik zameni taj red, ne dodaje novi.
-  const formRef = useRef<HTMLFormElement>(null);
-  useEffect(() => {
-    const onEstimate = (e: Event) => {
-      const form = formRef.current;
-      if (!form) return;
-      const { packageValue, message, prefix } = (e as CustomEvent<EstimateDetail>).detail;
-
-      const pkg = form.elements.namedItem('package') as HTMLSelectElement | null;
-      if (pkg && PACKAGES.includes(packageValue)) pkg.value = packageValue;
-
-      const msg = form.elements.namedItem('message') as HTMLTextAreaElement | null;
-      if (msg) {
-        const rest = msg.value.startsWith(prefix) ? msg.value.split('\n').slice(1).join('\n').trim() : msg.value.trim();
-        msg.value = rest ? `${message}\n\n${rest}` : message;
-      }
-
-      // Posle klizanja do forme, kursor u prvo polje.
-      window.setTimeout(() => {
-        (form.elements.namedItem('name') as HTMLInputElement | null)?.focus({ preventScroll: true });
-      }, 450);
-    };
-    window.addEventListener(ESTIMATE_EVENT, onEstimate);
-    return () => window.removeEventListener(ESTIMATE_EVENT, onEstimate);
-  }, []);
 
   const toggleDay = (iso: string) => {
     if (slotDate === iso) {
@@ -221,7 +192,7 @@ export default function ContactForm({
   const isSending = status.kind === 'sending';
 
   return (
-    <form id="contact-form" className="card contact-form" onSubmit={handleSubmit} ref={formRef}>
+    <form id="contact-form" className="card contact-form" onSubmit={handleSubmit}>
       <div className="row2">
         <div className="field">
           <label htmlFor="f-name">{t.name}</label>

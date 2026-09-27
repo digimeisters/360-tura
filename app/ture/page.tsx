@@ -7,7 +7,7 @@ import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 
 import { Logo } from '../tour/[slug]/Logo';
 import { SITE_STYLES } from '../lib/siteStyles';
-import { getShowcaseTours } from '../lib/showcaseTours';
+import { getShowcaseTours, TOUR_FILTERS_FROM } from '../lib/showcaseTours';
 import { HOME_COPY } from '../lib/homeCopy';
 import { SITE_NAME, SITE_URL } from '../lib/site';
 import { serializeJsonLd } from '../lib/structuredData';
@@ -41,6 +41,15 @@ const COPY = {
     lede:
       'Sve ture koje su trenutno objavljene. Otvaraju se u pretraživaču, na telefonu ili računaru, bez instaliranja aplikacije — a svaka ima audio vodič i kontakt agenta.'
   },
+  // Dok tura ima manje od TOUR_FILTERS_FROM: bez filtera i bez obećanja
+  // "cele baze" - samo primeri, da posetilac vidi kako tura izgleda.
+  heroFew: {
+    chip: 'Primeri tura',
+    titleStart: 'Prošetajte kroz ',
+    titleEm: 'primere tura.',
+    lede:
+      'Pogledajte kako izgleda stan u 360°: otvorite turu u pretraživaču, na telefonu ili računaru, bez instaliranja aplikacije. Svaka ima audio vodič, plan stana i kontakt agenta.'
+  },
   // Natpisi filtera i kartica su u components/TourList.tsx - između servera
   // i pregledača ne mogu da pređu funkcije, pa tamo i stoje.
   emptyTitle: 'Još nema objavljenih tura',
@@ -65,7 +74,8 @@ export const metadata: Metadata = {
 
 export default async function ToursPage() {
   const tours = await getShowcaseTours('sr');
-
+  const browsing = tours.length >= TOUR_FILTERS_FROM;
+  const hero = browsing ? COPY.hero : COPY.heroFew;
 
   // Spisak stavki za Google: svaka tura sa svojim linkom, redom kojim stoje.
   const jsonLd = {
@@ -110,9 +120,9 @@ export default async function ToursPage() {
         <section className="hero hero-solo" id="pocetna">
           <div className="wrap">
             <div>
-              <span className="chip"><span className="dot" />{COPY.hero.chip}</span>
-              <h1>{COPY.hero.titleStart}<em>{COPY.hero.titleEm}</em></h1>
-              <p className="lede">{COPY.hero.lede}</p>
+              <span className="chip"><span className="dot" />{hero.chip}</span>
+              <h1>{hero.titleStart}<em>{hero.titleEm}</em></h1>
+              <p className="lede">{hero.lede}</p>
             </div>
           </div>
         </section>
@@ -120,7 +130,7 @@ export default async function ToursPage() {
         <section className="band" id="spisak">
           <div className="wrap">
             {tours.length > 0 ? (
-              <TourList tours={tours} lang="sr" />
+              <TourList tours={tours} lang="sr" filters={browsing} />
             ) : (
               <div className="section-head">
                 <h2>{COPY.emptyTitle}</h2>

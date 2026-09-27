@@ -5,11 +5,10 @@ import HeroDevice from '../components/HeroDevice';
 import ContactForm from '../components/ContactForm';
 import SiteTracker from '../components/SiteTracker';
 import CardSpotlight from '../components/CardSpotlight';
-import PriceCalculator from '../components/PriceCalculator';
 import PromoBanner from '../components/PromoBanner';
-import { ItemPrice, PlanItemList, PlanPrice, SaleSticker } from '../components/PromoPrice';
+import Pricing from '../components/Pricing';
 import NavScrollSpy from '../components/NavScrollSpy';
-import { getShowcaseTours, pickHeroTour } from './lib/showcaseTours';
+import { getShowcaseTours, pickHeroTour, TOUR_FILTERS_FROM } from './lib/showcaseTours';
 import { SITE_NAME, CONTACT, CONTACT_LINKS, whatsappLink } from './lib/site';
 import { HOME_COPY, type HomeLang } from './lib/homeCopy';
 import { HOME_FAQ } from './lib/homeFaq';
@@ -179,7 +178,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
                   <TourCard key={tour.slug} tour={tour} labels={tourCardLabels(copy)} lang={lang} />
                 ))}
               </div>
-              {copy.examples.database && (
+              {copy.examples.database && tours.length >= TOUR_FILTERS_FROM && (
                 // Obična GET forma: radi i bez JavaScript-a, a /ture čita
                 // ?kategorija=&grad=&struktura= iz adrese (prazno = bez filtera).
                 <form className="db-teaser" action="/ture" method="get">
@@ -311,55 +310,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
               <p className="note">{copy.pricing.note}</p>
             </div>
             <PromoBanner lang={lang} />
-
-            {/* Prvi deo cenovnika: šta koliko košta samo za sebe. Kartice
-                paketa ispod nose zbir, pa bez ovoga cena ture i cena
-                fotografija nisu stajale nigde napisane odvojeno. */}
-            <div className="rate-head">
-              <h3>{copy.pricing.rates.title}</h3>
-              <p className="note">{copy.pricing.rates.note}</p>
-            </div>
-            <div className="rate-grid">
-              {copy.pricing.rates.items.map((rate) => (
-                <div key={rate.title} className="card rate-card">
-                  <h4>{rate.title}</h4>
-                  <ItemPrice amount={rate.amount} unit={rate.unit} lang={lang} />
-                  <ul className="price-list">
-                    {rate.items.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-
-            <div className="rate-head">
-              <h3>{copy.pricing.plansTitle}</h3>
-              <p className="note">{copy.pricing.plansNote}</p>
-            </div>
-            <div className="price-grid">
-              {copy.pricing.plans.map((plan) => (
-                <div key={plan.track} className={`card price-card${plan.track === 'price_basic' ? ' featured' : ''}`}>
-                  {plan.badge && <span className="price-badge">{plan.badge}</span>}
-                  <SaleSticker count={plan.count} packageType={plan.packageType} lang={lang} />
-                  <span className="price-audience">{plan.audience}</span>
-                  <h3>{plan.title}</h3>
-                  <PlanPrice
-                    count={plan.count}
-                    packageType={plan.packageType}
-                    from={plan.from}
-                    unit={plan.unit}
-                    lang={lang}
-                  />
-                  <PlanItemList items={plan.items} count={plan.count} lang={lang} />
-                  <a className="btn btn-primary price-cta" href="#kontakt" data-track={`cta:${plan.track}`}>
-                    {plan.cta}
-                  </a>
-                </div>
-              ))}
-            </div>
-            <p className="fine-print">{copy.pricing.fine}</p>
-            <PriceCalculator lang={lang} />
+            <Pricing copy={copy.pricing} lang={lang} trackPrefix="" />
           </div>
         </section>
 

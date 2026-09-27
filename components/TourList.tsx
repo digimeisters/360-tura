@@ -194,7 +194,16 @@ function clampRange(range: [number, number] | null, bounds: Bounds): [number, nu
   return low <= high ? [low, high] : [bounds.min, bounds.max];
 }
 
-export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]; lang?: string }) {
+export default function TourList({
+  tours,
+  lang = 'sr',
+  filters: filtersOn = true
+}: {
+  tours: ShowcaseTour[];
+  lang?: string;
+  /** false: samo kartice, bez filtera i mape (malo tura - vidi TOUR_FILTERS_FROM). */
+  filters?: boolean;
+}) {
   const labels = LABELS;
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [ranges, setRanges] = useState<Ranges>(NO_RANGES);
@@ -581,6 +590,18 @@ export default function TourList({ tours, lang = 'sr' }: { tours: ShowcaseTour[]
       {showMap ? labels.hideMap : locatedCount > 0 ? `${labels.map} · ${locatedCount}` : labels.map}
     </button>
   );
+
+  // Malo tura: samo kartice, sve odjednom. Stari link sa ?grad=... i dalje
+  // otvara stranu - filter se tada prosto ne primenjuje.
+  if (!filtersOn) {
+    return (
+      <div className="tours-grid n-4">
+        {tours.map((tour) => (
+          <TourCard key={tour.slug} tour={tour} labels={CARD_LABELS} lang={lang} />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <>

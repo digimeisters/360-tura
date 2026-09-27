@@ -233,7 +233,7 @@ export const AGENCY_COPY: AgencyCopy = {
   pricing: {
     eyebrow: 'Cene',
     titleStart: 'Tura za vaš oglas —',
-    note: 'Mesečni paketi za agencije sa stalnim prilivom oglasa. Cena po nekretnini uključuje turu i HDR fotografije.',
+    note: 'Dva paketa, cena po nekretnini — uključuje turu i HDR fotografije. Što više nekretnina mesečno snimamo za vas, to je cena po svakoj niža.',
     fine:
       '* Cene su prosečne, za stan od oko 50m², u Kragujevcu i okolini. Za manje i veće stanove cenu formiramo prema broju prostorija. Za druge gradove i veći obim pravimo poseban predlog.'
   },

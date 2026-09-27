@@ -3,11 +3,10 @@ import Link from 'next/link';
 import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 import ContactForm from '../../components/ContactForm';
 import HeroDevice from '../../components/HeroDevice';
-import PriceCalculator from '../../components/PriceCalculator';
 import PromoBanner from '../../components/PromoBanner';
 import PromoTopBar from '../../components/PromoTopBar';
 import FromPrice from '../../components/FromPrice';
-import { PlanItemList, PlanPrice, SaleSticker } from '../../components/PromoPrice';
+import Pricing from '../../components/Pricing';
 import SiteTracker from '../../components/SiteTracker';
 import NavScrollSpy from '../../components/NavScrollSpy';
 import TourModulesShowcase from '../../components/TourModulesShowcase';
@@ -28,7 +27,7 @@ import { getShowcaseTours, pickHeroTour } from '../lib/showcaseTours';
  *   sveta -> 06 kako radimo -> cene -> pitanja -> kontakt.
  *
  * Deli CSS i komponente sa početnom stranom (SITE_STYLES, HeroDevice,
- * ContactForm, PriceCalculator), a cene čita iz istih paketa kao početna -
+ * ContactForm, Pricing), a cene čita iz istih paketa kao početna -
  * da se brojevi ne razdvoje. Stilovi koji postoje samo ovde su u
  * AGENCY_STYLES ispod.
  *
@@ -37,10 +36,6 @@ import { getShowcaseTours, pickHeroTour } from '../lib/showcaseTours';
 
 const PATH = '/za-agencije';
 const copy = AGENCY_COPY;
-
-// Paketi za agencije su isti oni sa početne strane (jedan izvor cena);
-// pojedinačna tura ovde ne pripada, ta publika je na početnoj.
-const AGENCY_PLANS = HOME_COPY.sr.pricing.plans.filter((plan) => plan.track !== 'price_single');
 
 // Strana se osvežava kao početna - tura u vrhu prati objavljene ture.
 export const revalidate = 3600;
@@ -510,28 +505,14 @@ export default async function AgencyPage() {
             <div className="section-head">
               <span className="eyebrow">{copy.pricing.eyebrow}</span>
               <h2>
-                {copy.pricing.titleStart} <em><FromPrice count={3} prefix="od " /></em>
+                {copy.pricing.titleStart} <em><FromPrice count={10} prefix="od " /></em>
               </h2>
               <p className="note">{copy.pricing.note}</p>
             </div>
             <PromoBanner lang="sr" />
-            <div className="price-grid n-2">
-              {AGENCY_PLANS.map((plan) => (
-                <div key={plan.track} className={`card price-card${plan.track === 'price_basic' ? ' featured' : ''}`}>
-                  {plan.badge && <span className="price-badge">{plan.badge}</span>}
-                  <SaleSticker count={plan.count} packageType={plan.packageType} lang="sr" />
-                  <span className="price-audience">{plan.audience}</span>
-                  <h3>{plan.title}</h3>
-                  <PlanPrice count={plan.count} packageType={plan.packageType} from={plan.from} unit={plan.unit} lang="sr" />
-                  <PlanItemList items={plan.items} count={plan.count} lang="sr" />
-                  <a className="btn btn-primary price-cta" href="#kontakt" data-track={`cta:agency_${plan.track}`}>
-                    {plan.cta}
-                  </a>
-                </div>
-              ))}
-            </div>
-            <p className="fine-print">{copy.pricing.fine}</p>
-            <PriceCalculator lang="sr" />
+            {/* Isti cenovnik kao na početnoj (components/Pricing.tsx), sa
+                napomenom za agencije ispod. */}
+            <Pricing copy={{ ...HOME_COPY.sr.pricing, fine: copy.pricing.fine }} lang="sr" trackPrefix="agency_" />
           </div>
         </section>
 
@@ -575,7 +556,7 @@ export default async function AgencyPage() {
                 </a>
               </div>
             </div>
-            <ContactForm lang="sr" defaultPackage={CONTACT_PACKAGES[1]} />
+            <ContactForm lang="sr" defaultPackage={CONTACT_PACKAGES[0]} />
             <p className="contact-line">
               <a href={CONTACT_LINKS.phone} data-track="contact:phone">{CONTACT.phoneDisplay}</a>
               <a href={CONTACT_LINKS.email} data-track="contact:email">{CONTACT.email}</a>

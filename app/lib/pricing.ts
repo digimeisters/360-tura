@@ -1,14 +1,17 @@
-// Cene na jednom mestu. Odavde čitaju kartice paketa na početnoj
-// (lib/homeCopy.ts), kalkulator (components/PriceCalculator.tsx) i promo
-// traka (components/PromoBanner.tsx) - kad se cena promeni ovde, promeni se
-// svuda. Bez uvoza, jer ga koristi i klijent.
+// Cene na jednom mestu. Odavde čitaju cenovnik (components/Pricing.tsx i
+// PromoPrice.tsx, na početnoj i /za-agencije), promo traka
+// (components/PromoBanner.tsx), blog i JSON-LD - kad se cena promeni ovde,
+// promeni se svuda. Bez uvoza, jer ga koristi i klijent.
 //
-// Cenovnik ima TRI nezavisne ose:
-//   1. Stavke     - 360° tura i HDR fotografije se uvek prikazuju odvojeno,
-//                   da se vidi šta se plaća (tura 50 € + HDR 20 € = 70 €).
-//   2. Paket      - Osnovni (SR + jedan jezik po izboru) ili Premium (sva 4
-//                   jezika). Premium je uvek +15 € NA TURU; HDR je isti.
-//   3. Obim       - koliko nekretnina mesečno (1-2 / 3-4 / 5-9 / 10+).
+// Cenovnik na sajtu (od 27. 9. 2026) je namerno jednostavan:
+//   1. Dva paketa - Osnovni i Premium, cena PO NEKRETNINI (tura + HDR).
+//                   Premium je uvek isti dodatak na turu (PREMIUM_EXTRA),
+//                   na svakom stepenu obima - "+2.000 din." svuda isto.
+//   2. Obim       - tabela: koliko nekretnina mesečno (1-2 / 3-4 / 5-9 / 10+)
+//                   i cena po nekretnini za oba paketa.
+//   3. Stavke     - samo jedan red: tura bez fotografija i fotografije bez ture.
+// Nema više posebnih "agencijskih" paketa ni kalkulatora - agencija samo
+// pročita red tabele za svoj obim.
 //
 // Cene su prosek za stan od REFERENCE_AREA_SQM; manji i veći se računaju
 // prema broju prostorija, jer posao (snimanje, obrada, naracija po sobi)
@@ -64,15 +67,12 @@ export function isPromoActive(now: Date = new Date()): boolean {
   return now >= start && now <= end;
 }
 
-/** Najveći broj u cenovniku; preko toga je ionako poseban dogovor. */
-export const CALC_MAX_COUNT = 20;
-
 // Vrednosti polja "Paket" u formi za kontakt. Stižu u bazu i na Telegram na
 // srpskom, i na engleskoj strani (tamo se samo prikazuju prevedene).
 export const CONTACT_PACKAGES = [
-  'Tura + fotografije',
-  'Agencija — Osnovni (SR + jezik po izboru)',
-  'Agencija — Premium (SR/EN/DE/RU)',
+  'Osnovni (SR + jezik po izboru)',
+  'Premium (sva 4 jezika)',
+  'Samo tura ili samo fotografije',
   'Veći obim (dogovor)'
 ] as const;
 
@@ -82,6 +82,13 @@ export function tierIndexFor(count: number): number {
     if (count >= tier.min) index = i;
   });
   return index;
+}
+
+/** Natpis stepena obima: "1–2", "3–4", "5–9", "10+". */
+export function tierLabel(index: number): string {
+  const max = tierMax(index);
+  const min = PRICE_TIERS[index].min;
+  return max === null ? `${min}+` : `${min}–${max}`;
 }
 
 /** Poslednji broj koji pripada stepenu, ili null za poslednji stepen. */
@@ -166,10 +173,12 @@ export function displayTourPrice(
   lang: PriceLang,
   promoActive = false
 ): number {
-  // Premium tura se pretvara kao jedna stavka (tura + dodatak), ne kao dve
-  // zaokružene - inače bi dva zaokruživanja na 500 napumpala cenu.
+  // Dodatak za Premium se pretvara ZA SEBE (15 € -> 2.000 din.), pa je
+  // razlika između paketa ista na svakom stepenu. Ranije se tura i dodatak
+  // pretvarali zajedno, pa je zaokruživanje davalo +2.000 za jednu, a +1.500
+  // za tri nekretnine - na sajtu je to izgledalo kao greška.
   const base =
-    inDisplayCurrency(tier.tour + (pkg === 'premium' ? PREMIUM_EXTRA : 0), lang);
+    inDisplayCurrency(tier.tour, lang) + (pkg === 'premium' ? inDisplayCurrency(PREMIUM_EXTRA, lang) : 0);
   return applyPromo(base, lang, promoActive);
 }
 

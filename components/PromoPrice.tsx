@@ -1,10 +1,11 @@
 'use client';
 
-import type { HomeLang, PlanItem, PlanLineAmount, RateAmount } from '../app/lib/homeCopy';
+import type { HomeLang, PlanItem, PlanLineAmount, PricingLabels, RateAmount } from '../app/lib/homeCopy';
 import {
   PRICE_TIERS,
   displayHdrPrice,
   displayPackagePrice,
+  displayPerProperty,
   displayPremiumExtra,
   displayTourPrice,
   formatAmount,
@@ -12,6 +13,7 @@ import {
   packageDiscountPercent,
   standaloneHdrPrice,
   tierIndexFor,
+  tierLabel,
   type PackageType
 } from '../app/lib/pricing';
 import { usePromoActive } from './usePromoActive';
@@ -102,17 +104,17 @@ export function ItemPrice({
  * redovna stoji precrtana pored - da se vidi i ušteda i prava vrednost.
  */
 export function PlanPrice({
-  count,
+  count = 1,
   packageType,
   from,
   unit,
   lang
 }: {
-  count: number;
+  count?: number;
   packageType: PackageType;
-  /** "od" / "from" */
-  from: string;
-  /** "/ nekretnina", "/ mesečno (3 ture)" */
+  /** "od" / "from" - izostavlja se kad je cena tačna, ne početna. */
+  from?: string;
+  /** "/ nekretnina" */
   unit: string;
   lang: HomeLang;
 }) {
@@ -124,7 +126,7 @@ export function PlanPrice({
 
   return (
     <div className="price-value">
-      {from} <b>{price(active ? promo : regular)}</b>
+      {from && `${from} `}<b>{price(active ? promo : regular)}</b>
       {active && (
         <s className="price-was" aria-label={lang === 'sr' ? 'redovna cena' : 'regular price'}>
           {price(regular)}
@@ -160,8 +162,106 @@ export function PlanLinePrice({
   return <>{`${amount === 'premiumExtra' ? '+' : ''}${formatAmount(value, lang)}`}</>;
 }
 
+/**
+ * Red ispod velike cene na kartici paketa: od čega se cena sastoji
+ * ("tura 6.000 + HDR fotografije 2.500"), a na Premium kartici i koliko je
+ * skuplji od Osnovnog. Za jednu nekretninu, prati promociju kao i cena iznad.
+ */
+export function PlanSplit({
+  packageType,
+  labels,
+  lang
+}: {
+  packageType: PackageType;
+  labels: PricingLabels;
+  lang: HomeLang;
+}) {
+  const active = usePromoActive();
+  const tier = PRICE_TIERS[0];
+  const n = (value: number) => formatAmount(value, lang);
+  return (
+    <p className="price-split">
+      {labels.tour} {n(displayTourPrice(tier, packageType, lang, active))} + {labels.hdr}{' '}
+      {n(displayHdrPrice(tier, lang, active))}
+      {packageType === 'premium' && (
+        <>
+          <br />
+          <b>+{n(displayPremiumExtra(tier, lang, active))}</b> {labels.overBasic}
+        </>
+      )}
+    </p>
+  );
+}
+
+/**
+ * Tabela obima: za svaki stepen (1-2, 3-4, 5-9, 10+ nekretnina mesečno)
+ * cena po nekretnini u oba paketa. Zamenjuje kalkulator - isti brojevi,
+ * vidljivi odjednom. Dok traje promocija, redovna cena stoji precrtana.
+ */
+export function VolumeTable({
+  copy,
+  lang
+}: {
+  copy: { count: string; basic: string; premium: string };
+  lang: HomeLang;
+}) {
+  const active = usePromoActive();
+  const cell = (index: number, pkg: PackageType) => {
+    const tier = PRICE_TIERS[index];
+    const regular = displayPerProperty(tier, pkg, lang);
+    const promo = displayPerProperty(tier, pkg, lang, true);
+    return (
+      <td>
+        <b>{formatAmount(active ? promo : regular, lang)}</b>
+        {active && <s className="price-was">{formatAmount(regular, lang)}</s>}
+      </td>
+    );
+  };
+  return (
+    <div className="card vol-card">
+      <table className="vol-table">
+        <thead>
+          <tr>
+            <th scope="col">{copy.count}</th>
+            <th scope="col">{copy.basic}</th>
+            <th scope="col">{copy.premium}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {PRICE_TIERS.map((tier, i) => (
+            <tr key={tier.min}>
+              <th scope="row">{tierLabel(i)}</th>
+              {cell(i, 'basic')}
+              {cell(i, 'premium')}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Jedan red: tura bez fotografija i fotografije bez ture (HDR bez popusta). */
+export function SingleItems({
+  copy,
+  lang
+}: {
+  copy: { lead: string; tour: string; hdr: string };
+  lang: HomeLang;
+}) {
+  const active = usePromoActive();
+  const tier = PRICE_TIERS[0];
+  const n = (value: number) => formatAmount(value, lang);
+  return (
+    <p className="price-single">
+      <b>{copy.lead}</b> {copy.tour} {n(displayTourPrice(tier, 'basic', lang, active))} ·{' '}
+      {copy.hdr} {n(inDisplayCurrency(standaloneHdrPrice(tier), lang))}
+    </p>
+  );
+}
+
 /** Spisak stavki na kartici paketa (početna i /za-agencije). */
-export function PlanItemList({ items, count, lang }: { items: PlanItem[]; count: number; lang: HomeLang }) {
+export function PlanItemList({ items, count = 1, lang }: { items: PlanItem[]; count?: number; lang: HomeLang }) {
   return (
     <ul className="price-list">
       {items.map((item) =>

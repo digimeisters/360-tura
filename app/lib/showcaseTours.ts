@@ -12,6 +12,14 @@ import { pickLang, realValue } from '../tour/[slug]/getTourMeta';
 // nijednu sličicu, uzima se objavljena tura sa najviše soba sa sličicom.
 export const HERO_TOUR_SLUG = 'stan-gasse-1';
 
+/**
+ * Od koliko objavljenih tura sajt nudi pretragu (filteri i mapa na /ture,
+ * mini-pretraga na početnoj). Sa manje od toga filteri deluju prazno i
+ * obećavaju "celu bazu" koje još nema - tada je /ture samo "Primeri tura".
+ * Kad baza naraste, sve se samo uključi, bez izmene koda.
+ */
+export const TOUR_FILTERS_FROM = 10;
+
 const LANGUAGES = ['sr', 'en', 'de', 'ru'] as const;
 
 // Koliko teksta naracije stane u info-karticu kadra u vrhu strane.
