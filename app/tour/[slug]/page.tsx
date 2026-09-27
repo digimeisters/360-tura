@@ -832,7 +832,7 @@ export default function TourPage() {
           title={fullTourTitle}
           price={formatListingPrice(tour?.price, tour?.category, lang)}
           startHint={guideRequested && hasGuide ? t.startGuidedTourHint : t.exploreSelfHint}
-          help={{ link: t.howItWorks, steps: [t.howStep1, t.howStep2, t.howStep3], gotIt: t.howGotIt }}
+          help={{ link: t.howItWorks, steps: [t.howStep1, t.howStep2, t.howStep3, t.howStep4], gotIt: t.howGotIt }}
           startLabel={guideRequested && hasGuide ? t.startGuidedTour : t.startTour}
           onStart={startTour}
           // ?vodic=1 (agent-link) već je odlučen - zadržava stari jednodelan

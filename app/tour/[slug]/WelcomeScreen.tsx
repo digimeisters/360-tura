@@ -52,7 +52,7 @@ export function WelcomeScreen({
   /** Kratak opis ispod natpisa jedinog dugmeta (kad nema izbora vodiča). */
   startHint: string;
   /** Tekstovi prozora "Kako radi?". */
-  help: { link: string; steps: [string, string, string]; gotIt: string };
+  help: { link: string; steps: [string, string, string, string]; gotIt: string };
   onStart: () => void;
   guideChoice?: {
     guidedLabel: string;
@@ -256,15 +256,57 @@ function ChoiceButton({
   );
 }
 
-/** Prozor "Kako radi 360° tura?" - tri koraka, krupno i jednostavno. */
+/**
+ * Prozor "Kako radi 360° tura?" - četiri koraka, svaki sa sličicom koja
+ * izgleda TAČNO kao u turi (siva tačka koja pulsira je ista klasa
+ * .k360-hs-beacon iz TourOverlays), da posetilac prepozna šta traži.
+ */
 function HowItWorks({
   help,
   onClose
 }: {
-  help: { link: string; steps: [string, string, string]; gotIt: string };
+  help: { link: string; steps: [string, string, string, string]; gotIt: string };
   onClose: () => void;
 }) {
-  const icons = ['👆', '🔵', '☰'];
+  const tile: React.CSSProperties = {
+    flexShrink: 0,
+    width: '52px',
+    height: '52px',
+    borderRadius: '14px',
+    background: 'linear-gradient(160deg, #3A4252 0%, #1B2130 100%)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    overflow: 'hidden'
+  };
+  const pictures = [
+    // 1. prevlačenje prstom
+    <span key="drag" aria-hidden="true" style={tile}>
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 7h16M4 7l3-3M4 7l3 3M20 7l-3-3M20 7l-3 3" />
+        <path d="M10 20v-6.5a1.5 1.5 0 0 1 3 0V16l3.2.6a2 2 0 0 1 1.6 2.3L17.3 21" />
+      </svg>
+    </span>,
+    // 2. siva tačka koja pulsira + naziv sobe
+    <span key="nav" aria-hidden="true" style={{ ...tile, flexDirection: 'column', gap: '3px' }}>
+      <span className="k360-hs-beacon" style={{ width: '16px', height: '16px' }} />
+      <span style={{ fontSize: '8px', fontWeight: 700, color: '#fff', background: 'rgba(15, 23, 42, 0.6)', borderRadius: '999px', padding: '1px 5px', lineHeight: 1.3 }}>Soba</span>
+    </span>,
+    // 3. žuta info tačka
+    <span key="info" aria-hidden="true" style={tile}>
+      <span style={{ width: '26px', height: '26px', borderRadius: '50%', border: '1px solid rgba(255, 255, 255, 0.7)', background: 'rgba(15, 23, 42, 0.32)', color: '#fde68a', fontWeight: 700, fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>ℹ</span>
+    </span>,
+    // 4. donji meni
+    <span key="menu" aria-hidden="true" style={{ ...tile, alignItems: 'flex-end', paddingBottom: '8px' }}>
+      <span style={{ display: 'flex', gap: '3px', background: 'rgba(255, 255, 255, 0.14)', borderRadius: '6px', padding: '4px 5px' }}>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <span key={i} style={{ width: '5px', height: '5px', borderRadius: '50%', background: i === 2 ? '#7FB0EC' : '#fff' }} />
+        ))}
+      </span>
+    </span>
+  ];
+
   return (
     <div
       onClick={onClose}
@@ -275,25 +317,26 @@ function HowItWorks({
         aria-modal="true"
         aria-labelledby="how-title"
         onClick={(e) => e.stopPropagation()}
-        style={{ background: THEME.surface, color: THEME.textPrimary, borderRadius: '20px', padding: '22px 20px 18px', width: '100%', maxWidth: '360px', textAlign: 'left', fontFamily: THEME.fontBody, boxShadow: THEME.shadowLg }}
+        style={{ background: 'linear-gradient(180deg, #E6EEF9 0px, #F6F8FC 110px)', color: THEME.textPrimary, borderRadius: '24px', padding: '22px 18px 18px', width: '100%', maxWidth: '380px', maxHeight: '90%', overflowY: 'auto', textAlign: 'left', fontFamily: THEME.fontBody, boxShadow: THEME.shadowLg }}
       >
-        <h2 id="how-title" style={{ margin: '0 0 16px', fontSize: '18px', fontFamily: THEME.fontDisplay, lineHeight: 1.25 }}>
+        <h2 id="how-title" style={{ margin: '0 2px 16px', fontSize: '22px', fontWeight: 800, letterSpacing: '-0.015em', color: THEME.accent, fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, lineHeight: 1.2 }}>
           {help.link}
         </h2>
-        <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {help.steps.map((step, i) => (
-            <li key={i} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <span aria-hidden="true" style={{ flexShrink: 0, width: '40px', height: '40px', borderRadius: '50%', background: THEME.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
-                {icons[i]}
-              </span>
-              <span style={{ fontSize: '15px', lineHeight: 1.4 }}>{step}</span>
+            <li
+              key={i}
+              style={{ display: 'flex', gap: '12px', alignItems: 'center', background: '#FFFFFF', border: '1.5px solid #9DBBE3', borderRadius: '18px', padding: '10px 12px 10px 10px' }}
+            >
+              {pictures[i]}
+              <span style={{ fontSize: '14px', lineHeight: 1.45, color: '#2A2B30' }}>{step}</span>
             </li>
           ))}
         </ol>
         <button
           type="button"
           onClick={onClose}
-          style={{ marginTop: '20px', width: '100%', padding: '12px', borderRadius: '999px', border: 'none', background: THEME.accent, color: '#fff', fontSize: '15px', fontWeight: 700, cursor: 'pointer' }}
+          style={{ marginTop: '16px', width: '100%', padding: '14px', borderRadius: '999px', border: 'none', background: THEME.accent, color: '#fff', fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontSize: '15px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 8px 20px -8px rgba(30, 90, 168, 0.7)' }}
         >
           {help.gotIt}
         </button>
