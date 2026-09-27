@@ -59,7 +59,7 @@ Vlasnik govori srpski, vodi se proizvodom i dizajnom, nije programer. Objašnjen
 
 ```
 app/
-  layout.tsx              root layout: fontovi (next/font: Inter, Plus Jakarta Sans, Instrument Serif
+  layout.tsx              root layout: fontovi (next/font: Inter, Plus Jakarta Sans, Newsreader
                           samo za kurziv u naslovima sajta, Urbanist za naslove u turi), preconnect na CDN
   globals.css             --font-body / --font-display (koristi ih i THEME)
   page.tsx                / (srpski) → <HomePage lang="sr" />

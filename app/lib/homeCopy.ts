@@ -94,10 +94,11 @@ export type HomeCopy = {
   nav: {
     brandAria: string;
     examples: string;
+    /** Sekcija "U samoj turi" (#u-turi). Benefiti i Pitanja nisu u meniju -
+        vide se skrolovanjem, a meni je bio pretrpan (vlasnik, 27. 9. 2026). */
+    modules: string;
     how: string;
-    benefits: string;
     packages: string;
-    faq: string;
     // Strana za agencije postoji za sada samo na srpskom, pa link stoji
     // samo u srpskom meniju (vidi HomePage.tsx).
     agencies?: string;
@@ -127,6 +128,12 @@ export type HomeCopy = {
     title: string;
     note: string;
     /**
+     * Link "Sve ture →" ispod kartica, dok mini-pretraga (database) nije
+     * uključena (manje od TOUR_FILTERS_FROM tura). Samo srpski - /ture je
+     * za sada samo na srpskom.
+     */
+    allTours?: string;
+    /**
      * Traka posle mreže kartica, koja najavljuje da postoji ceo spisak tura
      * sa filterima (/ture) - inače ova sekcija i taj spisak danas prikazuju
      * ISTO (nema odsecanja na par tura), pa razlika nije očigledna dok baza
@@ -146,13 +153,6 @@ export type HomeCopy = {
   benefits: { eyebrow: string; title: string; note: string; items: Titled[] };
   modules: ModulesCopy;
   steps: { eyebrow: string; title: string; note: string; items: Titled[]; deliverTitle: string; deliver: string[] };
-  types: {
-    eyebrow: string;
-    title: string;
-    note: string;
-    faqLabel: string;
-    items: { eyebrow: string; title: string; focus: string; faq: string }[];
-  };
   pricing: {
     eyebrow: string;
     title: string;
@@ -199,10 +199,9 @@ const sr: HomeCopy = {
   nav: {
     brandAria: 'Kvadrat360, početak strane',
     examples: 'Ture',
+    modules: 'U turi',
     how: 'Kako radimo',
-    benefits: 'Benefiti',
     packages: 'Cenovnik',
-    faq: 'Pitanja',
     agencies: 'Za agencije',
     blog: 'Blog',
     contact: 'Kontakt',
@@ -217,7 +216,7 @@ const sr: HomeCopy = {
     titleStart: 'Vaš kvadrat u Kragujevcu, u 360°, ',
     titleEm: 'bez skrivenih ćoškova.',
     lede:
-      'Virtuelna 360° tura i HDR fotografije pokazuju svaki ugao pre prvog dolaska — bilo da agencija vodi ceo portfolio ili vlasnik oglašava jedan stan. Na razgledanje tako dolaze samo ozbiljno zainteresovani, spremni da brzo odluče.',
+      '360° tura i HDR fotografije vašeg stana — kupac prošeta kroz svaki ugao pre prvog dolaska. Za agencije i vlasnike u Kragujevcu.',
     ctaTour: '▶ Pogledajte primer ture',
     ctaPackages: 'Pogledajte cenovnik',
     trust: ['🎧 Audio vodič SR · EN · DE · RU', '⏱ Isporuka za 48h'],
@@ -231,7 +230,8 @@ const sr: HomeCopy = {
   examples: {
     eyebrow: 'Ture',
     title: 'Prošetajte kroz *pravu turu*',
-    note: 'Ture koje su trenutno objavljene — otvaraju se u pretraživaču, na telefonu ili računaru, bez instaliranja aplikacije.',
+    note: 'Otvorite bilo koju — ovo je tačno ono što vidi vaš kupac.',
+    allTours: 'Sve ture →',
     database: {
       title: 'Pronađite turu',
       text: 'Cela baza, sa mapom i filterima po naselju, kvadraturi i ceni.',
@@ -246,14 +246,13 @@ const sr: HomeCopy = {
     title: 'Zašto virtuelna tura *prodaje bolje*',
     note: 'Ono što tura i HDR fotografije donose vama i vašim klijentima — a ne tehnologija iza njih.',
     items: [
-      { title: 'Manje uzaludnih razgledanja', text: 'Kupci i zakupci prvo „prošetaju“ kroz stan online. Na razgledanje dolaze samo oni koje stan zaista zanima.' },
-      { title: 'Oglas koji se izdvaja', text: 'HDR fotografije i 360° tura odmah izdvajaju vaš oglas među stotinama onih slikanih telefonom.' },
-      { title: 'Strani kupci bez prevodioca', text: 'Audio vodič govori srpski, engleski, nemački i ruski — kupac iz inostranstva čuje sve na svom jeziku.' },
-      { title: 'Vođena tura, bez kliktanja', text: 'Posetilac bira: da ga vodič provede kroz sve prostorije i ispriča šta se gde nalazi, ili da razgleda sam, svojim tempom.' },
-      { title: 'Brža odluka', text: 'Ko je već „prošetao“ kroz stan, na razgledanje dolazi sa manje pitanja i brže se odlučuje.' },
-      { title: 'Vaše ime u svakoj turi', text: 'Naziv agencije stoji u turi od prvog do poslednjeg kadra — i kad se link deli dalje, kupac zna koga da pozove.' },
-      { title: 'Profesionalan prvi utisak', text: 'Kvalitetna fotografija i uredna tura grade poverenje i pre prvog poziva.' },
-      { title: 'Otvoreno 24 sata, na svakom uređaju', text: 'Stan je otvoren za razgledanje u svako doba — u pretraživaču na telefonu ili računaru, bez zakazivanja i bez instaliranja aplikacije.' }
+      // Četiri, ne osam: ranije su se kartice preklapale međusobno ("Manje
+      // uzaludnih razgledanja" / "Brža odluka") i sa sekcijom "U samoj turi"
+      // ("Vaše ime u svakoj turi" = modul Kontakt). Svaka ovde je jedna ideja.
+      { title: 'Manje uzaludnih razgledanja', text: 'Kupci prvo „prošetaju“ kroz stan online. Na razgledanje dolaze samo oni koje stan zaista zanima — sa manje pitanja, spremni da brzo odluče.' },
+      { title: 'Oglas koji se izdvaja', text: 'HDR fotografije i 360° tura odvajaju vaš oglas od stotina slikanih telefonom — i grade poverenje pre prvog poziva.' },
+      { title: 'Kupci iz drugih gradova', text: 'Ko živi u Beogradu, Nišu ili inostranstvu razgleda stan bez puta — a audio vodič mu ga ispriča na srpskom, engleskom, nemačkom ili ruskom.' },
+      { title: 'Otvoreno 24 sata', text: 'Stan je otvoren u svako doba, na telefonu ili računaru, bez zakazivanja i bez aplikacije — uz vodiča kroz sve prostorije ili svojim tempom.' }
     ]
   },
   modules: {
@@ -265,7 +264,7 @@ const sr: HomeCopy = {
     youLabel: 'Vi',
     items: [
       { key: 'about', tab: 'Info', title: 'Sve bitno na jednom listu', text: 'Cena, kvadratura, sprat, grejanje, terasa, parking, uknjiženost — pregledno, na jeziku posetioca. Bez listanja oglasa i bez nagađanja.', buyer: 'U pola minuta zna da li mu stan odgovara.', you: 'Nema više poziva „koji je sprat?“ i „ima li lift?“.' },
-      { key: 'faq', tab: 'Pitanja', title: 'Odgovori pre prvog poziva', text: 'Pet pitanja koja kupci uvek postave — drugačija za prodaju, izdavanje i stan na dan — sa odgovorima na srpskom, engleskom, nemačkom i ruskom.', buyer: 'Dobije odgovor odmah, i u ponoć.', you: 'Na razgledanje dolaze već informisani.' },
+      { key: 'faq', tab: 'Pitanja', title: 'Odgovori pre prvog poziva', text: 'Pet pitanja koja kupci uvek postave — drugačija za prodaju, izdavanje i stan na dan — sa odgovorima na svim jezicima ture.', buyer: 'Dobije odgovor odmah, i u ponoć.', you: 'Na razgledanje dolaze već informisani.' },
       { key: 'location', tab: 'Lokacija', title: 'Gde je — bez otkrivanja broja', text: 'Mapa, ulica i naselje. Jednim dodirom otvara Google mape i put do stana. Kućni broj se ne prikazuje.', buyer: 'Odmah vidi kraj, prevoz i okolinu.', you: 'Tačnu adresu dajete tek kad zakažete razgledanje.' },
       { key: 'plan', tab: 'Plan', title: 'Raspored jednim pogledom', text: 'Tlocrt stana sa tačkama prostorija. Dodir na tačku vodi pravo u tu prostoriju u 360° turi.', buyer: 'Razume raspored pre nego što prođe kroz stan.', you: 'Nema „a gde je kupatilo u odnosu na sobu?“.' },
       { key: 'contact', tab: 'Kontakt', title: 'Razgledanje zakazano iz ture', text: 'Vaša kartica sa imenom i agencijom, poziv jednim dodirom i dugme „Zakaži razgledanje“ — ime, telefon i željeni termin.', buyer: 'Zakaže u trenutku kad mu se stan dopadne.', you: 'Upit nam stiže odmah, sa podacima o turi, i istog trenutka ga prosleđujemo vama.' }
@@ -298,27 +297,17 @@ const sr: HomeCopy = {
       { title: 'Zakazivanje', text: 'Javite se telefonom ili preko forme i dogovorimo termin. Dolazimo sa opremom, bez ometanja stanara.' },
       { title: 'Snimanje', text: '30–60 minuta po nekretnini: 360° panorame svake prostorije i HDR fotografije za oglas.' },
       { title: 'Obrada', text: 'Spajanje panorama, kalibracija boja i priprema audio vodiča na jezicima koje ste izabrali.' },
-      { title: 'Isporuka', text: 'Link ka gotovoj turi i fotografije stižu za 48h — možete ih postaviti na oglas istog dana.' }
+      { title: 'Isporuka', text: 'Link ka gotovoj turi i fotografije stižu za 24h u Premium paketu, a u Osnovnom najkasnije za 48h — možete ih postaviti na oglas istog dana.' }
     ],
     deliverTitle: 'Šta dobijate',
+    // Šta stiže na kraju posla - ne spisak funkcija ture (taj je u cenovniku i
+    // u "U samoj turi"). Poslednja stavka nosi ono što je ranije bila cela
+    // sekcija "Tipovi oglasa".
     deliver: [
-      'Interaktivnu 360° turu sa prolazom kroz sve prostorije',
-      'HDR fotografije spremne za oglas i društvene mreže',
-      'Automatsko vođenje kroz stan, ili samostalno razgledanje — posetilac bira',
-      'Audio vodič na srpskom, engleskom, nemačkom i ruskom',
-      'Plan stana i lokaciju, ugrađene u turu',
-      'Vašu kontakt karticu, vidljivu tokom cele ture'
-    ]
-  },
-  types: {
-    eyebrow: 'Tipovi oglasa',
-    title: 'Ista tura, *drugačiji fokus*',
-    note: 'Bilo da agencija vodi ceo portfolio ili vlasnik oglašava jedan stan, tura naglašava ono što je za taj oglas najvažnije.',
-    faqLabel: 'Tipično pitanje',
-    items: [
-      { eyebrow: 'Prodaja', title: 'Dugoročna vrednost', focus: 'Naglasak na kvadraturi, stanju objekta i vlasništvu — ono što presuđuje pri kupovini.', faq: '„Da li je nekretnina uknjižena i kakvo je vlasništvo?“' },
-      { eyebrow: 'Izdavanje', title: 'Svakodnevna praktičnost', focus: 'Naglasak na mesečnim troškovima, uslovima ugovora i datumu useljenja — ono što zanima budućeg stanara.', faq: '„Koliki su prosečni mesečni troškovi i kakvo je grejanje?“' },
-      { eyebrow: 'Stan na dan', title: 'Utisak gosta', focus: 'Naglasak na atmosferi, kapacitetu i uslovima boravka — ono što gost proverava pre rezervacije.', faq: '„Koje je tačno vreme za check-in i check-out?“' }
+      'Link ka turi za oglas i gotov kod za sajt agencije',
+      'HDR fotografije u punoj rezoluciji, za portal i društvene mreže',
+      'Vaše ime i telefon u turi — i kad se link deli dalje',
+      'Tekst i vodič prilagođeni oglasu: za prodaju vrednost i vlasništvo, za izdavanje troškovi i useljenje, za stan na dan utisak gosta'
     ]
   },
   pricing: {
@@ -380,7 +369,7 @@ const sr: HomeCopy = {
     eyebrow: 'Za agencije',
     title: 'Vodite više oglasa *odjednom?*',
     text:
-      'Za agencije smo napravili posebnu stranu. Tamo piše kako agenti šalju osnovne podatke kroz upitnik — sami ili zajedno sa nama — kako tura ide na sajt agencije i šta sve dobijate uz mesečni paket.',
+      'Niža cena za više oglasa mesečno, upitnik za agente, kontakt agenta u svakoj turi i mesečni izveštaj o posetama — sve na jednom mestu.',
     points: ['Upitnik — sami ili zajedno sa nama', 'Kontakt agenta u svakoj turi', 'Praćenje poseta po oglasu'],
     cta: 'Pogledajte stranu za agencije →'
   },
@@ -411,10 +400,9 @@ const en: HomeCopy = {
   nav: {
     brandAria: 'Kvadrat360, top of the page',
     examples: 'Tours',
+    modules: 'In the tour',
     how: 'How it works',
-    benefits: 'Benefits',
     packages: 'Price list',
-    faq: 'FAQ',
     contact: 'Contact',
     cta: 'Book a shoot',
     switchLabel: 'SR',
@@ -427,7 +415,7 @@ const en: HomeCopy = {
     titleStart: 'Real square meters, ',
     titleEm: 'no hidden corners.',
     lede:
-      'A 360° virtual tour and HDR photos show every corner up front, for an agency’s whole portfolio or a single listing — only genuinely interested buyers and tenants come to viewings, ready to decide quickly.',
+      'A 360° tour and HDR photos of your property — buyers walk through every corner before the first visit. For agencies and owners in Kragujevac.',
     ctaTour: '▶ View a sample tour',
     ctaPackages: 'See the price list',
     trust: ['🎧 Audio guide SR · EN · DE · RU', '⏱ Delivery within 48h'],
@@ -441,21 +429,17 @@ const en: HomeCopy = {
   examples: {
     eyebrow: 'Tours',
     title: 'Walk through a *real tour*',
-    note: 'Tours that are live right now — they open in the browser, on a phone or computer, with no app to download.'
+    note: 'Open any of them — this is exactly what your buyer sees.'
   },
   benefits: {
     eyebrow: 'Benefits',
     title: 'Why a virtual tour *sells better*',
     note: 'What the tour and HDR photos do for you and your clients — not the technology behind them.',
     items: [
-      { title: 'Fewer wasted viewings', text: 'Buyers and tenants “walk” through the apartment online first — only the seriously interested come to see it in person.' },
-      { title: 'A listing that stands out', text: 'HDR photos and a 360° tour instantly set your listing apart from ones shot on a phone.' },
-      { title: 'Reach buyers abroad', text: 'The audio guide is available in Serbian, English, German and Russian — no interpreter needed.' },
-      { title: 'A guided walkthrough', text: 'Visitors choose: let the guide take them through every room and explain what is where, or explore on their own, at their own pace.' },
-      { title: 'Faster decisions', text: 'A buyer or tenant who has already “walked” through the apartment comes to the viewing with fewer questions and decides faster.' },
-      { title: 'Your name on every tour', text: 'Your agency name stays on screen from the first room to the last — even when the link is passed on, the buyer knows who to call.' },
-      { title: 'A professional first impression', text: 'Quality photography and a polished tour build trust before the first contact.' },
-      { title: 'Open 24/7, on any device', text: 'The property is “open” for viewing at any time, in the browser on a phone or a computer — no appointments, no app to download.' }
+      { title: 'Fewer wasted viewings', text: 'Buyers “walk” through the apartment online first. Only the seriously interested come to see it — with fewer questions, ready to decide.' },
+      { title: 'A listing that stands out', text: 'HDR photos and a 360° tour set your listing apart from the hundreds shot on a phone — and build trust before the first call.' },
+      { title: 'Buyers from other cities', text: 'Someone in Belgrade, Niš or abroad views the flat without the trip — and the audio guide walks them through it in Serbian, English, German or Russian.' },
+      { title: 'Open 24/7', text: 'The property is open at any hour, on a phone or a computer, with no appointment and no app — with a guide through every room or at their own pace.' }
     ]
   },
   modules: {
@@ -467,7 +451,7 @@ const en: HomeCopy = {
     youLabel: 'You',
     items: [
       { key: 'about', tab: 'Info', title: 'Everything that matters, on one sheet', text: 'Price, floor area, floor, heating, terrace, parking, registered title — clear, in the visitor’s own language. No scrolling through listings, no guessing.', buyer: 'Knows in half a minute whether the place fits.', you: 'No more calls asking “which floor?” or “is there a lift?”.' },
-      { key: 'faq', tab: 'Questions', title: 'Answers before the first call', text: 'The five questions buyers always ask — different for sale, rent and short stays — answered in Serbian, English, German and Russian.', buyer: 'Gets an answer right away, even at midnight.', you: 'People arrive at the viewing already informed.' },
+      { key: 'faq', tab: 'Questions', title: 'Answers before the first call', text: 'The five questions buyers always ask — different for sale, rent and short stays — answered in every language of the tour.', buyer: 'Gets an answer right away, even at midnight.', you: 'People arrive at the viewing already informed.' },
       { key: 'location', tab: 'Location', title: 'Where it is — without the house number', text: 'Map, street and neighbourhood. One tap opens Google Maps with directions. The house number is never shown.', buyer: 'Sees the area, transport and surroundings at once.', you: 'You share the exact address only once a viewing is booked.' },
       { key: 'plan', tab: 'Plan', title: 'The layout at a glance', text: 'A floor plan with a dot for every room. Tapping a dot takes the visitor straight into that room in the 360° tour.', buyer: 'Understands the layout before walking through.', you: 'No more “where is the bathroom from the bedroom?”.' },
       { key: 'contact', tab: 'Contact', title: 'Viewings booked from the tour', text: 'Your card with name and agency, one-tap calling and a “Book a viewing” button — name, phone and preferred time.', buyer: 'Books the moment they like the place.', you: 'The request reaches us instantly, with the tour details, and we pass it straight to you.' }
@@ -500,27 +484,14 @@ const en: HomeCopy = {
       { title: 'Booking', text: 'Book a time by phone or through the form — we arrive with our equipment at the agreed time, without disturbing residents or tenants.' },
       { title: 'Shooting', text: '30–60 minutes per property: 360° panoramas of every room plus HDR photos for the listing.' },
       { title: 'Editing', text: 'Stitching the panoramas, color calibration and preparing the audio guide in the languages you need.' },
-      { title: 'Delivery', text: 'The link to the finished tour and the photos arrive within 48 hours — ready to add to the listing the same day.' }
+      { title: 'Delivery', text: 'The link to the finished tour and the photos arrive within 24 hours with Premium, and within 48 hours at the latest with Basic — ready to add to the listing the same day.' }
     ],
     deliverTitle: 'What you get',
     deliver: [
-      'An interactive 360° tour with navigation through every room',
-      'HDR photos ready for listings and social media',
-      'An automatic guided walkthrough, with free exploring as an option',
-      'An audio guide in Serbian, English, German and Russian',
-      'The floor plan and location built into the tour',
-      'Your contact card, visible throughout the tour'
-    ]
-  },
-  types: {
-    eyebrow: 'Listing types',
-    title: 'Same tour, *different focus*',
-    note: 'Whether an agency manages a whole portfolio or an owner lists a single property, the emphasis and questions in the tour follow the purpose of the listing.',
-    faqLabel: 'Typical question',
-    items: [
-      { eyebrow: 'Sale', title: 'Long-term value', focus: 'Focus on floor area, condition and ownership — what matters when deciding to buy.', faq: '“Is the property registered, and what is the ownership status?”' },
-      { eyebrow: 'Rent', title: 'Everyday practicality', focus: 'Focus on monthly costs, lease terms and move-in date — what a future tenant wants to know.', faq: '“What are the average monthly costs, and what kind of heating is there?”' },
-      { eyebrow: 'Short-term stays', title: 'The guest’s impression', focus: 'Focus on atmosphere, capacity and house rules — what a guest checks before booking.', faq: '“What are the exact check-in and check-out times?”' }
+      'A link to the tour for your listing and ready-made embed code for your site',
+      'Full-resolution HDR photos for portals and social media',
+      'Your name and phone inside the tour — even when the link is passed on',
+      'Text and guide tailored to the listing: value and ownership for a sale, costs and move-in for a rental, the guest’s impression for a short stay'
     ]
   },
   pricing: {

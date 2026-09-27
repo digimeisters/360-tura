@@ -220,18 +220,6 @@ export function displayPackagePrice(
   return count * displayPerProperty(PRICE_TIERS[tierIndexFor(count)], pkg, lang, promoActive);
 }
 
-/**
- * Stvarni popust na CEO paket (tura + HDR), zaokružen na ceo procenat, u
- * valuti te strane. Blizu je PROMO.discount (30%), ali ume da odstupi jer
- * se zaokružuje po stavci. Koristi ga nalepnica na kartici (SaleSticker),
- * da pokaže tačan broj za taj paket, ne paušalnih "−30%".
- */
-export function packageDiscountPercent(count: number, pkg: PackageType, lang: PriceLang): number {
-  const regular = displayPackagePrice(count, pkg, lang, false);
-  const promo = displayPackagePrice(count, pkg, lang, true);
-  return regular > 0 ? Math.round(((regular - promo) / regular) * 100) : 0;
-}
-
 /** Iznos koji je VEĆ u valuti prikaza, kao tekst ("6.000 din." / "€50"). */
 export function formatAmount(amount: number, lang: PriceLang): string {
   if (lang === 'sr') return `${amount.toLocaleString('sr-RS')} din.`;

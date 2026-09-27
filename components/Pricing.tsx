@@ -27,7 +27,7 @@ export default function Pricing({
         {copy.plans.map((plan) => (
           <div key={plan.track} className={`card price-card${plan.packageType === 'premium' ? ' featured' : ''}`}>
             {plan.badge && <span className="price-badge">{plan.badge}</span>}
-            <SaleSticker count={1} packageType={plan.packageType} lang={lang} />
+            <SaleSticker />
             <span className="price-audience">{plan.audience}</span>
             <h3>{plan.title}</h3>
             <div>

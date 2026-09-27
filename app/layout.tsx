@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Instrument_Serif, Plus_Jakarta_Sans, Urbanist } from "next/font/google";
+import { Inter, Newsreader, Plus_Jakarta_Sans, Urbanist } from "next/font/google";
 import "./globals.css";
 import ScrollToTop from "../components/ScrollToTop";
 import ErrorReporter from "../components/ErrorReporter";
@@ -22,11 +22,16 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 // Kurziv sa serifima samo za naglašene reči u naslovima sajta (<em>).
-const serif = Instrument_Serif({
-  weight: "400",
+// Newsreader (od 27. 9. 2026, umesto Instrument Serif-a): isti elegantan,
+// "novinski" karakter, ali širi i sa većim malim slovima - Instrument je bio
+// uzak i tanak, pa su se reči u velikim naslovima sabijale. Promenljiv font:
+// debljina i optička veličina (opsz) se podešavaju u CSS-u (siteStyles.ts, em).
+const serif = Newsreader({
+  weight: "variable",
   style: "italic",
+  axes: ["opsz"],
   subsets: ["latin", "latin-ext"],
-  variable: "--font-instrument",
+  variable: "--font-newsreader",
   display: "swap",
 });
 

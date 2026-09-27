@@ -104,9 +104,15 @@ export const SITE_STYLES = `
     color:var(--ink);
     letter-spacing:-0.03em;
   }
-  /* Naglašena reč u naslovu: kurziv sa serifima, malo veći jer je taj font
-     optički sitniji od Jakarte. */
-  em{font-family:var(--font-serif); font-style:italic; font-weight:400; color:var(--accent); letter-spacing:-0.005em; font-size:1.12em; line-height:.9;}
+  /* Naglašena reč u naslovu: Newsreader kurziv. Debljina 500 i optička
+     veličina 24 namerno: Newsreader na velikim naslovima sam prelazi na
+     tanji, kontrastniji crtež (opsz do 72), a to bi vratilo problem zbog kog
+     je zamenjen Instrument Serif - tanka, teško čitljiva slova.
+     Veličina 1.1em i debljina 450 (vlasnik, 28. 9. 2026): na 1.05/500 je
+     delovao sitnije od Jakarte 800 pored njega, na 1.16/500 preglasno - kao
+     da se takmiči sa naslovom umesto da bude akcenat. Sredina vraća deo
+     lakoće starog fonta, a ostaje čitljiva. */
+  em{font-family:var(--font-serif); font-style:italic; font-weight:450; font-variation-settings:'opsz' 24; color:var(--accent); letter-spacing:-0.005em; font-size:1.1em; line-height:.9;}
   p{margin:0;}
   .eyebrow{
     font-family:var(--font-display);
@@ -469,15 +475,6 @@ export const SITE_STYLES = `
   .deliver-list li::before{content:"✓"; color:var(--accent); font-weight:700; flex:none;}
 
   /* ---------- TIPOVI OGLASA ---------- */
-  .cat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1rem;}
-  @media (max-width:880px){ .cat-grid{grid-template-columns:1fr;} }
-  .cat-card{padding:2.1rem; display:flex; flex-direction:column; gap:.8rem; box-shadow:none;}
-  .cat-card .eyebrow{font-size:.72rem;}
-  .cat-card h3{font-size:1.6rem;}
-  .cat-card .focus{font-size:1rem; color:var(--ink-soft); line-height:1.6;}
-  .cat-faq{border-top:1px solid var(--line); padding-top:1.2rem; margin-top:auto;}
-  .cat-faq span{display:block; font-family:var(--font-display); font-size:.68rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:.3rem;}
-  .cat-faq p{font-family:var(--font-serif); font-size:1.5rem; line-height:1.3; color:var(--ink); font-style:italic;}
 
   /* ---------- CENOVNIK ---------- */
   /* Cena po stavci: tura i fotografije stoje napisane odvojeno, pre paketa
@@ -632,6 +629,10 @@ export const SITE_STYLES = `
   .tour-body{padding:1.25rem 1.3rem 1.4rem; display:flex; flex-direction:column; gap:.7rem; flex:1;}
   .tour-body h3{font-size:1.1rem; font-weight:700; line-height:1.3; letter-spacing:-0.015em;}
   /* Cena odmah ispod naslova (zato negativan razmak - .tour-body ima gap). */
+  /* "Sve ture →" ispod kartica na početnoj, dok nema mini-pretrage. */
+  .tours-more{display:flex; justify-content:flex-end; margin-top:1.1rem;}
+  .tours-more a{font-family:var(--font-display); font-weight:700; font-size:.95rem; color:var(--accent); text-decoration:none;}
+  .tours-more a:hover{text-decoration:underline; text-underline-offset:3px;}
   .tour-price{margin-top:-.35rem; font-family:var(--font-display); font-size:1.4rem; font-weight:800; letter-spacing:-0.02em; color:var(--ink); font-variant-numeric:tabular-nums;}
   .tour-price small{font-size:.8rem; font-weight:600; color:var(--ink-soft);}
   .tour-meta{font-size:.86rem; color:var(--ink-soft);}
@@ -738,7 +739,7 @@ export const SITE_STYLES = `
 
   /* ---------- TAMNI DELOVI ---------- */
   /* Iste komponente, tamne boje: menjaju se samo promenljive. */
-  .agency-bridge, .steps-side .deliver-card, .cat-card:nth-child(2), .price-card.featured, .blog-callout, .blog-card:nth-child(2n), .is-dark{
+  .agency-bridge, .steps-side .deliver-card, .price-card.featured, .blog-callout, .blog-card:nth-child(2n), .is-dark{
     --surface:#111113; --surface-2:#1A1A1E; --ink:#F5F5F3; --ink-soft:#A8A9AE; --ink-faint:#8C8E93; --line:#2C2C30; --line-strong:#38383D;
     --accent:#7FB0EC; --accent-strong:#A5C8F2; --accent-soft:rgba(127,176,236,.14); --on-accent:#0B0E1A; --shadow:none;
     background:var(--surface); color:var(--ink); border-color:var(--line);
@@ -758,7 +759,7 @@ export const SITE_STYLES = `
                   da na dugačkoj sekciji ne pokrije ceo spisak)
        --k-base   donji sloj (plavi blokovi: prelaz iz svetlije u tamniju plavu)
      Redosled slojeva: svetlo, bleđenje, mreža, podloga. */
-  .agency-bridge, .steps-side .deliver-card, .cat-card:nth-child(2), .price-card.featured, .blog-callout, .blog-card:nth-child(2n), .is-dark, .integration, .band, .contact .wrap, .cta-band, .hero, footer{
+  .agency-bridge, .steps-side .deliver-card, .price-card.featured, .blog-callout, .blog-card:nth-child(2n), .is-dark, .integration, .band, .contact .wrap, .cta-band, .hero, footer{
     --k-cell:22px; --k-line:rgba(255,255,255,.07);
     --k-glow:rgba(91,146,214,.45); --k-size:85% 60%; --k-at:50% -14%;
     --k-fade:#111113; --k-fade-end:88%;
@@ -840,12 +841,12 @@ export const SITE_STYLES = `
     background:linear-gradient(180deg, var(--surface) 0%, color-mix(in srgb, var(--surface-2) 55%, var(--surface)) 100%);
   }
   /* Na tamnim i plavim blokovima sporedno dugme je staklo: vidi se mreža kroz njega. */
-  :is(.agency-bridge, .steps-side .deliver-card, .cat-card:nth-child(2), .price-card.featured, .blog-callout, .blog-card:nth-child(2n), .is-dark, .integration, .contact .wrap, .cta-band) .btn-secondary:not(.contact-form .btn-secondary){
+  :is(.agency-bridge, .steps-side .deliver-card, .price-card.featured, .blog-callout, .blog-card:nth-child(2n), .is-dark, .integration, .contact .wrap, .cta-band) .btn-secondary:not(.contact-form .btn-secondary){
     background:rgba(255,255,255,.08); color:#FFFFFF; border-color:rgba(255,255,255,.22);
     -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.18);
   }
-  :is(.agency-bridge, .steps-side .deliver-card, .cat-card:nth-child(2), .price-card.featured, .blog-callout, .blog-card:nth-child(2n), .is-dark, .integration, .contact .wrap, .cta-band) .btn-secondary:not(.contact-form .btn-secondary):hover{
+  :is(.agency-bridge, .steps-side .deliver-card, .price-card.featured, .blog-callout, .blog-card:nth-child(2n), .is-dark, .integration, .contact .wrap, .cta-band) .btn-secondary:not(.contact-form .btn-secondary):hover{
     background:rgba(255,255,255,.16); color:#FFFFFF; border-color:rgba(255,255,255,.4);
   }
 
@@ -854,6 +855,15 @@ export const SITE_STYLES = `
     background-image:radial-gradient(40% 180% at 50% -40%, rgba(165,200,242,.45) 0%, transparent 70%), linear-gradient(90deg, #17447E 0%, #1E5AA8 50%, #17447E 100%);}
   .promo-top b{font-weight:700;}
   .promo-top:hover{background-color:#17447E; background-image:radial-gradient(40% 180% at 50% -40%, rgba(165,200,242,.6) 0%, transparent 70%), linear-gradient(90deg, #17447E 0%, #2463B5 50%, #17447E 100%);}
-  footer .wrap{display:flex; flex-wrap:wrap; justify-content:space-between; gap:1rem; align-items:center;}
+  footer .wrap{display:flex; flex-direction:column; gap:1.6rem;}
   footer p{font-size:.85rem; color:var(--ink-soft);}
+  /* Gornji red: logo levo, veze u sredini, kontakt desno; na telefonu jedno ispod drugog. */
+  .foot-main{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:1.2rem 2rem;}
+  .foot-links{display:flex; flex-wrap:wrap; gap:.4rem 1.4rem;}
+  .foot-links a{color:var(--ink); font-family:var(--font-display); font-weight:700; font-size:.92rem; text-decoration:none;}
+  .foot-contact{display:flex; flex-wrap:wrap; gap:.4rem 1.2rem; margin:0;}
+  .foot-contact a{color:var(--ink); text-decoration:none;}
+  .foot-links a:hover, .foot-contact a:hover{color:var(--accent);}
+  .foot-note{padding-top:1.2rem; border-top:1px solid var(--line);}
+  @media (max-width:640px){ .foot-main{flex-direction:column; align-items:flex-start;} }
 `;

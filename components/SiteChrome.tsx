@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { Logo } from '../app/tour/[slug]/Logo';
+import { CONTACT, CONTACT_LINKS } from '../app/lib/site';
 
 /**
  * Zaglavlje i podnožje zajednički za sve javne strane sajta (/, /en, /ture,
@@ -54,12 +55,31 @@ export function SiteNav({
   );
 }
 
-export function SiteFooter({ note }: { note: string }) {
+/**
+ * Podnožje: logo, veze ka ostalim stranama, kontakt i red sa ©. Veze
+ * (Ture, Za agencije, Blog) postoje samo na srpskom, pa ih engleska strana
+ * ne prikazuje - tamo ostaje samo kontakt.
+ */
+export function SiteFooter({ note, lang = 'sr' }: { note: string; lang?: 'sr' | 'en' }) {
   return (
     <footer>
       <div className="wrap">
-        <Logo />
-        <p>{note}</p>
+        <div className="foot-main">
+          <Logo />
+          {lang === 'sr' && (
+            <nav className="foot-links" aria-label="Strane sajta">
+              <Link href="/ture">Ture</Link>
+              <Link href="/za-agencije">Za agencije</Link>
+              <Link href="/blog">Blog</Link>
+            </nav>
+          )}
+          <p className="foot-contact">
+            <a href={CONTACT_LINKS.phone} data-track="contact:phone">{CONTACT.phoneDisplay}</a>
+            <a href={CONTACT_LINKS.email} data-track="contact:email">{CONTACT.email}</a>
+            <span>{CONTACT.city}</span>
+          </p>
+        </div>
+        <p className="foot-note">{note}</p>
       </div>
     </footer>
   );

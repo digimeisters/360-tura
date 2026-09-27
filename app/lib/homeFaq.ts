@@ -35,11 +35,6 @@ export const HOME_FAQ: Record<HomeLang, readonly FaqItem[]> = {
       answer: `${CONTACT.serviceArea}. Za druge gradove dolazimo po dogovoru.`
     },
     {
-      question: 'Da li tura radi na telefonu?',
-      answer:
-        'Da. Tura se otvara u pretraživaču na telefonu, tabletu i računaru, bez instaliranja aplikacije. Na telefonu možete da razgledate i pomeranjem samog telefona.'
-    },
-    {
       question: 'Mora li kupac da zna da se snalazi u 360° turi?',
       answer:
         'Ne mora. Na početku bira jedno od dva. „Automatsko vođenje“ — vodič ga provede kroz sve prostorije i ispriča šta se gde nalazi, a on samo gleda i sluša. Ili „Istražite sami“, ako voli da razgleda svojim tempom. Vođenje može da prekine u svakom trenutku i nastavi sam.'
@@ -70,11 +65,6 @@ export const HOME_FAQ: Record<HomeLang, readonly FaqItem[]> = {
       question: 'Where do you shoot?',
       answer:
         'In Kragujevac and the surrounding area. We can also travel to other cities by arrangement.'
-    },
-    {
-      question: 'Does the tour work on a phone?',
-      answer:
-        'Yes. The tour opens in the browser on a phone, tablet or computer, with no app to download. On a phone you can also look around the space simply by moving the phone.'
     },
     {
       question: 'Does the buyer need to know how to use a 360° tour?',

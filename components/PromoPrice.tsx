@@ -10,7 +10,7 @@ import {
   displayTourPrice,
   formatAmount,
   inDisplayCurrency,
-  packageDiscountPercent,
+  PROMO,
   standaloneHdrPrice,
   tierIndexFor,
   tierLabel,
@@ -27,25 +27,15 @@ import { usePromoActive } from './usePromoActive';
  */
 
 /**
- * Okrugla nalepnica u uglu kartice, kao u prospektu. Procenat se računa PO
- * PAKETU (count + packageType) i u valuti te strane, a ne piše se paušalno
- * "−30%": zbog zaokruživanja po stavci stvarni pad zna da odstupi.
+ * Okrugla nalepnica u uglu kartice, kao u prospektu. Isti broj na svim
+ * karticama i u promo traci (vlasnik, 27. 9. 2026): tačan procenat po paketu
+ * je zbog zaokruživanja na 100 din. davao "−29%" pored "−30%", što je
+ * izgledalo kao greška. Stvarni pad je 29-30%.
  */
-export function SaleSticker({
-  count,
-  packageType = 'basic',
-  lang,
-  label
-}: {
-  count: number;
-  packageType?: PackageType;
-  lang: HomeLang;
-  label?: string;
-}) {
+export function SaleSticker({ label }: { label?: string }) {
   const active = usePromoActive();
   if (!active) return null;
-  const percent = packageDiscountPercent(count, packageType, lang);
-  const text = `−${percent}%`;
+  const text = `−${Math.round(PROMO.discount * 100)}%`;
   return (
     <span className="price-sale" aria-label={label ?? text}>
       {text}

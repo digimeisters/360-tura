@@ -107,7 +107,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
             </Link>
           </li>
         )}
-        <li><a href="#benefiti">{nav.benefits}</a></li>
+        <li><a href="#u-turi">{nav.modules}</a></li>
         <li><a href="#kako-radimo">{nav.how}</a></li>
         <li><a href="#cenovnik">{nav.packages}</a></li>
         {/* Ide odmah iza paketa, jer je tu i sekcija koja vodi na tu stranu. */}
@@ -120,7 +120,6 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
             </Link>
           </li>
         )}
-        <li><a href="#pitanja">{nav.faq}</a></li>
         {nav.blog && (
           <li>
             <Link href="/blog" data-track="cta:nav_blog">{nav.blog}</Link>
@@ -178,6 +177,11 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
                   <TourCard key={tour.slug} tour={tour} labels={tourCardLabels(copy)} lang={lang} />
                 ))}
               </div>
+              {copy.examples.allTours && tours.length < TOUR_FILTERS_FROM && (
+                <p className="tours-more">
+                  <Link href="/ture" data-track="cta:all_tours">{copy.examples.allTours}</Link>
+                </p>
+              )}
               {copy.examples.database && tours.length >= TOUR_FILTERS_FROM && (
                 // Obična GET forma: radi i bez JavaScript-a, a /ture čita
                 // ?kategorija=&grad=&struktura= iz adrese (prazno = bez filtera).
@@ -246,13 +250,13 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
           </div>
         </section>
 
-        <section id="u-turi">
+        <section className="band" id="u-turi">
           <div className="wrap">
             <TourModulesShowcase copy={copy.modules} photoUrl={heroTour?.coverUrl ?? null} />
           </div>
         </section>
 
-        <section className="band" id="kako-radimo">
+        <section id="kako-radimo">
           <div className="wrap steps-split">
             <div className="steps-side">
               <div className="section-head left">
@@ -276,26 +280,6 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
                   <span className="num">{String(i + 1).padStart(2, '0')}</span>
                   <h3>{item.title}</h3>
                   <p>{item.text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section id="tipovi">
-          <div className="wrap">
-            <div className="section-head">
-              <span className="eyebrow">{copy.types.eyebrow}</span>
-              <h2>{accent(copy.types.title)}</h2>
-              <p className="note">{copy.types.note}</p>
-            </div>
-            <div className="cat-grid">
-              {copy.types.items.map((item) => (
-                <div key={item.eyebrow} className="card cat-card">
-                  <span className="eyebrow">{item.eyebrow}</span>
-                  <h3>{item.title}</h3>
-                  <p className="focus">{item.focus}</p>
-                  <div className="cat-faq"><span>{copy.types.faqLabel}</span><p>{item.faq}</p></div>
                 </div>
               ))}
             </div>
@@ -404,7 +388,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
         </section>
       </main>
 
-      <SiteFooter note={copy.footer} />
+      <SiteFooter note={copy.footer} lang={lang} />
     </div>
   );
 }
