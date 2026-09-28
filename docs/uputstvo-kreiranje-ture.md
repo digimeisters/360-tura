@@ -186,6 +186,7 @@ Korisno kad agenciji objašnjavaš turu ili proveravaš da li nešto radi kako t
 - **Kartica sa tekstom** (naracija i info-tačke) pokazuje naziv i dva reda teksta; ostatak otvara „Više".
 - **Donji moduli:** Plan (tlocrt, uz objašnjenje da je to mapa stana i da tačka vodi u prostoriju), Lokacija, Info (grad, ulica, cena, cena po m² i sve činjenice u jednoj čitkoj celini), Pitanja (sa pozivom i mejlom agenta na dnu), Kontakt. U dnu modula diskretno stoji „360° turu izradio Kvadrat360" — link na naš sajt, meri se kao `utm_source=tura`.
 - **Prostorija koju je posetilac već obišao** ne priča ponovo svoju priču kad se u nju vrati.
+- **„Istražite sami":** donji meni je uvek na ekranu (kartica sa tekstom stoji iznad njega), a čim posetilac dodirne ili povuče panoramu, soba prestaje sama da okreće kameru ka tačkama — kontrolu ima on. U „Automatskom vođenju" vodič i dalje vodi do kraja sobe.
 - **Na telefonu:** dok posetilac prstom okreće panoramu, dugmad se povlače u stranu i vraćaju se sekund i po posle.
 - **Dugme „nazad"** (Android) i povlačenje od ivice (iPhone) prvo zatvaraju ono što je otvoreno (modul, karticu, formu). Kad ništa nije otvoreno, tura pita „Da li želite da napustite turu?"; još jedno „nazad" izlazi. Ako je tura otvorena direktno iz poruke (nema strane pre nje), izlazak vodi na početnu stranu sajta.
 

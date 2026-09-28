@@ -616,9 +616,28 @@ export default function TourPage() {
       }
     };
 
+    // "Istražite sami": prvi dodir, povlačenje ili točkić u panorami dok traje
+    // "priča" sobe (uvod pa obilazak info-tačaka) predaje kontrolu posetiocu -
+    // kamera prestaje sama da se okreće. Ranije je priča tekla do kraja i
+    // "otimala" pogled, pa je izgledalo da tura ne reaguje (vlasnik, 28. 9.
+    // 2026). Kartica sa tekstom ostaje dok je posetilac ne zatvori.
+    // Automatsko vođenje ovo ne dira - tamo je vodič namerno glavni.
+    const takeOverStory = () => {
+      if (guideModeRef.current === 'auto' || adminModeRef.current) return;
+      if (!sequenceActiveRef.current || isInterruptedRef.current || roomSequenceFinishedRef.current) return;
+      isInterruptedRef.current = true;
+      stopCurrentAnimation();
+      roomSequenceFinishedRef.current = true;
+      setIsRoomTourFullyCompleted(true);
+    };
+
     if (panoramaContainer) {
       panoramaContainer.addEventListener('mouseup', handlePanEnd);
       panoramaContainer.addEventListener('touchend', handlePanEnd);
+      // Capture: Pannellum hvata ove događaje u svom sloju, a treba ih videti pre njega.
+      panoramaContainer.addEventListener('pointerdown', takeOverStory, { capture: true });
+      panoramaContainer.addEventListener('touchstart', takeOverStory, { capture: true, passive: true });
+      panoramaContainer.addEventListener('wheel', takeOverStory, { capture: true, passive: true });
     }
 
     // Stara scena (iznad nove) nestaje; nova je već učitana ispod nje.
@@ -709,6 +728,9 @@ export default function TourPage() {
       isInterruptedRef.current = true;
       panoramaContainer.removeEventListener('mouseup', handlePanEnd);
       panoramaContainer.removeEventListener('touchend', handlePanEnd);
+      panoramaContainer.removeEventListener('pointerdown', takeOverStory, { capture: true });
+      panoramaContainer.removeEventListener('touchstart', takeOverStory, { capture: true });
+      panoramaContainer.removeEventListener('wheel', takeOverStory, { capture: true });
       stopCurrentAnimation();
       stopAudio();
       if (viewerRef.current) {
@@ -839,7 +861,13 @@ export default function TourPage() {
     .replace('{current}', String(navPosition.current))
     .replace('{total}', String(navPosition.total));
 
-  const isModalToolbarVisible = !infoBoxData && (!tourStarted || isRoomTourFullyCompleted || isInfoboxManuallyClosed);
+  // "Istražite sami": meni je uvek na dnu, a kartica sa tekstom se podiže iznad
+  // njega (vlasnik, 28. 9. 2026 - posetilac ne sme ni na trenutak da ostane
+  // bez kontrola). Automatsko vođenje: meni tek kad soba "odćuti" ili se
+  // kartica zatvori, da ekran pripada vodiču.
+  const isModalToolbarVisible = isGuideAuto
+    ? !infoBoxData && (!tourStarted || isRoomTourFullyCompleted || isInfoboxManuallyClosed)
+    : true;
 
   // Dugme "Pozovi" stoji dok donji meni (sa Kontaktom) nije vidljiv - vidi
   // CallAgentButton. U admin režimu se prikazuje (da vlasnik vidi turu kao
@@ -1071,6 +1099,7 @@ export default function TourPage() {
           moreLabel={t.readMore}
           lessLabel={t.readLess}
           hidden={immersive}
+          raised={isModalToolbarVisible && !pendingCoords}
           onClose={closeInfoCard}
           action={callButton}
         />

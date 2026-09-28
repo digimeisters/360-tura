@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { THEME, GLASS, GLASS_ACCENT, overlayIconStyle, SCREEN_BOTTOM } from './theme';
+import { THEME, GLASS, GLASS_ACCENT, overlayIconStyle, SCREEN_BOTTOM, ABOVE_MENU_BOTTOM } from './theme';
 import { IconCheck, IconCollapse, IconCompass, IconExpand, IconHand, IconHeadphones, IconMute, IconPause, IconPhone, IconPlay, IconShare, IconSound } from './icons';
 import type { Language } from './types';
 
@@ -283,6 +283,7 @@ export function InfoCard({
   moreLabel,
   lessLabel,
   hidden = false,
+  raised = false,
   action
 }: {
   title: string | null;
@@ -293,6 +294,8 @@ export function InfoCard({
   lessLabel: string;
   /** Sklonjena dok se prstom razgleda panorama (useImmersiveWhileDragging). */
   hidden?: boolean;
+  /** Donji meni je vidljiv ispod kartice - kartica stoji iznad njega. */
+  raised?: boolean;
   /** Dugme u zaglavlju kartice, levo od zatvaranja ("Pozovi"). */
   action?: React.ReactNode;
 }) {
@@ -315,7 +318,7 @@ export function InfoCard({
   return (
     <div className={`tour-ui-scale k360-fade-ui${hidden ? ' is-immersive' : ''}`} style={{
       position: 'absolute',
-      bottom: SCREEN_BOTTOM,
+      bottom: raised ? ABOVE_MENU_BOTTOM : SCREEN_BOTTOM,
       left: '50%',
       transform: 'translateX(-50%)',
       zIndex: 30,

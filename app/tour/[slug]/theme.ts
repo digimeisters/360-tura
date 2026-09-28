@@ -161,3 +161,7 @@ export const btnStyle: React.CSSProperties = {
 // jedno drugo na istom mestu. env(safe-area-inset-bottom) izbegava
 // home-indikator/traku pregledača (uz viewportFit:'cover' u layout.tsx).
 export const SCREEN_BOTTOM = 'calc(env(safe-area-inset-bottom, 0px) + 6px)';
+
+// Kad su i donji meni i info kartica na ekranu ("Istražite sami"), kartica
+// stoji iznad menija: visina menija + mali razmak.
+export const ABOVE_MENU_BOTTOM = `calc(${SCREEN_BOTTOM} + 76px)`;
