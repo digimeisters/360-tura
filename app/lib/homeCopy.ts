@@ -22,6 +22,8 @@ export type ModulesCopy = {
   title: string;
   note: string;
   hint: string;
+  /** Brojač ispod menija: "{n} od {total} pogledano" (tekst, ne funkcija - ide sa servera u klijentsku komponentu). */
+  seen: string;
   buyerLabel: string;
   youLabel: string;
   items: { key: TourModuleKey; tab: string; title: string; text: string; buyer: string; you: string }[];
@@ -259,7 +261,8 @@ const sr: HomeCopy = {
     eyebrow: 'U samoj turi',
     title: 'Pet dugmadi koja *odgovaraju umesto vas*',
     note: 'Ispod svake ture stoji isti meni kao u aplikaciji. Kupac tu nađe ono što bi vas inače pitao telefonom — i zakaže razgledanje kad je spreman.',
-    hint: 'Kliknite na dugme — telefon pokazuje šta kupac vidi.',
+    hint: '👆 Dodirnite bilo koje dugme',
+    seen: '{n} od {total} pogledano',
     buyerLabel: 'Kupac',
     youLabel: 'Vi',
     items: [
@@ -446,7 +449,8 @@ const en: HomeCopy = {
     eyebrow: 'Inside the tour',
     title: 'Five buttons that *answer for you*',
     note: 'Every tour has the same menu along the bottom. Buyers find what they would otherwise call you about — and book a viewing when they are ready.',
-    hint: 'Tap a button — the phone shows what the buyer sees.',
+    hint: '👆 Tap any button',
+    seen: '{n} of {total} viewed',
     buyerLabel: 'Buyer',
     youLabel: 'You',
     items: [

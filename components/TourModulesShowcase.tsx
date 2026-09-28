@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MODAL_ICONS } from '../app/tour/[slug]/icons';
 import { accent } from '../app/lib/accent';
 import type { ModulesCopy, TourModuleKey } from '../app/lib/homeCopy';
@@ -12,14 +12,58 @@ import type { ModulesCopy, TourModuleKey } from '../app/lib/homeCopy';
  *
  * Telefon je nacrtan, ne snimak ekrana - izgled prati TourModals.tsx, pa ga
  * pri većoj promeni modula treba uskladiti i ovde.
+ *
+ * Meni sam "pokazuje" dugmad (vlasnik, 28. 9. 2026 - pasivan tekst "kliknite"
+ * nije navodio na klik): dok je sekcija na ekranu, svakih AUTO_MS prelazi na
+ * sledeće dugme, traka ispod aktivnog pokazuje kad dolazi sledeće, na još
+ * neviđenim dugmadima pulsira tačka, a brojač broji viđena. Čim posetilac sam
+ * klikne, smenjivanje staje zauvek. Ko je u sistemu isključio pokrete, nema
+ * ni smenjivanja ni pulsiranja.
  */
+const AUTO_MS = 3500;
+
 export default function TourModulesShowcase({ copy, photoUrl }: { copy: ModulesCopy; photoUrl: string | null }) {
   const [active, setActive] = useState<TourModuleKey>('about');
+  const [seen, setSeen] = useState<Set<TourModuleKey>>(() => new Set<TourModuleKey>(['about']));
+  const [auto, setAuto] = useState(true);
+  const [inView, setInView] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   const item = copy.items.find((i) => i.key === active) ?? copy.items[0];
   const p = copy.preview;
 
+  const show = (key: TourModuleKey) => {
+    setActive(key);
+    setSeen((prev) => (prev.has(key) ? prev : new Set(prev).add(key)));
+  };
+
+  // Smenjuje se samo dok je traka sa dugmadima na ekranu - inače bi posetilac
+  // stigao do nje usred kruga, a ne na prvom dugmetu. Posmatra se traka, ne
+  // cela sekcija: na telefonu je sekcija viša od ekrana, pa ne bi nikad
+  // prešla prag vidljivosti.
+  useEffect(() => {
+    const el = rootRef.current?.querySelector('.mods-bar');
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(([e]) => setInView(e.isIntersecting), { threshold: 0.6 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!auto || !inView) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const timer = window.setTimeout(() => {
+      const idx = copy.items.findIndex((i) => i.key === active);
+      show(copy.items[(idx + 1) % copy.items.length].key);
+    }, AUTO_MS);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auto, inView, active]);
+
+  const running = auto && inView;
+  const seenText = copy.seen.replace('{n}', String(seen.size)).replace('{total}', String(copy.items.length));
+
   return (
-    <div className="mods">
+    <div className="mods" ref={rootRef}>
       <style>{STYLES}</style>
       <div className="section-head">
         <span className="eyebrow">{copy.eyebrow}</span>
@@ -39,15 +83,27 @@ export default function TourModulesShowcase({ copy, photoUrl }: { copy: ModulesC
                   role="tab"
                   aria-selected={i.key === active}
                   className="mods-tab"
-                  onClick={() => setActive(i.key)}
+                  onClick={() => {
+                    setAuto(false);
+                    show(i.key);
+                  }}
                 >
                   <Icon size={22} />
                   {i.tab}
+                  {!seen.has(i.key) && <span className="mods-new" aria-hidden="true" />}
+                  {i.key === active && running && (
+                    <span className="mods-prog" aria-hidden="true">
+                      <b key={active} style={{ animationDuration: `${AUTO_MS}ms` }} />
+                    </span>
+                  )}
                 </button>
               );
             })}
           </div>
-          <p className="mods-hint">{copy.hint}</p>
+          <p className="mods-hint">
+            <span>{copy.hint}</span>
+            <span className="mods-seen">{seenText}</span>
+          </p>
 
           <div className="mods-pitch" role="tabpanel" aria-live="polite">
             <h3>{item.title}</h3>
@@ -181,7 +237,17 @@ const STYLES = `
 .mods-tab:hover{color:#fff;}
 .mods-tab[aria-selected="true"]{background:rgba(127,176,236,.22); color:#fff;}
 .mods-tab:focus-visible{outline:2px solid #5B92D6; outline-offset:2px;}
-.mods-hint{font-size:.85rem; color:var(--ink-faint); margin:.7rem .3rem 0;}
+.mods-hint{display:flex; flex-wrap:wrap; align-items:center; gap:.5rem .7rem; font-size:.9rem; font-weight:600; color:var(--ink-soft); margin:.8rem .3rem 0;}
+.mods-seen{font-size:.78rem; font-weight:700; color:var(--accent); background:var(--accent-soft); border-radius:999px; padding:.2rem .65rem;}
+.mods-tab{position:relative;}
+/* Tačka na još neviđenom dugmetu - pulsira kao tačke u samoj turi. */
+.mods-new{position:absolute; top:7px; right:calc(50% - 20px); width:7px; height:7px; border-radius:50%; background:#5B92D6; animation:modsPulse 1.6s ease-out infinite;}
+@keyframes modsPulse{0%{box-shadow:0 0 0 0 rgba(91,146,214,.75);} 70%{box-shadow:0 0 0 7px rgba(91,146,214,0);} 100%{box-shadow:0 0 0 0 rgba(91,146,214,0);}}
+/* Traka ispod aktivnog dugmeta: kad dolazi sledeće (samo dok se meni sam smenjuje). */
+.mods-prog{position:absolute; left:18%; right:18%; bottom:4px; height:3px; border-radius:3px; background:rgba(255,255,255,.14); overflow:hidden;}
+.mods-prog b{display:block; height:100%; width:100%; background:#5B92D6; transform-origin:left; animation:modsProg linear forwards;}
+@keyframes modsProg{from{transform:scaleX(0);} to{transform:scaleX(1);}}
+@media (prefers-reduced-motion: reduce){ .mods-new{animation:none;} }
 .mods-pitch{margin-top:1.6rem; max-width:540px; min-height:15rem;}
 .mods-pitch h3{font-size:clamp(1.35rem,2.2vw,1.7rem); letter-spacing:-.02em; margin:0 0 .6rem;}
 .mods-pitch p{font-size:1.02rem; line-height:1.6; color:var(--ink-soft); margin:0;}

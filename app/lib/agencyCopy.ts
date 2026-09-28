@@ -19,13 +19,14 @@ type DayRow = { day: string; title: string; text: string };
 
 export type AgencyCopy = {
   meta: { title: string; description: string };
-  nav: { brandAria: string; week: string; buyer: string; owner: string; benefits: string; packages: string; faq: string; home: string; cta: string };
+  nav: { brandAria: string; week: string; buyer: string; owner: string; packages: string; faq: string; home: string; cta: string };
   hero: {
     eyebrow: string;
     title: string;
     lede: string;
     ctaContact: string;
-    ctaStory: string;
+    /** Drugo dugme u vrhu: otvara primer ture (agent prvo želi da vidi proizvod). */
+    ctaTour: string;
     trust: string[];
   };
   week: {
@@ -44,6 +45,8 @@ export type AgencyCopy = {
     guide: { room: string; label: string; caption: string };
     plan: { title: string; rooms: [string, string, string]; legend: string };
     contact: { title: string; agent: string; agency: string; call: string; book: string; note: string };
+    /** Kraj priče: poziv odmah posle četvrtog ekrana. */
+    end: { text: string; cta: string };
   };
   owner: {
     eyebrow: string;
@@ -59,11 +62,13 @@ export type AgencyCopy = {
       chips: string[];
     };
   };
-  benefits: {
-    eyebrow: string;
+  /** Poziv na sredini strane, posle priče i dokaza - pre cena. */
+  midCta: {
+    /** Naslov; iza njega ide ulazna cena ("od 6.000 din."), računa je FromPrice pa prati akciju. */
     title: string;
-    items: { title: string; text: string }[];
-    embed: { summary: string; text: string };
+    points: string[];
+    button: string;
+    call: string;
   };
   proof: {
     eyebrow: string;
@@ -75,6 +80,8 @@ export type AgencyCopy = {
     title: string;
     note: string;
     items: { title: string; text: string }[];
+    /** Kod za ugradnju na sajt agencije - ispod koraka (ranije u "Šest stvari"). */
+    embed: { summary: string; text: string };
   };
   pricing: { eyebrow: string; titleStart: string; note: string; fine: string };
   faq: { eyebrow: string; title: string; note: string; items: { question: string; answer: string }[] };
@@ -99,7 +106,6 @@ export const AGENCY_COPY: AgencyCopy = {
     week: 'Vaša nedelja',
     buyer: 'Kupac',
     owner: 'Vlasnik',
-    benefits: 'Koristi',
     packages: 'Cene',
     faq: 'Pitanja',
     home: 'Početna',
@@ -111,7 +117,7 @@ export const AGENCY_COPY: AgencyCopy = {
     lede:
       'Kad je vaš oglas jedini u kome kupac može da prošeta kroz stan, zove vas. Mi snimamo — vi za 48h dobijate turu za oglas.',
     ctaContact: 'Zatražite ponudu',
-    ctaStory: 'Kako to izgleda u praksi ↓',
+    ctaTour: '▶ Pogledajte primer ture',
     trust: ['Snimanje 30–60 min', 'Tura za 48h', 'Radi na svakom telefonu']
   },
   week: {
@@ -146,7 +152,7 @@ export const AGENCY_COPY: AgencyCopy = {
     steps: [
       { time: '21:40', title: 'Link u Viber poruci', text: 'Bez aplikacije, bez prijave. Otvara se odmah.' },
       { time: '21:41', title: 'Šetaju kroz stan', text: 'Vodič ih sam provede kroz sobe. Sin gleda gde bi stao sto.' },
-      { time: '21:46', title: 'Znaju raspored', text: 'Plan pokazuje gde su i šta su već videli.' },
+      { time: '21:46', title: 'Znaju raspored', text: 'Plan pokazuje gde su i kuda gledaju.' },
       { time: '21:50', title: 'Zovu vas', text: 'Jednim dodirom — ili pošalju zahtev za termin iz ture.' }
     ],
     chat: {
@@ -164,6 +170,10 @@ export const AGENCY_COPY: AgencyCopy = {
       call: 'Pozovi agenta',
       book: 'Zakaži razgledanje',
       note: 'Petak ujutru dolaze da potpišu — bez dolaska „da vide“.'
+    },
+    end: {
+      text: 'Ovakav link šaljete svakom kupcu — od prvog snimanja.',
+      cta: 'Zatražite turu za vaš stan →'
     }
   },
   owner: {
@@ -193,28 +203,18 @@ export const AGENCY_COPY: AgencyCopy = {
       chips: ['Sačuvaj kao PDF', 'Poređenje sa prošlim mesecom']
     }
   },
-  benefits: {
-    eyebrow: 'Šta konkretno dobijate',
-    title: 'Šest stvari koje tura radi *za vašu agenciju.*',
-    items: [
-      { title: 'Oglas koji se izdvaja', text: 'Kad isti stan oglašava više agencija, kupac ostaje u oglasu u kome može da uđe u stan.' },
-      { title: 'Manje uzaludnih razgledanja', text: 'Kupac koji nije za taj stan to vidi na turi — a ne posle vožnje preko grada.' },
-      { title: 'Kupci iz drugih gradova', text: 'Roditelji studenata, ljudi koji dolaze zbog posla — obiđu stan odmah, bez putovanja.' },
-      { title: 'Dokaz za vlasnika', text: 'Mesečni izveštaj: koliko ljudi je pogledalo stan i ko je tražio razgledanje.' },
-      { title: 'Mir za stanara i vlasnika', text: 'Vrata se otvaraju samo kupcima koji su stan već videli i ozbiljno ga razmatraju.' },
-      { title: 'Radi i kad vi ne radite', text: 'Ljudi stanove gledaju uveče i vikendom. Tura je otvorena 24 sata — sa vašim telefonom u njoj.' }
-    ],
-    embed: {
-      summary: 'Za vašeg programera: kod za ugradnju na sajt agencije',
-      text: 'Ubacite ovaj kod na stranicu nekretnine i tura radi u okviru vašeg sajta:'
-    }
+  midCta: {
+    title: 'Probajte na *jednom stanu* —',
+    points: ['tura za 48h', 'vaš kontakt u turi', 'izveštaj za vlasnika'],
+    button: 'Zatražite ponudu',
+    call: 'Pozovite'
   },
   proof: {
     eyebrow: 'Nije samo naša priča',
     title: 'Tržišta koja su ture uvela pre nas *već imaju brojke.*',
     items: [
       { value: 'do 31%', label: 'brža prodaja sa 3D/360° turom', source: 'Matterport, analiza MLS prodaja u SAD' },
-      { value: '+79%', label: 'više pregleda oglasa sa turom i floorplanom', source: 'Zillow Showcase' },
+      { value: '+79%', label: 'više pregleda oglasa sa turom i tlocrtom', source: 'Zillow Showcase' },
       { value: '+49%', label: 'više kvalifikovanih upita', source: 'Matterport, interno istraživanje' }
     ]
   },
@@ -228,7 +228,11 @@ export const AGENCY_COPY: AgencyCopy = {
       { title: 'Mi snimamo, 30–60 minuta', text: 'Dovoljno je da nam neko otvori stan.' },
       { title: 'Za 48h: tura, tlocrt, opis na jezicima', text: 'Link za oglas, Viber i kod za vaš sajt.' },
       { title: 'Svakog meseca: izveštaj', text: 'Brojke za sve vaše ture, spremne za vlasnike.' }
-    ]
+    ],
+    embed: {
+      summary: 'Za vašeg programera: kod za ugradnju na sajt agencije',
+      text: 'Ubacite ovaj kod na stranicu nekretnine i tura radi u okviru vašeg sajta:'
+    }
   },
   pricing: {
     eyebrow: 'Cene',

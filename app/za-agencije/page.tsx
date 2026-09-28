@@ -9,14 +9,13 @@ import FromPrice from '../../components/FromPrice';
 import Pricing from '../../components/Pricing';
 import SiteTracker from '../../components/SiteTracker';
 import NavScrollSpy from '../../components/NavScrollSpy';
-import TourModulesShowcase from '../../components/TourModulesShowcase';
 import { SITE_STYLES } from '../lib/siteStyles';
 import { AGENCY_COPY } from '../lib/agencyCopy';
 import { HOME_COPY } from '../lib/homeCopy';
 import { accent, plainAccent } from '../lib/accent';
 import { CONTACT, CONTACT_LINKS, SITE_NAME, SITE_URL, whatsappLink } from '../lib/site';
 import { serializeJsonLd } from '../lib/structuredData';
-import { CONTACT_PACKAGES } from '../lib/pricing';
+import { tourHref } from '../lib/tourHref';
 import { getShowcaseTours, pickHeroTour } from '../lib/showcaseTours';
 
 /**
@@ -108,15 +107,18 @@ const AGENCY_STYLES = `
   .path::before{content:""; position:absolute; left:8%; right:8%; top:1.25rem; height:2px; background:var(--line-strong);}
   @media (max-width:1100px){ .path{grid-template-columns:repeat(2,minmax(0,1fr)); row-gap:3rem;} .path::before{display:none;} }
   @media (max-width:560px){ .path{grid-template-columns:1fr;} }
-  .path-step{position:relative; display:flex; flex-direction:column; align-items:center; gap:1.3rem; text-align:center;}
+  .path-step{position:relative; display:flex; flex-direction:column; align-items:center; gap:.9rem; text-align:center;}
   .path-time{background:#1E5AA8; color:#FFFFFF; font-family:var(--font-display); font-weight:800; font-size:.95rem; padding:.55rem 1.1rem; border-radius:999px;}
   .path-step:last-child .path-time{background:#111113;}
-  .phone{width:min(100%,250px); aspect-ratio:1/2; border-radius:38px; background:#111113; padding:10px; box-shadow:0 24px 50px rgba(17,17,19,.22);}
-  .phone-screen{width:100%; height:100%; border-radius:30px; overflow:hidden; position:relative; background:#FFFFFF; color:#111113; text-align:left;}
+  /* Ekrani su namerno niski (vlasnik, 28. 9. 2026): ranije su bili visoki
+     skoro ceo ekran, pa je korist ispod njih stizala tek posle skrola. */
+  .phone{width:min(100%,230px); aspect-ratio:4/3.4; border-radius:26px; background:#111113; padding:7px; box-shadow:0 16px 34px rgba(17,17,19,.18);}
+  .phone-screen{width:100%; height:100%; border-radius:20px; overflow:hidden; position:relative; background:#FFFFFF; color:#111113; text-align:left;}
   .phone-screen img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
   .path-step h3{font-size:1.15rem;}
   .path-step h3 + p{font-size:.95rem; color:var(--ink-soft); max-width:26ch; margin:.4rem auto 0;}
-  .chat{background:#EDE9F7; display:flex; flex-direction:column; gap:.6rem; padding:1.1rem .85rem; font-size:.8rem; line-height:1.4;}
+  .chat{background:#EDE9F7; display:flex; flex-direction:column; gap:.4rem; padding:.7rem .7rem; font-size:.72rem; line-height:1.35;}
+  .chat .chat-card, .chat .chat-app{display:none;}
   .chat-app{font-weight:700; color:#5B4FB3; text-align:center; font-size:.75rem;}
   .chat-msg{align-self:flex-start; max-width:85%; background:#FFFFFF; border-radius:16px 16px 16px 4px; padding:.65rem .75rem;}
   .chat-card{display:block; align-self:flex-start; width:85%; background:#FFFFFF; border-radius:14px; overflow:hidden;}
@@ -130,9 +132,12 @@ const AGENCY_STYLES = `
   .ph-card b{display:block; font-family:var(--font-display); font-size:.82rem; margin-top:.2rem;}
   .ph-bar{height:4px; border-radius:999px; background:rgba(255,255,255,.2); margin-top:.55rem;}
   .ph-bar i{display:block; width:45%; height:100%; border-radius:999px; background:#5B92D6;}
-  .plan-screen{padding:1.2rem .9rem; display:flex; flex-direction:column; gap:.8rem;}
+  .plan-screen{padding:.7rem .8rem; display:flex; flex-direction:column; gap:.5rem;}
+  .plan-screen p{display:none;}
   .plan-screen h4{margin:0; font-family:var(--font-display); font-size:.95rem;}
-  .mini-plan{position:relative; height:52%; border:4px solid #2B2D33; background:#F7F7F4;}
+  .mini-plan{position:relative; flex:1; border:3px solid #2B2D33; background:#F7F7F4; overflow:hidden;}
+  .mini-cone{position:absolute; inset:0; width:100%; height:100%; overflow:visible;}
+  .mini-cone path{fill:#5B92D6; fill-opacity:.32; stroke:#5B92D6; stroke-width:1; vector-effect:non-scaling-stroke;}
   .mini-plan .wall-h{position:absolute; left:0; right:0; top:50%; border-top:4px solid #2B2D33;}
   .mini-plan .wall-v{position:absolute; left:55%; top:50%; bottom:0; border-left:4px solid #2B2D33;}
   .mini-plan em{position:absolute; font-family:var(--font-body); font-style:normal; font-size:.66rem; font-weight:700; color:#2B2D33; line-height:1;}
@@ -142,7 +147,8 @@ const AGENCY_STYLES = `
   .mini-plan .dot.here::after{content:""; position:absolute; inset:-7px; border-radius:50%; border:2px solid #5B92D6; animation:agPulse 1.8s ease-out infinite;}
   @keyframes agPulse{from{transform:scale(.6); opacity:1} to{transform:scale(1.7); opacity:0}}
   .plan-screen p{font-size:.7rem; color:#5B5D63; line-height:1.5;}
-  .agent-screen{padding:1.2rem .9rem; display:flex; flex-direction:column; gap:.7rem;}
+  .agent-screen{padding:.8rem .8rem; display:flex; flex-direction:column; gap:.5rem;}
+  .agent-screen p, .agent-screen .ph-btn.alt{display:none;}
   .agent-screen h4{margin:0; font-family:var(--font-display); font-size:.95rem;}
   .agent-row{display:flex; align-items:center; gap:.6rem; background:#F1F1EC; border-radius:14px; padding:.7rem;}
   .agent-row i{width:36px; height:36px; border-radius:50%; background:#1E5AA8; color:#FFFFFF; display:grid; place-items:center; font-style:normal; font-weight:800;}
@@ -151,6 +157,25 @@ const AGENCY_STYLES = `
   .ph-btn{display:block; text-align:center; border-radius:999px; padding:.7rem; font-size:.78rem; font-weight:700; background:#1E5AA8; color:#FFFFFF;}
   .ph-btn.alt{background:none; border:2px solid #1E5AA8; color:#1E5AA8;}
   .agent-screen p{margin-top:auto; font-size:.72rem; color:#5B5D63; text-align:center; line-height:1.5;}
+
+  .path-end{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.8rem 1.2rem; margin-top:2rem; padding:1rem 1.3rem; border-radius:18px; background:var(--accent-soft); color:var(--ink); font-weight:600;}
+  /* Kompaktna plava traka na sredini (#probajte): tekst levo, dugmad desno. */
+  .mid-cta-sec{padding-block:clamp(1.5rem,4vw,2.8rem);}
+  .mid-cta{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1.2rem 2rem; border-radius:24px; padding:clamp(1.3rem,3vw,1.9rem) clamp(1.3rem,3vw,2.2rem); color:#fff;
+    background:
+      radial-gradient(50% 140% at 8% -40%, rgba(165,200,242,.45) 0%, transparent 70%),
+      linear-gradient(rgba(255,255,255,.075) 1px, transparent 1px) -1px -1px / 28px 28px,
+      linear-gradient(90deg, rgba(255,255,255,.075) 1px, transparent 1px) -1px -1px / 28px 28px,
+      linear-gradient(135deg, #1E5AA8 0%, #17447E 100%);
+    max-width:calc(1280px - 5rem); width:calc(100% - clamp(1.5rem,6vw,5rem));}
+  .mid-cta h2{color:#fff; font-size:clamp(1.4rem,2.4vw,1.9rem); line-height:1.15;}
+  .mid-cta h2 em{color:#fff;}
+  .mid-cta ul{list-style:none; margin:.6rem 0 0; padding:0; display:flex; flex-wrap:wrap; gap:.3rem 1.1rem; font-size:.92rem; opacity:.92;}
+  .mid-cta li::before{content:"✓ "; opacity:.8;}
+  .mid-cta-actions{display:flex; flex-wrap:wrap; gap:.6rem;}
+  .mid-cta .btn-primary, .mid-cta .btn-primary:hover{background:linear-gradient(180deg,#FFFFFF,#EAF1FB); color:#1E5AA8; border-color:rgba(255,255,255,.6);}
+  .mid-cta .btn-secondary{background:rgba(255,255,255,.08); color:#fff; border-color:rgba(255,255,255,.45);}
+  .mid-cta .btn-secondary:hover{background:rgba(255,255,255,.16); color:#fff;}
 
   /* 03 Vlasnik: tamna sekcija, izveštaj u beloj kartici. */
   .owner .wrap{display:grid; grid-template-columns:1fr 1fr; gap:clamp(2rem,5vw,4.5rem); align-items:center;}
@@ -201,7 +226,7 @@ const AGENCY_STYLES = `
 `;
 
 export default async function AgencyPage() {
-  const { nav, hero, week, buyer, owner, benefits, proof, steps, contact } = copy;
+  const { nav, hero, week, buyer, owner, midCta, proof, steps, contact } = copy;
   const address = [CONTACT.street, CONTACT.city].filter(Boolean).join(', ');
 
   const tours = await getShowcaseTours('sr');
@@ -233,7 +258,6 @@ export default async function AgencyPage() {
         <li><a href="#nedelja">{nav.week}</a></li>
         <li><a href="#kupac">{nav.buyer}</a></li>
         <li><a href="#vlasnik">{nav.owner}</a></li>
-        <li><a href="#koristi">{nav.benefits}</a></li>
         <li><a href="#paketi">{nav.packages}</a></li>
         <li><a href="#pitanja">{nav.faq}</a></li>
         <li><Link href="/blog">Blog</Link></li>
@@ -250,7 +274,13 @@ export default async function AgencyPage() {
               <p className="lede">{hero.lede}</p>
               <div className="hero-ctas">
                 <a className="btn btn-primary" href="#kontakt" data-track="cta:agency_hero_contact">{hero.ctaContact}</a>
-                <a className="btn btn-secondary" href="#nedelja" data-track="cta:agency_hero_story">{hero.ctaStory}</a>
+                <a
+                  className="btn btn-secondary"
+                  href={heroTour ? tourHref(heroTour.slug, heroTour.languages, 'sr') : '#nedelja'}
+                  data-track="cta:agency_hero_tour"
+                >
+                  {hero.ctaTour}
+                </a>
               </div>
               <div className="trust">
                 {hero.trust.map((item) => (
@@ -350,6 +380,10 @@ export default async function AgencyPage() {
                       <em style={{ left: '12%', top: '20%' }}>{buyer.plan.rooms[0]}</em>
                       <em style={{ left: '8%', top: '66%' }}>{buyer.plan.rooms[1]}</em>
                       <em style={{ left: '60%', top: '66%' }}>{buyer.plan.rooms[2]}</em>
+                      {/* Konus pogleda iz tačke "ovde ste" - isto kao na planu u turi (ViewCone). */}
+                      <svg className="mini-cone" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                        <path d="M55,26 L20,8 A39,39 0 0 0 20,44 Z" />
+                      </svg>
                       <span className="dot here" style={{ left: '55%', top: '26%' }} />
                       <span className="dot seen" style={{ left: '25%', top: '80%' }} />
                       <span className="dot" style={{ left: '75%', top: '80%' }} />
@@ -374,10 +408,34 @@ export default async function AgencyPage() {
                 <div><h3>{buyer.steps[3].title}</h3><p>{buyer.steps[3].text}</p></div>
               </div>
             </div>
+            {/* Kraj priče: odmah korak ka upitu, dok je priča sveža. */}
+            <div className="path-end">
+              <span>{buyer.end.text}</span>
+              <a className="btn btn-primary btn-sm" href="#kontakt" data-track="cta:agency_story_end">{buyer.end.cta}</a>
+            </div>
           </div>
         </section>
 
-        {/* 03 Vlasnik stana i mesečni izveštaj (primer). */}
+        {/* 03 Dokaz odmah posle priče: brojke iz sveta, sa izvorom. */}
+        <section className="band" id="brojke">
+          <div className="wrap">
+            <div className="section-head">
+              <span className="eyebrow">{proof.eyebrow}</span>
+              <h2>{accent(proof.title)}</h2>
+            </div>
+            <div className="proof-grid">
+              {proof.items.map((item) => (
+                <div key={item.value} className="proof-item">
+                  <b>{item.value}</b>
+                  <p>{item.label}</p>
+                  <small>{item.source}</small>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* 04 Vlasnik stana i mesečni izveštaj (primer). */}
         <section className="owner is-dark" id="vlasnik">
           <div className="wrap">
             <div>
@@ -418,63 +476,22 @@ export default async function AgencyPage() {
           </div>
         </section>
 
-        {/* 04 Šest koristi, jedna po jedna. */}
-        <section id="koristi">
-          <div className="wrap">
-            <div className="section-head">
-              <span className="eyebrow">{benefits.eyebrow}</span>
-              <h2>{accent(benefits.title)}</h2>
+        {/* Poziv na sredini: agent koga je priča ubedila ima gde da klikne pre cena. */}
+        {/* Kompaktna traka: cena u naslovu, tri koristi, dva dugmeta (agenti
+            radije zovu nego što popunjavaju formu). */}
+        <section id="probajte" className="mid-cta-sec">
+          <div className="wrap mid-cta">
+            <div className="mid-cta-text">
+              <h2>
+                {accent(midCta.title)} <FromPrice count={1} prefix="od " />
+              </h2>
+              <ul>
+                {midCta.points.map((point) => <li key={point}>{point}</li>)}
+              </ul>
             </div>
-            <div className="feat-grid n-3">
-              {benefits.items.map((item) => (
-                <div key={item.title} className="card feat">
-                  <h3>{item.title}</h3>
-                  <p>{item.text}</p>
-                </div>
-              ))}
-            </div>
-            <details className="card embed-details">
-              <summary>{benefits.embed.summary}</summary>
-              <div className="embed-body">
-                <p>{benefits.embed.text}</p>
-                <div className="code-block">
-                  &lt;<span className="tag">iframe</span>
-                  <br />
-                  &nbsp;&nbsp;<span className="attr">src</span>=<span className="str">&quot;{SITE_URL}/tour/{exampleSlug}&quot;</span>
-                  <br />
-                  &nbsp;&nbsp;<span className="attr">width</span>=<span className="str">&quot;100%&quot;</span> <span className="attr">height</span>=<span className="str">&quot;600&quot;</span>
-                  <br />
-                  &nbsp;&nbsp;<span className="attr">frameborder</span>=<span className="str">&quot;0&quot;</span> <span className="attr">allowfullscreen</span>&gt;
-                  <br />
-                  &lt;/<span className="tag">iframe</span>&gt;
-                </div>
-              </div>
-            </details>
-          </div>
-        </section>
-
-        {/* Donji meni ture, predstavljen kao koristi. */}
-        <section id="u-turi">
-          <div className="wrap">
-            <TourModulesShowcase copy={HOME_COPY.sr.modules} photoUrl={heroTour?.coverUrl ?? null} />
-          </div>
-        </section>
-
-        {/* 05 Brojke iz sveta, sa izvorom. */}
-        <section className="band">
-          <div className="wrap">
-            <div className="section-head">
-              <span className="eyebrow">{proof.eyebrow}</span>
-              <h2>{accent(proof.title)}</h2>
-            </div>
-            <div className="proof-grid">
-              {proof.items.map((item) => (
-                <div key={item.value} className="proof-item">
-                  <b>{item.value}</b>
-                  <p>{item.label}</p>
-                  <small>{item.source}</small>
-                </div>
-              ))}
+            <div className="mid-cta-actions">
+              <a className="btn btn-primary" href="#kontakt" data-track="cta:agency_mid">{midCta.button}</a>
+              <a className="btn btn-secondary" href={CONTACT_LINKS.phone} data-track="contact:phone">📞 {midCta.call}</a>
             </div>
           </div>
         </section>
@@ -496,6 +513,23 @@ export default async function AgencyPage() {
                 </div>
               ))}
             </div>
+            <details className="card embed-details">
+              <summary>{steps.embed.summary}</summary>
+              <div className="embed-body">
+                <p>{steps.embed.text}</p>
+                <div className="code-block">
+                  &lt;<span className="tag">iframe</span>
+                  <br />
+                  &nbsp;&nbsp;<span className="attr">src</span>=<span className="str">&quot;{SITE_URL}/tour/{exampleSlug}&quot;</span>
+                  <br />
+                  &nbsp;&nbsp;<span className="attr">width</span>=<span className="str">&quot;100%&quot;</span> <span className="attr">height</span>=<span className="str">&quot;600&quot;</span>
+                  <br />
+                  &nbsp;&nbsp;<span className="attr">frameborder</span>=<span className="str">&quot;0&quot;</span> <span className="attr">allowfullscreen</span>&gt;
+                  <br />
+                  &lt;/<span className="tag">iframe</span>&gt;
+                </div>
+              </div>
+            </details>
           </div>
         </section>
 
@@ -556,7 +590,7 @@ export default async function AgencyPage() {
                 </a>
               </div>
             </div>
-            <ContactForm lang="sr" defaultPackage={CONTACT_PACKAGES[0]} />
+            <ContactForm lang="sr" variant="agency" />
             <p className="contact-line">
               <a href={CONTACT_LINKS.phone} data-track="contact:phone">{CONTACT.phoneDisplay}</a>
               <a href={CONTACT_LINKS.email} data-track="contact:email">{CONTACT.email}</a>

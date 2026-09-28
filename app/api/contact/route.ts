@@ -76,6 +76,9 @@ export async function POST(req: Request) {
     const message = clean(body.message, 'message');
     // Upit sa engleske početne (/en) - da se zna na kom jeziku odgovoriti.
     const fromEnglish = body.lang === 'en';
+    // Forma sa /za-agencije (ContactForm variant="agency"): u "paketu" je broj
+    // nekretnina mesečno, pa se u bazi i na Telegramu vidi da je upit agencije.
+    const fromAgencyPage = body.from === 'agency';
     // Željeni termin iz forme; tabela nema posebnu kolonu, pa se u bazi
     // čuva kao prvi red poruke, a na Telegramu ide u svoj red.
     const slot = describeSlot(body.slotDate, body.slotWindow);
@@ -93,7 +96,7 @@ export async function POST(req: Request) {
       listing_type: listingType || null,
       size: size || null,
       message: storedMessage || null,
-      source: fromEnglish ? 'landing_en' : 'landing'
+      source: fromEnglish ? 'landing_en' : fromAgencyPage ? 'agencije' : 'landing'
     });
 
     if (error) {
@@ -113,6 +116,7 @@ export async function POST(req: Request) {
       `📞 ${escapeHtml(contact)}`
     ];
     if (fromEnglish) lines.push('🌐 Sa engleske strane — odgovoriti na engleskom');
+    if (fromAgencyPage) lines.push('🏢 Sa strane za agencije');
     if (agency) lines.push(`🏢 ${escapeHtml(agency)}`);
     if (pkg) lines.push(`📦 ${escapeHtml(pkg)}`);
     if (listingType) lines.push(`🏷️ ${escapeHtml(listingType)}`);

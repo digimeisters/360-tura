@@ -113,7 +113,11 @@ export const SITE_STYLES = `
      da se takmiči sa naslovom umesto da bude akcenat. Sredina vraća deo
      lakoće starog fonta, a ostaje čitljiva. */
   em{font-family:var(--font-serif); font-style:italic; font-weight:450; font-variation-settings:'opsz' 24; color:var(--accent); letter-spacing:-0.005em; font-size:1.1em; line-height:.9;}
-  p{margin:0;}
+  /* Pasusi bez "siročića" (jedne reči u poslednjem redu); naslovi već imaju balance. */
+  p{margin:0; text-wrap:pretty;}
+  /* Naglašena fraza u naslovu se ne lomi (lib/accent.tsx dodaje .keep kratkim frazama).
+     Samo od 640px: na telefonu bi i kratka fraza u velikom naslovu mogla da izađe van ekrana. */
+  @media (min-width:640px){ em.keep{white-space:nowrap;} }
   .eyebrow{
     font-family:var(--font-display);
     font-size:.8rem;
@@ -548,22 +552,31 @@ export const SITE_STYLES = `
   .blog-callout{border-radius:26px; padding:2rem 2.2rem; margin-bottom:2.6rem;}
   .blog-callout h2{font-size:1.3rem; font-weight:800; letter-spacing:-0.01em; color:var(--accent); margin:0 0 1rem;}
   .blog-callout .blog-bullets li{color:var(--ink);}
-  /* Traka uvodne promocije - crta se samo dok kampanja traje (PromoBanner).
-     Levo maskota (emodži u krugu), u sredini poruka u dva reda, desno
-     odbrojavanje kao izdvojena kapsula - umesto ranijeg teksta nabacanog u
-     jedan red koji se lomio nasumično na uskom ekranu. */
-  .promo-strip{max-width:none; margin:0 0 1.6rem; padding:1.1rem 1.4rem; border-radius:18px; background:linear-gradient(135deg, var(--accent), var(--accent-strong)); color:var(--on-accent); box-shadow:0 14px 32px -14px var(--accent-glow); display:flex; align-items:center; gap:1rem;}
-  .promo-icon{flex:none; display:grid; place-items:center; width:2.6rem; height:2.6rem; border-radius:50%; background:rgba(255,255,255,.16); font-size:1.3rem;}
-  .promo-body{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:.15rem;}
-  .promo-eyebrow{font-family:var(--font-display); font-size:.68rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase; opacity:.8;}
-  .promo-headline{font-family:var(--font-display); font-size:1.18rem; font-weight:800; line-height:1.2;}
-  .promo-note{font-size:.84rem; opacity:.92; line-height:1.5;}
-  .promo-days{flex:none; align-self:center; background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.3); border-radius:999px; padding:.4rem .9rem; font-family:var(--font-display); font-size:.78rem; font-weight:700; letter-spacing:.02em; white-space:nowrap;}
+  /* Promo traka (PromoBanner) - crta se samo dok kampanja traje. U potpisu
+     sajta: plavi prelaz, svetlo levo gore i mreža kvadrata. Veliki procenat
+     levo, rečenica sa cenom, odbrojavanje u kockicama, belo dugme ka formi. */
+  .promo-card{position:relative; overflow:hidden; display:flex; align-items:center; gap:1rem 1.6rem; flex-wrap:wrap; margin:0 0 1.6rem; padding:1.2rem 1.5rem; border-radius:20px; color:#fff;
+    background:
+      radial-gradient(55% 140% at 8% -40%, rgba(165,200,242,.5) 0%, transparent 70%),
+      linear-gradient(rgba(255,255,255,.075) 1px, transparent 1px) -1px -1px / 26px 26px,
+      linear-gradient(90deg, rgba(255,255,255,.075) 1px, transparent 1px) -1px -1px / 26px 26px,
+      linear-gradient(135deg, #1E5AA8 0%, #17447E 100%);
+    box-shadow:0 18px 40px -18px rgba(23,68,126,.7);}
+  .promo-big{font-family:var(--font-display); font-weight:800; font-size:2.6rem; line-height:1; letter-spacing:-0.03em; flex:none;}
+  .promo-big small{display:block; margin-top:.35rem; font-size:.66rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; opacity:.8;}
+  .promo-mid{flex:1 1 16rem; min-width:0; display:flex; flex-direction:column; gap:.2rem;}
+  .promo-mid b{font-family:var(--font-display); font-size:1.12rem; font-weight:800; line-height:1.25;}
+  .promo-mid span{font-size:.85rem; opacity:.88; line-height:1.45;}
+  .promo-cd{display:flex; gap:.45rem; flex:none;}
+  .promo-cd div{min-width:3.4rem; text-align:center; padding:.45rem .55rem; border-radius:12px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.26); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);}
+  .promo-cd b{display:block; font-family:var(--font-display); font-size:1.25rem; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.1;}
+  .promo-cd small{font-size:.66rem; font-weight:600; opacity:.85;}
+  .promo-cta{flex:none; display:inline-flex; align-items:center; padding:.7rem 1.2rem; border-radius:999px; background:linear-gradient(180deg,#FFFFFF,#EAF1FB); color:#1E5AA8; font-family:var(--font-display); font-weight:800; font-size:.9rem; text-decoration:none; box-shadow:0 8px 18px -10px rgba(5,20,50,.6); transition:transform .15s ease;}
+  @media (hover:hover){ .promo-cta:hover{transform:translateY(-1px);} }
   @media (max-width:640px){
-    .promo-strip{flex-wrap:wrap; text-align:center; justify-content:center; padding:1.1rem 1.2rem;}
-    .promo-icon{display:none;}
-    .promo-body{flex:1 1 100%; align-items:center;}
-    .promo-days{order:3;}
+    .promo-card{padding:1.1rem; gap:.9rem;}
+    .promo-big{font-size:2.2rem;}
+    .promo-cta{width:100%; justify-content:center;}
   }
 
   /* ---------- CENOVNIK ---------- */
@@ -596,9 +609,8 @@ export const SITE_STYLES = `
   /* Na telefonu početna pokazuje samo prva dva primera - ostale su na /ture (dugme ispod). */
   @media (max-width:620px){ .home-tours > :nth-child(n+3){display:none;} }
   /* Traka posle mreže kartica - najavljuje ceo spisak tura sa filterima
-     (/ture). Isprekidan okvir kao .calc-note ("ovo je samo napomena", ne
-     promo ponuda), a NE akcentna boja iz .promo-strip - lako bi se pročitalo
-     kao popust umesto kao putokaz. */
+     (/ture). Svetla kartica ("ovo je samo putokaz"), a NE plava boja promo
+     trake (.promo-card) - lako bi se pročitalo kao popust umesto kao putokaz. */
   .db-teaser{margin-top:1.6rem; padding:1.3rem 1.6rem; border-radius:22px; background:var(--surface); border:1px solid var(--line); display:flex; flex-wrap:wrap; align-items:center; gap:1rem 1.2rem;}
   .db-teaser-icon{flex:none; display:grid; place-items:center; width:2.4rem; height:2.4rem; border-radius:50%; background:var(--accent-soft); font-size:1.15rem;}
   .db-teaser-body{flex:1 1 16rem; min-width:0; display:flex; flex-direction:column; gap:.55rem;}

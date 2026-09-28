@@ -123,13 +123,25 @@ const TEXT: Record<
   }
 };
 
+// Strana za agencije: umesto paketa, tipa oglasa, kvadrature i termina (to je
+// upit za jedan stan) pita koliko nekretnina agencija oglašava mesečno - baš
+// ono što piše iznad forme. Vrednost ide u postojeće polje "paket", pa baza i
+// Telegram ne traže izmenu.
+const AGENCY_VOLUMES = ['1–2', '3–4', '5–9', '10+'] as const;
+// "1–2 nekretnine", ali "5–9 nekretnina" - broj se slaže sa gornjom granicom.
+const agencyVolumeValue = (v: string) =>
+  `Agencija · ${v} ${v === '1–2' || v === '3–4' ? 'nekretnine' : 'nekretnina'} mesečno`;
+
 export default function ContactForm({
   lang = 'sr',
   // Paket koji je unapred izabran u formi (prvi = Osnovni).
-  defaultPackage = PACKAGES[0]
+  defaultPackage = PACKAGES[0],
+  variant = 'default'
 }: {
   lang?: HomeLang;
   defaultPackage?: string;
+  /** 'agency' = kraća forma za /za-agencije (vidi AGENCY_VOLUMES). */
+  variant?: 'default' | 'agency';
 }) {
   const [status, setStatus] = useState<Status>({ kind: 'idle', text: '' });
   const t = TEXT[lang];
@@ -190,6 +202,66 @@ export default function ContactForm({
   }
 
   const isSending = status.kind === 'sending';
+
+  const footer = (
+    <div className="form-foot">
+      <button className="btn btn-primary" type="submit" disabled={isSending}>
+        {isSending ? t.sending : t.submit}
+      </button>
+
+      {/* Ista poruka kao čip, u boji koja kaže da li je uspelo. Prazan
+          element ostaje u DOM-u da bi čitač ekrana najavio promenu. */}
+      <p
+        role="status"
+        aria-live="polite"
+        className={status.text ? `toast toast-${status.kind === 'error' ? 'error' : 'ok'}` : undefined}
+      >
+        {status.kind === 'ok' ? '✓ ' : ''}
+        {status.text}
+      </p>
+    </div>
+  );
+
+  if (variant === 'agency') {
+    return (
+      <form id="contact-form" className="card contact-form" onSubmit={handleSubmit}>
+        <input type="hidden" name="from" value="agency" />
+        <div className="row2">
+          <div className="field">
+            <label htmlFor="f-name">{t.name}</label>
+            <input className="input" id="f-name" name="name" type="text" required placeholder={t.namePh} />
+          </div>
+          <div className="field">
+            <label htmlFor="f-contact">{t.contact}</label>
+            <input className="input" id="f-contact" name="contact" type="text" required placeholder={t.contactPh} />
+          </div>
+        </div>
+        <div className="row2">
+          <div className="field">
+            <label htmlFor="f-agency">Naziv agencije</label>
+            <input className="input" id="f-agency" name="agency" type="text" placeholder="npr. Nekretnine Centar" />
+          </div>
+          <div className="field">
+            <label htmlFor="f-volume">Koliko nekretnina mesečno oglašavate?</label>
+            <select className="input" id="f-volume" name="package" defaultValue={agencyVolumeValue(AGENCY_VOLUMES[1])}>
+              {AGENCY_VOLUMES.map((v) => (
+                <option key={v} value={agencyVolumeValue(v)}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="f-msg">
+            {t.message} <small style={{ fontWeight: 400 }}>(opciono)</small>
+          </label>
+          <textarea className="input" id="f-msg" name="message" placeholder="Npr. imamo 3 stana za izdavanje ovog meseca, zanima nas Premium…" />
+        </div>
+        {footer}
+      </form>
+    );
+  }
 
   return (
     <form id="contact-form" className="card contact-form" onSubmit={handleSubmit}>
@@ -287,22 +359,7 @@ export default function ContactForm({
         <textarea className="input" id="f-msg" name="message" placeholder={t.messagePh} />
       </div>
 
-      <div className="form-foot">
-        <button className="btn btn-primary" type="submit" disabled={isSending}>
-          {isSending ? t.sending : t.submit}
-        </button>
-
-        {/* Ista poruka kao čip, u boji koja kaže da li je uspelo. Prazan
-            element ostaje u DOM-u da bi čitač ekrana najavio promenu. */}
-        <p
-          role="status"
-          aria-live="polite"
-          className={status.text ? `toast toast-${status.kind === 'error' ? 'error' : 'ok'}` : undefined}
-        >
-          {status.kind === 'ok' ? '✓ ' : ''}
-          {status.text}
-        </p>
-      </div>
+      {footer}
     </form>
   );
 }

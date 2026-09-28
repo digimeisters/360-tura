@@ -27,6 +27,27 @@ export function usePromoActive(): boolean {
   );
 }
 
+// Odbrojavanje u promo traci se osvežava jednom u minuti.
+const subscribeMinute = (cb: () => void) => {
+  const id = window.setInterval(cb, 60_000);
+  return () => window.clearInterval(id);
+};
+
+/**
+ * Koliko je MINUTA ostalo do kraja promocije (za odbrojavanje "dana · sati"
+ * u promo traci). Broj, ne objekat - isti razlog kao kod usePromoDaysLeft.
+ */
+export function usePromoMinutesLeft(): number {
+  return useSyncExternalStore(
+    subscribeMinute,
+    () => {
+      const end = new Date(`${PROMO.endDate}T23:59:59`).getTime();
+      return Math.max(0, Math.floor((end - Date.now()) / 60_000));
+    },
+    () => 0
+  );
+}
+
 /**
  * Koliko je dana ostalo do kraja promocije. Odvojena kuka, a ne polje u
  * objektu uz `active`: useSyncExternalStore poredi vrednosti identitetom, pa
