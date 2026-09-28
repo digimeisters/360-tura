@@ -22,7 +22,8 @@ export function TourMenuBar({
   copiedLabel,
   // Na uvodnom ekranu deljenje već stoji gore desno (WelcomeScreen), pa se
   // ovde ne duplira - vidi showShare={tourStarted} u page.tsx.
-  showShare = true
+  showShare = true,
+  joined = false
 }: {
   activeModal: ActiveModal;
   onOpenModal: (modal: ActiveModal) => void;
@@ -32,6 +33,12 @@ export function TourMenuBar({
   shareLabel: string;
   copiedLabel: string;
   showShare?: boolean;
+  /**
+   * Telefon, dok je otvorena kartica sa tekstom: dugmad sede u donjem delu
+   * kartice (InfoCard docked), bez sopstvenog stakla - kartica i meni su
+   * jedna ploča umesto dve kutije jedna iznad druge.
+   */
+  joined?: boolean;
 }) {
   return (
     <>
@@ -73,6 +80,7 @@ export function TourMenuBar({
 
       <div className="tour-ui-scale" style={{
         ...GLASS,
+        ...(joined ? { background: 'transparent', border: '1px solid transparent', boxShadow: 'none', backdropFilter: 'none', WebkitBackdropFilter: 'none' } : {}),
         position: 'absolute',
         bottom: SCREEN_BOTTOM,
         left: '50%',

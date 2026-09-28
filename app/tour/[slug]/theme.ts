@@ -165,3 +165,8 @@ export const SCREEN_BOTTOM = 'calc(env(safe-area-inset-bottom, 0px) + 6px)';
 // Kad su i donji meni i info kartica na ekranu ("Istražite sami"), kartica
 // stoji iznad menija: visina menija + mali razmak.
 export const ABOVE_MENU_BOTTOM = `calc(${SCREEN_BOTTOM} + 76px)`;
+
+// Visina donjeg menija (dugme 52 + unutrašnji razmak 2×6 + okvir 2). Na
+// telefonu kartica "docked" ostavlja ovoliko mesta ispod teksta, a meni
+// (joined) sedi tačno tu - vidi InfoCard i TourMenuBar.
+export const MENU_HEIGHT = '66px';

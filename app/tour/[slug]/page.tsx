@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useCallback, useSyncExternalStore } from 'react';
 import { preload } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
@@ -62,6 +62,18 @@ import {
 // Admin alati (AI popuna, jezici, glas, otpremanje panorame) su poseban chunk
 // koji se skida tek kad postoji admin sesija - posetilac ga nikad ne dobija.
 const TourAdminTools = dynamic(() => import('./TourAdminTools'), { ssr: false });
+
+// Uzak ekran (telefon, ista granica kao mala mapa - 1024px): kartica sa
+// tekstom i donji meni se spajaju u jednu ploču (InfoCard docked).
+const NARROW_QUERY = '(max-width: 1023px)';
+function subscribeNarrow(cb: () => void) {
+  const mq = window.matchMedia(NARROW_QUERY);
+  mq.addEventListener('change', cb);
+  return () => mq.removeEventListener('change', cb);
+}
+function useNarrowScreen(): boolean {
+  return useSyncExternalStore(subscribeNarrow, () => window.matchMedia(NARROW_QUERY).matches, () => false);
+}
 
 // Uklanja sloj jedne scene: Pannellum viewer i njegov div.
 function disposeLayer(layer: { viewer: any; el: HTMLDivElement } | null) {
@@ -412,6 +424,7 @@ export default function TourPage() {
   // "Prevucite prstom da razgledate" pri prvom ulasku - vidi TourOverlays.tsx.
   const showDragHint = useFirstTimeDragHint(tourStarted);
   const immersive = useImmersiveWhileDragging(tourStarted && !adminMode);
+  const isNarrow = useNarrowScreen();
 
   const closeInfoCard = () => {
     stopAudio();
@@ -868,6 +881,11 @@ export default function TourPage() {
   const isModalToolbarVisible = isGuideAuto
     ? !infoBoxData && (!tourStarted || isRoomTourFullyCompleted || isInfoboxManuallyClosed)
     : true;
+  // Telefon, kartica i meni zajedno: jedna ploča (vlasnik, 28. 9. 2026 - dve
+  // kutije jedna iznad druge su zauzimale četvrtinu ekrana). Dok se prstom
+  // razgleda, kartica se sklanja, pa meni opet dobija svoje staklo.
+  const infoCardShown = Boolean(infoBoxData) && !pendingCoords && !activeModal;
+  const bottomDocked = isNarrow && infoCardShown && isModalToolbarVisible && !immersive;
 
   // Dugme "Pozovi" stoji dok donji meni (sa Kontaktom) nije vidljiv - vidi
   // CallAgentButton. U admin režimu se prikazuje (da vlasnik vidi turu kao
@@ -1058,6 +1076,7 @@ export default function TourPage() {
           // Pre polaska deljenje već stoji gore desno na WelcomeScreen-u.
           // Deljenje je u kartici sa nazivom ture (gore levo) - vidi TourTitleCard.
           showShare={false}
+          joined={bottomDocked}
           labels={{
             faq: t.btnFaq,
             location: t.btnLocation,
@@ -1100,6 +1119,7 @@ export default function TourPage() {
           lessLabel={t.readLess}
           hidden={immersive}
           raised={isModalToolbarVisible && !pendingCoords}
+          docked={bottomDocked}
           onClose={closeInfoCard}
           action={callButton}
         />

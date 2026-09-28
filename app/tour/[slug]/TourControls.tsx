@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { THEME, GLASS, GLASS_ACCENT, overlayIconStyle, SCREEN_BOTTOM, ABOVE_MENU_BOTTOM } from './theme';
+import { THEME, GLASS, GLASS_ACCENT, overlayIconStyle, SCREEN_BOTTOM, ABOVE_MENU_BOTTOM, MENU_HEIGHT } from './theme';
 import { IconCheck, IconCollapse, IconCompass, IconExpand, IconHand, IconHeadphones, IconMute, IconPause, IconPhone, IconPlay, IconShare, IconSound } from './icons';
 import type { Language } from './types';
 
@@ -284,6 +284,7 @@ export function InfoCard({
   lessLabel,
   hidden = false,
   raised = false,
+  docked = false,
   action
 }: {
   title: string | null;
@@ -296,10 +297,16 @@ export function InfoCard({
   hidden?: boolean;
   /** Donji meni je vidljiv ispod kartice - kartica stoji iznad njega. */
   raised?: boolean;
+  /**
+   * Telefon: kartica je donji deo jedne ploče sa menijem (meni sedi u njenom
+   * dnu, TourMenuBar joined) - naziv i JEDAN red teksta, "Više" u istom redu.
+   * Na telefonu kartica + meni jedno iznad drugog zauzimaju četvrtinu ekrana.
+   */
+  docked?: boolean;
   /** Dugme u zaglavlju kartice, levo od zatvaranja ("Pozovi"). */
   action?: React.ReactNode;
 }) {
-  const headRoom = action ? '150px' : '44px';
+  const headRoom = docked ? '38px' : action ? '150px' : '44px';
   const [expanded, setExpanded] = useState(false);
   // "Više" samo kad tekst stvarno ne staje u dva reda.
   const [overflows, setOverflows] = useState(false);
@@ -318,31 +325,32 @@ export function InfoCard({
   return (
     <div className={`tour-ui-scale k360-fade-ui${hidden ? ' is-immersive' : ''}`} style={{
       position: 'absolute',
-      bottom: raised ? ABOVE_MENU_BOTTOM : SCREEN_BOTTOM,
+      bottom: docked ? SCREEN_BOTTOM : raised ? ABOVE_MENU_BOTTOM : SCREEN_BOTTOM,
       left: '50%',
       transform: 'translateX(-50%)',
-      zIndex: 30,
+      // Spojena: ispod menija (55), da dugmad ostanu klikabilna preko nje.
+      zIndex: docked ? 54 : 30,
       width: 'calc(100% - 24px)',
       maxWidth: '520px',
       boxSizing: 'border-box',
-      background: 'rgba(15, 18, 28, 0.62)',
+      background: docked ? 'rgba(15, 20, 34, 0.72)' : 'rgba(15, 18, 28, 0.62)',
       backdropFilter: 'blur(14px)',
       WebkitBackdropFilter: 'blur(14px)',
       border: '1px solid rgba(255, 255, 255, 0.2)',
-      borderRadius: '24px',
-      padding: '14px 18px 16px',
+      borderRadius: docked ? '26px' : '24px',
+      padding: docked ? `10px 14px calc(${MENU_HEIGHT} + 2px)` : '14px 18px 16px',
       color: '#fff',
       boxShadow: '0 6px 20px rgba(0, 0, 0, 0.25)',
       fontFamily: THEME.fontBody
     }}>
-      <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ position: 'absolute', top: docked ? '7px' : '10px', right: docked ? '8px' : '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
       {action}
       <button
         onClick={onClose}
         className="k360-tap"
         style={{
-          width: '36px',
-          height: '36px',
+          width: docked ? '30px' : '36px',
+          height: docked ? '30px' : '36px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -365,21 +373,24 @@ export function InfoCard({
       </div>
 
       {title && (
-        <h3 style={{ margin: '0 0 6px', paddingRight: headRoom, fontFamily: 'var(--font-urbanist), var(--font-jakarta), system-ui, sans-serif', fontSize: '20px', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.01em', color: '#fff', textWrap: 'balance' }}>
+        <h3 style={{ margin: docked ? '2px 0 3px' : '0 0 6px', paddingRight: headRoom, fontFamily: 'var(--font-urbanist), var(--font-jakarta), system-ui, sans-serif', fontSize: docked ? '16px' : '20px', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.01em', color: '#fff', textWrap: 'balance' }}>
           {title}
         </h3>
       )}
+      <div style={docked && !expanded ? { display: 'flex', alignItems: 'baseline', gap: '6px' } : undefined}>
       <p
         ref={textRef}
         style={{
           margin: 0,
-          fontSize: '13.5px',
+          flex: docked && !expanded ? '1 1 auto' : undefined,
+          minWidth: 0,
+          fontSize: docked ? '13px' : '13.5px',
           lineHeight: 1.55,
           color: 'rgba(255, 255, 255, 0.9)',
           paddingRight: title ? '6px' : headRoom,
           ...(expanded
-            ? { maxHeight: '40vh', overflowY: 'auto' as const }
-            : { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' })
+            ? { maxHeight: docked ? '34vh' : '40vh', overflowY: 'auto' as const }
+            : { display: '-webkit-box', WebkitLineClamp: docked ? 1 : 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' })
         }}
       >
         {text}
@@ -393,8 +404,9 @@ export function InfoCard({
           style={{
             display: 'inline-flex',
             alignItems: 'center',
+            flex: 'none',
             gap: '4px',
-            marginTop: '4px',
+            marginTop: docked && !expanded ? 0 : '4px',
             padding: '2px 0',
             background: 'none',
             border: 'none',
@@ -409,6 +421,7 @@ export function InfoCard({
           <span aria-hidden="true" style={{ display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}>▾</span>
         </button>
       )}
+      </div>
     </div>
   );
 }
