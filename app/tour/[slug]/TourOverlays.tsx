@@ -272,7 +272,7 @@ export function useImmersiveWhileDragging(enabled: boolean): boolean {
     const onEnd = () => {
       if (!dragging) return;
       dragging = false;
-      showTimer = setTimeout(() => setImmersive(false), 1500);
+      showTimer = setTimeout(() => setImmersive(false), 2000);
     };
 
     panorama.addEventListener('touchstart', onStart, { passive: true });

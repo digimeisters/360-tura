@@ -275,6 +275,28 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
   const introOnlyText = getLocalizedText(establishData.intro_i18n, langRef.current);
   const detailOnlyText = getLocalizedText(establishData.detail_i18n, langRef.current);
 
+  // "Istražite sami" (vlasnik, 28. 9. 2026): bez priče koja teče sama. Ranije
+  // je i ovde kamera sama kružila i obilazila info-tačke, a tekst se menjao na
+  // svakih par sekundi - posetilac je dobijao niz prekinutih rečenica koje mu
+  // beže, i naslov sobe iznad teksta o nekom detalju. Sada: kadar se otvori,
+  // kartica pokaže naziv sobe i uvod (ceo, "Više" za ostatak) i STOJI dok je
+  // posetilac ne zatvori; info-tačke pričaju tek na dodir, svaka sa svojim
+  // naslovom. Snimljena naracija (ako soba ima audio) se i dalje pušta.
+  if (guideModeRef.current !== 'auto') {
+    stopCurrentAnimation();
+    if (!entry && viewerRef.current) {
+      try {
+        if (!zoomedIn) viewerRef.current.setHfov(pickHfov(DEFAULT_HFOV));
+        viewerRef.current.setYaw(targetEstablishYaw);
+        viewerRef.current.setPitch(targetEstablishPitch);
+      } catch {}
+    }
+    void playNarration(hasRecordedAudio ? introAudioUrl : undefined, introTextRaw, currentRoom.title_i18n, undefined, 0);
+    roomSequenceFinishedRef.current = true;
+    setIsRoomTourFullyCompleted(true);
+    return;
+  }
+
   const playIntroNarration = async () => {
     await waitWhilePaused();
     if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;

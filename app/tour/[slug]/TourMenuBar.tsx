@@ -23,7 +23,8 @@ export function TourMenuBar({
   // Na uvodnom ekranu deljenje već stoji gore desno (WelcomeScreen), pa se
   // ovde ne duplira - vidi showShare={tourStarted} u page.tsx.
   showShare = true,
-  joined = false
+  joined = false,
+  compact = false
 }: {
   activeModal: ActiveModal;
   onOpenModal: (modal: ActiveModal) => void;
@@ -39,11 +40,17 @@ export function TourMenuBar({
    * jedna ploča umesto dve kutije jedna iznad druge.
    */
   joined?: boolean;
+  /**
+   * Dok posetilac prstom razgleda panoramu: samo uvećane ikonice, bez naziva,
+   * u nižoj traci - meni ostaje pri ruci, a pokriva manje slike. Nazivi se
+   * vraćaju zajedno sa ostalim dugmićima (useImmersiveWhileDragging).
+   */
+  compact?: boolean;
 }) {
   return (
     <>
       {/* Deljenje stoji iznad menija, na sredini (iznad "Info"). */}
-      {showShare && (
+      {showShare && !compact && (
       <button
         onClick={onShare}
         className="tour-ui-scale k360-tap"
@@ -91,8 +98,9 @@ export function TourMenuBar({
         width: 'calc(100% - 24px)',
         maxWidth: '520px',
         boxSizing: 'border-box',
-        padding: '6px',
+        padding: compact ? '4px 6px' : '6px',
         borderRadius: '26px',
+        transition: 'padding 0.2s ease',
         justifyContent: 'center'
       }}>
         {MENU_ORDER.map((modal) => {
@@ -102,11 +110,13 @@ export function TourMenuBar({
             <button
               key={modal}
               onClick={() => onOpenModal(modal)}
+              aria-label={withoutEmoji(labels[modal])}
               style={{
                 ...overlayNavButtonStyle,
                 flex: 1,
                 minWidth: 0,
-                minHeight: '52px',
+                minHeight: compact ? '44px' : '52px',
+                justifyContent: 'center',
                 color: '#fff',
                 background: active ? 'rgba(127, 176, 236, 0.18)' : 'transparent',
                 borderRadius: '18px',
@@ -115,10 +125,10 @@ export function TourMenuBar({
                 fontFamily: THEME.fontBody
               }}
             >
-              <Icon size={22} color={active ? GLASS_ACCENT : '#fff'} />
-              <span style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <Icon size={compact ? 27 : 22} color={active ? GLASS_ACCENT : '#fff'} />
+              {!compact && <span style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {withoutEmoji(labels[modal])}
-              </span>
+              </span>}
             </button>
           );
         })}

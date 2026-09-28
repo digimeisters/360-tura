@@ -1077,6 +1077,7 @@ export default function TourPage() {
           // Deljenje je u kartici sa nazivom ture (gore levo) - vidi TourTitleCard.
           showShare={false}
           joined={bottomDocked}
+          compact={immersive}
           labels={{
             faq: t.btnFaq,
             location: t.btnLocation,

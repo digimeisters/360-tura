@@ -299,7 +299,7 @@ export function InfoCard({
   raised?: boolean;
   /**
    * Telefon: kartica je donji deo jedne ploče sa menijem (meni sedi u njenom
-   * dnu, TourMenuBar joined) - naziv i JEDAN red teksta, "Više" u istom redu.
+   * dnu, TourMenuBar joined) - naziv i tri reda teksta (ceo uvod sobe najčešće stane), "Više" ispod.
    * Na telefonu kartica + meni jedno iznad drugog zauzimaju četvrtinu ekrana.
    */
   docked?: boolean;
@@ -377,12 +377,12 @@ export function InfoCard({
           {title}
         </h3>
       )}
-      <div style={docked && !expanded ? { display: 'flex', alignItems: 'baseline', gap: '6px' } : undefined}>
+      <div>
       <p
         ref={textRef}
         style={{
           margin: 0,
-          flex: docked && !expanded ? '1 1 auto' : undefined,
+          
           minWidth: 0,
           fontSize: docked ? '13px' : '13.5px',
           lineHeight: 1.55,
@@ -390,7 +390,7 @@ export function InfoCard({
           paddingRight: title ? '6px' : headRoom,
           ...(expanded
             ? { maxHeight: docked ? '34vh' : '40vh', overflowY: 'auto' as const }
-            : { display: '-webkit-box', WebkitLineClamp: docked ? 1 : 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' })
+            : { display: '-webkit-box', WebkitLineClamp: docked ? 3 : 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' })
         }}
       >
         {text}
@@ -406,7 +406,7 @@ export function InfoCard({
             alignItems: 'center',
             flex: 'none',
             gap: '4px',
-            marginTop: docked && !expanded ? 0 : '4px',
+            marginTop: '4px',
             padding: '2px 0',
             background: 'none',
             border: 'none',
