@@ -13,7 +13,7 @@ import { pickCoverRoom } from '../../lib/coverRoom';
 import { Logo } from './Logo';
 import { RoomNavBar, type RoomDot } from './RoomNavBar';
 import { WelcomeScreen } from './WelcomeScreen';
-import { CallAgentButton, InfoCard, LanguageChips, LeaveTourDialog, OverlayButtons, StatusNotice, TourTitleCard } from './TourControls';
+import { CallAgentButton, InfoCard, LanguageChips, LeaveTourDialog, NarrationSubtitles, OverlayButtons, StatusNotice, TourTitleCard } from './TourControls';
 import { useBackGuard } from './useBackGuard';
 import { TourMenuBar } from './TourMenuBar';
 import { ViewingRequestModal } from './ViewingRequestModal';
@@ -164,6 +164,8 @@ export default function TourPage() {
 
 
   const [infoBoxData, setInfoBoxData] = useState<{ titleRaw?: unknown; textRaw: unknown; index?: number; audio_url?: unknown } | null>(null);
+  // Snimljeni glas se upravo čuje - tada automatski vodič pokazuje titlove.
+  const [narrationAudioActive, setNarrationAudioActive] = useState(false);
 
   const viewerRef = useRef<any>(null);
   // Pravac pogleda za konus na planu (ViewCone čita ovo u svakom kadru). Za
@@ -226,8 +228,15 @@ export default function TourPage() {
     resumeAfterMute,
     restartInCurrentLanguage,
     resetPosition,
-    scheduleAfterNarration
-  } = useTourNarration({ isMountedRef, langRef, isMutedRef, onNarrationChange: setInfoBoxData });
+    scheduleAfterNarration,
+    getAudioClock
+  } = useTourNarration({
+    isMountedRef,
+    langRef,
+    isMutedRef,
+    onNarrationChange: setInfoBoxData,
+    onAudioActiveChange: setNarrationAudioActive
+  });
 
   // Kretanje između soba (klik, tačka, strelice, tlocrt) i automatski
   // vodič - vidi useRoomNavigation.ts.
@@ -884,7 +893,15 @@ export default function TourPage() {
   // Telefon, kartica i meni zajedno: jedna ploča (vlasnik, 28. 9. 2026 - dve
   // kutije jedna iznad druge su zauzimale četvrtinu ekrana). Dok se prstom
   // razgleda, kartica se sklanja, pa meni opet dobija svoje staklo.
-  const infoCardShown = Boolean(infoBoxData) && !pendingCoords && !activeModal;
+  // Automatsko vođenje sa snimljenim glasom: tekst ide kao titl na filmu
+  // (rečenica koja se izgovara), bez kartice - vlasnik, 27. 9. 2026. Kad se
+  // glas završi, titl nestaje i kartica se NE vraća (ekran pripada panorami
+  // do sledeće tačke). Bez zvuka ili bez snimka za taj jezik ostaje kartica,
+  // jer tada posetilac tekst čita sam. Ručni režim uvek ima karticu.
+  const subtitleMode =
+    isGuideAuto && !isMuted && Boolean(infoBoxData) && Boolean(getLocalizedText(infoBoxData?.audio_url, lang));
+  const showSubtitles = subtitleMode && narrationAudioActive && !pendingCoords && !activeModal;
+  const infoCardShown = Boolean(infoBoxData) && !subtitleMode && !pendingCoords && !activeModal;
   const bottomDocked = isNarrow && infoCardShown && isModalToolbarVisible && !immersive;
 
   // Dugme "Pozovi" stoji dok donji meni (sa Kontaktom) nije vidljiv - vidi
@@ -897,7 +914,8 @@ export default function TourPage() {
     <CallAgentButton
       phone={agentPhone}
       label={t.callNow}
-      floating={!infoBoxData}
+      floating={!infoCardShown}
+      round={showSubtitles}
       onPhoneCall={() => {
         if (slug && !adminMode) trackEvent({ eventType: 'contact', tourSlug: slug, lang });
       }}
@@ -1110,7 +1128,18 @@ export default function TourPage() {
         />
       )}
 
-      {infoBoxData && !pendingCoords && !activeModal && (
+      {showSubtitles && (
+        <NarrationSubtitles
+          key={displayedInfoText}
+          title={displayedInfoTitle || currentRoomTitle}
+          text={displayedInfoText}
+          getClock={getAudioClock}
+          hidden={immersive}
+          lifted={Boolean(callButton) && isNarrow}
+        />
+      )}
+
+      {infoCardShown && (
         <InfoCard
           key={displayedInfoText}
           title={displayedInfoTitle}
@@ -1127,7 +1156,7 @@ export default function TourPage() {
       )}
 
       {/* Bez kartice dugme ide samo u dno ekrana, desno. */}
-      {!infoBoxData && callButton}
+      {!infoCardShown && callButton}
 
       {/* MODAL: ADMIN LOGIN (Supabase Auth - zamena za staru ?admin=... lozinku) */}
       {backGuard.askLeave && (

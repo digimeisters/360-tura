@@ -26,7 +26,17 @@ export function TourGlobalStyles() {
       .k360-fade-ui { transition: opacity 0.25s ease; }
       .k360-fade-ui.is-immersive { opacity: 0; }
       .k360-fade-ui.is-immersive, .k360-fade-ui.is-immersive * { pointer-events: none !important; }
-      @media (prefers-reduced-motion: reduce) { .k360-top-ui { transition: none; } }
+      /* Titl uz glas: svaka nova rečenica se blago pojavi (NarrationSubtitles). */
+      @keyframes k360SubtitleIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+      .k360-subtitle { animation: k360SubtitleIn 0.22s ease-out both; }
+      /* Talas u crnoj oznaci titla: vodič upravo priča. */
+      .k360-voice-wave { display: inline-flex; align-items: center; gap: 2px; height: 11px; flex: none; }
+      .k360-voice-wave i { display: block; width: 2px; height: 4px; border-radius: 1px; background: #5B92D6; animation: k360Wave 0.9s ease-in-out infinite; }
+      .k360-voice-wave i:nth-child(2) { animation-delay: 0.15s; }
+      .k360-voice-wave i:nth-child(3) { animation-delay: 0.3s; }
+      .k360-voice-wave i:nth-child(4) { animation-delay: 0.45s; }
+      @keyframes k360Wave { 0%, 100% { height: 4px; } 50% { height: 11px; } }
+      @media (prefers-reduced-motion: reduce) { .k360-top-ui { transition: none; } .k360-subtitle, .k360-voice-wave i { animation: none; } }
       @media (min-width: 1024px) {
         .tour-ui-scale { zoom: 1.122; }
         /* Zoom ide na unutrašnji omotač (.k360-hotspot-scale), NE na

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { THEME, GLASS, GLASS_ACCENT, overlayIconStyle, SCREEN_BOTTOM, ABOVE_MENU_BOTTOM, MENU_HEIGHT } from './theme';
 import { IconCheck, IconCollapse, IconCompass, IconExpand, IconHand, IconHeadphones, IconMute, IconPause, IconPhone, IconPlay, IconShare, IconSound } from './icons';
 import type { Language } from './types';
@@ -426,6 +426,167 @@ export function InfoCard({
   );
 }
 
+/** Najduži titl (znakova) - dva kraća reda na telefonu, kao na filmu. */
+const SUBTITLE_MAX_CHARS = 90;
+/**
+ * Glas pravi pauzu posle tačke i zareza; toliko "znakova" se dodaje težini
+ * titla da rečenica ne prestigne glas.
+ */
+const SUBTITLE_SENTENCE_PAUSE = 10;
+const SUBTITLE_COMMA_PAUSE = 3;
+
+/** Deli dugačak deo na komade do SUBTITLE_MAX_CHARS, po zarezu ili po reči. */
+function splitLong(part: string): string[] {
+  if (part.length <= SUBTITLE_MAX_CHARS) return [part];
+  const pieces = Math.ceil(part.length / SUBTITLE_MAX_CHARS);
+  const target = part.length / pieces;
+  // Najbolji rez: zarez/crta najbliži idealnom mestu, inače razmak.
+  let cut = -1;
+  let best = Infinity;
+  const re = /[,;:–—]\s/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(part))) {
+    const at = m.index + 1;
+    const off = Math.abs(at - target);
+    if (at >= 20 && part.length - at >= 20 && off < best && off < target * 0.45) {
+      best = off;
+      cut = at;
+    }
+  }
+  if (cut < 0) {
+    const space = part.lastIndexOf(' ', Math.round(target));
+    cut = space > 0 ? space : Math.round(target);
+  }
+  return [...splitLong(part.slice(0, cut).trim()), ...splitLong(part.slice(cut).trim())];
+}
+
+/** Tekst naracije -> titlovi, rečenicu po rečenicu (dugačke rečenice u delovima). */
+export function toSubtitleCues(text: string): { text: string; weight: number }[] {
+  const sentences = text
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(/(?<=[.!?…])\s+(?=\S)/)
+    .filter(Boolean);
+  const cues: { text: string; weight: number }[] = [];
+  for (const sentence of sentences) {
+    const parts = splitLong(sentence);
+    parts.forEach((p, i) => {
+      const last = i === parts.length - 1;
+      cues.push({ text: p, weight: p.length + (last ? SUBTITLE_SENTENCE_PAUSE : SUBTITLE_COMMA_PAUSE) });
+    });
+  }
+  return cues;
+}
+
+/**
+ * Titlovi uz snimljeni glas u automatskom vođenju (vlasnik, 27. 9. 2026:
+ * "kad dođe naracija, tekst kao na filmu"). Umesto kartice sa celim tekstom
+ * na dnu ide samo rečenica koja se upravo izgovara - bez stakla, dugmadi i
+ * "Više", da panorama ostane otvorena. Rečenica se bira po tome dokle je
+ * glas stigao (getClock), srazmerno dužini rečenica - ElevenLabs ne daje
+ * vremena reči, a za titl je ovo dovoljno tačno.
+ */
+export function NarrationSubtitles({
+  title,
+  text,
+  getClock,
+  hidden = false,
+  lifted = false
+}: {
+  /** Naziv info-tačke, a za uvod sobe naziv sobe - u crnoj oznaci iznad titla. */
+  title: string;
+  text: string;
+  getClock: () => { time: number; duration: number } | null;
+  hidden?: boolean;
+  /** U dnu desno stoji okruglo "Pozovi" - na uskom ekranu titl ide iznad njega. */
+  lifted?: boolean;
+}) {
+  const cues = useMemo(() => toSubtitleCues(text), [text]);
+  const [cueIdx, setCueIdx] = useState(0);
+
+  // Novi tekst = nova komponenta (page.tsx daje key={tekst}), pa cueIdx kreće od 0.
+  useEffect(() => {
+    if (cues.length < 2) return;
+    const total = cues.reduce((sum, c) => sum + c.weight, 0);
+    const id = window.setInterval(() => {
+      const clock = getClock();
+      if (!clock) return;
+      const at = (clock.time / clock.duration) * total;
+      let acc = 0;
+      let idx = cues.length - 1;
+      for (let i = 0; i < cues.length; i++) {
+        acc += cues[i].weight;
+        if (at < acc) {
+          idx = i;
+          break;
+        }
+      }
+      setCueIdx(idx);
+    }, 150);
+    return () => window.clearInterval(id);
+  }, [cues, getClock]);
+
+  const cue = cues[Math.min(cueIdx, cues.length - 1)];
+  if (!cue) return null;
+
+  return (
+    <div
+      aria-live="polite"
+      className={`tour-ui-scale k360-fade-ui${hidden ? ' is-immersive' : ''}`}
+      style={{
+        position: 'absolute',
+        left: '50%',
+        bottom: lifted ? `calc(${SCREEN_BOTTOM} + 48px)` : `calc(${SCREEN_BOTTOM} + 10px)`,
+        transform: 'translateX(-50%)',
+        zIndex: 30,
+        width: 'calc(100% - 32px)',
+        maxWidth: '640px',
+        textAlign: 'center',
+        pointerEvents: 'none',
+        fontFamily: THEME.fontBody
+      }}
+    >
+      {/* Crna oznaka sa talasom: šta se opisuje i da vodič upravo priča
+          (vlasnik, 30. 9. 2026 - varijanta C). */}
+      <div style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '7px',
+        maxWidth: '100%',
+        boxSizing: 'border-box',
+        marginBottom: '7px',
+        padding: '5px 12px 5px 10px',
+        borderRadius: '999px',
+        background: '#000',
+        color: '#fff',
+        fontSize: '11.5px',
+        fontWeight: 700,
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        lineHeight: 1.2
+      }}>
+        <span className="k360-voice-wave" aria-hidden="true"><i /><i /><i /><i /></span>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
+      </div>
+      <p
+        key={cue.text}
+        className="k360-subtitle"
+        style={{ margin: 0, fontSize: '16.5px', lineHeight: 1.5, fontWeight: 600, color: '#fff', textWrap: 'balance' }}
+      >
+        <span style={{
+          background: 'rgba(0, 0, 0, 0.72)',
+          padding: '3px 10px',
+          borderRadius: '6px',
+          boxDecorationBreak: 'clone',
+          WebkitBoxDecorationBreak: 'clone'
+        }}>
+          {cue.text}
+        </span>
+      </p>
+    </div>
+  );
+}
+
 /**
  * Malo dugme "Pozovi" koje stoji u turi dok donji meni (sa Kontaktom) nije
  * vidljiv - tokom vođenja i dok su otvorene kartice sa opisom. Bez njega
@@ -440,7 +601,8 @@ export function CallAgentButton({
   label,
   onPhoneCall,
   onDesktop,
-  floating = false
+  floating = false,
+  round = false
 }: {
   phone: string;
   label: string;
@@ -449,11 +611,18 @@ export function CallAgentButton({
   onDesktop: () => void;
   /** Samostalno u dnu ekrana (kad kartice nema), umesto prikačeno uz nju. */
   floating?: boolean;
+  /**
+   * Samo slušalica u krugu, bez teksta - dok idu titlovi, da pilula "Pozovi"
+   * ne štrči pored njih (vlasnik, 30. 9. 2026).
+   */
+  round?: boolean;
 }) {
   return (
     <a
       href={`tel:${phone.replace(/[^\d+]/g, '')}`}
       className={floating ? 'tour-ui-scale k360-tap' : 'k360-tap'}
+      aria-label={round ? label : undefined}
+      title={round ? label : undefined}
       onClick={(e) => {
         const touch = window.matchMedia('(pointer: coarse)').matches;
         if (touch) {
@@ -469,10 +638,11 @@ export function CallAgentButton({
           : {}),
         display: 'inline-flex',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: '6px',
         height: '36px',
         boxSizing: 'border-box',
-        padding: '0 14px 0 12px',
+        ...(round ? { width: '36px', padding: 0 } : { padding: '0 14px 0 12px' }),
         borderRadius: '999px',
         background: THEME.accent,
         border: '1px solid rgba(255, 255, 255, 0.35)',
@@ -488,7 +658,7 @@ export function CallAgentButton({
       }}
     >
       <IconPhone size={16} color="#fff" />
-      {label}
+      {!round && label}
     </a>
   );
 }

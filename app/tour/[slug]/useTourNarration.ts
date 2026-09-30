@@ -19,20 +19,34 @@ export type NarrationInfo = {
   audio_url?: unknown;
 } | null;
 
+/** Dokle je stigao glas - titlovi po tome biraju rečenicu (NarrationSubtitles). */
+export type AudioClock = { time: number; duration: number };
+
 export function useTourNarration({
   isMountedRef,
   langRef,
   isMutedRef,
-  onNarrationChange
+  onNarrationChange,
+  onAudioActiveChange
 }: {
   isMountedRef: RefObject<boolean>;
   langRef: RefObject<Language>;
   isMutedRef: RefObject<boolean>;
   /** Tekst koji prati naraciju - strana ga prikazuje u info kartici. */
   onNarrationChange: (info: NarrationInfo) => void;
+  /**
+   * true od trenutka kad snimljeni glas stvarno krene, false kad se naracija
+   * završi ili prekine. Pauza (vodič pauziran) ga NE gasi - titl ostaje na
+   * rečenici na kojoj je glas stao.
+   */
+  onAudioActiveChange?: (active: boolean) => void;
 }) {
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
   const audioCurrentTimeRef = useRef<number>(0);
+  const audioDurationRef = useRef<number>(0);
+  const setAudioActive = useCallback((active: boolean) => {
+    onAudioActiveChange?.(active);
+  }, [onAudioActiveChange]);
 
   // Rešavanje obećanja trenutne naracije i sirovi i18n podaci iz kojih se
   // ona može ponovo složiti na drugom jeziku.
@@ -60,6 +74,7 @@ export function useTourNarration({
 
   const stopAudio = useCallback(() => {
     pauseElement();
+    setAudioActive(false);
     if (hideTimerRef.current) {
       clearTimeout(hideTimerRef.current);
       hideTimerRef.current = null;
@@ -68,7 +83,7 @@ export function useTourNarration({
       clearTimeout(guideCompleteTimerRef.current);
       guideCompleteTimerRef.current = null;
     }
-  }, [pauseElement]);
+  }, [pauseElement, setAudioActive]);
 
   /**
    * Pušta naraciju za TRENUTNI jezik iz zapamćenih sirovih podataka i završava
@@ -96,6 +111,8 @@ export function useTourNarration({
     const finish = () => {
       activeAudioRef.current = null;
       audioCurrentTimeRef.current = 0;
+      audioDurationRef.current = 0;
+      setAudioActive(false);
       const resolveFn = activeResolveRef.current;
       activeResolveRef.current = null;
       activePlaybackRawRef.current = null;
@@ -103,6 +120,7 @@ export function useTourNarration({
     };
 
     if (isMutedRef.current || !resolvedAudioUrl) {
+      setAudioActive(false);
       const readTime = Math.max(3000, resolvedText.length * 50);
       hideTimerRef.current = setTimeout(() => {
         if (isMountedRef.current) finish();
@@ -115,16 +133,35 @@ export function useTourNarration({
 
     audio.onloadedmetadata = () => {
       if (!isMountedRef.current) return;
+      if (Number.isFinite(audio.duration)) audioDurationRef.current = audio.duration;
       if (startAt > 0 && startAt < audio.duration) {
         audio.currentTime = startAt;
       }
+    };
+    audio.onplaying = () => {
+      if (isMountedRef.current && activeAudioRef.current === audio) setAudioActive(true);
     };
 
     audio.onended = finish;
     audio.onerror = finish;
 
     audio.play().catch(finish);
-  }, [isMountedRef, isMutedRef, langRef]);
+  }, [isMountedRef, isMutedRef, langRef, setAudioActive]);
+
+  /**
+   * Trenutak i dužina glasa koji se čuje. Za vreme pauze vraća mesto na kom
+   * je stao (titl ostaje na toj rečenici); null kad glasa nema.
+   */
+  const getAudioClock = useCallback((): AudioClock | null => {
+    const audio = activeAudioRef.current;
+    if (audio && Number.isFinite(audio.duration) && audio.duration > 0) {
+      return { time: audio.currentTime, duration: audio.duration };
+    }
+    if (!audio && activePlaybackRawRef.current && audioDurationRef.current > 0) {
+      return { time: audioCurrentTimeRef.current, duration: audioDurationRef.current };
+    }
+    return null;
+  }, []);
 
   /** Pokreće naraciju i vraća obećanje koje se rešava kad se ona završi. */
   const playNarration = useCallback((
@@ -188,6 +225,7 @@ export function useTourNarration({
     resumeAfterMute,
     restartInCurrentLanguage,
     resetPosition,
-    scheduleAfterNarration
+    scheduleAfterNarration,
+    getAudioClock
   };
 }
