@@ -74,6 +74,8 @@ export function useTourNarration({
 
   const stopAudio = useCallback(() => {
     pauseElement();
+    // Nova naracija ne sme da nasledi dužinu prekinute (getAudioClock).
+    audioDurationRef.current = 0;
     setAudioActive(false);
     if (hideTimerRef.current) {
       clearTimeout(hideTimerRef.current);

@@ -321,6 +321,8 @@ export default function TourPage() {
       yaw: wp.yaw || 0,
       createTooltipFunc: (hotSpotDiv: HTMLDivElement) => {
         hotSpotDiv.classList.add(isNav ? 'custom-nav-hotspot' : 'custom-info-hotspot');
+        // Po ovome vodič nalazi vrata ka sledećoj sobi da ih zasvetli (roomSequence.ts).
+        if (isNav && wp.targetRoomId != null) hotSpotDiv.dataset.targetRoom = String(wp.targetRoomId);
         applyGlassHotspotStyle(hotSpotDiv, isNav, tooltipText);
       },
       text: tooltipText,
@@ -741,6 +743,7 @@ export default function TourPage() {
         scheduleAfterNarration,
         playNarration,
         waitWhilePaused,
+        getAudioClock,
         nextGuideDoor,
         advanceGuide
       });
@@ -792,6 +795,7 @@ export default function TourPage() {
     handleStartEditWaypoint,
     handleViewerClick,
     playNarration,
+    getAudioClock,
     takeManualControl,
     buildHotspotConfig
   ]);

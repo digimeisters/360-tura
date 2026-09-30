@@ -165,6 +165,14 @@ export function turnMsFor(angleDeg: number, minMs: number, maxMs: number): numbe
   return Math.round(Math.min(maxMs, Math.max(minMs, ms)));
 }
 
+/**
+ * Nagib kamere dok vodič kruži po sobi: ravno, u visini očiju. Ranije se
+ * kruženje naginjalo ka vratima ili ka početnom kadru sobe, pa su vertikale
+ * (zidovi, vrata) delovale nakrivljeno (vlasnik, 30. 9. 2026). Pogled ka
+ * info-tački i prilaz vratima i dalje smeju da se spuste ili podignu.
+ */
+export const LEVEL_PITCH = 0;
+
 export function clampPitch(pitch: number): number {
   return Math.min(Math.max(pitch, WALK_PITCH_MIN), WALK_PITCH_MAX);
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { THEME, GLASS, GLASS_ACCENT, overlayIconStyle, SCREEN_BOTTOM, ABOVE_MENU_BOTTOM, MENU_HEIGHT } from './theme';
 import { IconCheck, IconCollapse, IconCompass, IconExpand, IconHand, IconHeadphones, IconMute, IconPause, IconPhone, IconPlay, IconShare, IconSound } from './icons';
 import type { Language } from './types';
+import { toSubtitleCues } from './subtitleCues';
 
 /**
  * Sitne komponente HUD-a preko panorame: izbor jezika, kartica sa nazivom i
@@ -424,58 +425,6 @@ export function InfoCard({
       </div>
     </div>
   );
-}
-
-/** Najduži titl (znakova) - dva kraća reda na telefonu, kao na filmu. */
-const SUBTITLE_MAX_CHARS = 90;
-/**
- * Glas pravi pauzu posle tačke i zareza; toliko "znakova" se dodaje težini
- * titla da rečenica ne prestigne glas.
- */
-const SUBTITLE_SENTENCE_PAUSE = 10;
-const SUBTITLE_COMMA_PAUSE = 3;
-
-/** Deli dugačak deo na komade do SUBTITLE_MAX_CHARS, po zarezu ili po reči. */
-function splitLong(part: string): string[] {
-  if (part.length <= SUBTITLE_MAX_CHARS) return [part];
-  const pieces = Math.ceil(part.length / SUBTITLE_MAX_CHARS);
-  const target = part.length / pieces;
-  // Najbolji rez: zarez/crta najbliži idealnom mestu, inače razmak.
-  let cut = -1;
-  let best = Infinity;
-  const re = /[,;:–—]\s/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(part))) {
-    const at = m.index + 1;
-    const off = Math.abs(at - target);
-    if (at >= 20 && part.length - at >= 20 && off < best && off < target * 0.45) {
-      best = off;
-      cut = at;
-    }
-  }
-  if (cut < 0) {
-    const space = part.lastIndexOf(' ', Math.round(target));
-    cut = space > 0 ? space : Math.round(target);
-  }
-  return [...splitLong(part.slice(0, cut).trim()), ...splitLong(part.slice(cut).trim())];
-}
-
-/** Tekst naracije -> titlovi, rečenicu po rečenicu (dugačke rečenice u delovima). */
-export function toSubtitleCues(text: string): { text: string; weight: number }[] {
-  const sentences = text
-    .replace(/\s+/g, ' ')
-    .trim()
-    .split(/(?<=[.!?…])\s+(?=\S)/)
-    .filter(Boolean);
-  const cues: { text: string; weight: number }[] = [];
-  for (const sentence of sentences) {
-    const parts = splitLong(sentence);
-    parts.forEach((p, i) => {
-      const last = i === parts.length - 1;
-      cues.push({ text: p, weight: p.length + (last ? SUBTITLE_SENTENCE_PAUSE : SUBTITLE_COMMA_PAUSE) });
-    });
-  }
-  return cues;
 }
 
 /**

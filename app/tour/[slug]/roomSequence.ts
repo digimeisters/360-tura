@@ -1,4 +1,5 @@
 import type { MutableRefObject } from 'react';
+import { lastCueStartFraction } from './subtitleCues';
 import { translations } from './translations';
 import type { EstablishData, Language, Room, Waypoint } from './types';
 import { composeEstablishText, getLocalizedText, getShortestTargetYaw, normalizeYaw } from './utils';
@@ -9,6 +10,7 @@ import {
   INFO_HFOV,
   INFO_TURN_MAX_MS,
   INFO_TURN_MIN_MS,
+  LEVEL_PITCH,
   clampPitch,
   pickHfov,
   prefersReducedMotion,
@@ -76,6 +78,8 @@ export type RoomSequenceContext = {
     startAt: number
   ) => Promise<unknown>;
   waitWhilePaused: () => Promise<void>;
+  /** Dokle je stigao snimljeni glas (useTourNarration) - za puls vrata. */
+  getAudioClock: () => { time: number; duration: number } | null;
   nextGuideDoor: () => Waypoint | null;
   advanceGuide: () => void;
 };
@@ -100,7 +104,6 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
     establishData,
     entry,
     zoomedIn,
-    startPitch,
     targetEstablishYaw,
     targetEstablishPitch,
     isGuidedStep,
@@ -110,6 +113,7 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
     scheduleAfterNarration,
     playNarration,
     waitWhilePaused,
+    getAudioClock,
     nextGuideDoor,
     advanceGuide
   } = ctx;
@@ -147,7 +151,7 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
       // telefona - naše okretanje bi se sudaralo sa tim (vidi startGyroscope).
       if (!isGyroActiveRef.current) {
         const idleRotateDegPerSec = 360 / 30; // 360° za 30 sekundi
-        viewerRef.current.startAutoRotate(idleRotateDegPerSec, targetEstablishPitch);
+        viewerRef.current.startAutoRotate(idleRotateDegPerSec, LEVEL_PITCH);
       }
     }
   };
@@ -186,14 +190,18 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
           // makar to značilo da ide "dužim putem" do vrata.
           const forwardDelta = (((doorAhead.yaw ?? 0) - fromYaw) % 360 + 360) % 360;
           const turnSpeed = remainingMs > 0 ? forwardDelta / (remainingMs / 1000) : 0;
-          viewerRef.current.startAutoRotate(turnSpeed, clampPitch(doorAhead.pitch ?? targetEstablishPitch));
+          // Ravno (LEVEL_PITCH), ne nagnuto ka vratima - vidi transition.ts.
+          viewerRef.current.startAutoRotate(turnSpeed, LEVEL_PITCH);
         } else {
           const idleRotateDegPerSec = 360 / 30; // 360° za 30 sekundi, bez cilja (poslednja soba)
-          viewerRef.current.startAutoRotate(idleRotateDegPerSec, targetEstablishPitch);
+          viewerRef.current.startAutoRotate(idleRotateDegPerSec, LEVEL_PITCH);
         }
       };
 
       applyLingerRotation(GUIDE_ROOM_LINGER_MS);
+      // Priča je gotova (ili je bez zvuka) - vrata ka sledećoj sobi svetle
+      // dok kamera ne krene kroz njih.
+      watchNextDoorPulse(null);
 
       let lingerElapsed = 0;
       let lastTick = performance.now();
@@ -225,6 +233,50 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
     }
   };
 
+
+  // Vrata kroz koja vodič sledeće ide lagano zasvetle (vlasnik, 30. 9. 2026):
+  // od poslednje rečenice priče u sobi pa dok kamera ne krene kroz njih.
+  // Klasa k360-next-door (izgled u TourOverlays) ide na tačku čiji je cilj
+  // soba sledećeg koraka - page.tsx joj upisuje data-target-room.
+  const setNextDoorPulse = (on: boolean) => {
+    const container: HTMLElement | undefined = viewerRef.current?.getContainer?.();
+    if (!container) return;
+    container.querySelectorAll('.k360-next-door').forEach((el) => el.classList.remove('k360-next-door'));
+    const door = on ? nextGuideDoor() : null;
+    if (door?.targetRoomId == null) return;
+    container.querySelectorAll<HTMLElement>('.custom-nav-hotspot').forEach((el) => {
+      if (el.dataset.targetRoom === String(door.targetRoomId)) el.classList.add('k360-next-door');
+    });
+  };
+  let pulseWatch: number | null = null;
+  // lastText: tekst poslednje priče - puls kreće kad glas stigne do njene
+  // poslednje rečenice. null = odmah. Bez snimljenog glasa (isključen zvuk)
+  // sat ne postoji, pa puls kreće tek kad soba završi (finishRoomSequence).
+  // Nadzor se gasi i skida puls čim vodič stane (ručni klik, druga soba).
+  const watchNextDoorPulse = (lastText: string | null) => {
+    if (pulseWatch !== null) window.clearInterval(pulseWatch);
+    const from = lastText === null ? 0 : lastCueStartFraction(lastText);
+    let on = false;
+    const tick = () => {
+      const guiding =
+        currentSession === roomSessionRef.current && isMountedRef.current &&
+        sequenceActiveRef.current && !isInterruptedRef.current && guideModeRef.current === 'auto';
+      if (!guiding) {
+        if (pulseWatch !== null) window.clearInterval(pulseWatch);
+        pulseWatch = null;
+        if (on && currentSession === roomSessionRef.current) setNextDoorPulse(false);
+        return;
+      }
+      if (on) return;
+      const clock = lastText === null ? null : getAudioClock();
+      if (lastText === null || (clock && clock.time / clock.duration >= from)) {
+        on = true;
+        setNextDoorPulse(true);
+      }
+    };
+    pulseWatch = window.setInterval(tick, 200);
+    tick();
+  };
 
   const roomKey = String(currentRoom.id);
   if (isGuidedStep && visitedGuideRoomsRef.current.has(roomKey)) {
@@ -262,7 +314,10 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
       const fromYaw = normalizeYaw(viewerRef.current.getYaw());
       const toYaw = getShortestTargetYaw(fromYaw, targetEstablishYaw);
       const ms = turnMsFor(toYaw - fromYaw, ARRIVE_GLIDE_MIN_MS, ARRIVE_GLIDE_MAX_MS);
-      viewerRef.current.lookAt(clampPitch(targetEstablishPitch), toYaw, undefined, ms);
+      // Vodič posle ovoga kruži, pa odmah na ravan horizont; ručni režim
+      // staje na kadru koji je autor ture izabrao.
+      const pitch = guideModeRef.current === 'auto' ? LEVEL_PITCH : clampPitch(targetEstablishPitch);
+      viewerRef.current.lookAt(pitch, toYaw, undefined, ms);
       return ms;
     } catch {
       return 0;
@@ -312,6 +367,8 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
     if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
     if (!sequenceActiveRef.current || isInterruptedRef.current) return;
     if (hasRecordedAudio || (!introOnlyText && !detailOnlyText)) {
+      // Soba bez info-tačaka: uvod je poslednja priča u sobi.
+      if (infoPoints.length === 0) watchNextDoorPulse(getLocalizedText(introTextRaw, langRef.current));
       await playNarration(introAudioUrl, introTextRaw, currentRoom.title_i18n, undefined, 0);
       return;
     }
@@ -346,19 +403,18 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
           // Ušli smo kroz vrata gledajući napred: prvo glatko ka najlepšem
           // kadru sobe, pa odatle kruženje - bez skoka.
           const glideMs = glideToEstablish();
-          const rotatePitch = glideMs > 0 ? targetEstablishPitch : startPitch;
           const startRotate = () => {
             if (!stillValid() || !viewerRef.current || isGyroActiveRef.current) return;
             if (isGuidePausedRef.current) return;
-            viewerRef.current.startAutoRotate(speed, rotatePitch);
+            viewerRef.current.startAutoRotate(speed, LEVEL_PITCH);
           };
           if (glideMs > 0) window.setTimeout(startRotate, glideMs);
           else startRotate();
         } else {
           if (!zoomedIn) viewerRef.current.setHfov(pickHfov(DEFAULT_HFOV));
           viewerRef.current.setYaw(targetEstablishYaw);
-          viewerRef.current.setPitch(targetEstablishPitch);
-          if (!isGyroActiveRef.current) viewerRef.current.startAutoRotate(speed, targetEstablishPitch);
+          viewerRef.current.setPitch(LEVEL_PITCH);
+          if (!isGyroActiveRef.current) viewerRef.current.startAutoRotate(speed, LEVEL_PITCH);
         }
       }
 
@@ -377,7 +433,7 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
         if (pausedNow && !wasPaused) {
           if (viewerRef.current) viewerRef.current.stopAutoRotate();
         } else if (!pausedNow && wasPaused && viewerRef.current && !isGyroActiveRef.current) {
-          viewerRef.current.startAutoRotate(speed, entry && prefersReducedMotion() ? startPitch : targetEstablishPitch);
+          viewerRef.current.startAutoRotate(speed, LEVEL_PITCH);
         }
         wasPaused = pausedNow;
         if (!pausedNow) elapsedMs += now - lastTick;
@@ -429,6 +485,7 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
     if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
     if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
+    if (index === infoPoints.length - 1) watchNextDoorPulse(getLocalizedText(item.wp.text_i18n, langRef.current));
     await playNarration(item.wp.audio_url_i18n ?? item.wp.audio_url, item.wp.text_i18n, item.wp.title_i18n, item.i, 0);
     if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
     if (!sequenceActiveRef.current || isInterruptedRef.current) return;

@@ -87,10 +87,23 @@ export function TourGlobalStyles() {
         box-shadow: 0 0 0 1px rgba(30, 90, 168, 0.4), 0 0 22px 6px rgba(100, 100, 110, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3); }
       .custom-nav-hotspot:hover .k360-hs-beacon::before, .custom-nav-hotspot:hover .k360-hs-beacon::after { animation-duration: 3.6s; }
       .custom-nav-hotspot:hover .k360-hs-label { background: rgba(100, 100, 110, 0.8); border-color: rgba(100, 100, 110, 0.8); }
+      /* Vrata kroz koja vodič sledeće ide (roomSequence.ts, k360-next-door):
+         far lagano diše u plavoj boji sajta, a natpis postane plav. */
+      .custom-nav-hotspot.k360-next-door .k360-hs-beacon {
+        background: radial-gradient(circle at 50% 50%, #FFFFFF 0 20%, rgba(91, 146, 214, 0.9) 34%, rgba(30, 90, 168, 0.95) 100%);
+        animation: k360NextDoor 1.8s ease-in-out infinite; }
+      .custom-nav-hotspot.k360-next-door .k360-hs-beacon::before, .custom-nav-hotspot.k360-next-door .k360-hs-beacon::after {
+        border-color: rgba(91, 146, 214, 0.9); animation-duration: 3.6s; }
+      .custom-nav-hotspot.k360-next-door .k360-hs-label { background: rgba(30, 90, 168, 0.78); border-color: rgba(147, 185, 232, 0.7); }
+      @keyframes k360NextDoor {
+        0%, 100% { transform: scale(1); box-shadow: 0 0 0 1px rgba(91, 146, 214, 0.5), 0 0 14px 3px rgba(91, 146, 214, 0.45), 0 2px 8px rgba(0, 0, 0, 0.3); }
+        50% { transform: scale(1.18); box-shadow: 0 0 0 1px rgba(91, 146, 214, 0.7), 0 0 26px 9px rgba(91, 146, 214, 0.6), 0 2px 8px rgba(0, 0, 0, 0.3); }
+      }
       /* Puls na samoj tački, ne na omotaču - omotač ima nevidljivu marginu za prst. */
       .custom-info-hotspot > .k360-hotspot-scale { animation: k360HotspotPulseInfo 2.6s ease-out infinite; }
       @media (prefers-reduced-motion: reduce) {
-        .custom-info-hotspot > .k360-hotspot-scale, .k360-hs-beacon::before, .k360-hs-beacon::after { animation: none; }
+        .custom-info-hotspot > .k360-hotspot-scale, .k360-hs-beacon::before, .k360-hs-beacon::after,
+        .custom-nav-hotspot.k360-next-door .k360-hs-beacon { animation: none; }
       }
     `}</style>
   );
