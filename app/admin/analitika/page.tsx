@@ -66,6 +66,8 @@ const TARGET_LABELS: Record<string, string> = {
   phone: 'Poziv',
   viber: 'Viber',
   whatsapp: 'WhatsApp',
+  viber_bubble: 'Viber (krug na telefonu)',
+  whatsapp_bubble: 'WhatsApp (krug na telefonu, EN)',
   email: 'Mejl',
   map: 'Adresa na mapi'
 };

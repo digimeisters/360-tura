@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, FormEvent } from 'react';
+import { useEffect, useRef, useState, FormEvent } from 'react';
 import { trackSiteEvent } from '../app/lib/track';
 import type { HomeLang } from '../app/lib/homeCopy';
 import { SLOT_WINDOWS, upcomingShootDays, type ShootDay, type SlotWindow } from '../app/lib/shootSlot';
@@ -30,6 +30,7 @@ const TEXT: Record<
     sizePh: string;
     message: string;
     messagePh: string;
+    more: string;
     slotLegend: string;
     slotOptional: string;
     dayShort: string[];
@@ -61,6 +62,7 @@ const TEXT: Record<
     sizePh: 'npr. 64',
     message: 'Poruka',
     messagePh: 'Adresa nekretnine, broj prostorija, jezici koji su vam potrebni...',
+    more: 'Dodatni detalji',
     slotLegend: 'Željeni termin snimanja',
     slotOptional: 'opciono',
     dayShort: ['Ned', 'Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub'],
@@ -101,6 +103,7 @@ const TEXT: Record<
     sizePh: 'e.g. 64',
     message: 'Message',
     messagePh: 'Property location, languages you need...',
+    more: 'More details',
     slotLegend: 'Preferred shooting date',
     slotOptional: 'optional',
     dayShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
@@ -153,6 +156,20 @@ export default function ContactForm({
   const [slotDate, setSlotDate] = useState<string | null>(null);
   const [slotWindow, setSlotWindow] = useState<SlotWindow | null>(null);
   useEffect(() => setDays(upcomingShootDays()), []);
+
+  // Klik na "Izaberi Premium" u cenovniku (Pricing, data-package) spušta
+  // posetioca do forme - ovde se u formi odmah bira isti paket, da ne piše
+  // "Osnovni" ispod dugmeta za Premium.
+  const packageRef = useRef<HTMLSelectElement>(null);
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      const value = (e.target as Element | null)?.closest<HTMLElement>('[data-package]')?.dataset.package;
+      const select = packageRef.current;
+      if (value && select && PACKAGES.includes(value)) select.value = value;
+    };
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
+  }, []);
 
   const pickedDay = days.find((d) => d.iso === slotDate) ?? null;
 
@@ -276,88 +293,95 @@ export default function ContactForm({
         </div>
       </div>
 
-      <div className="row2">
-        <div className="field">
-          <label htmlFor="f-package">{t.pkg}</label>
-          <select className="input" id="f-package" name="package" defaultValue={defaultPackage}>
-            {PACKAGES.map((value, i) => (
-              <option key={value} value={value}>
-                {t.packages[i]}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="field">
-          <label htmlFor="f-agency">{t.agency}</label>
-          <input className="input" id="f-agency" name="agency" type="text" placeholder={t.agencyPh} />
-        </div>
-      </div>
-
-      <div className="row2">
-        <div className="field">
-          <label htmlFor="f-type">{t.type}</label>
-          <select className="input" id="f-type" name="type" defaultValue={LISTING_TYPES[0]}>
-            {LISTING_TYPES.map((value, i) => (
-              <option key={value} value={value}>
-                {t.types[i]}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="field">
-          <label htmlFor="f-size">{t.size}</label>
-          <input className="input" id="f-size" name="size" type="text" placeholder={t.sizePh} />
-        </div>
-      </div>
-
-      <fieldset className="slot">
-        <legend>
-          {t.slotLegend} <small>({t.slotOptional})</small>
-        </legend>
-        <div className="days" role="group" aria-label={t.slotLegend}>
-          {days.map((day) => (
-            <button
-              key={day.iso}
-              type="button"
-              className="day"
-              aria-pressed={slotDate === day.iso}
-              onClick={() => toggleDay(day.iso)}
-            >
-              <small>{t.dayShort[day.weekday]}</small>
-              <b>{day.day}.{day.month}.</b>
-            </button>
-          ))}
-        </div>
-        <div className="windows" role="group" aria-label={t.windowLabel}>
-          {SLOT_WINDOWS.map((w) => (
-            <button
-              key={w}
-              type="button"
-              className="win"
-              aria-pressed={slotWindow === w}
-              disabled={!slotDate}
-              onClick={() => setSlotWindow(slotWindow === w ? null : w)}
-            >
-              <b>{w.replace('-', '–')}</b>
-              <small>{t.windowNames[w]}</small>
-            </button>
-          ))}
-        </div>
-        <p className="slot-summary" aria-live="polite">
-          {pickedDay ? (
-            <>
-              <strong>{t.slotPicked(pickedDay, slotWindow)}</strong> — {t.slotConfirm}
-            </>
-          ) : (
-            t.slotNone
-          )}
-        </p>
-      </fieldset>
-
       <div className="field">
-        <label htmlFor="f-msg">{t.message}</label>
-        <textarea className="input" id="f-msg" name="message" placeholder={t.messagePh} />
+        <label htmlFor="f-package">{t.pkg}</label>
+        <select ref={packageRef} className="input" id="f-package" name="package" defaultValue={defaultPackage}>
+          {PACKAGES.map((value, i) => (
+            <option key={value} value={value}>
+              {t.packages[i]}
+            </option>
+          ))}
+        </select>
       </div>
+
+      {/* Sve ostalo je opciono, pa je sklopljeno: forma na prvi pogled traži
+          samo ime, kontakt i paket. Polja ostaju u formi i kad je sklopljeno,
+          pa se šalju ako ih je posetilac popunio pa zatvorio. */}
+      <details className="form-more">
+        <summary>
+          {t.more} <small>({t.slotOptional})</small>
+        </summary>
+        <div className="form-more-body">
+          <div className="row2">
+            <div className="field">
+              <label htmlFor="f-type">{t.type}</label>
+              <select className="input" id="f-type" name="type" defaultValue={LISTING_TYPES[0]}>
+                {LISTING_TYPES.map((value, i) => (
+                  <option key={value} value={value}>
+                    {t.types[i]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="f-size">{t.size}</label>
+              <input className="input" id="f-size" name="size" type="text" inputMode="numeric" placeholder={t.sizePh} />
+            </div>
+          </div>
+
+          <div className="field">
+            <label htmlFor="f-agency">{t.agency}</label>
+            <input className="input" id="f-agency" name="agency" type="text" placeholder={t.agencyPh} />
+          </div>
+
+          <fieldset className="slot">
+            <legend>{t.slotLegend}</legend>
+            <div className="days" role="group" aria-label={t.slotLegend}>
+              {days.map((day) => (
+                <button
+                  key={day.iso}
+                  type="button"
+                  className="day"
+                  aria-pressed={slotDate === day.iso}
+                  onClick={() => toggleDay(day.iso)}
+                >
+                  <small>{t.dayShort[day.weekday]}</small>
+                  <b>{day.day}.{day.month}.</b>
+                </button>
+              ))}
+            </div>
+            <div className="windows" role="group" aria-label={t.windowLabel}>
+              {SLOT_WINDOWS.map((w) => (
+                <button
+                  key={w}
+                  type="button"
+                  className="win"
+                  aria-pressed={slotWindow === w}
+                  disabled={!slotDate}
+                  onClick={() => setSlotWindow(slotWindow === w ? null : w)}
+                >
+                  <b>{w.replace('-', '–')}</b>
+                  <small>{t.windowNames[w]}</small>
+                </button>
+              ))}
+            </div>
+            <p className="slot-summary" aria-live="polite">
+              {pickedDay ? (
+                <>
+                  <strong>{t.slotPicked(pickedDay, slotWindow)}</strong> — {t.slotConfirm}
+                </>
+              ) : (
+                t.slotNone
+              )}
+            </p>
+          </fieldset>
+
+          <div className="field">
+            <label htmlFor="f-msg">{t.message}</label>
+            <textarea className="input" id="f-msg" name="message" placeholder={t.messagePh} />
+          </div>
+        </div>
+      </details>
 
       {footer}
     </form>

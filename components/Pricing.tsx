@@ -1,4 +1,5 @@
 import type { HomeCopy, HomeLang } from '../app/lib/homeCopy';
+import { CONTACT_PACKAGES } from '../app/lib/pricing';
 import { PlanItemList, PlanPrice, PlanSplit, SaleSticker, SingleItems, VolumeTable } from './PromoPrice';
 
 /**
@@ -35,7 +36,13 @@ export default function Pricing({
               <PlanSplit packageType={plan.packageType} labels={copy.labels} lang={lang} />
             </div>
             <PlanItemList items={plan.items} lang={lang} />
-            <a className="btn btn-primary price-cta" href="#kontakt" data-track={`cta:${trackPrefix}${plan.track}`}>
+            <a
+              className="btn btn-primary price-cta"
+              href="#kontakt"
+              data-track={`cta:${trackPrefix}${plan.track}`}
+              // ContactForm čita ovo pri kliku i bira isti paket u formi.
+              data-package={CONTACT_PACKAGES[plan.packageType === 'premium' ? 1 : 0]}
+            >
               {plan.cta}
             </a>
           </div>

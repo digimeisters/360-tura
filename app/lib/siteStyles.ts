@@ -690,6 +690,14 @@ export const SITE_STYLES = `
   .qc-dot{width:8px; height:8px; border-radius:50%; flex:none; background:var(--accent);}
   .qc-viber .qc-dot{background:#7360F2;}
   .qc-wa .qc-dot{background:#25D366;}
+  /* Plutajući krug za poruku (ChatBubble) - samo telefon, Viber na SR, WhatsApp na EN. */
+  .chat-bubble{display:none;}
+  @media (max-width:760px){
+    .chat-bubble{display:flex; align-items:center; justify-content:center; position:fixed; right:14px; bottom:calc(env(safe-area-inset-bottom,0px) + 16px); z-index:60; width:54px; height:54px; border-radius:50%; border:2px solid #fff; box-shadow:0 6px 18px rgba(17,17,19,.22); transition:opacity .25s ease, transform .25s ease;}
+    .chat-bubble.is-viber{background:#7360F2; color:#7360F2;}
+    .chat-bubble.is-whatsapp{background:#25D366; color:#25D366;}
+    .chat-bubble.is-hidden{opacity:0; transform:scale(.8); pointer-events:none;}
+  }
   .contact .wrap > *{min-width:0;}
   .contact-form{display:flex; flex-direction:column; gap:1rem; padding:1.4rem;}
 
@@ -714,6 +722,15 @@ export const SITE_STYLES = `
   .slot-summary{font-size:.85rem; color:var(--ink-soft);}
   .slot-summary strong{color:var(--ink);}
   .form-foot{display:flex; flex-wrap:wrap; align-items:center; gap:.9rem;}
+  /* "Dodatni detalji (opciono)" - sklopljeni deo forme (ContactForm). */
+  .form-more{border:1px solid var(--line); border-radius:16px; background:var(--surface-2);}
+  .form-more summary{list-style:none; cursor:pointer; display:flex; align-items:center; gap:.4rem; padding:.85rem 1rem; font-size:.85rem; font-weight:600; color:var(--ink-soft);}
+  .form-more summary::-webkit-details-marker{display:none;}
+  .form-more summary small{font-weight:500; color:var(--ink-faint);}
+  .form-more summary::after{content:'+'; margin-left:auto; font-size:1.15rem; line-height:1; color:var(--accent);}
+  .form-more[open] summary::after{content:'–';}
+  .form-more-body{display:flex; flex-direction:column; gap:1rem; padding:0 1rem 1rem;}
+  .form-more .slot{background:var(--surface);}
   .info-list{display:flex; flex-direction:column; gap:.7rem; margin:0;}
   .info-list > div{padding:.95rem 1.15rem;}
   .info-list dt{font-family:var(--font-display); font-size:.7rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint); margin:0;}

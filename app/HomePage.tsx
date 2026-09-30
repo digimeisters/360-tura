@@ -21,6 +21,7 @@ import { accent } from './lib/accent';
 import { STRUCTURE_ORDER, structureLabel } from './lib/propertyTaxonomy';
 import PromoTopBar from '../components/PromoTopBar';
 import TourModulesShowcase from '../components/TourModulesShowcase';
+import ChatBubble from '../components/ChatBubble';
 
 /**
  * Početna strana, jedan raspored za obe jezičke verzije: app/page.tsx (/,
@@ -387,6 +388,8 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
           </div>
         </section>
       </main>
+
+      <ChatBubble lang={lang} />
 
       <SiteFooter note={copy.footer} lang={lang} />
     </div>

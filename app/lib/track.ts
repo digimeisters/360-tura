@@ -54,8 +54,25 @@ function send(payload: Record<string, unknown>): void {
   }
 }
 
+// Uređaji vlasnika koji se ne broje, i kad nije prijavljen (telefon, drugi
+// pregledač). Uključuje se jednom po uređaju linkom kvadrat360.com/?ne-brojim,
+// a poništava sa ?brojim. Važi i za sajt i za ture - inače bi vlasnikove
+// probe ušle i u mesečni izveštaj agencije (/izvestaj).
+const OWNER_KEY = 'k360_ne_brojim';
+
+function isOwnerDevice(): boolean {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('ne-brojim')) localStorage.setItem(OWNER_KEY, '1');
+    if (params.has('brojim')) localStorage.removeItem(OWNER_KEY);
+    return localStorage.getItem(OWNER_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 export function trackEvent(payload: TrackPayload): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || isOwnerDevice()) return;
   send(payload);
 }
 
@@ -94,7 +111,7 @@ function visitSource(): string | null {
 let firstPageView = true;
 
 export function trackSiteEvent(eventType: SiteEventType, target?: string): void {
-  if (typeof window === 'undefined' || isAdminBrowser()) return;
+  if (typeof window === 'undefined' || isAdminBrowser() || isOwnerDevice()) return;
 
   const payload: Record<string, unknown> = { scope: 'site', eventType };
   if (target) payload.target = target;
