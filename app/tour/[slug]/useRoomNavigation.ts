@@ -11,6 +11,7 @@ import {
   VIEW_MIN_HFOV,
   WALK_HFOV,
   WALK_MIN_HFOV_BOUND,
+  WALK_MAX_MS,
   WALK_MS,
   WALK_REVEAL_AT,
   clampPitch,
@@ -20,6 +21,7 @@ import {
   preloadPanorama,
   prefersReducedMotion,
   scaledHfov,
+  turnMsFor,
   wait,
   type PendingTransition
 } from './transition';
@@ -118,7 +120,7 @@ export function useRoomNavigation({
   const [seenRoomIds, setSeenRoomIds] = useState<Set<string>>(() => new Set());
   // Sobe koje su već dobile PUNU naraciju u ovoj poseti (ručno ili od
   // vodiča) - drugi automatski prolazak kroz njih je samo okret ka sledećim
-  // vratima, bez priče (vidi GUIDE_REVISIT_* u guidePath.ts).
+  // vratima, bez priče (vidi GUIDE_REVISIT_SETTLE_MS u guidePath.ts).
   const visitedGuideRoomsRef = useRef<Set<string>>(new Set());
   // Da li je naracija TRENUTNE sobe već završena (vodič sad samo mirno
   // stoji) - treba activateGuide-u da zna da li da odmah krene dalje ili da
@@ -273,27 +275,31 @@ export function useRoomNavigation({
     const imageReady = url ? preloadPanorama(url) : Promise.resolve();
 
     const reduceMotion = prefersReducedMotion();
+    // Prilaz traje najmanje WALK_MS, a duže kad su vrata daleko u stranu -
+    // da okret ka njima ne bude nagao (vidi turnMsFor u transition.ts).
+    const fromYaw = normalizeYaw(v.getYaw());
+    const walkYaw = getShortestTargetYaw(fromYaw, wp.yaw ?? 0);
+    const walkMs = turnMsFor(walkYaw - fromYaw, WALK_MS, WALK_MAX_MS);
     const approach = new Promise<void>((resolve) => {
       if (reduceMotion) return resolve();
-      const yaw = getShortestTargetYaw(normalizeYaw(v.getYaw()), wp.yaw ?? 0);
       try {
         v.setHfovBounds([WALK_MIN_HFOV_BOUND, VIEW_MAX_HFOV]);
-        v.lookAt(clampPitch(wp.pitch ?? 0), yaw, scaledHfov(WALK_HFOV), WALK_MS, () => resolve());
+        v.lookAt(clampPitch(wp.pitch ?? 0), walkYaw, scaledHfov(WALK_HFOV), walkMs, () => resolve());
       } catch {
         resolve();
       }
       // Ako posetilac povuče pogled usred animacije, Pannellum ne pozove
       // callback - zato i rezervni tajmer.
-      setTimeout(resolve, WALK_MS + 150);
+      setTimeout(resolve, walkMs + 150);
     });
 
-    const entry = entryViewFor(wp);
+    const entry = entryViewFor(wp, target, fromRoom.id);
     // Nova soba se pravi dok kamera još prilazi, skrivena ispod stare, i
     // pokazuje se tek pred kraj prilaza - raspakivanje velike panorame traje
     // ~1,5 s i ranije je na kraju prilaza izgledalo kao da kamera stoji.
-    const revealAt = reduceMotion ? undefined : Date.now() + WALK_MS * WALK_REVEAL_AT;
+    const revealAt = reduceMotion ? undefined : Date.now() + walkMs * WALK_REVEAL_AT;
 
-    Promise.race([imageReady, wait(WALK_MS + IMAGE_WAIT_MS)]).then(() => {
+    Promise.race([imageReady, wait(walkMs + IMAGE_WAIT_MS)]).then(() => {
       if (!isMountedRef.current || token !== walkTokenRef.current) return;
       changeRoomById(target.id, { entry, zoomedIn: !reduceMotion, guided: options?.guided, revealAt });
     });

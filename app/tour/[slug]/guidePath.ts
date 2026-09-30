@@ -10,18 +10,10 @@ import { parseWaypoints } from './utils';
  */
 
 // Pri PONOVNOM prolasku kroz već predstavljenu sobu (npr. hodnik drugi put)
-// vodič ne priča i ne staje: odmah okreće pogled ka sledećim vratima i
-// nastavlja. Okret traje srazmerno uglu, u granicama MIN/MAX.
-export const GUIDE_REVISIT_TURN_DEG_PER_S = 60;
-export const GUIDE_REVISIT_TURN_MIN_MS = 1200;
-export const GUIDE_REVISIT_TURN_MAX_MS = 3000;
-// Prilaz vratima kreće malo pre kraja okreta, da se pokret ne zaustavi na spoju.
-export const GUIDE_REVISIT_OVERLAP_MS = 250;
-
-export function revisitTurnMs(angleDeg: number): number {
-  const ms = (Math.abs(angleDeg) / GUIDE_REVISIT_TURN_DEG_PER_S) * 1000;
-  return Math.min(GUIDE_REVISIT_TURN_MAX_MS, Math.max(GUIDE_REVISIT_TURN_MIN_MS, ms));
-}
+// vodič ne priča i ne staje: posle kratkog predaha (da se pretapanje slika
+// završi) kreće prilaz sledećim vratima, a sam prilaz okreće kameru ka njima
+// (walkToRoom). Poseban okret ovde se više ne radi - vidi roomSequence.ts.
+export const GUIDE_REVISIT_SETTLE_MS = 700;
 
 export function parseGuidePath(raw: string | null | undefined): number[] {
   if (!raw) return [];

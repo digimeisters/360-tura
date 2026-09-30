@@ -3,15 +3,18 @@ import { translations } from './translations';
 import type { EstablishData, Language, Room, Waypoint } from './types';
 import { composeEstablishText, getLocalizedText, getShortestTargetYaw, normalizeYaw } from './utils';
 import {
-  ARRIVE_HFOV,
+  ARRIVE_GLIDE_MAX_MS,
+  ARRIVE_GLIDE_MIN_MS,
   DEFAULT_HFOV,
   INFO_HFOV,
+  INFO_TURN_MAX_MS,
+  INFO_TURN_MIN_MS,
   clampPitch,
   pickHfov,
   prefersReducedMotion,
-  scaledHfov
+  turnMsFor
 } from './transition';
-import { GUIDE_REVISIT_OVERLAP_MS, GUIDE_REVISIT_TURN_MIN_MS, revisitTurnMs } from './guidePath';
+import { GUIDE_REVISIT_SETTLE_MS } from './guidePath';
 
 /**
  * "Koreografija" jedne sobe, od trenutka kad se njena panorama učita:
@@ -20,7 +23,7 @@ import { GUIDE_REVISIT_OVERLAP_MS, GUIDE_REVISIT_TURN_MIN_MS, revisitTurnMs } fr
  *   2. info-tačke - kamera se okrene ka svakoj i pusti njen opis;
  *   3. kraj - u ručnom režimu mirno kruženje ("slobodno razgledanje"), a
  *      u automatskom vodiču kruženje tačno do sledećih vrata, pa dalje;
- *   *  soba koju je vodič već predstavio samo se prođe (okret ka vratima).
+ *   *  soba koju je vodič već predstavio samo se prođe (odmah ka vratima).
  *
  * Poziva se iz efekta koji pravi scenu (page.tsx, v.on('load')). Sve što
  * joj treba stiže kroz `ctx` - refovi (stanje koje se menja dok sekvenca
@@ -226,29 +229,17 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
   const roomKey = String(currentRoom.id);
   if (isGuidedStep && visitedGuideRoomsRef.current.has(roomKey)) {
     // Vodič drugi put prolazi kroz VEĆ predstavljenu sobu (npr. hodnik
-    // kao prolaz između grana) - bez priče i bez stajanja: kadar se
-    // otvara i istovremeno okreće ka sledećim vratima, pa prilaz kreće
-    // pre nego što se okret sasvim završi.
-    const door = nextGuideDoor();
-    let turnMs = GUIDE_REVISIT_TURN_MIN_MS;
-    if (door && viewerRef.current && !prefersReducedMotion()) {
-      const fromYaw = normalizeYaw(viewerRef.current.getYaw());
-      const toYaw = getShortestTargetYaw(fromYaw, door.yaw ?? 0);
-      turnMs = revisitTurnMs(toYaw - fromYaw);
-      try {
-        viewerRef.current.lookAt(
-          clampPitch(door.pitch ?? 0),
-          toYaw,
-          zoomedIn ? scaledHfov(ARRIVE_HFOV) : pickHfov(DEFAULT_HFOV),
-          turnMs
-        );
-      } catch {}
-    }
+    // kao prolaz između grana) - bez priče i bez stajanja. Posetilac je
+    // ušao gledajući napred (entryViewFor), pa posle kratkog predaha odmah
+    // kreće prilaz sledećim vratima - taj prilaz SAM okrene kameru ka njima
+    // (walkToRoom). Ranije se ovde kamera prvo okretala ka vratima, pa je
+    // prilaz dodavao još jedan okret; kad putanja prođe kroz više takvih
+    // soba zaredom, to je izgledalo kao vrtenje u krug (vlasnik, 30. 9. 2026).
     window.setTimeout(() => {
       if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
       if (guideModeRef.current === 'auto') advanceGuide();
-    }, Math.max(0, turnMs - GUIDE_REVISIT_OVERLAP_MS));
+    }, GUIDE_REVISIT_SETTLE_MS);
     return;
   }
   if (!isGuidedStep && visitedGuideRoomsRef.current.has(roomKey)) {
@@ -260,6 +251,23 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
     return;
   }
   visitedGuideRoomsRef.current.add(roomKey);
+
+  // Posle ulaska kroz vrata kamera gleda u smeru kretanja (entryViewFor) -
+  // to je samo spoj dve slike. Odmah se glatko okrene ka najlepšem kadru
+  // sobe (establish), uz koji ide uvodna naracija. Vraća trajanje okreta
+  // (0 = nije bilo okreta: nema ulaska, žiroskop ili smanjeno kretanje).
+  const glideToEstablish = (): number => {
+    if (!entry || !viewerRef.current || isGyroActiveRef.current || prefersReducedMotion()) return 0;
+    try {
+      const fromYaw = normalizeYaw(viewerRef.current.getYaw());
+      const toYaw = getShortestTargetYaw(fromYaw, targetEstablishYaw);
+      const ms = turnMsFor(toYaw - fromYaw, ARRIVE_GLIDE_MIN_MS, ARRIVE_GLIDE_MAX_MS);
+      viewerRef.current.lookAt(clampPitch(targetEstablishPitch), toYaw, undefined, ms);
+      return ms;
+    } catch {
+      return 0;
+    }
+  };
 
   const introTextRaw = composeEstablishText(establishData) ||
 `${translations[langRef.current].welcomePrefix}${getLocalizedText(currentRoom.title_i18n, langRef.current)}`;
@@ -290,6 +298,8 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
         viewerRef.current.setYaw(targetEstablishYaw);
         viewerRef.current.setPitch(targetEstablishPitch);
       } catch {}
+    } else {
+      glideToEstablish();
     }
     void playNarration(hasRecordedAudio ? introAudioUrl : undefined, introTextRaw, currentRoom.title_i18n, undefined, 0);
     roomSequenceFinishedRef.current = true;
@@ -333,9 +343,17 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
       // dodatnog kamerinog pomeranja koje bi se sudaralo sa senzorom.
       if (viewerRef.current) {
         if (entry) {
-          // Ušli smo kroz vrata: okretanje kreće odatle gde posetilac
-          // gleda, bez skoka na početni pogled sobe.
-          if (!isGyroActiveRef.current) viewerRef.current.startAutoRotate(speed, startPitch);
+          // Ušli smo kroz vrata gledajući napred: prvo glatko ka najlepšem
+          // kadru sobe, pa odatle kruženje - bez skoka.
+          const glideMs = glideToEstablish();
+          const rotatePitch = glideMs > 0 ? targetEstablishPitch : startPitch;
+          const startRotate = () => {
+            if (!stillValid() || !viewerRef.current || isGyroActiveRef.current) return;
+            if (isGuidePausedRef.current) return;
+            viewerRef.current.startAutoRotate(speed, rotatePitch);
+          };
+          if (glideMs > 0) window.setTimeout(startRotate, glideMs);
+          else startRotate();
         } else {
           if (!zoomedIn) viewerRef.current.setHfov(pickHfov(DEFAULT_HFOV));
           viewerRef.current.setYaw(targetEstablishYaw);
@@ -359,7 +377,7 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
         if (pausedNow && !wasPaused) {
           if (viewerRef.current) viewerRef.current.stopAutoRotate();
         } else if (!pausedNow && wasPaused && viewerRef.current && !isGyroActiveRef.current) {
-          viewerRef.current.startAutoRotate(speed, entry ? startPitch : targetEstablishPitch);
+          viewerRef.current.startAutoRotate(speed, entry && prefersReducedMotion() ? startPitch : targetEstablishPitch);
         }
         wasPaused = pausedNow;
         if (!pausedNow) elapsedMs += now - lastTick;
@@ -402,9 +420,12 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
     const targetYaw = getShortestTargetYaw(currentYaw, item.wp.yaw);
     const targetPitch = item.wp.pitch ?? 0;
 
-    viewerRef.current.lookAt(targetPitch, targetYaw, pickHfov(INFO_HFOV), 2200);
+    // Trajanje srazmerno uglu (vidi turnMsFor): daleke tačke se ne
+    // "prelete", bliske se ne razvlače.
+    const turnMs = turnMsFor(targetYaw - currentYaw, INFO_TURN_MIN_MS, INFO_TURN_MAX_MS);
+    viewerRef.current.lookAt(targetPitch, targetYaw, pickHfov(INFO_HFOV), turnMs);
 
-    await new Promise(r => setTimeout(r, 2300));
+    await new Promise(r => setTimeout(r, turnMs + 100));
     if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
     if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 

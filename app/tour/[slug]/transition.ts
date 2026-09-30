@@ -7,8 +7,9 @@ import { normalizeYaw } from './utils';
  *   2. za to vreme se nova soba skida i pravi, skrivena ISPOD stare, pa je
  *      spremna kad kamera stigne do vrata (WALK_REVEAL_AT) i stara se odmah
  *      pretopi (FADE_MS) - bez stajanja na kraju prilaza i bez praznog ekrana;
- *   3. nova soba se pojavi u svom početnom kadru (vidi entryViewFor) i, dok
- *      kreće okretanje, lagano se primiče (ENTRY_START_HFOV -> ARRIVE_HFOV).
+ *   3. nova soba se pojavi okrenuta u smeru kretanja (vidi entryViewFor),
+ *      glatko se okrene ka svom najlepšem kadru i, dok kreće okretanje,
+ *      lagano se primiče (ENTRY_START_HFOV -> ARRIVE_HFOV).
  * WALK/CREEP/ARRIVE_HFOV su za telefon; u pregledaču idu kroz scaledHfov().
  * Klik na sobu u spisku ili na tlocrtu radi samo korak 2 (bez približavanja).
  */
@@ -95,7 +96,7 @@ export type PendingTransition = {
    * Ovaj korak je pokrenuo AUTOMATSKI vodič (guidePath.ts), ne ručan klik.
    * Menja dve stvari u page.tsx: (1) ne gasi automatski mod - ručni klik bez
    * ovoga gasi vodiča; (2) ako je ciljna soba već predstavljena, umesto pune
-   * naracije ide samo okret ka sledećim vratima (GUIDE_REVISIT_*).
+   * naracije ide odmah prilaz sledećim vratima (GUIDE_REVISIT_SETTLE_MS).
    */
   guided?: boolean;
   /**
@@ -107,22 +108,61 @@ export type PendingTransition = {
 };
 
 /**
- * Smer pogleda posle prelaza kroz tačku `wp`.
+ * Smer pogleda posle prelaza kroz tačku `wp` iz sobe `fromRoomId` u `target`.
  *
- * Ako je u tački ručno upisan smer (targetYaw), koristi se on. Inače null:
- * soba se otvara u svom početnom pogledu (establish), koji je izabran kao
- * najlepši kadar sobe i uz koji ide uvodna naracija.
+ * Ako je u tački ručno upisan smer (targetYaw), koristi se on. Inače se soba
+ * otvara okrenuta U SMERU KRETANJA: suprotno od povratnih vrata ciljne sobe
+ * (tačke koja iz nje vodi nazad u sobu iz koje se došlo). Tako pretapanje
+ * izgleda kao da posetilac nastavlja da hoda, a ne kao da se slika okrenula
+ * u stranu (vlasnik, 30. 9. 2026). Bez povratnih vrata: null = početni
+ * pogled sobe (establish).
  *
- * Namerno se NE računa "gledaj od vrata ka unutra" iz povratne tačke ciljne
- * sobe: iz sredine sobe taj pravac često gleda u prazan zid, a tačke koje je
- * postavio AI nisu dovoljno precizne da bi pravac bio pouzdan. Probano na
- * stan-gasse-1 (dnevna soba -> Soba 1): ulaz je gledao u sivi zid.
+ * Taj pravac iz sredine sobe ume da gleda u prazan zid (probano ranije na
+ * stan-gasse-1, dnevna soba -> Soba 1), pa se na njemu NE ostaje: odmah
+ * posle ulaska kamera se glatko okrene ka najlepšem kadru sobe (establish) -
+ * vidi glideToEstablish u roomSequence.ts. Smer ulaska služi samo da spoj
+ * dve slike bude neprimetan.
  */
-export function entryViewFor(wp: Waypoint): EntryView | null {
+export function entryViewFor(
+  wp: Waypoint,
+  target: { waypoints_i18n?: unknown },
+  fromRoomId: string | number
+): EntryView | null {
   if (typeof wp.targetYaw === 'number' && Number.isFinite(wp.targetYaw)) {
     return { yaw: normalizeYaw(wp.targetYaw), pitch: wp.targetPitch ?? 0 };
   }
-  return null;
+  let list: unknown = target.waypoints_i18n;
+  if (typeof list === 'string') {
+    try { list = JSON.parse(list); } catch { list = []; }
+  }
+  if (!Array.isArray(list)) return null;
+  const back = (list as Waypoint[]).find(
+    (w) => w && w.targetRoomId != null && String(w.targetRoomId) === String(fromRoomId) && Number.isFinite(Number(w.yaw))
+  );
+  if (!back) return null;
+  return { yaw: normalizeYaw(Number(back.yaw) + 180), pitch: 0 };
+}
+
+/**
+ * Trajanje okreta kamere srazmerno uglu, da brzina bude ujednačena i mirna
+ * umesto da isto trajanje za 20° i za 180° daje trzaj kod velikih okreta
+ * (izmereno 30. 9. 2026: fiksnih 2,2 s je kod dalekih tačaka davalo vrhove
+ * od ~130°/s). Pannellum okret ubrzava i usporava, pa je vrh oko 1,5x
+ * prosečne brzine - 45°/s u proseku ostaje prijatno i na telefonu.
+ */
+export const TURN_DEG_PER_S = 45;
+/** Okret ka info-tački. */
+export const INFO_TURN_MIN_MS = 1500;
+export const INFO_TURN_MAX_MS = 4000;
+/** Posle ulaska: okret od smera kretanja ka najlepšem kadru sobe. */
+export const ARRIVE_GLIDE_MIN_MS = 1200;
+export const ARRIVE_GLIDE_MAX_MS = 3500;
+/** Prilaz vratima kad je potreban veliki okret (manji koristi WALK_MS). */
+export const WALK_MAX_MS = 4000;
+
+export function turnMsFor(angleDeg: number, minMs: number, maxMs: number): number {
+  const ms = (Math.abs(angleDeg) / TURN_DEG_PER_S) * 1000;
+  return Math.round(Math.min(maxMs, Math.max(minMs, ms)));
 }
 
 export function clampPitch(pitch: number): number {

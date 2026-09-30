@@ -204,6 +204,8 @@ Jedan ekran, sve ture. Period 7 / 30 / 90 dana.
 
 Tvoje posete se **ne broje** dok si prijavljen kao administrator. Preview botovi (WhatsApp, Facebook) se takođe ne broje.
 
+Na telefonu ili pregledaču gde nisi prijavljen: otvori jednom **kvadrat360.com/?ne-brojim** i taj uređaj se više ne broji (ni na sajtu ni u turama, pa ni u mesečnom izveštaju agencije). Poništava se sa **?brojim**.
+
 Ispod tura je odeljak **Početna strana** (radi posle migracije `008_site_events.sql`):
 
 - **Posetilaca** i **Poslatih upita** preko forme, i koliki deo posetilaca pošalje upit
