@@ -9,6 +9,7 @@ import {
   DEFAULT_HFOV,
   INFO_HFOV,
   INFO_TURN_MAX_MS,
+  ENTRY_HOLD_MS,
   INFO_TURN_MIN_MS,
   LEVEL_PITCH,
   clampPitch,
@@ -156,54 +157,58 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
     }
   };
 
-  // Vodič ne prelazi u sledeću sobu ODMAH posle poslednje info-tačke -
-  // kamera još kruži ovoliko da posetilac stigne da pogleda okolo.
+  // Poslednja soba (nema vrata dalje): kamera još ovoliko mirno kruži pre
+  // poruke da je obilazak gotov.
   const GUIDE_ROOM_LINGER_MS = 7000;
+  // Pošto se kamera okrene ka vratima koja svetle, zadrži se na njima
+  // ovoliko pre nego što krene kroz njih - da posetilac vidi kuda ide.
+  const DOOR_HOLD_MS = 2500;
 
-  // Kraj naracije sobe: u ručnom modu se kao i do sada samo mirno stoji
-  // (startInfiniteGlide); u automatskom vodič kruži GUIDE_ROOM_LINGER_MS,
-  // pa tek onda ide dalje. Kruženje namerno NIJE nasumično: brzina se
-  // računa tako da kamera stigne TAČNO do sledećih vrata (ili tačke ka
-  // sledećoj sobi) kad vreme istekne - isti obrazac kao "beginRotation"
-  // gore (ugao / trajanje = brzina), samo je ovde ugao razdaljina do
-  // vrata, ne fiksnih 240°. Ako nema sledećeg koraka (poslednja soba),
-  // kruži bez cilja, kao i pre.
+  // Kraj priče u sobi. Ručni režim: mirno kruženje (startInfiniteGlide).
+  // Automatski vodič (vlasnik, 30. 9. 2026 - "neka kamera kruži prema
+  // sledećoj tački"): kamera se NAJKRAĆIM putem, mirno (turnMsFor), okrene
+  // ka vratima koja upravo svetle (watchNextDoorPulse), ravno i odzumirano,
+  // zadrži se DOOR_HOLD_MS, pa prilaz. Ranije je ovde išlo startAutoRotate
+  // sa brzinom računatom "do vrata", ali Pannellum pozitivnom brzinom
+  // SMANJUJE yaw, pa se kamera vrtela od vrata umesto ka njima.
   const finishRoomSequence = () => {
     if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
     if (!sequenceActiveRef.current || isInterruptedRef.current) return;
     roomSequenceFinishedRef.current = true;
 
     if (guideModeRef.current === 'auto') {
-      // Brzina se preračuna svaki put kad kruženje (ponovo) krene - i na
-      // startu i posle svakog nastavka iz pauze - uvek na osnovu TRENUTNOG
-      // ugla kamere i PREOSTALOG vremena, pa uvek stigne do vrata bez
-      // obzira koliko je puta pauzirano usput.
-      const applyLingerRotation = (remainingMs: number) => {
+      const doorAhead = nextGuideDoor();
+      const doorYawFrom = (fromYaw: number) => getShortestTargetYaw(fromYaw, doorAhead?.yaw ?? 0);
+
+      // Okret ka vratima za preostalo vreme okreta - i na početku i posle
+      // nastavka iz pauze, uvek od TRENUTNOG pogleda.
+      const turnToDoor = (ms: number) => {
+        if (!doorAhead || !viewerRef.current || isGyroActiveRef.current) return;
+        const fromYaw = normalizeYaw(viewerRef.current.getYaw());
+        try {
+          viewerRef.current.lookAt(LEVEL_PITCH, doorYawFrom(fromYaw), pickHfov(DEFAULT_HFOV), Math.max(600, ms));
+        } catch {}
+      };
+      const idleRotate = () => {
         if (!viewerRef.current || isGyroActiveRef.current) return;
-        const doorAhead = nextGuideDoor();
-        if (doorAhead) {
-          const fromYaw = normalizeYaw(viewerRef.current.getYaw());
-          // NAMERNO ne getShortestTargetYaw (taj bira kraći put, koji ume da
-          // bude suprotan smeru u kom je kamera već krenula u "Fazi 1" gore -
-          // posetilac bi video da se okretanje odjednom vrati unazad). Umesto
-          // toga uvek isti smer kao početna rotacija (pozitivan ugao/korak),
-          // makar to značilo da ide "dužim putem" do vrata.
-          const forwardDelta = (((doorAhead.yaw ?? 0) - fromYaw) % 360 + 360) % 360;
-          const turnSpeed = remainingMs > 0 ? forwardDelta / (remainingMs / 1000) : 0;
-          // Ravno (LEVEL_PITCH), ne nagnuto ka vratima - vidi transition.ts.
-          viewerRef.current.startAutoRotate(turnSpeed, LEVEL_PITCH);
-        } else {
-          const idleRotateDegPerSec = 360 / 30; // 360° za 30 sekundi, bez cilja (poslednja soba)
-          viewerRef.current.startAutoRotate(idleRotateDegPerSec, LEVEL_PITCH);
-        }
+        viewerRef.current.startAutoRotate(360 / 30, LEVEL_PITCH); // 360° za 30 s, bez cilja
       };
 
-      applyLingerRotation(GUIDE_ROOM_LINGER_MS);
+      let turnMs = 0;
+      if (doorAhead && viewerRef.current && !isGyroActiveRef.current) {
+        const fromYaw = normalizeYaw(viewerRef.current.getYaw());
+        turnMs = prefersReducedMotion() ? 0 : turnMsFor(doorYawFrom(fromYaw) - fromYaw, INFO_TURN_MIN_MS, INFO_TURN_MAX_MS);
+      }
+      const totalMs = doorAhead ? turnMs + DOOR_HOLD_MS : GUIDE_ROOM_LINGER_MS;
+
+      if (doorAhead) turnToDoor(turnMs);
+      else idleRotate();
       // Priča je gotova (ili je bez zvuka) - vrata ka sledećoj sobi svetle
       // dok kamera ne krene kroz njih.
       watchNextDoorPulse(null);
 
-      let lingerElapsed = 0;
+      // Vreme teče samo dok vodič NIJE pauziran; pauza zaustavi i kameru.
+      let elapsed = 0;
       let lastTick = performance.now();
       let wasPaused = isGuidePausedRef.current;
       const lingerTick = (now: number) => {
@@ -211,16 +216,20 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
         if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 
         const pausedNow = isGuidePausedRef.current;
-        if (pausedNow && !wasPaused) {
-          if (viewerRef.current) viewerRef.current.stopAutoRotate();
+        if (pausedNow && !wasPaused && viewerRef.current) {
+          try {
+            viewerRef.current.stopAutoRotate();
+            viewerRef.current.stopMovement?.();
+          } catch {}
         } else if (!pausedNow && wasPaused) {
-          applyLingerRotation(Math.max(0, GUIDE_ROOM_LINGER_MS - lingerElapsed));
+          if (doorAhead) turnToDoor(turnMs - elapsed);
+          else idleRotate();
         }
         wasPaused = pausedNow;
-        if (!pausedNow) lingerElapsed += now - lastTick;
+        if (!pausedNow) elapsed += now - lastTick;
         lastTick = now;
 
-        if (lingerElapsed < GUIDE_ROOM_LINGER_MS) {
+        if (elapsed < totalMs) {
           animFrameRef.current = requestAnimationFrame(lingerTick);
         } else {
           if (viewerRef.current) viewerRef.current.stopAutoRotate();
@@ -308,6 +317,8 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
   // to je samo spoj dve slike. Odmah se glatko okrene ka najlepšem kadru
   // sobe (establish), uz koji ide uvodna naracija. Vraća trajanje okreta
   // (0 = nije bilo okreta: nema ulaska, žiroskop ili smanjeno kretanje).
+  // Pre okreta kamera ENTRY_HOLD_MS mirno gleda napred (vidi transition.ts);
+  // vraćeno trajanje uključuje i to zadržavanje.
   const glideToEstablish = (): number => {
     if (!entry || !viewerRef.current || isGyroActiveRef.current || prefersReducedMotion()) return 0;
     try {
@@ -317,8 +328,14 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
       // Vodič posle ovoga kruži, pa odmah na ravan horizont; ručni režim
       // staje na kadru koji je autor ture izabrao.
       const pitch = guideModeRef.current === 'auto' ? LEVEL_PITCH : clampPitch(targetEstablishPitch);
-      viewerRef.current.lookAt(pitch, toYaw, undefined, ms);
-      return ms;
+      window.setTimeout(() => {
+        // Posetilac je za tu sekundu mogao da pređe u drugu sobu ili da
+        // sam uhvati panoramu - tada se ne okreće.
+        if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
+        if (!sequenceActiveRef.current || isInterruptedRef.current || !viewerRef.current) return;
+        try { viewerRef.current.lookAt(pitch, toYaw, undefined, ms); } catch {}
+      }, ENTRY_HOLD_MS);
+      return ENTRY_HOLD_MS + ms;
     } catch {
       return 0;
     }

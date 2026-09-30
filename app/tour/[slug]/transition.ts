@@ -154,6 +154,12 @@ export const TURN_DEG_PER_S = 45;
 /** Okret ka info-tački. */
 export const INFO_TURN_MIN_MS = 1500;
 export const INFO_TURN_MAX_MS = 4000;
+/**
+ * Posle ulaska kamera ovoliko mirno gleda u smeru kretanja, pa tek onda
+ * kreće okret ka najlepšem kadru - da se "korak" u sobu oseti (vlasnik,
+ * 30. 9. 2026).
+ */
+export const ENTRY_HOLD_MS = 1000;
 /** Posle ulaska: okret od smera kretanja ka najlepšem kadru sobe. */
 export const ARRIVE_GLIDE_MIN_MS = 1200;
 export const ARRIVE_GLIDE_MAX_MS = 3500;

@@ -26,6 +26,7 @@ import { useRoomNavigation } from './useRoomNavigation';
 import { runRoomSequence } from './roomSequence';
 import { AdminCrosshair, DragHint, RoomLoadingScreen, TourGlobalStyles, useFirstTimeDragHint, useImmersiveWhileDragging } from './TourOverlays';
 import { useNeighbourPreload, useTourAnalytics } from './useTourAnalytics';
+import { useScreenWakeLock } from './useScreenWakeLock';
 import { useViewerControls } from './useViewerControls';
 import { useTourNarration } from './useTourNarration';
 import { LockedTourScreen } from './LockedTourScreen';
@@ -437,6 +438,8 @@ export default function TourPage() {
   // "Prevucite prstom da razgledate" pri prvom ulasku - vidi TourOverlays.tsx.
   const showDragHint = useFirstTimeDragHint(tourStarted);
   const immersive = useImmersiveWhileDragging(tourStarted && !adminMode);
+  // Ekran se ne gasi dok vodič sam vodi - vidi useScreenWakeLock.ts.
+  useScreenWakeLock(tourStarted && guideMode === 'auto' && !isGuidePaused && !guideFinished);
   const isNarrow = useNarrowScreen();
 
   const closeInfoCard = () => {
