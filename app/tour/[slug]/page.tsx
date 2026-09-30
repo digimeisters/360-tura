@@ -159,8 +159,10 @@ export default function TourPage() {
 
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const [showViewing, setShowViewing] = useState(false);
-  const [isRoomTourFullyCompleted, setIsRoomTourFullyCompleted] = useState(false);
-  const [isInfoboxManuallyClosed, setIsInfoboxManuallyClosed] = useState(false);
+  // Vrednosti se više ne čitaju (meni je uvek vidljiv), ali hook-ovi vodiča
+  // i dalje javljaju ova stanja.
+  const [, setIsRoomTourFullyCompleted] = useState(false);
+  const [, setIsInfoboxManuallyClosed] = useState(false);
 
 
   const [infoBoxData, setInfoBoxData] = useState<{ titleRaw?: unknown; textRaw: unknown; index?: number; audio_url?: unknown } | null>(null);
@@ -883,13 +885,11 @@ export default function TourPage() {
     .replace('{current}', String(navPosition.current))
     .replace('{total}', String(navPosition.total));
 
-  // "Istražite sami": meni je uvek na dnu, a kartica sa tekstom se podiže iznad
-  // njega (vlasnik, 28. 9. 2026 - posetilac ne sme ni na trenutak da ostane
-  // bez kontrola). Automatsko vođenje: meni tek kad soba "odćuti" ili se
-  // kartica zatvori, da ekran pripada vodiču.
-  const isModalToolbarVisible = isGuideAuto
-    ? !infoBoxData && (!tourStarted || isRoomTourFullyCompleted || isInfoboxManuallyClosed)
-    : true;
+  // Meni (Pitanja, Lokacija, Info, Plan, Kontakt) je uvek na dnu, a kartica
+  // ili titl stoje iznad njega. "Istražite sami" od 28. 9. 2026 (posetilac ne
+  // sme ni na trenutak da ostane bez kontrola), automatsko vođenje od
+  // 30. 9. 2026 - ranije se meni tu pojavljivao tek kad soba "odćuti".
+  const isModalToolbarVisible = true;
   // Telefon, kartica i meni zajedno: jedna ploča (vlasnik, 28. 9. 2026 - dve
   // kutije jedna iznad druge su zauzimale četvrtinu ekrana). Dok se prstom
   // razgleda, kartica se sklanja, pa meni opet dobija svoje staklo.
@@ -904,18 +904,18 @@ export default function TourPage() {
   const infoCardShown = Boolean(infoBoxData) && !subtitleMode && !pendingCoords && !activeModal;
   const bottomDocked = isNarrow && infoCardShown && isModalToolbarVisible && !immersive;
 
-  // Dugme "Pozovi" stoji dok donji meni (sa Kontaktom) nije vidljiv - vidi
-  // CallAgentButton. U admin režimu se prikazuje (da vlasnik vidi turu kao
-  // posetilac), ali se klik ne broji.
+  // Dugme "Pozovi" u automatskom vođenju (vidi CallAgentButton): dok ide titl
+  // se sklanja, a vraća se kad titl nestane (vlasnik, 30. 9. 2026). U ručnom
+  // režimu ga nema - Kontakt je u meniju. U admin režimu se prikazuje (da
+  // vlasnik vidi turu kao posetilac), ali se klik ne broji.
   const agentPhone = tour?.agent_phone?.trim() || '';
   const showCallButton =
-    tourStarted && Boolean(agentPhone) && !pendingCoords && !activeModal && !isModalToolbarVisible;
+    tourStarted && isGuideAuto && Boolean(agentPhone) && !pendingCoords && !activeModal && !showSubtitles;
   const callButton = showCallButton ? (
     <CallAgentButton
       phone={agentPhone}
       label={t.callNow}
       floating={!infoCardShown}
-      round={showSubtitles}
       onPhoneCall={() => {
         if (slug && !adminMode) trackEvent({ eventType: 'contact', tourSlug: slug, lang });
       }}
@@ -1135,7 +1135,6 @@ export default function TourPage() {
           text={displayedInfoText}
           getClock={getAudioClock}
           hidden={immersive}
-          lifted={Boolean(callButton) && isNarrow}
         />
       )}
 

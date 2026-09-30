@@ -490,16 +490,13 @@ export function NarrationSubtitles({
   title,
   text,
   getClock,
-  hidden = false,
-  lifted = false
+  hidden = false
 }: {
   /** Naziv info-tačke, a za uvod sobe naziv sobe - u crnoj oznaci iznad titla. */
   title: string;
   text: string;
   getClock: () => { time: number; duration: number } | null;
   hidden?: boolean;
-  /** U dnu desno stoji okruglo "Pozovi" - na uskom ekranu titl ide iznad njega. */
-  lifted?: boolean;
 }) {
   const cues = useMemo(() => toSubtitleCues(text), [text]);
   const [cueIdx, setCueIdx] = useState(0);
@@ -536,7 +533,8 @@ export function NarrationSubtitles({
       style={{
         position: 'absolute',
         left: '50%',
-        bottom: lifted ? `calc(${SCREEN_BOTTOM} + 48px)` : `calc(${SCREEN_BOTTOM} + 10px)`,
+        // Iznad donjeg menija, koji u vođenju stoji i dok glas priča.
+        bottom: `calc(${ABOVE_MENU_BOTTOM} + 4px)`,
         transform: 'translateX(-50%)',
         zIndex: 30,
         width: 'calc(100% - 32px)',
@@ -601,28 +599,20 @@ export function CallAgentButton({
   label,
   onPhoneCall,
   onDesktop,
-  floating = false,
-  round = false
+  floating = false
 }: {
   phone: string;
   label: string;
   /** Poziv sa telefona - modal se ne otvara, pa se kontakt broji ovde. */
   onPhoneCall: () => void;
   onDesktop: () => void;
-  /** Samostalno u dnu ekrana (kad kartice nema), umesto prikačeno uz nju. */
+  /** Samostalno, desno iznad donjeg menija (kad kartice nema), umesto prikačeno uz nju. */
   floating?: boolean;
-  /**
-   * Samo slušalica u krugu, bez teksta - dok idu titlovi, da pilula "Pozovi"
-   * ne štrči pored njih (vlasnik, 30. 9. 2026).
-   */
-  round?: boolean;
 }) {
   return (
     <a
       href={`tel:${phone.replace(/[^\d+]/g, '')}`}
       className={floating ? 'tour-ui-scale k360-tap' : 'k360-tap'}
-      aria-label={round ? label : undefined}
-      title={round ? label : undefined}
       onClick={(e) => {
         const touch = window.matchMedia('(pointer: coarse)').matches;
         if (touch) {
@@ -634,15 +624,14 @@ export function CallAgentButton({
       }}
       style={{
         ...(floating
-          ? { position: 'absolute' as const, right: '12px', bottom: SCREEN_BOTTOM, zIndex: 30 }
+          ? { position: 'absolute' as const, right: '12px', bottom: ABOVE_MENU_BOTTOM, zIndex: 30 }
           : {}),
         display: 'inline-flex',
         alignItems: 'center',
-        justifyContent: 'center',
         gap: '6px',
         height: '36px',
         boxSizing: 'border-box',
-        ...(round ? { width: '36px', padding: 0 } : { padding: '0 14px 0 12px' }),
+        padding: '0 14px 0 12px',
         borderRadius: '999px',
         background: THEME.accent,
         border: '1px solid rgba(255, 255, 255, 0.35)',
@@ -658,7 +647,7 @@ export function CallAgentButton({
       }}
     >
       <IconPhone size={16} color="#fff" />
-      {!round && label}
+      {label}
     </a>
   );
 }
