@@ -184,8 +184,10 @@ export function buildVideoPlan(tour: Tour, rooms: Room[], lang: Language): Video
       title: getLocalizedText(room.title_i18n, lang),
       subtitle,
       panoramaUrl: videoPanoramaUrl(room),
-      fromYaw: center - span / 2,
-      toYaw: center + span / 2,
+      // Isti smer kao kruženje u turi (Pannellum autoRotate smanjuje yaw) -
+      // vlasnik, 1. 10. 2026: u prvoj verziji je video išao na suprotnu stranu.
+      fromYaw: center + span / 2,
+      toYaw: center - span / 2,
       start,
       end: start + duration
     });
