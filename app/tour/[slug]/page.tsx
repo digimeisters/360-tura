@@ -39,7 +39,9 @@ import {
   ARRIVE_HFOV,
   DEFAULT_HFOV,
   ENTRY_START_HFOV,
+  ENTRY_WIDEN_MS,
   FADE_MS,
+  prefersReducedMotion,
   INFO_HFOV,
   SLOW_LOAD_HINT_MS,
   VIEW_MAX_HFOV,
@@ -716,6 +718,10 @@ export default function TourPage() {
       sceneReadyRef.current = true;
       layer.style.pointerEvents = '';
       fadeOutPreviousScene();
+      // Dok se stara soba pretapa, nova se lagano širi - vidi ENTRY_WIDEN_MS.
+      if (zoomedIn && !prefersReducedMotion()) {
+        try { v.setHfov(scaledHfov(ARRIVE_HFOV), ENTRY_WIDEN_MS); } catch {}
+      }
 
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
 

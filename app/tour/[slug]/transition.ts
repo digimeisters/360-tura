@@ -39,8 +39,12 @@ export const scaledHfov = (mobile: number) =>
 
 /** Okret i približavanje ka tački. */
 export const WALK_MS = 2500;
-/** Koliko se "priđe" vratima - manje je bliže, ali slika postaje mutnija. */
-export const WALK_HFOV = 32;
+/**
+ * Koliko se "priđe" vratima - manje je bliže, ali slika postaje mutnija.
+ * Bilo je 32: slika se mutila, a razlika do širine nove sobe je pri
+ * pretapanju izgledala kao skok unazad (vlasnik, 1. 10. 2026).
+ */
+export const WALK_HFOV = 40;
 /**
  * Deo prilaza (0-1) posle kog nova soba sme da se pokaže. Pre samog kraja,
  * dok se kamera još kreće, da pretapanje ne sačeka da ona stane.
@@ -69,18 +73,21 @@ export const CREEP_HFOV = 26;
 export const CREEP_MS = 3200;
 
 /**
- * Ulazak u sobu nastavlja kretanje napred, bez odzumiranja: soba se pojavi
- * na ENTRY_START_HFOV, a okretanje sobe (startAutoRotate) je samo lagano
- * primakne na ARRIVE_HFOV - Pannellum pri okretanju uvek ide ka početnom
- * zoomu scene, a scena se pravi baš sa ARRIVE_HFOV.
+ * Ulazak u sobu kao prolazak kroz vrata: nova soba se pojavi skoro istog
+ * zooma kao stara na kraju prilaza (ENTRY_START_HFOV ~ WALK_HFOV), pa se
+ * kadar tokom pretapanja i prve sekunde u sobi lagano raširi na ARRIVE_HFOV
+ * (ENTRY_WIDEN_MS) - kao kad se prođe kroz dovratak i soba se otvori. Ranije
+ * se nova soba pojavljivala odmah na 60 posle prilaza na 32 i to je trzalo.
+ * Scena se pravi sa ARRIVE_HFOV, ka kome Pannellum vodi i kruženje.
  */
-export const ENTRY_START_HFOV = 60;
-export const ARRIVE_HFOV = 52;
+export const ENTRY_START_HFOV = 44;
+export const ARRIVE_HFOV = 56;
+export const ENTRY_WIDEN_MS = 2400;
 /** Vraćanje na normalan pogled kad se prilaz vratima prekine u istoj sobi. */
 export const SETTLE_MS = 1200;
 
-/** Pretapanje stare scene u novu. */
-export const FADE_MS = 550;
+/** Pretapanje stare scene u novu (bilo 550 - delovalo je kao rez). */
+export const FADE_MS = 900;
 /** Ako nova soba stiže sporije od ovoga, prikaže se "Ulazimo u prostoriju". */
 export const SLOW_LOAD_HINT_MS = 700;
 

@@ -14,7 +14,7 @@ import {
   WALK_MAX_MS,
   WALK_MS,
   WALK_REVEAL_AT,
-  clampPitch,
+  LEVEL_PITCH,
   entryViewFor,
   pickHfov,
   panoramaUrlFor,
@@ -284,7 +284,9 @@ export function useRoomNavigation({
       if (reduceMotion) return resolve();
       try {
         v.setHfovBounds([WALK_MIN_HFOV_BOUND, VIEW_MAX_HFOV]);
-        v.lookAt(clampPitch(wp.pitch ?? 0), walkYaw, scaledHfov(WALK_HFOV), walkMs, () => resolve());
+        // Ravno ka vratima (LEVEL_PITCH), ne spušteno ka tački na podu: nova
+        // soba se otvara ravno, pa bi spušten pogled pri pretapanju skočio.
+        v.lookAt(LEVEL_PITCH, walkYaw, scaledHfov(WALK_HFOV), walkMs, () => resolve());
       } catch {
         resolve();
       }
