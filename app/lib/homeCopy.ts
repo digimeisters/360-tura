@@ -154,6 +154,11 @@ export type HomeCopy = {
   };
   benefits: { eyebrow: string; title: string; note: string; items: Titled[] };
   modules: ModulesCopy;
+  /**
+   * Poziv na sredini strane, posle "U samoj turi" - ranije između primera
+   * ture i cenovnika sedam ekrana nije bilo nijednog dugmeta.
+   */
+  midCta: { title: string; points: string[]; button: string; call: string };
   steps: { eyebrow: string; title: string; note: string; items: Titled[]; deliverTitle: string; deliver: string[] };
   pricing: {
     eyebrow: string;
@@ -218,10 +223,10 @@ const sr: HomeCopy = {
     titleStart: 'Vaš kvadrat u Kragujevcu, u 360°, ',
     titleEm: 'bez skrivenih ćoškova.',
     lede:
-      '360° tura i HDR fotografije vašeg stana — kupac prošeta kroz svaki ugao pre prvog dolaska. Za agencije i vlasnike u Kragujevcu.',
-    ctaTour: '▶ Pogledajte primer ture',
+      '360° tura i HDR fotografije vaše nekretnine — kupac prošeta kroz svaki ugao pre prvog dolaska. Za agencije i vlasnike u Kragujevcu.',
+    ctaTour: 'Pogledajte primer ture',
     ctaPackages: 'Pogledajte cenovnik',
-    trust: ['🎧 Audio vodič SR · EN · DE · RU', '⏱ Isporuka za 48h'],
+    trust: ['🎧 Audio vodič SR · EN · DE · RU', '⏱ Isporuka za 24–48h'],
     opens: (count) => `👁 ${count}+ otvaranja tura`
   },
   categories: { sale: 'Prodaja', rent: 'Izdavanje', booking: 'Smeštaj' },
@@ -251,10 +256,10 @@ const sr: HomeCopy = {
       // Četiri, ne osam: ranije su se kartice preklapale međusobno ("Manje
       // uzaludnih razgledanja" / "Brža odluka") i sa sekcijom "U samoj turi"
       // ("Vaše ime u svakoj turi" = modul Kontakt). Svaka ovde je jedna ideja.
-      { title: 'Manje uzaludnih razgledanja', text: 'Kupci prvo „prošetaju“ kroz stan online. Na razgledanje dolaze samo oni koje stan zaista zanima — sa manje pitanja, spremni da brzo odluče.' },
+      { title: 'Manje uzaludnih razgledanja', text: 'Kupci prvo „prošetaju“ kroz nekretninu online. Na razgledanje dolaze samo oni koje zaista zanima — sa manje pitanja, spremni da brzo odluče.' },
       { title: 'Oglas koji se izdvaja', text: 'HDR fotografije i 360° tura odvajaju vaš oglas od stotina slikanih telefonom — i grade poverenje pre prvog poziva.' },
-      { title: 'Kupci iz drugih gradova', text: 'Ko živi u Beogradu, Nišu ili inostranstvu razgleda stan bez puta — a audio vodič mu ga ispriča na srpskom, engleskom, nemačkom ili ruskom.' },
-      { title: 'Otvoreno 24 sata', text: 'Stan je otvoren u svako doba, na telefonu ili računaru, bez zakazivanja i bez aplikacije — uz vodiča kroz sve prostorije ili svojim tempom.' }
+      { title: 'Kupci iz drugih gradova', text: 'Ko živi u Beogradu, Nišu ili inostranstvu razgleda nekretninu bez puta — a audio vodič mu ga ispriča na srpskom, engleskom, nemačkom ili ruskom.' },
+      { title: 'Otvoreno 24 sata', text: 'Tura je otvorena u svako doba, na telefonu ili računaru, bez zakazivanja i bez aplikacije — uz vodiča kroz sve prostorije ili svojim tempom.' }
     ]
   },
   modules: {
@@ -266,11 +271,11 @@ const sr: HomeCopy = {
     buyerLabel: 'Kupac',
     youLabel: 'Vi',
     items: [
-      { key: 'about', tab: 'Info', title: 'Sve bitno na jednom listu', text: 'Cena, kvadratura, sprat, grejanje, terasa, parking, uknjiženost — pregledno, na jeziku posetioca. Bez listanja oglasa i bez nagađanja.', buyer: 'U pola minuta zna da li mu stan odgovara.', you: 'Nema više poziva „koji je sprat?“ i „ima li lift?“.' },
+      { key: 'about', tab: 'Info', title: 'Sve bitno na jednom listu', text: 'Cena, kvadratura, sprat, grejanje, terasa, parking, uknjiženost — pregledno, na jeziku posetioca. Bez listanja oglasa i bez nagađanja.', buyer: 'U pola minuta zna da li mu nekretnina odgovara.', you: 'Nema više poziva „koji je sprat?“ i „ima li lift?“.' },
       { key: 'faq', tab: 'Pitanja', title: 'Odgovori pre prvog poziva', text: 'Pet pitanja koja kupci uvek postave — drugačija za prodaju, izdavanje i stan na dan — sa odgovorima na svim jezicima ture.', buyer: 'Dobije odgovor odmah, i u ponoć.', you: 'Na razgledanje dolaze već informisani.' },
-      { key: 'location', tab: 'Lokacija', title: 'Gde je — bez otkrivanja broja', text: 'Mapa, ulica i naselje. Jednim dodirom otvara Google mape i put do stana. Kućni broj se ne prikazuje.', buyer: 'Odmah vidi kraj, prevoz i okolinu.', you: 'Tačnu adresu dajete tek kad zakažete razgledanje.' },
-      { key: 'plan', tab: 'Plan', title: 'Raspored jednim pogledom', text: 'Tlocrt stana sa tačkama prostorija. Dodir na tačku vodi pravo u tu prostoriju u 360° turi.', buyer: 'Razume raspored pre nego što prođe kroz stan.', you: 'Nema „a gde je kupatilo u odnosu na sobu?“.' },
-      { key: 'contact', tab: 'Kontakt', title: 'Razgledanje zakazano iz ture', text: 'Vaša kartica sa imenom i agencijom, poziv jednim dodirom i dugme „Zakaži razgledanje“ — ime, telefon i željeni termin.', buyer: 'Zakaže u trenutku kad mu se stan dopadne.', you: 'Upit nam stiže odmah, sa podacima o turi, i istog trenutka ga prosleđujemo vama.' }
+      { key: 'location', tab: 'Lokacija', title: 'Gde je — bez otkrivanja broja', text: 'Mapa, ulica i naselje. Jednim dodirom otvara Google mape i put do nekretnine. Kućni broj se ne prikazuje.', buyer: 'Odmah vidi kraj, prevoz i okolinu.', you: 'Tačnu adresu dajete tek kad zakažete razgledanje.' },
+      { key: 'plan', tab: 'Plan', title: 'Raspored jednim pogledom', text: 'Tlocrt sa tačkama prostorija. Dodir na tačku vodi pravo u tu prostoriju u 360° turi.', buyer: 'Razume raspored pre nego što krene u obilazak.', you: 'Nema „a gde je kupatilo u odnosu na sobu?“.' },
+      { key: 'contact', tab: 'Kontakt', title: 'Razgledanje zakazano iz ture', text: 'Vaša kartica sa imenom i agencijom, poziv jednim dodirom i dugme „Zakaži razgledanje“ — ime, telefon i željeni termin.', buyer: 'Zakaže u trenutku kad mu se nekretnina dopadne.', you: 'Upit nam stiže odmah, sa podacima o turi, i istog trenutka ga prosleđujemo vama.' }
     ],
     preview: {
       category: 'Prodaja',
@@ -278,7 +283,7 @@ const sr: HomeCopy = {
       price: '98.000 €',
       keys: [['54 m²', 'Kvadratura'], ['Dvosoban', 'Struktura'], ['3/5', 'Sprat']],
       rows: [['Ulica', 'Maglićka'], ['Grejanje', 'Centralno'], ['Terasa', 'Terasa'], ['Parking', 'Garaža'], ['Lift', '✓ Da', true], ['Uknjiženo', '✓ Da', true]],
-      questions: ['Kolika je cena i da li je moguć kredit?', 'Kakvo je stanje objekta?', 'Da li je uknjižena?', 'Da li su porezi uključeni?', 'Šta sve ide uz stan?'],
+      questions: ['Kolika je cena i da li je moguć kredit?', 'Kakvo je stanje objekta?', 'Da li je uknjižena?', 'Da li su porezi uključeni?', 'Šta sve ide uz nekretninu?'],
       answer: '98.000 €, kupovina na kredit je moguća.',
       addressLabel: 'Adresa',
       address: 'Maglićka, Kragujevac',
@@ -291,6 +296,12 @@ const sr: HomeCopy = {
       viewing: 'Zakaži razgledanje',
       credit: '360° turu izradio ◇ Kvadrat360'
     }
+  },
+  midCta: {
+    title: 'Hoćete ovakvu turu za *svoju nekretninu?*',
+    points: ['snimanje 30–60 min', 'tura za 24–48h', 'audio vodič na više jezika'],
+    button: 'Zakažite snimanje',
+    call: 'Pozovite'
   },
   steps: {
     eyebrow: 'Kako radimo',
@@ -315,7 +326,7 @@ const sr: HomeCopy = {
   },
   pricing: {
     eyebrow: 'Cenovnik',
-    title: 'Dva paketa, *jedna cena* po nekretnini',
+    title: 'Dva paketa, *jedna cena* po nekretnini',
     note: 'Cena uključuje 360° turu i HDR fotografije. Agencije koje snimaju više nekretnina mesečno plaćaju manje po svakoj.',
     plans: [
       {
@@ -342,7 +353,7 @@ const sr: HomeCopy = {
         items: [
           'Sve iz Osnovnog, plus:',
           'Audio vodič na sva 4 jezika (SR, EN, DE, RU)',
-          'Izrada plana stana',
+          'Izrada tlocrta',
           'Prednost pri zakazivanju termina',
           'Isporuka za 24h',
           'QR kod za oglas, letak i izlog',
@@ -366,7 +377,7 @@ const sr: HomeCopy = {
       tour: 'Tura od',
       hdr: 'HDR fotografije'
     },
-    fine: '* Cene su prosečne, za stan od oko 50m². Za manje i veće stanove cenu formiramo prema broju prostorija — javite kvadraturu i broj soba, pa šaljemo tačnu ponudu. Za gradove van Kragujevca dogovaramo posebno.'
+    fine: '* Cene su prosečne, za prostor od oko 50 m². Za manje i veće prostore cenu formiramo prema broju prostorija — javite kvadraturu i broj soba, pa šaljemo tačnu ponudu. Za gradove van Kragujevca dogovaramo posebno.'
   },
   agencyBridge: {
     eyebrow: 'Za agencije',
@@ -419,9 +430,9 @@ const en: HomeCopy = {
     titleEm: 'no hidden corners.',
     lede:
       'A 360° tour and HDR photos of your property — buyers walk through every corner before the first visit. For agencies and owners in Kragujevac.',
-    ctaTour: '▶ View a sample tour',
+    ctaTour: 'View a sample tour',
     ctaPackages: 'See the price list',
-    trust: ['🎧 Audio guide SR · EN · DE · RU', '⏱ Delivery within 48h'],
+    trust: ['🎧 Audio guide SR · EN · DE · RU', '⏱ Delivery within 24–48h'],
     opens: (count) => `👁 ${count}+ tour views`
   },
   categories: { sale: 'For sale', rent: 'For rent', booking: 'Short stay' },
@@ -439,9 +450,9 @@ const en: HomeCopy = {
     title: 'Why a virtual tour *sells better*',
     note: 'What the tour and HDR photos do for you and your clients — not the technology behind them.',
     items: [
-      { title: 'Fewer wasted viewings', text: 'Buyers “walk” through the apartment online first. Only the seriously interested come to see it — with fewer questions, ready to decide.' },
+      { title: 'Fewer wasted viewings', text: 'Buyers “walk” through the property online first. Only the seriously interested come to see it — with fewer questions, ready to decide.' },
       { title: 'A listing that stands out', text: 'HDR photos and a 360° tour set your listing apart from the hundreds shot on a phone — and build trust before the first call.' },
-      { title: 'Buyers from other cities', text: 'Someone in Belgrade, Niš or abroad views the flat without the trip — and the audio guide walks them through it in Serbian, English, German or Russian.' },
+      { title: 'Buyers from other cities', text: 'Someone in Belgrade, Niš or abroad views the property without the trip — and the audio guide walks them through it in Serbian, English, German or Russian.' },
       { title: 'Open 24/7', text: 'The property is open at any hour, on a phone or a computer, with no appointment and no app — with a guide through every room or at their own pace.' }
     ]
   },
@@ -479,6 +490,12 @@ const en: HomeCopy = {
       viewing: 'Book a viewing',
       credit: '360° tour by ◇ Kvadrat360'
     }
+  },
+  midCta: {
+    title: 'Want a tour like this for *your property?*',
+    points: ['30–60 min shoot', 'tour within 24–48h', 'audio guide in several languages'],
+    button: 'Book a shoot',
+    call: 'Call us'
   },
   steps: {
     eyebrow: 'How it works',
@@ -551,7 +568,7 @@ const en: HomeCopy = {
       tour: 'Tour from',
       hdr: 'HDR photos'
     },
-    fine: '* Prices are averages, for a flat of about 50m². For smaller and larger flats we quote by the number of rooms — tell us the size and room count and we will send an exact quote. Cities outside Kragujevac are arranged separately.'
+    fine: '* Prices are averages, for a property of about 50 m². For smaller and larger properties we quote by the number of rooms — tell us the size and room count and we will send an exact quote. Cities outside Kragujevac are arranged separately.'
   },
   faq: {
     eyebrow: 'FAQ',

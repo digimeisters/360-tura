@@ -22,6 +22,7 @@ import { STRUCTURE_ORDER, structureLabel } from './lib/propertyTaxonomy';
 import PromoTopBar from '../components/PromoTopBar';
 import TourModulesShowcase from '../components/TourModulesShowcase';
 import ChatBubble from '../components/ChatBubble';
+import { IconPhone, IconPlay } from '../components/SiteIcons';
 
 /**
  * Početna strana, jedan raspored za obe jezičke verzije: app/page.tsx (/,
@@ -147,7 +148,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
                   href={heroTour ? tourHref(heroTour.slug, heroTour.languages, lang) : '#primeri'}
                   data-track="cta:hero_tour"
                 >
-                  {hero.ctaTour}
+                  <IconPlay /> {hero.ctaTour}
                 </a>
                 <a className="btn btn-secondary" href="#cenovnik" data-track="cta:hero_packages">{hero.ctaPackages}</a>
               </div>
@@ -254,6 +255,23 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
         <section className="band" id="u-turi">
           <div className="wrap">
             <TourModulesShowcase copy={copy.modules} photoUrl={heroTour?.coverUrl ?? null} />
+          </div>
+        </section>
+
+        {/* Poziv na sredini: posle "U samoj turi" posetilac je video šta tura
+            radi, a do cenovnika ima još dva ekrana bez ijednog dugmeta. */}
+        <section id="zakazite" className="mid-cta-sec">
+          <div className="wrap mid-cta">
+            <div className="mid-cta-text">
+              <h2>{accent(copy.midCta.title)}</h2>
+              <ul>
+                {copy.midCta.points.map((point) => <li key={point}>{point}</li>)}
+              </ul>
+            </div>
+            <div className="mid-cta-actions">
+              <a className="btn btn-primary" href="#kontakt" data-track="cta:home_mid">{copy.midCta.button}</a>
+              <a className="btn btn-secondary" href={CONTACT_LINKS.phone} data-track="contact:phone"><IconPhone /> {copy.midCta.call}</a>
+            </div>
           </div>
         </section>
 

@@ -1,12 +1,14 @@
 import type { HomeCopy, HomeLang } from '../app/lib/homeCopy';
 import { CONTACT_PACKAGES } from '../app/lib/pricing';
 import { PlanItemList, PlanPrice, PlanSplit, SaleSticker, SingleItems, VolumeTable } from './PromoPrice';
+import VolumeDetails from './VolumeDetails';
 
 /**
  * Cenovnik - isti na početnoj (SR i EN) i na /za-agencije, da se ne
  * razdvoje. Tri dela, redom kojim kupac odlučuje:
  *   1. dva paketa (Osnovni / Premium), cena za jednu nekretninu;
- *   2. tabela: više nekretnina mesečno, niža cena (umesto kalkulatora);
+ *   2. tabela: više nekretnina mesečno, niža cena (umesto kalkulatora) -
+ *      na telefonu sklopljena (VolumeDetails);
  *   3. jedan red za turu bez fotografija i fotografije bez ture.
  * Iznosi se računaju u PromoPrice.tsx iz lib/pricing.ts, pa prate promociju.
  *
@@ -49,11 +51,11 @@ export default function Pricing({
         ))}
       </div>
 
-      <div className="rate-head">
-        <h3>{copy.volume.title}</h3>
+      {/* Na telefonu sklopljeno - vidi VolumeDetails. */}
+      <VolumeDetails title={copy.volume.title}>
         <p className="note">{copy.volume.note}</p>
-      </div>
-      <VolumeTable copy={copy.volume} lang={lang} />
+        <VolumeTable copy={copy.volume} lang={lang} />
+      </VolumeDetails>
       <SingleItems copy={copy.single} lang={lang} />
       <p className="fine-print">{copy.fine}</p>
     </>

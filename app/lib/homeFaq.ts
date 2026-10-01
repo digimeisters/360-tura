@@ -11,14 +11,14 @@ export type FaqItem = {
 export const HOME_FAQ: Record<HomeLang, readonly FaqItem[]> = {
   sr: [
     {
-      question: 'Da li neko mora da bude u stanu tokom snimanja?',
+      question: 'Da li neko mora da bude prisutan tokom snimanja?',
       answer:
-        'Dovoljno je da nam neko otvori stan. Snimanje traje 30–60 minuta i tokom njega u prostoriji ne treba da bude nikoga, jer 360° kamera vidi ceo prostor. Pomaže ako su pre toga upaljena svetla, razgrnute zavese i sklonjene lične stvari.'
+        'Dovoljno je da nam neko otvori vrata. Snimanje traje 30–60 minuta i tokom njega u prostoriji ne treba da bude nikoga, jer 360° kamera vidi ceo prostor. Pomaže ako su pre toga upaljena svetla, razgrnute zavese i sklonjene lične stvari.'
     },
     {
       question: 'Koliko dugo je tura dostupna online?',
       answer:
-        'Bez vremenskog ograničenja — link ostaje živ trajno. Kada se stan proda, izda ili ga privremeno pauzirate, javite nam da promenimo status. Posetilac tada umesto ture vidi kratku poruku, na primer „Ova nekretnina je izdata“, a ime agencije i telefon ostaju vidljivi — pa vas i dalje može pozvati za neku drugu nekretninu.'
+        'Bez vremenskog ograničenja — link trajno ostaje aktivan. Kada se nekretnina proda, izda ili je privremeno pauzirate, javite nam da promenimo status. Posetilac tada umesto ture vidi kratku poruku, na primer „Ova nekretnina je izdata“, a ime agencije i telefon ostaju vidljivi — pa vas i dalje može pozvati za neku drugu nekretninu.'
     },
     {
       question: 'Kako da postavim turu na oglas?',
@@ -26,7 +26,7 @@ export const HOME_FAQ: Record<HomeLang, readonly FaqItem[]> = {
         'Dobijate link ka turi i ubacite ga u opis oglasa na bilo kom portalu, ili ga pošaljete kupcu porukom (Viber, WhatsApp, mejl). Za sajt agencije dobijate i gotov kod za ugradnju, pa se tura otvara direktno na stranici nekretnine.'
     },
     {
-      question: 'Šta ako se nešto u stanu promeni posle snimanja?',
+      question: 'Šta ako se nešto u prostoru promeni posle snimanja?',
       answer:
         'Ponovo snimamo samo prostorije koje su se promenile i zamenjujemo ih u postojećoj turi. Link ostaje isti, pa na oglasu ne morate ništa da menjate. Cenu dodatnog snimanja dogovaramo prema broju prostorija.'
     },
@@ -57,7 +57,7 @@ export const HOME_FAQ: Record<HomeLang, readonly FaqItem[]> = {
         'You get a link to the tour that you can paste into the listing description on any portal or send to a buyer by message (Viber, WhatsApp, email). For an agency website you also get a ready-made embed code, so the tour opens right on the property page.'
     },
     {
-      question: 'What if something in the apartment changes after the shoot?',
+      question: 'What if something at the property changes after the shoot?',
       answer:
         'We reshoot only the rooms that changed and replace them in the existing tour. The link stays the same, so you don’t need to change anything on the listing. The price of the extra shoot depends on the number of rooms.'
     },

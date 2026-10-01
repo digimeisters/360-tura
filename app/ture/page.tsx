@@ -31,7 +31,7 @@ const COPY = {
   meta: {
     title: 'Virtuelne ture — Kvadrat360',
     description:
-      'Sve objavljene 360° virtuelne ture nekretnina: prodaja, izdavanje i stanovi na dan. Prošetajte kroz stan iz pretraživača, bez instaliranja aplikacije.'
+      'Sve objavljene 360° virtuelne ture nekretnina: prodaja, izdavanje i stanovi na dan. Prošetajte kroz nekretninu iz pretraživača, bez instaliranja aplikacije.'
   },
   nav: { brandAria: 'Kvadrat360, početna strana', home: 'Početna', agencies: 'Za agencije', cta: 'Zakažite snimanje' },
   hero: {
@@ -48,7 +48,7 @@ const COPY = {
     titleStart: 'Prošetajte kroz ',
     titleEm: 'primere tura.',
     lede:
-      'Pogledajte kako izgleda stan u 360°: otvorite turu u pretraživaču, na telefonu ili računaru, bez instaliranja aplikacije. Svaka ima audio vodič, plan stana i kontakt agenta.'
+      'Pogledajte kako izgleda nekretnina u 360°: otvorite turu u pretraživaču, na telefonu ili računaru, bez instaliranja aplikacije. Svaka ima audio vodič, tlocrt i kontakt agenta.'
   },
   // Natpisi filtera i kartica su u components/TourList.tsx - između servera
   // i pregledača ne mogu da pređu funkcije, pa tamo i stoje.

@@ -36,10 +36,10 @@ export const PROMO_TEXT = {
     // rečenice: "din." već nosi tačku, pa bi ispalo "din..".
     example: (promoPrice: string, regularPrice: string) =>
       `Paket (tura + HDR fotografije) već od ${promoPrice} umesto ${regularPrice} po nekretnini.`,
-    terms: `Cene za stan od oko ${REFERENCE_AREA_SQM}m².`,
+    terms: `Cene za prostor od oko ${REFERENCE_AREA_SQM} m².`,
     daysLeft: (n: number) => (n <= 0 ? 'Poslednji dan' : `Još ${n} ${srDays(n)}`),
     lead: (promoPrice: string) => `Paket već od ${promoPrice} po nekretnini`,
-    sub: (regularPrice: string, date: string) => `umesto ${regularPrice} · važi do ${date} · stan do oko ${REFERENCE_AREA_SQM} m²`,
+    sub: (regularPrice: string, date: string) => `umesto ${regularPrice} · važi do ${date} · prostor do oko ${REFERENCE_AREA_SQM} m²`,
     days: (n: number) => srDays(n),
     // 1 sat, 2-4 sata, 5+ sati (ali 11-14 sati).
     hours: (n: number) =>
@@ -53,10 +53,10 @@ export const PROMO_TEXT = {
     until: (date: string) => `Through ${date}.`,
     example: (promoPrice: string, regularPrice: string) =>
       `Package (tour + HDR photos) already from ${promoPrice} instead of ${regularPrice} per property.`,
-    terms: `Prices for a flat of about ${REFERENCE_AREA_SQM}m².`,
+    terms: `Prices for a property of about ${REFERENCE_AREA_SQM} m².`,
     daysLeft: (n: number) => (n <= 0 ? 'Last day' : `${n} ${n === 1 ? 'day' : 'days'} left`),
     lead: (promoPrice: string) => `Package from ${promoPrice} per property`,
-    sub: (regularPrice: string, date: string) => `instead of ${regularPrice} · through ${date} · flats up to about ${REFERENCE_AREA_SQM} m²`,
+    sub: (regularPrice: string, date: string) => `instead of ${regularPrice} · through ${date} · properties up to about ${REFERENCE_AREA_SQM} m²`,
     days: (n: number) => (n === 1 ? 'day' : 'days'),
     hours: (n: number) => (n === 1 ? 'hour' : 'hours'),
     cta: 'Claim the discount →',

@@ -273,7 +273,7 @@ export default function ContactForm({
           <label htmlFor="f-msg">
             {t.message} <small style={{ fontWeight: 400 }}>(opciono)</small>
           </label>
-          <textarea className="input" id="f-msg" name="message" placeholder="Npr. imamo 3 stana za izdavanje ovog meseca, zanima nas Premium…" />
+          <textarea className="input" id="f-msg" name="message" placeholder="Npr. imamo 3 nekretnine za izdavanje ovog meseca, zanima nas Premium…" />
         </div>
         {footer}
       </form>

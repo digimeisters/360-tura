@@ -6,6 +6,7 @@ import HeroDevice from '../../components/HeroDevice';
 import PromoBanner from '../../components/PromoBanner';
 import PromoTopBar from '../../components/PromoTopBar';
 import FromPrice from '../../components/FromPrice';
+import { IconPhone, IconPlay } from '../../components/SiteIcons';
 import Pricing from '../../components/Pricing';
 import SiteTracker from '../../components/SiteTracker';
 import NavScrollSpy from '../../components/NavScrollSpy';
@@ -159,23 +160,7 @@ const AGENCY_STYLES = `
   .agent-screen p{margin-top:auto; font-size:.72rem; color:#5B5D63; text-align:center; line-height:1.5;}
 
   .path-end{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.8rem 1.2rem; margin-top:2rem; padding:1rem 1.3rem; border-radius:18px; background:var(--accent-soft); color:var(--ink); font-weight:600;}
-  /* Kompaktna plava traka na sredini (#probajte): tekst levo, dugmad desno. */
-  .mid-cta-sec{padding-block:clamp(1.5rem,4vw,2.8rem);}
-  .mid-cta{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1.2rem 2rem; border-radius:24px; padding:clamp(1.3rem,3vw,1.9rem) clamp(1.3rem,3vw,2.2rem); color:#fff;
-    background:
-      radial-gradient(50% 140% at 8% -40%, rgba(165,200,242,.45) 0%, transparent 70%),
-      linear-gradient(rgba(255,255,255,.075) 1px, transparent 1px) -1px -1px / 28px 28px,
-      linear-gradient(90deg, rgba(255,255,255,.075) 1px, transparent 1px) -1px -1px / 28px 28px,
-      linear-gradient(135deg, #1E5AA8 0%, #17447E 100%);
-    max-width:calc(1280px - 5rem); width:calc(100% - clamp(1.5rem,6vw,5rem));}
-  .mid-cta h2{color:#fff; font-size:clamp(1.4rem,2.4vw,1.9rem); line-height:1.15;}
-  .mid-cta h2 em{color:#fff;}
-  .mid-cta ul{list-style:none; margin:.6rem 0 0; padding:0; display:flex; flex-wrap:wrap; gap:.3rem 1.1rem; font-size:.92rem; opacity:.92;}
-  .mid-cta li::before{content:"✓ "; opacity:.8;}
-  .mid-cta-actions{display:flex; flex-wrap:wrap; gap:.6rem;}
-  .mid-cta .btn-primary, .mid-cta .btn-primary:hover{background:linear-gradient(180deg,#FFFFFF,#EAF1FB); color:#1E5AA8; border-color:rgba(255,255,255,.6);}
-  .mid-cta .btn-secondary{background:rgba(255,255,255,.08); color:#fff; border-color:rgba(255,255,255,.45);}
-  .mid-cta .btn-secondary:hover{background:rgba(255,255,255,.16); color:#fff;}
+  /* Plava traka na sredini (#probajte) - stil je u app/lib/siteStyles.ts (.mid-cta), deli ga i početna. */
 
   /* 03 Vlasnik: tamna sekcija, izveštaj u beloj kartici. */
   .owner .wrap{display:grid; grid-template-columns:1fr 1fr; gap:clamp(2rem,5vw,4.5rem); align-items:center;}
@@ -279,7 +264,7 @@ export default async function AgencyPage() {
                   href={heroTour ? tourHref(heroTour.slug, heroTour.languages, 'sr') : '#nedelja'}
                   data-track="cta:agency_hero_tour"
                 >
-                  {hero.ctaTour}
+                  <IconPlay /> {hero.ctaTour}
                 </a>
               </div>
               <div className="trust">
@@ -400,7 +385,7 @@ export default async function AgencyPage() {
                   <div className="phone-screen agent-screen">
                     <h4>{buyer.contact.title}</h4>
                     <span className="agent-row"><i>A</i><span><b>{buyer.contact.agent}</b><small>{buyer.contact.agency}</small></span></span>
-                    <span className="ph-btn">📞 {buyer.contact.call}</span>
+                    <span className="ph-btn"><IconPhone /> {buyer.contact.call}</span>
                     <span className="ph-btn alt">{buyer.contact.book}</span>
                     <p>{buyer.contact.note}</p>
                   </div>
@@ -491,7 +476,7 @@ export default async function AgencyPage() {
             </div>
             <div className="mid-cta-actions">
               <a className="btn btn-primary" href="#kontakt" data-track="cta:agency_mid">{midCta.button}</a>
-              <a className="btn btn-secondary" href={CONTACT_LINKS.phone} data-track="contact:phone">📞 {midCta.call}</a>
+              <a className="btn btn-secondary" href={CONTACT_LINKS.phone} data-track="contact:phone"><IconPhone /> {midCta.call}</a>
             </div>
           </div>
         </section>

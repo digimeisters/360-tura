@@ -236,6 +236,11 @@ export const SITE_STYLES = `
   .hero{padding-block:clamp(2rem,6vw,5rem) clamp(3rem,7vw,6rem);}
   .hero .wrap{display:grid; grid-template-columns:1fr 1fr; gap:clamp(2rem,5vw,4rem); align-items:center;}
   .hero h1{font-size:clamp(2.4rem,5vw,4.4rem); line-height:1.04; letter-spacing:-0.035em; margin-top:1.2rem;}
+  /* Slogan: "bez skrivenih ćoškova." uvek u svom redu i nikad prelomljen
+     (vlasnik, 1. 10. 2026). Na uskom telefonu je ceo izraz za par piksela
+     širi od ekrana, pa se naslov tu malo smanji srazmerno širini. */
+  .hero h1 em{display:block; white-space:nowrap;}
+  @media (max-width:480px){ .hero h1{font-size:min(2.4rem, calc(10.6vw - 4.5px));} }
   .hero .lede{margin-top:1.5rem; max-width:48ch; color:var(--ink-soft); font-size:clamp(1rem,1.3vw,1.18rem); line-height:1.6;}
   .hero-ctas{display:flex; align-items:center; gap:.7rem; margin-top:1.8rem; flex-wrap:wrap;}
   .trust{display:flex; flex-wrap:wrap; gap:.5rem; margin-top:1.4rem;}
@@ -488,6 +493,22 @@ export const SITE_STYLES = `
   .rate-head h3{font-size:1.5rem; margin:0 0 .4rem;}
   .rate-head .note{color:var(--ink-soft);}
   .rate-head + .rate-grid, .rate-head + .price-grid{margin-bottom:1rem;}
+  /* Tabela za više nekretnina (VolumeDetails): na računaru otvorena i izgleda
+     kao običan naslov; na telefonu sklopljena pločica koja se otvara dodirom. */
+  .vol-details{margin:3rem 0 1rem;}
+  .vol-details > summary{list-style:none; display:flex; align-items:center; justify-content:space-between; gap:.8rem; max-width:820px; cursor:pointer;}
+  .vol-details > summary::-webkit-details-marker{display:none;}
+  .vol-details > summary h3{font-size:1.5rem; margin:0;}
+  .vol-details-chevron{color:var(--accent); font-size:1.1rem; transition:transform .2s ease;}
+  .vol-details[open] .vol-details-chevron{transform:rotate(180deg);}
+  .vol-details .note{color:var(--ink-soft); max-width:820px; margin:.4rem 0 1.4rem;}
+  @media (min-width:721px){ .vol-details > summary{pointer-events:none;} .vol-details-chevron{display:none;} }
+  @media (max-width:720px){
+    .vol-details{margin-top:2rem;}
+    .vol-details > summary{padding:1rem 1.1rem; border:1px solid var(--line); border-radius:16px; background:var(--surface);}
+    .vol-details > summary h3{font-size:1.05rem;}
+    .vol-details[open] > summary{margin-bottom:.8rem;}
+  }
   .rate-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1.1rem; align-items:stretch;}
   @media (max-width:920px){ .rate-grid{grid-template-columns:1fr;} }
   /* min-width:0 - bez njega flex/grid stavka ne sme da se suzi ispod širine
@@ -845,6 +866,25 @@ export const SITE_STYLES = `
   .cta-band .btn-primary{background:#FFFFFF; color:#1E5AA8; box-shadow:none;}
   .cta-band .blog-related a{color:#FFFFFF; text-decoration:underline; text-underline-offset:3px;}
 
+  /* Kompaktna plava traka na sredini strane: tekst levo, dugmad desno.
+     Za agencije (#probajte) i početna (#zakazite, posle "U samoj turi"). */
+  .mid-cta-sec{padding-block:clamp(1.5rem,4vw,2.8rem);}
+  .mid-cta{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1.2rem 2rem; border-radius:24px; padding:clamp(1.3rem,3vw,1.9rem) clamp(1.3rem,3vw,2.2rem); color:#fff;
+    background:
+      radial-gradient(50% 140% at 8% -40%, rgba(165,200,242,.45) 0%, transparent 70%),
+      linear-gradient(rgba(255,255,255,.075) 1px, transparent 1px) -1px -1px / 28px 28px,
+      linear-gradient(90deg, rgba(255,255,255,.075) 1px, transparent 1px) -1px -1px / 28px 28px,
+      linear-gradient(135deg, #1E5AA8 0%, #17447E 100%);
+    max-width:calc(1280px - 5rem); width:calc(100% - clamp(1.5rem,6vw,5rem));}
+  .mid-cta h2{color:#fff; font-size:clamp(1.4rem,2.4vw,1.9rem); line-height:1.15;}
+  .mid-cta h2 em{color:#fff;}
+  .mid-cta ul{list-style:none; margin:.6rem 0 0; padding:0; display:flex; flex-wrap:wrap; gap:.3rem 1.1rem; font-size:.92rem; opacity:.92;}
+  .mid-cta li::before{content:"✓ "; opacity:.8;}
+  .mid-cta-actions{display:flex; flex-wrap:wrap; gap:.6rem;}
+  .mid-cta .btn-primary, .mid-cta .btn-primary:hover{background:linear-gradient(180deg,#FFFFFF,#EAF1FB); color:#1E5AA8; border-color:rgba(255,255,255,.6);}
+  .mid-cta .btn.btn-secondary{background:rgba(255,255,255,.08); color:#fff; border-color:rgba(255,255,255,.45);}
+  .mid-cta .btn.btn-secondary:hover{background:rgba(255,255,255,.16); color:#fff;}
+
   /* ---------- DUGMAD (uz reflektor i mrežu) ---------- */
   /* Glavno dugme: ista plava svuda (i u tamnoj temi, i na tamnim blokovima),
      sa blagim prelazom odozgo nadole i svetlom ivicom na vrhu - kao da i na
@@ -883,6 +923,9 @@ export const SITE_STYLES = `
   .promo-top{display:block; text-align:center; background:#1E5AA8; color:#FFFFFF; font-size:.86rem; font-weight:500; padding:.6rem 1rem; text-decoration:none; line-height:1.4;
     background-image:radial-gradient(40% 180% at 50% -40%, rgba(165,200,242,.45) 0%, transparent 70%), linear-gradient(90deg, #17447E 0%, #1E5AA8 50%, #17447E 100%);}
   .promo-top b{font-weight:700;}
+  .promo-top-days{white-space:nowrap;}
+  .promo-top-short{display:none;}
+  @media (max-width:520px){ .promo-top-long{display:none;} .promo-top-short{display:inline;} }
   .promo-top:hover{background-color:#17447E; background-image:radial-gradient(40% 180% at 50% -40%, rgba(165,200,242,.6) 0%, transparent 70%), linear-gradient(90deg, #17447E 0%, #2463B5 50%, #17447E 100%);}
   footer .wrap{display:flex; flex-direction:column; gap:1.6rem;}
   footer p{font-size:.85rem; color:var(--ink-soft);}

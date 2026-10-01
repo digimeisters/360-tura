@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import type { ShowcaseTour } from '../app/lib/showcaseTours';
 import type { HomeLang } from '../app/lib/homeCopy';
 import { tourHref as buildTourHref } from '../app/lib/tourHref';
+import { IconPlay } from './SiteIcons';
 
 const LABELS: Record<
   HomeLang,
@@ -11,7 +12,7 @@ const LABELS: Record<
 > = {
   sr: {
     empty: 'Primer ture stiže uskoro.',
-    open: '▶ Otvori turu',
+    open: 'Otvori turu',
     langs: 'Jezici ture',
     rooms: 'Prostorije u turi',
     prev: 'Prethodna',
@@ -20,7 +21,7 @@ const LABELS: Record<
   },
   en: {
     empty: 'A sample tour is coming soon.',
-    open: '▶ Open the tour',
+    open: 'Open the tour',
     langs: 'Tour languages',
     rooms: 'Rooms in the tour',
     prev: 'Previous',
@@ -145,7 +146,7 @@ export default function HeroDevice({ tour, lang = 'sr' }: { tour: ShowcaseTour |
         <h4>{room.title}</h4>
         {room.narration && <p>{room.narration}</p>}
         <a className="d-open" href={tourHref} data-track="cta:hero_device_tour">
-          {t.open}
+          <IconPlay /> {t.open}
         </a>
       </div>
     </div>
