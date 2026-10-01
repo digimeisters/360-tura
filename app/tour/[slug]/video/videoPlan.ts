@@ -5,6 +5,7 @@ import { toSubtitleCues } from '../subtitleCues';
 import { formatListingPrice } from '../../../lib/listingPrice';
 import { SITE_URL } from '../../../lib/site';
 import { phoneToE164 } from '../TourControls';
+import { ROTATE_RAMP_MS } from '../transition';
 
 /**
  * Plan kratkog uspravnog videa iz ture (za Instagram/Facebook, Premium):
@@ -28,6 +29,30 @@ export const INTRO_S = 4;
 export const ROOM_S = 4.2;
 export const FADE_S = 0.7;
 export const OUTRO_S = 3.2;
+/**
+ * Kadar sobe u videu kreće od pogleda koji tura ima posle ovoliko sekundi
+ * uvodne priče (vlasnik, 1. 10. 2026: početni kadar sobe mu nije odgovarao,
+ * "neka bude na četvrtoj sekundi naracije").
+ */
+export const KEY_NARRATION_S = 4;
+/**
+ * Kruženje ture za vreme uvodne priče (roomSequence.ts: 250° za 15 s, kreće
+ * od mirovanja i ubrzava ROTATE_RAMP_MS). Mora da prati turu, inače kadar u
+ * videu ne bi bio isti kao u turi.
+ */
+const TOUR_ROTATE_DEG_PER_S = 250 / 15;
+/** Video klizi mirnije od ture - ovoliko stepeni u sekundi, u istom smeru. */
+const VIDEO_PAN_DEG_PER_S = 10;
+
+/** Za koliko stepeni se tura okrenula posle `seconds` sekundi priče. */
+function tourRotationAfter(seconds: number): number {
+  const ramp = ROTATE_RAMP_MS / 1000;
+  const v = TOUR_ROTATE_DEG_PER_S;
+  // Brzina raste kao 1-(1-k)^2 tokom ubrzavanja: put je v*(s^2/r - s^3/(3r^2)).
+  if (seconds <= ramp) return v * (seconds ** 2 / ramp - seconds ** 3 / (3 * ramp ** 2));
+  return v * ((2 * ramp) / 3 + (seconds - ramp));
+}
+
 /** Više soba bi video učinilo dužim od 35 s - za Reels je to granica pažnje. */
 export const MAX_ROOMS = 8;
 
@@ -178,7 +203,12 @@ export function buildVideoPlan(tour: Tour, rooms: Room[], lang: Language): Video
     // Prva soba je i pozadina uvodne kartice, pa traje duže i klizi više.
     const start = i === 0 ? 0 : cursor - FADE_S;
     const duration = i === 0 ? INTRO_S + ROOM_S - FADE_S : ROOM_S;
-    const span = i === 0 ? 70 : 40;
+    // Kadar u trenutku kad se soba prvi put vidi = pogled ture posle
+    // KEY_NARRATION_S sekundi priče (tura kruži smanjujući yaw). Prva soba se
+    // vidi tek kad se skloni uvodna kartica, pa do tada već klizi ka tom kadru.
+    const keyYaw = center - tourRotationAfter(KEY_NARRATION_S);
+    const visibleAfter = i === 0 ? INTRO_S - start : 0;
+    const fromYaw = keyYaw + VIDEO_PAN_DEG_PER_S * visibleAfter;
     shots.push({
       roomId: String(room.id),
       title: getLocalizedText(room.title_i18n, lang),
@@ -186,8 +216,8 @@ export function buildVideoPlan(tour: Tour, rooms: Room[], lang: Language): Video
       panoramaUrl: videoPanoramaUrl(room),
       // Isti smer kao kruženje u turi (Pannellum autoRotate smanjuje yaw) -
       // vlasnik, 1. 10. 2026: u prvoj verziji je video išao na suprotnu stranu.
-      fromYaw: center + span / 2,
-      toYaw: center - span / 2,
+      fromYaw,
+      toYaw: fromYaw - VIDEO_PAN_DEG_PER_S * duration,
       start,
       end: start + duration
     });
