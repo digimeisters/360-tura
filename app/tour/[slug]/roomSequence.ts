@@ -4,6 +4,7 @@ import { translations } from './translations';
 import type { EstablishData, Language, Room, Waypoint } from './types';
 import { composeEstablishText, getLocalizedText, getShortestTargetYaw, normalizeYaw } from './utils';
 import {
+  ARRIVE_GLIDE_DEG_PER_S,
   ARRIVE_GLIDE_MAX_MS,
   ARRIVE_GLIDE_MIN_MS,
   DEFAULT_HFOV,
@@ -12,6 +13,7 @@ import {
   ENTRY_HOLD_MS,
   INFO_TURN_MIN_MS,
   LEVEL_PITCH,
+  ROTATE_RAMP_MS,
   clampPitch,
   pickHfov,
   prefersReducedMotion,
@@ -333,7 +335,7 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
     try {
       const fromYaw = normalizeYaw(viewerRef.current.getYaw());
       const toYaw = getShortestTargetYaw(fromYaw, targetEstablishYaw);
-      const ms = turnMsFor(toYaw - fromYaw, ARRIVE_GLIDE_MIN_MS, ARRIVE_GLIDE_MAX_MS);
+      const ms = turnMsFor(toYaw - fromYaw, ARRIVE_GLIDE_MIN_MS, ARRIVE_GLIDE_MAX_MS, ARRIVE_GLIDE_DEG_PER_S);
       // Vodič posle ovoga kruži, pa odmah na ravan horizont; ručni režim
       // staje na kadru koji je autor ture izabrao.
       const pitch = guideModeRef.current === 'auto' ? LEVEL_PITCH : clampPitch(targetEstablishPitch);
@@ -379,16 +381,27 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
         viewerRef.current.setYaw(targetEstablishYaw);
         viewerRef.current.setPitch(targetEstablishPitch);
       } catch {}
-    } else {
-      glideToEstablish();
     }
-    void playNarration(hasRecordedAudio ? introAudioUrl : undefined, introTextRaw, currentRoom.title_i18n, undefined, 0);
+    // Priča kreće tek kad kamera stigne do početnog kadra (vlasnik, 1. 10. 2026).
+    const glideMs = entry ? glideToEstablish() : 0;
+    window.setTimeout(() => {
+      if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
+      if (!sequenceActiveRef.current || isInterruptedRef.current) return;
+      void playNarration(hasRecordedAudio ? introAudioUrl : undefined, introTextRaw, currentRoom.title_i18n, undefined, 0);
+    }, glideMs);
     roomSequenceFinishedRef.current = true;
     setIsRoomTourFullyCompleted(true);
     return;
   }
 
+  // Koliko traje ulazak (zadržavanje + okret ka početnom kadru) - priča i
+  // kruženje čekaju da se završi. Postavlja beginRotation, pre playIntroNarration.
+  let arrivalMs = 0;
+
   const playIntroNarration = async () => {
+    // Priča kreće tek kad kamera STIGNE do početnog kadra priče, ne dok se
+    // još okreće (vlasnik, 1. 10. 2026).
+    if (arrivalMs > 0) await new Promise((r) => setTimeout(r, arrivalMs));
     await waitWhilePaused();
     if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
     if (!sequenceActiveRef.current || isInterruptedRef.current) return;
@@ -408,9 +421,50 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
     }
   };
 
+  // Menja brzinu kruženja POSTEPENO (ROTATE_RAMP_MS, ease-out) umesto skoka -
+  // Pannellum-ov startAutoRotate kreće odmah punom brzinom. Brzina se menja
+  // kroz getConfig().autoRotate, koji Pannellum čita u svakom kadru. Do nule
+  // = kruženje se na kraju zaustavi. Prekid (pauza, druga soba) ga prekida.
+  const easeAutoRotate = (toSpeed: number, stillValid: () => boolean) => {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    if (prefersReducedMotion()) {
+      if (toSpeed === 0) viewer.stopAutoRotate();
+      else viewer.startAutoRotate(toSpeed, LEVEL_PITCH);
+      return;
+    }
+    const config = viewer.getConfig?.();
+    let fromSpeed = config && typeof config.autoRotate === 'number' ? config.autoRotate : 0;
+    if (!fromSpeed) {
+      if (toSpeed === 0) return;
+      // Kreni jedva primetno, pa ubrzaj (startAutoRotate ujedno vrati nagib i zoom).
+      fromSpeed = toSpeed * 0.02;
+      viewer.startAutoRotate(fromSpeed, LEVEL_PITCH);
+    }
+    const cfg = viewer.getConfig?.();
+    if (!cfg) return;
+    const startedAt = performance.now();
+    const step = (now: number) => {
+      if (!stillValid() || viewerRef.current !== viewer || !cfg.autoRotate || isGuidePausedRef.current) return;
+      const k = Math.min(1, (now - startedAt) / ROTATE_RAMP_MS);
+      const eased = 1 - (1 - k) * (1 - k);
+      const v = fromSpeed + (toSpeed - fromSpeed) * eased;
+      if (k >= 1 && toSpeed === 0) {
+        viewer.stopAutoRotate();
+        return;
+      }
+      cfg.autoRotate = v === 0 ? toSpeed * 0.001 : v;
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  };
+
   const rotatePromise = new Promise<void>((resolve) => {
     const durationPhase1 = 15000;
     const totalDegrees = 250;
+    // Smer kruženja je uvek isti (vlasnik, 1. 10. 2026: kad se pratio smer
+    // okreta ka kadru, priča je "išla u pogrešnom smeru"). Prelaz ostaje
+    // gladak jer okret ka kadru staje u mirovanju, a kruženje kreće od nule.
     const speed = totalDegrees / (durationPhase1 / 1000);
 
     const stillValid = () =>
@@ -429,10 +483,11 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
           // Ušli smo kroz vrata gledajući napred: prvo glatko ka najlepšem
           // kadru sobe, pa odatle kruženje - bez skoka.
           const glideMs = glideToEstablish();
+          arrivalMs = glideMs;
           const startRotate = () => {
             if (!stillValid() || !viewerRef.current || isGyroActiveRef.current) return;
             if (isGuidePausedRef.current) return;
-            viewerRef.current.startAutoRotate(speed, LEVEL_PITCH);
+            easeAutoRotate(speed, stillValid);
           };
           if (glideMs > 0) window.setTimeout(startRotate, glideMs);
           else startRotate();
@@ -440,7 +495,7 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
           if (!zoomedIn) viewerRef.current.setHfov(pickHfov(DEFAULT_HFOV));
           viewerRef.current.setYaw(targetEstablishYaw);
           viewerRef.current.setPitch(LEVEL_PITCH);
-          if (!isGyroActiveRef.current) viewerRef.current.startAutoRotate(speed, LEVEL_PITCH);
+          if (!isGyroActiveRef.current) easeAutoRotate(speed, stillValid);
         }
       }
 
@@ -450,6 +505,7 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
       let elapsedMs = 0;
       let lastTick = performance.now();
       let wasPaused = isGuidePausedRef.current;
+      let slowingDown = false;
       const checkCompletion = (now: number) => {
         if (!stillValid()) {
           if (viewerRef.current) viewerRef.current.stopAutoRotate();
@@ -459,7 +515,13 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
         if (pausedNow && !wasPaused) {
           if (viewerRef.current) viewerRef.current.stopAutoRotate();
         } else if (!pausedNow && wasPaused && viewerRef.current && !isGyroActiveRef.current) {
-          viewerRef.current.startAutoRotate(speed, LEVEL_PITCH);
+          easeAutoRotate(speed, stillValid);
+        }
+        // Pred kraj faze kruženje lagano uspori do nule (ne staje naglo pred
+        // okret ka prvoj info-tački).
+        if (!pausedNow && !slowingDown && elapsedMs >= durationPhase1 - ROTATE_RAMP_MS) {
+          slowingDown = true;
+          easeAutoRotate(0, stillValid);
         }
         wasPaused = pausedNow;
         if (!pausedNow) elapsedMs += now - lastTick;
@@ -472,7 +534,12 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
           resolve();
         }
       };
-      animFrameRef.current = requestAnimationFrame(checkCompletion);
+      // Odbrojavanje kruženja kreće kad kamera stigne do početnog kadra -
+      // zajedno sa pričom (arrivalMs), da faza ne pojede vreme ulaska.
+      window.setTimeout(() => {
+        lastTick = performance.now();
+        animFrameRef.current = requestAnimationFrame(checkCompletion);
+      }, arrivalMs);
     };
 
     beginRotation();

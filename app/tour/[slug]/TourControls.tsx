@@ -437,10 +437,10 @@ export function InfoCard({
  * glas stigao (getClock), srazmerno dužini rečenica - ElevenLabs ne daje
  * vremena reči, a za titl je ovo dovoljno tačno.
  *
- * Izgled (vlasnik, 1. 10. 2026 - varijanta C): naziv tačke sa talasom, titl
- * i donji meni su JEDNA ploča, kao kartica u ručnom režimu (InfoCard
- * docked). Ranije su to bila tri odvojena reda (crna oznaka, titl, meni) i
- * dno je delovalo razbacano. Na širokom ekranu ista ploča stoji iznad menija.
+ * Izgled (vlasnik, 1. 10. 2026): naziv tačke sa talasom i titl su jedna
+ * ploča. Na telefonu ona dok glas priča stoji skroz u dnu ekrana, a donji
+ * meni se za to vreme skloni (page.tsx); ranije su naziv, titl i meni bili
+ * tri reda jedan iznad drugog. Na širokom ekranu ploča stoji iznad menija.
  */
 export function NarrationSubtitles({
   title,
@@ -454,7 +454,7 @@ export function NarrationSubtitles({
   text: string;
   getClock: () => { time: number; duration: number } | null;
   hidden?: boolean;
-  /** Telefon: meni (TourMenuBar joined) sedi u dnu ove ploče. */
+  /** Telefon: meni je sklonjen, pa ploča stoji skroz u dnu ekrana, umesto njega. */
   docked?: boolean;
 }) {
   const cues = useMemo(() => toSubtitleCues(text), [text]);
@@ -494,14 +494,13 @@ export function NarrationSubtitles({
         left: '50%',
         bottom: docked ? SCREEN_BOTTOM : ABOVE_MENU_BOTTOM,
         transform: 'translateX(-50%)',
-        // Spojena: ispod menija (55), da njegova dugmad ostanu klikabilna.
-        zIndex: docked ? 54 : 30,
+        zIndex: 30,
         // Ista širina i staklo kao InfoCard, da vođenje i ručni režim izgledaju isto.
         width: 'calc(100% - 24px)',
         maxWidth: '520px',
         boxSizing: 'border-box',
-        padding: docked ? `10px 16px calc(${MENU_HEIGHT} + 2px)` : '12px 18px 14px',
-        borderRadius: docked ? '26px' : '24px',
+        padding: '12px 18px 14px',
+        borderRadius: '24px',
         background: 'rgba(10, 14, 24, 0.78)',
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',

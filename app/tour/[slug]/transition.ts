@@ -160,14 +160,25 @@ export const INFO_TURN_MAX_MS = 4000;
  * 30. 9. 2026).
  */
 export const ENTRY_HOLD_MS = 1000;
-/** Posle ulaska: okret od smera kretanja ka najlepšem kadru sobe. */
-export const ARRIVE_GLIDE_MIN_MS = 1200;
-export const ARRIVE_GLIDE_MAX_MS = 3500;
+/**
+ * Posle ulaska: okret od smera kretanja ka najlepšem kadru sobe. Sporiji od
+ * ostalih okreta (TURN_DEG_PER_S) - to je prvi pokret u novoj sobi i treba da
+ * deluje kao miran pogled okolo, ne kao zaokret (vlasnik, 1. 10. 2026).
+ */
+export const ARRIVE_GLIDE_DEG_PER_S = 30;
+export const ARRIVE_GLIDE_MIN_MS = 1800;
+export const ARRIVE_GLIDE_MAX_MS = 5000;
+/**
+ * Kruženje vodiča ne kreće i ne staje naglo: brzina se ovoliko postepeno
+ * podiže od nule (i spušta do nule pred kraj), da se okret ka kadru i
+ * kruženje spoje u jedan pokret - vidi easeAutoRotate u roomSequence.ts.
+ */
+export const ROTATE_RAMP_MS = 1500;
 /** Prilaz vratima kad je potreban veliki okret (manji koristi WALK_MS). */
 export const WALK_MAX_MS = 4000;
 
-export function turnMsFor(angleDeg: number, minMs: number, maxMs: number): number {
-  const ms = (Math.abs(angleDeg) / TURN_DEG_PER_S) * 1000;
+export function turnMsFor(angleDeg: number, minMs: number, maxMs: number, degPerS: number = TURN_DEG_PER_S): number {
+  const ms = (Math.abs(angleDeg) / degPerS) * 1000;
   return Math.round(Math.min(maxMs, Math.max(minMs, ms)));
 }
 

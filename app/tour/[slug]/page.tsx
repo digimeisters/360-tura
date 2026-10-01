@@ -896,11 +896,6 @@ export default function TourPage() {
     .replace('{current}', String(navPosition.current))
     .replace('{total}', String(navPosition.total));
 
-  // Meni (Pitanja, Lokacija, Info, Plan, Kontakt) je uvek na dnu, a kartica
-  // ili titl stoje iznad njega. "Istražite sami" od 28. 9. 2026 (posetilac ne
-  // sme ni na trenutak da ostane bez kontrola), automatsko vođenje od
-  // 30. 9. 2026 - ranije se meni tu pojavljivao tek kad soba "odćuti".
-  const isModalToolbarVisible = true;
   // Telefon, kartica i meni zajedno: jedna ploča (vlasnik, 28. 9. 2026 - dve
   // kutije jedna iznad druge su zauzimale četvrtinu ekrana). Dok se prstom
   // razgleda, kartica se sklanja, pa meni opet dobija svoje staklo.
@@ -913,8 +908,13 @@ export default function TourPage() {
     isGuideAuto && !isMuted && Boolean(infoBoxData) && Boolean(getLocalizedText(infoBoxData?.audio_url, lang));
   const showSubtitles = subtitleMode && narrationAudioActive && !pendingCoords && !activeModal;
   const infoCardShown = Boolean(infoBoxData) && !subtitleMode && !pendingCoords && !activeModal;
-  // Titl u vođenju se spaja sa menijem isto kao kartica (NarrationSubtitles).
-  const bottomDocked = isNarrow && (infoCardShown || showSubtitles) && isModalToolbarVisible && !immersive;
+  // Meni (Pitanja, Lokacija, Info, Plan, Kontakt) je na dnu, a kartica ili
+  // titl stoje iznad njega. "Istražite sami" od 28. 9. 2026 (posetilac ne sme
+  // ni na trenutak da ostane bez kontrola), automatsko vođenje od 30. 9. 2026.
+  // Jedini izuzetak (vlasnik, 1. 10. 2026): na telefonu, dok ide titl, meni se
+  // skloni i titl zauzme samo dno ekrana; meni se vraća čim glas završi.
+  const isModalToolbarVisible = !(isNarrow && showSubtitles);
+  const bottomDocked = isNarrow && infoCardShown && isModalToolbarVisible && !immersive;
 
   // Dugme za poruku agentu u automatskom vođenju (ChatAgentButton): Viber na
   // srpskom, WhatsApp na ostalim jezicima. Pojavljuje se tek kad se završe
@@ -1149,7 +1149,7 @@ export default function TourPage() {
           text={displayedInfoText}
           getClock={getAudioClock}
           hidden={immersive}
-          docked={bottomDocked}
+          docked={isNarrow}
         />
       )}
 
