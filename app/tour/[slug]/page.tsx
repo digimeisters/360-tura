@@ -13,7 +13,7 @@ import { pickCoverRoom } from '../../lib/coverRoom';
 import { Logo } from './Logo';
 import { RoomNavBar, type RoomDot } from './RoomNavBar';
 import { WelcomeScreen } from './WelcomeScreen';
-import { CallAgentButton, InfoCard, LanguageChips, LeaveTourDialog, NarrationSubtitles, OverlayButtons, StatusNotice, TourTitleCard } from './TourControls';
+import { ChatAgentButton, InfoCard, LanguageChips, LeaveTourDialog, NarrationSubtitles, OverlayButtons, StatusNotice, TourTitleCard, phoneToE164 } from './TourControls';
 import { useBackGuard } from './useBackGuard';
 import { TourMenuBar } from './TourMenuBar';
 import { ViewingRequestModal } from './ViewingRequestModal';
@@ -167,6 +167,9 @@ export default function TourPage() {
 
 
   const [infoBoxData, setInfoBoxData] = useState<{ titleRaw?: unknown; textRaw: unknown; index?: number; audio_url?: unknown } | null>(null);
+  // Priča i info-tačke trenutne sobe su gotove (roomSequence.ts) - tek tada
+  // se u vođenju pojavljuje dugme za poruku agentu.
+  const [roomTalkDone, setRoomTalkDone] = useState(false);
   // Snimljeni glas se upravo čuje - tada automatski vodič pokazuje titlove.
   const [narrationAudioActive, setNarrationAudioActive] = useState(false);
 
@@ -743,6 +746,7 @@ export default function TourPage() {
         stopCurrentAnimation,
         setInfoBoxData,
         setIsRoomTourFullyCompleted,
+        setRoomTalkDone,
         scheduleAfterNarration,
         playNarration,
         waitWhilePaused,
@@ -909,24 +913,27 @@ export default function TourPage() {
     isGuideAuto && !isMuted && Boolean(infoBoxData) && Boolean(getLocalizedText(infoBoxData?.audio_url, lang));
   const showSubtitles = subtitleMode && narrationAudioActive && !pendingCoords && !activeModal;
   const infoCardShown = Boolean(infoBoxData) && !subtitleMode && !pendingCoords && !activeModal;
-  const bottomDocked = isNarrow && infoCardShown && isModalToolbarVisible && !immersive;
+  // Titl u vođenju se spaja sa menijem isto kao kartica (NarrationSubtitles).
+  const bottomDocked = isNarrow && (infoCardShown || showSubtitles) && isModalToolbarVisible && !immersive;
 
-  // Dugme "Pozovi" u automatskom vođenju (vidi CallAgentButton): dok ide titl
-  // se sklanja, a vraća se kad titl nestane (vlasnik, 30. 9. 2026). U ručnom
-  // režimu ga nema - Kontakt je u meniju. U admin režimu se prikazuje (da
-  // vlasnik vidi turu kao posetilac), ali se klik ne broji.
-  const agentPhone = tour?.agent_phone?.trim() || '';
+  // Dugme za poruku agentu u automatskom vođenju (ChatAgentButton): Viber na
+  // srpskom, WhatsApp na ostalim jezicima. Pojavljuje se tek kad se završe
+  // priča i info-tačke sobe, i ostaje dok vodič ne krene u sledeću (vlasnik,
+  // 1. 10. 2026). U ručnom režimu ga nema - Kontakt je u meniju. U admin
+  // režimu se prikazuje (da vlasnik vidi turu kao posetilac), ali se klik ne broji.
+  const agentPhone = phoneToE164(tour?.agent_phone || '');
   const showCallButton =
-    tourStarted && isGuideAuto && Boolean(agentPhone) && !pendingCoords && !activeModal && !showSubtitles;
-  const callButton = showCallButton ? (
-    <CallAgentButton
+    tourStarted && isGuideAuto && roomTalkDone && Boolean(agentPhone) && !pendingCoords && !activeModal && !showSubtitles;
+  const callButton = showCallButton && agentPhone ? (
+    <ChatAgentButton
       phone={agentPhone}
-      label={t.callNow}
+      viber={lang === 'sr'}
+      label={t.chatAgent}
+      message={`${t.chatGreeting} ${SITE_URL}/tour/${slug}`}
       floating={!infoCardShown}
-      onPhoneCall={() => {
+      onOpen={() => {
         if (slug && !adminMode) trackEvent({ eventType: 'contact', tourSlug: slug, lang });
       }}
-      onDesktop={() => setActiveModal('contact')}
     />
   ) : null;
 
@@ -1142,6 +1149,7 @@ export default function TourPage() {
           text={displayedInfoText}
           getClock={getAudioClock}
           hidden={immersive}
+          docked={bottomDocked}
         />
       )}
 

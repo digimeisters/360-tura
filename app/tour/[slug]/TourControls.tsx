@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { THEME, GLASS, GLASS_ACCENT, FILL_ACCENT, FILL_ACCENT_BG, FILL_ACCENT_EDGE, FILL_ACTIVE_ICON, FILL_GLASS_ACCENT, overlayIconStyle, SCREEN_BOTTOM, ABOVE_MENU_BOTTOM, MENU_HEIGHT } from './theme';
-import { IconCheck, IconCollapse, IconCompass, IconExpand, IconHand, IconHeadphones, IconMute, IconPause, IconPhone, IconPlay, IconShare, IconSound } from './icons';
+import { THEME, GLASS, GLASS_ACCENT, FILL_ACCENT, FILL_ACCENT_EDGE, FILL_ACTIVE_ICON, FILL_GLASS_ACCENT, overlayIconStyle, SCREEN_BOTTOM, ABOVE_MENU_BOTTOM, MENU_HEIGHT } from './theme';
+import { IconCheck, IconCollapse, IconCompass, IconExpand, IconHand, IconHeadphones, IconMute, IconPause, IconPlay, IconShare, IconSound } from './icons';
 import type { Language } from './types';
 import { toSubtitleCues } from './subtitleCues';
 
@@ -306,7 +306,7 @@ export function InfoCard({
    * Na telefonu kartica + meni jedno iznad drugog zauzimaju četvrtinu ekrana.
    */
   docked?: boolean;
-  /** Dugme u zaglavlju kartice, levo od zatvaranja ("Pozovi"). */
+  /** Dugme u zaglavlju kartice, levo od zatvaranja (Viber / WhatsApp agentu). */
   action?: React.ReactNode;
 }) {
   const headRoom = docked ? '38px' : action ? '150px' : '44px';
@@ -432,22 +432,30 @@ export function InfoCard({
 /**
  * Titlovi uz snimljeni glas u automatskom vođenju (vlasnik, 27. 9. 2026:
  * "kad dođe naracija, tekst kao na filmu"). Umesto kartice sa celim tekstom
- * na dnu ide samo rečenica koja se upravo izgovara - bez stakla, dugmadi i
- * "Više", da panorama ostane otvorena. Rečenica se bira po tome dokle je
+ * ide samo rečenica koja se upravo izgovara - bez dugmadi i "Više", da
+ * panorama ostane otvorena. Rečenica se bira po tome dokle je
  * glas stigao (getClock), srazmerno dužini rečenica - ElevenLabs ne daje
  * vremena reči, a za titl je ovo dovoljno tačno.
+ *
+ * Izgled (vlasnik, 1. 10. 2026 - varijanta C): naziv tačke sa talasom, titl
+ * i donji meni su JEDNA ploča, kao kartica u ručnom režimu (InfoCard
+ * docked). Ranije su to bila tri odvojena reda (crna oznaka, titl, meni) i
+ * dno je delovalo razbacano. Na širokom ekranu ista ploča stoji iznad menija.
  */
 export function NarrationSubtitles({
   title,
   text,
   getClock,
-  hidden = false
+  hidden = false,
+  docked = false
 }: {
-  /** Naziv info-tačke, a za uvod sobe naziv sobe - u crnoj oznaci iznad titla. */
+  /** Naziv info-tačke, a za uvod sobe naziv sobe - u vrhu ploče, uz talas. */
   title: string;
   text: string;
   getClock: () => { time: number; duration: number } | null;
   hidden?: boolean;
+  /** Telefon: meni (TourMenuBar joined) sedi u dnu ove ploče. */
+  docked?: boolean;
 }) {
   const cues = useMemo(() => toSubtitleCues(text), [text]);
   const [cueIdx, setCueIdx] = useState(0);
@@ -484,30 +492,36 @@ export function NarrationSubtitles({
       style={{
         position: 'absolute',
         left: '50%',
-        // Iznad donjeg menija, koji u vođenju stoji i dok glas priča.
-        bottom: `calc(${ABOVE_MENU_BOTTOM} + 4px)`,
+        bottom: docked ? SCREEN_BOTTOM : ABOVE_MENU_BOTTOM,
         transform: 'translateX(-50%)',
-        zIndex: 30,
-        width: 'calc(100% - 32px)',
-        maxWidth: '640px',
+        // Spojena: ispod menija (55), da njegova dugmad ostanu klikabilna.
+        zIndex: docked ? 54 : 30,
+        // Ista širina i staklo kao InfoCard, da vođenje i ručni režim izgledaju isto.
+        width: 'calc(100% - 24px)',
+        maxWidth: '520px',
+        boxSizing: 'border-box',
+        padding: docked ? `10px 16px calc(${MENU_HEIGHT} + 2px)` : '12px 18px 14px',
+        borderRadius: docked ? '26px' : '24px',
+        background: 'rgba(10, 14, 24, 0.78)',
+        backdropFilter: 'blur(14px)',
+        WebkitBackdropFilter: 'blur(14px)',
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+        boxShadow: '0 6px 20px rgba(0, 0, 0, 0.25)',
+        color: '#fff',
+        // Titl na sredini, kao na filmu (vlasnik, 1. 10. 2026).
         textAlign: 'center',
         pointerEvents: 'none',
         fontFamily: THEME.fontBody
       }}
     >
-      {/* Crna oznaka sa talasom: šta se opisuje i da vodič upravo priča
-          (vlasnik, 30. 9. 2026 - varijanta C). */}
+      {/* Naziv sa talasom: šta se opisuje i da vodič upravo priča. */}
       <div style={{
-        display: 'inline-flex',
+        display: 'flex',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: '7px',
-        maxWidth: '100%',
-        boxSizing: 'border-box',
-        marginBottom: '7px',
-        padding: '5px 12px 5px 10px',
-        borderRadius: '999px',
-        background: '#000',
-        color: '#fff',
+        marginBottom: '4px',
+        color: '#9CC0EE',
         fontSize: '11.5px',
         fontWeight: 700,
         letterSpacing: '0.08em',
@@ -517,62 +531,72 @@ export function NarrationSubtitles({
         <span className="k360-voice-wave" aria-hidden="true"><i /><i /><i /><i /></span>
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
       </div>
+      {/* Mesto za dva reda, da ploča ne skače kad se rečenice smenjuju. */}
       <p
         key={cue.text}
         className="k360-subtitle"
-        style={{ margin: 0, fontSize: '16.5px', lineHeight: 1.5, fontWeight: 600, color: '#fff', textWrap: 'balance' }}
+        style={{ margin: 0, minHeight: '2.9em', fontSize: '17px', lineHeight: 1.45, fontWeight: 600, color: '#fff', textWrap: 'balance' }}
       >
-        <span style={{
-          background: 'rgba(0, 0, 0, 0.72)',
-          padding: '3px 10px',
-          borderRadius: '6px',
-          boxDecorationBreak: 'clone',
-          WebkitBoxDecorationBreak: 'clone'
-        }}>
-          {cue.text}
-        </span>
+        {cue.text}
       </p>
     </div>
   );
 }
 
 /**
- * Malo dugme "Pozovi" koje stoji u turi dok donji meni (sa Kontaktom) nije
- * vidljiv - tokom vođenja i dok su otvorene kartice sa opisom. Bez njega
- * posetilac kome se stan dopadne baš u tom trenutku nema kako da pozove.
- *
- * Na telefonu je to običan tel: link (jedan dodir do poziva). Na računaru
- * poziv nema smisla, pa `onDesktop` otvara modal "Kontakt" (ime, telefon,
- * mejl) - on se i broji u analitici kao kontakt.
+ * Pretvara broj agenta kako je upisan u adminu ("064 936 7339",
+ * "+381 64...", "00381...") u međunarodni oblik bez razmaka (+38164...).
+ * Broj koji počinje nulom smatra se srpskim - agencije su iz Srbije.
  */
-export function CallAgentButton({
+export function phoneToE164(raw: string): string | null {
+  const trimmed = raw.trim();
+  const digits = trimmed.replace(/\D/g, '');
+  if (digits.length < 8) return null;
+  if (trimmed.startsWith('+')) return `+${digits}`;
+  if (digits.startsWith('00')) return `+${digits.slice(2)}`;
+  if (digits.startsWith('0')) return `+381${digits.slice(1)}`;
+  return `+${digits}`;
+}
+
+/**
+ * Dugme za poruku agentu, umesto "Pozovi" (vlasnik, 1. 10. 2026): ko gleda
+ * na srpskom dobija Viber (tako se ovde dopisuje), ostali jezici WhatsApp.
+ * Poruka se otvara već započeta, sa linkom ture, pa agent odmah zna koji
+ * stan je u pitanju. Pojavljuje se tek kad soba "odćuti" (page.tsx).
+ *
+ * Boje su boje aplikacija (Viber ljubičasta, WhatsApp zelena) sa istim
+ * prelazom i svetlom ivicom kao ostala puna dugmad ture (FILL_ACCENT).
+ */
+export function ChatAgentButton({
   phone,
+  viber,
   label,
-  onPhoneCall,
-  onDesktop,
+  message,
+  onOpen,
   floating = false
 }: {
+  /** Broj u obliku +381... (phoneToE164). */
   phone: string;
+  /** true = Viber (srpski), false = WhatsApp. */
+  viber: boolean;
   label: string;
-  /** Poziv sa telefona - modal se ne otvara, pa se kontakt broji ovde. */
-  onPhoneCall: () => void;
-  onDesktop: () => void;
+  /** Započeta poruka (pozdrav + link ture). */
+  message: string;
+  onOpen: () => void;
   /** Samostalno, desno iznad donjeg menija (kad kartice nema), umesto prikačeno uz nju. */
   floating?: boolean;
 }) {
+  const href = viber
+    ? `viber://chat?number=${encodeURIComponent(phone)}&draft=${encodeURIComponent(message)}`
+    : `https://wa.me/${phone.slice(1)}?text=${encodeURIComponent(message)}`;
   return (
     <a
-      href={`tel:${phone.replace(/[^\d+]/g, '')}`}
+      href={href}
+      {...(viber ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
       className={floating ? 'tour-ui-scale k360-tap' : 'k360-tap'}
-      onClick={(e) => {
-        const touch = window.matchMedia('(pointer: coarse)').matches;
-        if (touch) {
-          onPhoneCall();
-          return;
-        }
-        e.preventDefault();
-        onDesktop();
-      }}
+      onClick={onOpen}
+      aria-label={label}
+      title={label}
       style={{
         ...(floating
           ? { position: 'absolute' as const, right: '12px', bottom: ABOVE_MENU_BOTTOM, zIndex: 30 }
@@ -582,9 +606,11 @@ export function CallAgentButton({
         gap: '6px',
         height: '36px',
         boxSizing: 'border-box',
-        padding: '0 14px 0 12px',
+        padding: '0 14px 0 11px',
         borderRadius: '999px',
-        background: FILL_ACCENT_BG,
+        background: viber
+          ? 'linear-gradient(180deg, #8C7CF7 0%, #7360F2 55%, #5F4BDB 100%)'
+          : 'linear-gradient(180deg, #34C46F 0%, #1FA855 55%, #178F47 100%)',
         border: '1px solid rgba(255, 255, 255, 0.35)',
         boxShadow: `${FILL_ACCENT_EDGE}, 0 4px 12px rgba(0, 0, 0, 0.25)`,
         color: '#fff',
@@ -597,8 +623,17 @@ export function CallAgentButton({
         cursor: 'pointer'
       }}
     >
-      <IconPhone size={16} color="#fff" />
-      {label}
+      {/* Beli oblačić sa slušalicom - prepoznaje se kao Viber (zaobljen
+          kvadrat) ili WhatsApp (krug) i bez pravog logoa, isto kao ChatBubble na sajtu. */}
+      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+        {viber ? (
+          <path d="M7 2.5h10A4.5 4.5 0 0 1 21.5 7v6.5A4.5 4.5 0 0 1 17 18h-5.2L7.5 21.5V18H7A4.5 4.5 0 0 1 2.5 13.5V7A4.5 4.5 0 0 1 7 2.5Z" fill="#fff" />
+        ) : (
+          <path d="M12 2.5a9.5 9.5 0 0 1 0 19 9.4 9.4 0 0 1-4.6-1.2L2.5 21.5l1.3-4.7A9.5 9.5 0 0 1 12 2.5Z" fill="#fff" />
+        )}
+        <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" fill={viber ? '#7360F2' : '#1FA855'} transform={viber ? 'translate(6.3 4.3) scale(0.48)' : 'translate(6.5 6.3) scale(0.48)'} />
+      </svg>
+      {viber ? 'Viber' : 'WhatsApp'}
     </a>
   );
 }

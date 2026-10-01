@@ -70,6 +70,11 @@ export type RoomSequenceContext = {
   stopCurrentAnimation: () => void;
   setInfoBoxData: (data: InfoBoxData) => void;
   setIsRoomTourFullyCompleted: (value: boolean) => void;
+  /**
+   * Priča i info-tačke ove sobe su gotove - tek tada se pojavljuje dugme za
+   * poruku agentu (page.tsx, ChatAgentButton). Na ulasku u sobu se gasi.
+   */
+  setRoomTalkDone: (value: boolean) => void;
   scheduleAfterNarration: (fn: () => void, fallbackMs: number) => void;
   playNarration: (
     audio: unknown,
@@ -111,6 +116,7 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
     stopCurrentAnimation,
     setInfoBoxData,
     setIsRoomTourFullyCompleted,
+    setRoomTalkDone,
     scheduleAfterNarration,
     playNarration,
     waitWhilePaused,
@@ -118,6 +124,8 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
     nextGuideDoor,
     advanceGuide
   } = ctx;
+
+  setRoomTalkDone(false);
 
   const infoPoints = waypointsList
     .map((wp, i) => ({ wp, i }))
@@ -175,6 +183,7 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
     if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
     if (!sequenceActiveRef.current || isInterruptedRef.current) return;
     roomSequenceFinishedRef.current = true;
+    setRoomTalkDone(true);
 
     if (guideModeRef.current === 'auto') {
       const doorAhead = nextGuideDoor();
