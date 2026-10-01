@@ -1,4 +1,4 @@
-import { THEME, GLASS, GLASS_ACCENT, btnStyle } from './theme';
+import { THEME, GLASS, GLASS_ACCENT, FILL_GLASS_ACCENT, btnStyle } from './theme';
 import { Logo } from './Logo';
 import { LanguageChips } from './TourControls';
 import { translations } from './translations';
@@ -48,7 +48,7 @@ export function LockedTourScreen({
   };
   const contactBtn = {
     ...btnStyle,
-    background: GLASS_ACCENT,
+    ...FILL_GLASS_ACCENT,
     color: '#fff',
     border: 'none',
     textDecoration: 'none',

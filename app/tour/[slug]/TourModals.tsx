@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { THEME, btnStyle } from './theme';
+import { THEME, btnStyle, FILL_ACCENT, FILL_ACCENT_BG } from './theme';
 import {
   MODAL_ICONS,
   withoutEmoji,
@@ -79,7 +79,7 @@ const CTA: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'center',
   gap: '8px',
-  background: THEME.accent,
+  ...FILL_ACCENT,
   color: '#FFFFFF',
   border: 0,
   borderRadius: '999px',
@@ -88,8 +88,7 @@ const CTA: React.CSSProperties = {
   fontSize: '15px',
   padding: '14px',
   cursor: 'pointer',
-  textDecoration: 'none',
-  boxShadow: '0 8px 20px -8px rgba(30, 90, 168, 0.7)'
+  textDecoration: 'none'
 };
 const CTA_OUTLINE: React.CSSProperties = { ...CTA, background: '#FFFFFF', color: THEME.accent, border: '1.5px solid ' + THEME.accent, boxShadow: 'none' };
 
@@ -607,7 +606,7 @@ export function TourModals({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {(tour?.agent_name || tour?.agency_name) && (
                 <div style={{ ...BOX_STRONG, padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <span aria-hidden="true" style={{ width: '56px', height: '56px', borderRadius: '50%', background: THEME.accent, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 800, fontSize: '20px', flexShrink: 0, boxShadow: '0 0 0 4px ' + THEME.accentSoft }}>
+                  <span aria-hidden="true" style={{ width: '56px', height: '56px', borderRadius: '50%', background: FILL_ACCENT_BG, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 800, fontSize: '20px', flexShrink: 0, boxShadow: '0 0 0 4px ' + THEME.accentSoft }}>
                     {initials(tour.agent_name || tour.agency_name || '')}
                   </span>
                   <div style={{ minWidth: 0 }}>
@@ -625,7 +624,7 @@ export function TourModals({
               {/* Pločice: poziv (glavna, plava), e-mail, deljenje ture. */}
               <div style={{ display: 'grid', gridTemplateColumns: `repeat(${1 + (phone ? 1 : 0) + (email ? 1 : 0)}, minmax(0, 1fr))`, gap: '8px' }}>
                 {phone && (
-                  <a href={`tel:${phone}`} style={{ ...BOX_STRONG, background: THEME.accent, color: '#FFFFFF', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 700, fontSize: '13px', textDecoration: 'none' }}>
+                  <a href={`tel:${phone}`} style={{ ...BOX_STRONG, ...FILL_ACCENT, color: '#FFFFFF', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 700, fontSize: '13px', textDecoration: 'none' }}>
                     <span style={{ width: '36px', height: '36px', borderRadius: '12px', background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><IconPhone size={18} /></span>
                     {t.callBtn}
                   </a>

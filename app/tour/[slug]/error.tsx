@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { THEME } from './theme';
+import { THEME, FILL_ACCENT } from './theme';
 import { Logo } from './Logo';
 import { reportClientError } from '../../lib/reportError';
 
@@ -54,7 +54,7 @@ export default function TourError({ error }: { error: Error & { digest?: string 
           padding: '12px 28px',
           fontSize: '15px',
           fontWeight: 700,
-          background: THEME.accent,
+          ...FILL_ACCENT,
           color: '#fff',
           border: '1px solid rgba(255, 255, 255, 0.25)',
           borderRadius: '999px',

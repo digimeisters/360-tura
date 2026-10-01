@@ -42,6 +42,29 @@ export const GLASS: React.CSSProperties = {
 // plava u turi ostaje ista, umesto posebne nijanse za providne elemente.
 export const GLASS_ACCENT = '#5B92D6';
 
+// Puna plava polja (glavna dugmad, izabrani jezik, "Pozovi", uključena
+// dugmad sa strane) imaju isti prelaz kao dugmad na sajtu (.btn-primary u
+// app/lib/siteStyles.ts): svetlija gore, tamnija dole, sa tankom svetlom
+// ivicom na vrhu - kao da na njih pada svetlo (vlasnik, 30. 9. 2026).
+// Ide umesto "background: THEME.accent" / GLASS_ACCENT; boxShadow nosi i
+// svetlu ivicu, pa se senka elementa piše tu, ne posebno.
+export const FILL_ACCENT_BG = 'linear-gradient(180deg, #3A77C9 0%, #1E5AA8 55%, #1A4F96 100%)';
+export const FILL_ACCENT_EDGE = 'inset 0 1px 0 rgba(255, 255, 255, 0.3)';
+export const FILL_ACCENT: React.CSSProperties = {
+  background: FILL_ACCENT_BG,
+  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 8px 18px -8px rgba(30, 90, 168, 0.65)'
+};
+/** Svetlija plava na tamnom staklu (izabrani jezik, dugme u zaključanoj turi). */
+export const FILL_GLASS_ACCENT: React.CSSProperties = {
+  background: 'linear-gradient(180deg, #7AA8E0 0%, #5B92D6 55%, #4A80C4 100%)',
+  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.35)'
+};
+/** Uključeno okruglo dugme sa strane (vodič, pauza, žiroskop) - providno, kao i ranije. */
+export const FILL_ACTIVE_ICON: React.CSSProperties = {
+  background: 'linear-gradient(180deg, rgba(122, 168, 224, 0.7) 0%, rgba(91, 146, 214, 0.55) 55%, rgba(58, 119, 201, 0.6) 100%)',
+  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 6px 20px rgba(0, 0, 0, 0.25)'
+};
+
 // Okruglo stakleno dugme sa ikonicom (ceo ekran, žiroskop, zvuk, vodič) -
 // isto staklo kao traka sa sobama i donji meni.
 export const overlayIconStyle: React.CSSProperties = {

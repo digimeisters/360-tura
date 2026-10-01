@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { THEME, GLASS, GLASS_ACCENT, overlayIconStyle, SCREEN_BOTTOM, ABOVE_MENU_BOTTOM, MENU_HEIGHT } from './theme';
+import { THEME, GLASS, GLASS_ACCENT, FILL_ACCENT, FILL_ACCENT_BG, FILL_ACCENT_EDGE, FILL_ACTIVE_ICON, FILL_GLASS_ACCENT, overlayIconStyle, SCREEN_BOTTOM, ABOVE_MENU_BOTTOM, MENU_HEIGHT } from './theme';
 import { IconCheck, IconCollapse, IconCompass, IconExpand, IconHand, IconHeadphones, IconMute, IconPause, IconPhone, IconPlay, IconShare, IconSound } from './icons';
 import type { Language } from './types';
 import { toSubtitleCues } from './subtitleCues';
@@ -35,7 +35,9 @@ export function LanguageChips({
           className="k360-tap"
           aria-pressed={lang === l}
           style={{
-            background: lang === l ? selectedColor : 'transparent',
+            ...(lang === l
+              ? selectedColor === THEME.accent ? FILL_ACCENT : FILL_GLASS_ACCENT
+              : { background: 'transparent' }),
             color: lang === l ? '#fff' : `rgba(255, 255, 255, ${lg ? 0.78 : 0.75})`,
             border: 'none',
             borderRadius: '999px',
@@ -180,7 +182,7 @@ export function OverlayButtons({
       {canGyro && (
         <button
           onClick={onToggleGyroscope}
-          style={{ ...overlayIconStyle, background: isGyroActive ? 'rgba(91, 146, 214, 0.55)' : GLASS.background }}
+          style={{ ...overlayIconStyle, ...(isGyroActive ? FILL_ACTIVE_ICON : {}) }}
           title={isGyroActive ? 'Ugasi razgledanje pomeranjem telefona' : 'Razgledajte pomeranjem telefona'}
           aria-label={isGyroActive ? 'Ugasi razgledanje pomeranjem telefona' : 'Razgledajte pomeranjem telefona'}
           aria-pressed={isGyroActive}
@@ -201,7 +203,7 @@ export function OverlayButtons({
       {hasGuide && guideMode === 'auto' && (
         <button
           onClick={onTogglePauseGuide}
-          style={{ ...overlayIconStyle, background: isGuidePaused ? 'rgba(91, 146, 214, 0.55)' : GLASS.background }}
+          style={{ ...overlayIconStyle, ...(isGuidePaused ? FILL_ACTIVE_ICON : {}) }}
           title={isGuidePaused ? 'Nastavi turu' : 'Pauziraj turu'}
           aria-label={isGuidePaused ? 'Nastavi turu' : 'Pauziraj turu'}
           aria-pressed={isGuidePaused}
@@ -213,7 +215,7 @@ export function OverlayButtons({
       {hasGuide && (
         <button
           onClick={onToggleGuideMode}
-          style={{ ...overlayIconStyle, background: guideMode === 'auto' ? 'rgba(91, 146, 214, 0.55)' : GLASS.background }}
+          style={{ ...overlayIconStyle, ...(guideMode === 'auto' ? FILL_ACTIVE_ICON : {}) }}
           title={guideTitle}
           aria-label={guideTitle}
           aria-pressed={guideMode === 'auto'}
@@ -582,9 +584,9 @@ export function CallAgentButton({
         boxSizing: 'border-box',
         padding: '0 14px 0 12px',
         borderRadius: '999px',
-        background: THEME.accent,
+        background: FILL_ACCENT_BG,
         border: '1px solid rgba(255, 255, 255, 0.35)',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)',
+        boxShadow: `${FILL_ACCENT_EDGE}, 0 4px 12px rgba(0, 0, 0, 0.25)`,
         color: '#fff',
         fontFamily: THEME.fontBody,
         fontSize: '13.5px',
@@ -647,7 +649,7 @@ export function LeaveTourDialog({
           <button type="button" onClick={onLeave} style={{ ...btn, background: '#FFFFFF', color: THEME.accent, border: '1.5px solid ' + THEME.accent }}>
             {leaveLabel}
           </button>
-          <button type="button" autoFocus onClick={onStay} style={{ ...btn, background: THEME.accent, color: '#FFFFFF', border: 'none', boxShadow: '0 8px 20px -8px rgba(30, 90, 168, 0.7)' }}>
+          <button type="button" autoFocus onClick={onStay} style={{ ...btn, ...FILL_ACCENT, color: '#FFFFFF', border: 'none' }}>
             {stayLabel}
           </button>
         </div>

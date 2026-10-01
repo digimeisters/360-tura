@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { THEME } from './theme';
+import { THEME, FILL_ACCENT } from './theme';
 import { SLOT_WINDOWS, upcomingShootDays, type SlotWindow } from '../../lib/shootSlot';
 import type { Language } from './types';
 
@@ -244,7 +244,7 @@ export function ViewingRequestModal({
               ✓
             </div>
             <p style={{ margin: 0, fontSize: '15px', color: THEME.textPrimary, lineHeight: 1.5 }}>{t.doneText}</p>
-            <button onClick={onClose} style={{ padding: '11px 28px', borderRadius: '999px', border: 'none', background: THEME.accent, color: '#fff', fontSize: '15px', fontWeight: 700, cursor: 'pointer' }}>
+            <button onClick={onClose} style={{ padding: '11px 28px', borderRadius: '999px', border: 'none', ...FILL_ACCENT, color: '#fff', fontSize: '15px', fontWeight: 700, cursor: 'pointer' }}>
               {t.close}
             </button>
           </div>
@@ -309,7 +309,7 @@ export function ViewingRequestModal({
             <button
               type="submit"
               disabled={sending}
-              style={{ padding: '13px', borderRadius: '999px', border: 'none', background: THEME.accent, color: '#fff', fontSize: '15px', fontWeight: 700, cursor: sending ? 'default' : 'pointer', opacity: sending ? 0.7 : 1 }}
+              style={{ padding: '13px', borderRadius: '999px', border: 'none', ...FILL_ACCENT, color: '#fff', fontSize: '15px', fontWeight: 700, cursor: sending ? 'default' : 'pointer', opacity: sending ? 0.7 : 1 }}
             >
               {sending ? t.sending : t.submit}
             </button>

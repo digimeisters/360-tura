@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { THEME, GLASS, GLASS_ACCENT } from './theme';
+import { THEME, GLASS, GLASS_ACCENT, FILL_ACCENT_BG, FILL_ACCENT_EDGE } from './theme';
 import { Logo } from './Logo';
 import { LanguageChips } from './TourControls';
 import { IconShare } from './icons';
@@ -255,8 +255,8 @@ function ChoiceButton({
         padding: '11px 18px',
         borderRadius: '18px',
         border: primary ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid rgba(255, 255, 255, 0.45)',
-        background: primary ? THEME.accent : 'rgba(255, 255, 255, 0.1)',
-        boxShadow: primary ? '0 6px 18px rgba(30, 90, 168, 0.4)' : 'none',
+        background: primary ? FILL_ACCENT_BG : 'rgba(255, 255, 255, 0.1)',
+        boxShadow: primary ? `${FILL_ACCENT_EDGE}, 0 6px 18px rgba(30, 90, 168, 0.4)` : 'none',
         color: '#fff',
         textAlign: 'left',
         fontFamily: THEME.fontBody,
