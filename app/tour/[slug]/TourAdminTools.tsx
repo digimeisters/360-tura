@@ -11,6 +11,7 @@ import { getLocalizedText, parseWaypoints, parseEstablish, composeEstablishText,
 import { translateRoomToLanguages, hasExactLangText } from './adminUtils';
 import { describeGuidePathError, parseGuidePath, validateGuidePath } from './guidePath';
 import { checkDraftField, type DraftFieldKind } from '../../lib/roomDraftRules';
+import TourVideoModal from './video/TourVideoModal';
 
 /**
  * Admin alati ture: dodavanje sobe, otpremanje panorame, AI popuna, glas i
@@ -171,6 +172,8 @@ export default function TourAdminTools({
   const [translationProgress, setTranslationProgress] = useState<string | null>(null);
   const [voiceProgress, setVoiceProgress] = useState<string | null>(null);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
+  // Kratak uspravan video iz ture za Instagram/Facebook (video/TourVideoModal).
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
   const [showAddLanguageModal, setShowAddLanguageModal] = useState(false);
   const [addLanguageTargets, setAddLanguageTargets] = useState<Language[]>([]);
@@ -1170,6 +1173,15 @@ export default function TourAdminTools({
       </button>
 
       <button
+        onClick={() => setShowVideoModal(true)}
+        disabled={!tour || rooms.length === 0}
+        title="Napravi kratak uspravan video iz ture za Instagram i Facebook"
+        style={{ ...toolbarButtonStyle, background: '#db2777' }}
+      >
+        🎬 Video
+      </button>
+
+      <button
         onClick={() => void supabase.auth.signOut()}
         title="Odjavi se iz admin režima"
         style={{
@@ -1187,6 +1199,10 @@ export default function TourAdminTools({
   return (
     <>
       {toolbarSlot && createPortal(toolbar, toolbarSlot)}
+
+      {showVideoModal && tour && (
+        <TourVideoModal tour={tour} rooms={rooms} initialLang={lang} onClose={() => setShowVideoModal(false)} />
+      )}
 
       {/* MODAL: PREGLED I IZMENA SRPSKOG DRAFTA + ODABIR JEZIKA */}
       {showDraftModal && aiDraft && (
