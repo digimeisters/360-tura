@@ -32,17 +32,20 @@ export const OUTRO_S = 3.2;
 /**
  * Kadar sobe u videu kreće od pogleda koji tura ima posle ovoliko sekundi
  * uvodne priče (vlasnik, 1. 10. 2026: početni kadar sobe mu nije odgovarao,
- * "neka bude na četvrtoj sekundi naracije").
+ * "neka bude na četvrtoj sekundi naracije"; posle probe pomereno na šestu).
  */
-export const KEY_NARRATION_S = 4;
+export const KEY_NARRATION_S = 6;
 /**
  * Kruženje ture za vreme uvodne priče (roomSequence.ts: 250° za 15 s, kreće
  * od mirovanja i ubrzava ROTATE_RAMP_MS). Mora da prati turu, inače kadar u
  * videu ne bi bio isti kao u turi.
  */
 const TOUR_ROTATE_DEG_PER_S = 250 / 15;
-/** Video klizi mirnije od ture - ovoliko stepeni u sekundi, u istom smeru. */
-const VIDEO_PAN_DEG_PER_S = 10;
+/**
+ * Video klizi mirnije od ture (16,7°/s) - ovoliko stepeni u sekundi, u istom
+ * smeru. Bilo 10; vlasnik je tražio "za nijansu brže".
+ */
+const VIDEO_PAN_DEG_PER_S = 13;
 
 /** Za koliko stepeni se tura okrenula posle `seconds` sekundi priče. */
 function tourRotationAfter(seconds: number): number {
