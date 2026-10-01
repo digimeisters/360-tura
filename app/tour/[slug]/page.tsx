@@ -921,6 +921,9 @@ export default function TourPage() {
   // skloni i titl zauzme samo dno ekrana; meni se vraća čim glas završi.
   const isModalToolbarVisible = !(isNarrow && showSubtitles);
   const bottomDocked = isNarrow && infoCardShown && isModalToolbarVisible && !immersive;
+  // Računar: titl i meni su jedna ploča (vlasnik, 1. 10. 2026). Na telefonu
+  // se meni za vreme titla ionako skloni.
+  const subtitleJoined = !isNarrow && showSubtitles && isModalToolbarVisible && !immersive;
 
   // Dugme za poruku agentu u automatskom vođenju (ChatAgentButton): Viber na
   // srpskom, WhatsApp na ostalim jezicima. Pojavljuje se tek kad se završe
@@ -1114,7 +1117,7 @@ export default function TourPage() {
           // Pre polaska deljenje već stoji gore desno na WelcomeScreen-u.
           // Deljenje je u kartici sa nazivom ture (gore levo) - vidi TourTitleCard.
           showShare={false}
-          joined={bottomDocked}
+          joined={bottomDocked || subtitleJoined}
           compact={immersive}
           labels={{
             faq: t.btnFaq,
@@ -1156,6 +1159,7 @@ export default function TourPage() {
           getClock={getAudioClock}
           hidden={immersive}
           docked={isNarrow}
+          joined={subtitleJoined}
         />
       )}
 

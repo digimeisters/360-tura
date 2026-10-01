@@ -447,7 +447,8 @@ export function NarrationSubtitles({
   text,
   getClock,
   hidden = false,
-  docked = false
+  docked = false,
+  joined = false
 }: {
   /** Naziv info-tačke, a za uvod sobe naziv sobe - u vrhu ploče, uz talas. */
   title: string;
@@ -456,6 +457,11 @@ export function NarrationSubtitles({
   hidden?: boolean;
   /** Telefon: meni je sklonjen, pa ploča stoji skroz u dnu ekrana, umesto njega. */
   docked?: boolean;
+  /**
+   * Računar: meni ostaje, pa je u dnu ISTE ploče (TourMenuBar joined) - kao
+   * kartica u ručnom režimu na telefonu (vlasnik, 1. 10. 2026).
+   */
+  joined?: boolean;
 }) {
   const cues = useMemo(() => toSubtitleCues(text), [text]);
   const [cueIdx, setCueIdx] = useState(0);
@@ -492,15 +498,16 @@ export function NarrationSubtitles({
       style={{
         position: 'absolute',
         left: '50%',
-        bottom: docked ? SCREEN_BOTTOM : ABOVE_MENU_BOTTOM,
+        bottom: docked || joined ? SCREEN_BOTTOM : ABOVE_MENU_BOTTOM,
         transform: 'translateX(-50%)',
-        zIndex: 30,
+        // Spojena: ispod menija (55), da njegova dugmad ostanu klikabilna.
+        zIndex: joined ? 54 : 30,
         // Ista širina i staklo kao InfoCard, da vođenje i ručni režim izgledaju isto.
         width: 'calc(100% - 24px)',
         maxWidth: '520px',
         boxSizing: 'border-box',
-        padding: '12px 18px 14px',
-        borderRadius: '24px',
+        padding: joined ? `12px 18px calc(${MENU_HEIGHT} + 2px)` : '12px 18px 14px',
+        borderRadius: joined ? '26px' : '24px',
         background: 'rgba(10, 14, 24, 0.78)',
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',
