@@ -32,9 +32,9 @@ export const OUTRO_S = 3.2;
 /**
  * Kadar sobe u videu kreće od pogleda koji tura ima posle ovoliko sekundi
  * uvodne priče (vlasnik, 1. 10. 2026: početni kadar sobe mu nije odgovarao,
- * "neka bude na četvrtoj sekundi naracije"; posle probe pomereno na šestu).
+ * "neka bude na četvrtoj sekundi naracije"; šesta je probana i odbijena, ostaje četvrta).
  */
-export const KEY_NARRATION_S = 6;
+export const KEY_NARRATION_S = 4;
 /**
  * Kruženje ture za vreme uvodne priče (roomSequence.ts: 250° za 15 s, kreće
  * od mirovanja i ubrzava ROTATE_RAMP_MS). Mora da prati turu, inače kadar u
