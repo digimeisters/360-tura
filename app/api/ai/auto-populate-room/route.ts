@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Type, Schema } from '@google/genai';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 import { requireAdmin } from '@/app/lib/adminAuth';
 import {
@@ -855,6 +855,205 @@ async function handleReviewDraft(body: any) {
 
 /**
  * ============================================================
+ * GLASOVNA NARACIJA (ElevenLabs)
+ * ============================================================
+ * Vraćeno 1. 10. 2026 - ruta je od commita 9678ce2 vraćala 501 (frontend u
+ * TourAdminTools.tsx je ceo ovaj ugovor, generate_voice/audio/errors/skipped,
+ * sve vreme čekao neokrnjen). Jedan glas za sva 4 jezika (vlasnikova odluka,
+ * 28. 9. 2026); ako se nekad doda glas po jeziku, ELEVENLABS_VOICE_ID_<JEZIK>
+ * ima prednost nad opštim ELEVENLABS_VOICE_ID.
+ */
+
+type VoiceLang = 'sr' | 'en' | 'de' | 'ru';
+const VOICE_LANGS: VoiceLang[] = ['sr', 'en', 'de', 'ru'];
+
+const ELEVENLABS_MODEL_ID = 'eleven_v4';
+const ELEVENLABS_TTS_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
+const NARRATIONS_BUCKET = 'narrations';
+/** ElevenLabs ume povremeno da ne odgovori - drugi pokušaj pre nego što segment javi grešku. */
+const TTS_MAX_ATTEMPTS = 2;
+/**
+ * Bezbednosna kočnica za slučajno zalepljen ogroman tekst - admin forma inače
+ * ograničava uvod/detalj/tačku na 140/220/180 znakova (roomDraftRules.ts), pa
+ * i spojen establish tekst retko pređe par stotina znakova.
+ */
+const TTS_MAX_CHARS = 700;
+
+function voiceIdFor(lang: VoiceLang): string | undefined {
+  return process.env[`ELEVENLABS_VOICE_ID_${lang.toUpperCase()}`] || process.env.ELEVENLABS_VOICE_ID;
+}
+
+/**
+ * Da li i18n polje ima SVOJ tekst za `lang` - za razliku od `extractText`,
+ * ovde se NE pada nazad na sr. Prazan prevod mora ostati nem, ne sme da
+ * izgovori srpski tekst pod stranim jezikom.
+ */
+function hasOwnLangText(value: unknown, lang: string): boolean {
+  if (!value) return false;
+  let parsed: unknown = value;
+  if (typeof value === 'string') {
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      return lang === 'sr' && value.trim().length > 0;
+    }
+  }
+  if (parsed && typeof parsed === 'object') {
+    const v = (parsed as Record<string, string>)[lang];
+    return typeof v === 'string' && v.trim().length > 0;
+  }
+  return false;
+}
+
+async function synthesizeSpeech(text: string, voiceId: string, apiKey: string): Promise<Buffer> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= TTS_MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(`${ELEVENLABS_TTS_URL}/${voiceId}`, {
+        method: 'POST',
+        headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json', Accept: 'audio/mpeg' },
+        body: JSON.stringify({
+          text,
+          model_id: ELEVENLABS_MODEL_ID,
+          voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+        })
+      });
+      if (!res.ok) {
+        const detail = await res.text().catch(() => '');
+        throw new Error(`ElevenLabs ${res.status}${detail ? `: ${detail.slice(0, 200)}` : ''}`);
+      }
+      return Buffer.from(await res.arrayBuffer());
+    } catch (err) {
+      lastError = err;
+      if (attempt < TTS_MAX_ATTEMPTS) await new Promise((r) => setTimeout(r, 700));
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('TTS poziv nije uspeo.');
+}
+
+async function uploadNarration(supabase: SupabaseClient, path: string, audio: Buffer): Promise<string> {
+  const { error } = await supabase.storage.from(NARRATIONS_BUCKET).upload(path, audio, {
+    contentType: 'audio/mpeg',
+    upsert: true
+  });
+  if (error) throw new Error(error.message);
+  return supabase.storage.from(NARRATIONS_BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+type GenerateVoiceBody = {
+  roomId?: string | number;
+  voiceLanguages?: unknown;
+  content?: { establishText?: unknown; waypoints?: { index: number; text: unknown }[] };
+};
+
+async function handleGenerateVoice(body: GenerateVoiceBody, supabase: SupabaseClient) {
+  const roomId = body.roomId;
+  const voiceLanguages: VoiceLang[] = Array.isArray(body.voiceLanguages)
+    ? body.voiceLanguages.filter((l: unknown): l is VoiceLang => VOICE_LANGS.includes(l as VoiceLang))
+    : [];
+
+  if (!roomId || voiceLanguages.length === 0) {
+    return NextResponse.json({ success: false, error: 'Nedostaje soba ili jezik za glas.' }, { status: 400 });
+  }
+
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json(
+      { success: false, error: 'Glasovna naracija trenutno nije dostupna - ELEVENLABS_API_KEY nije podešen na serveru.' },
+      { status: 501 }
+    );
+  }
+
+  // Isti oblik putanje kao dosadašnji snimci (napravljeni ručnim skriptama
+  // pre nego što je ova ruta vraćena) - {slug}/{roomId}/... u kanti "narrations".
+  const { data: roomRow } = await supabase.from('rooms').select('tour_slug').eq('id', roomId).single();
+  const folder = roomRow?.tour_slug ? `${roomRow.tour_slug}/${roomId}` : String(roomId);
+
+  const content = body.content || {};
+  const establishText = content.establishText;
+  const waypoints: { index: number; text: unknown }[] = Array.isArray(content.waypoints) ? content.waypoints : [];
+
+  const audio: { establish: Record<string, string>; waypoints: { index: number; audio_url_i18n: Record<string, string> }[] } = {
+    establish: {},
+    waypoints: []
+  };
+  const errors: { establish: Record<string, string>; waypoints: Record<string, string> } = { establish: {}, waypoints: {} };
+  const skipped: { establish: string[]; waypoints: string[] } = { establish: [], waypoints: [] };
+
+  // Jedan posao = (establish ili tačka, jezik) - svi se sakupe unapred, pa se
+  // izvrše sa ograničenim brojem istovremenih poziva (ne udariti ElevenLabs limit).
+  const jobs: (() => Promise<void>)[] = [];
+
+  for (const lang of voiceLanguages) {
+    if (!hasOwnLangText(establishText, lang)) {
+      skipped.establish.push(lang);
+      continue;
+    }
+    const text = extractText(establishText, lang).trim();
+    if (text.length > TTS_MAX_CHARS) {
+      errors.establish[lang] = `Tekst je predug za glas (${text.length} znakova, najviše ${TTS_MAX_CHARS}).`;
+      continue;
+    }
+    const voiceId = voiceIdFor(lang);
+    if (!voiceId) {
+      errors.establish[lang] = `ELEVENLABS_VOICE_ID nije podešen za ${lang.toUpperCase()}.`;
+      continue;
+    }
+    jobs.push(async () => {
+      try {
+        const buf = await synthesizeSpeech(text, voiceId, apiKey);
+        audio.establish[lang] = await uploadNarration(supabase, `${folder}/establish-${lang}.mp3`, buf);
+      } catch (err) {
+        errors.establish[lang] = err instanceof Error ? err.message : 'Nepoznata greška.';
+      }
+    });
+  }
+
+  for (const wp of waypoints) {
+    const wpAudio: Record<string, string> = {};
+    audio.waypoints.push({ index: wp.index, audio_url_i18n: wpAudio });
+    for (const lang of voiceLanguages) {
+      const key = `${wp.index}-${lang}`;
+      if (!hasOwnLangText(wp.text, lang)) {
+        skipped.waypoints.push(key);
+        continue;
+      }
+      const text = extractText(wp.text, lang).trim();
+      if (text.length > TTS_MAX_CHARS) {
+        errors.waypoints[key] = `Tekst je predug za glas (${text.length} znakova, najviše ${TTS_MAX_CHARS}).`;
+        continue;
+      }
+      const voiceId = voiceIdFor(lang);
+      if (!voiceId) {
+        errors.waypoints[key] = `ELEVENLABS_VOICE_ID nije podešen za ${lang.toUpperCase()}.`;
+        continue;
+      }
+      jobs.push(async () => {
+        try {
+          const buf = await synthesizeSpeech(text, voiceId, apiKey);
+          wpAudio[lang] = await uploadNarration(supabase, `${folder}/waypoint-${wp.index}-${lang}.mp3`, buf);
+        } catch (err) {
+          errors.waypoints[key] = err instanceof Error ? err.message : 'Nepoznata greška.';
+        }
+      });
+    }
+  }
+
+  const CONCURRENCY = 3;
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < jobs.length) {
+      const job = jobs[cursor++];
+      await job();
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, jobs.length) }, worker));
+
+  return NextResponse.json({ success: true, audio, errors, skipped });
+}
+
+/**
+ * ============================================================
  * POST HANDLER
  * ============================================================
  */
@@ -869,19 +1068,8 @@ export async function POST(req: Request) {
 
     const body = await req.json();
 
-    // Glasovna naracija je izgubljena kad je ruta prepisana (commit 9678ce2):
-    // frontend i dalje šalje 'generate_voice', a handler ne postoji. Bez ovog
-    // uslova poziv bi upao u generate_draft i vratio poruku o panoramskom
-    // linku, koja nema veze sa onim što je korisnik kliknuo.
     if (body.action === 'generate_voice') {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            'Glasovna naracija trenutno nije dostupna - TTS servis nije podešen na serveru.',
-        },
-        { status: 501 }
-      );
+      return await handleGenerateVoice(body, ctx.supabase);
     }
 
     const action: ActionType =

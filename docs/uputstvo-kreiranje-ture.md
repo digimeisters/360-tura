@@ -105,7 +105,7 @@ Tekst se piše prema **tipu oglasa ture**: za prodaju se naglašava vrednost i r
 
 **`🌐 Dodaj Jezik`** — prevodi sobu na još neki jezik, u bilo kom trenutku, i naknadno. Postojeći prevodi se ne gube. Svaki jezik se prevodi svojim pozivom, pa ako jedan ne uspe, ostali su i dalje tu.
 
-**`🎙️ AI Glasovna Naracija`** — **trenutno ne radi.** Servis za sintezu govora nije podešen na serveru, pa dugme vraća poruku o tome. Tekstualni deo ture radi normalno.
+**`🎙️ AI Glasovna Naracija`** — pravi glas (ElevenLabs) za uvod sobe i sve info-tačke na izabranim jezicima i sam ga upiše u turu. Jezik bez prevedenog teksta se preskače. Ako soba ima mnogo tačaka, a birate sva 4 jezika, bolje je pustiti u dva navrata (npr. SR+EN, pa DE+RU).
 
 Jezici koje posetilac vidi ne biraju se ručno — pojavljuju se sami, čim soba dobije tekst na tom jeziku.
 

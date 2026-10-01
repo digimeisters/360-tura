@@ -227,7 +227,7 @@ Polja `*_i18n` su objekti po jezicima: `{ "sr": "...", "en": "...", "de": "...",
 | `POST /api/upload-panorama` + `POST .../finish` | `requireAdmin` | Presigned R2 PUT (Vercel prima najviše 4,5 MB), pa `finish`: WebP + sličica + kopija za telefone → `rooms`. `DELETE` briše panoramu sobe (i `-m.webp`) |
 | `DELETE /api/admin/rooms` | `requireAdmin` | Brisanje sobe sa panoramama i strelicama koje vode u nju |
 | `POST /api/upload-to-r2` | `requireAdmin` | Migracija panorame sa starog Supabase URL-a na R2 |
-| `POST /api/ai/auto-populate-room` | `requireAdmin` | `generate_draft` (Gemini gleda panoramu i predlaže naziv, tekst i tačke), `translate_step` (prevodi); `generate_voice` vraća 501 |
+| `POST /api/ai/auto-populate-room` | `requireAdmin` | `generate_draft` (Gemini gleda panoramu i predlaže naziv, tekst i tačke), `translate_step` (prevodi); `generate_voice` (ElevenLabs `eleven_v4` → kanta `narrations`, vraćeno 1. 10. 2026) |
 | `GET /api/analytics` | `requireAdmin` | Zbir za admin analitiku (ture i početna) |
 
 Nova ruta koja menja podatke **mora** imati `requireAdmin` ili ograničenje broja zahteva. Tajne se nikad ne vraćaju klijentu.
@@ -242,7 +242,7 @@ Nova ruta koja menja podatke **mora** imati `requireAdmin` ili ograničenje broj
 - Temperature: `TEMP_EXTRACT = 0.2` (izvlačenje podataka), `TEMP_DESCRIPTIVE = 0.6` (opisni tekst).
 - Nacrt sobe dobija tip oglasa ture (`listingType`); ograničenja su 3 reči za naziv tačke, 180 znakova za tekst tačke i 320 za naraciju.
 - **Poznato i prihvaćeno:** AI i dalje ne postavlja tačke precizno u panoramu. Vlasnik to prihvata; ne popravljati bez njegovog zahteva.
-- **Glasovna naracija (TTS) je još isključena** (`generate_voice` vraća 501). ElevenLabs je plaćen 23. 9. 2026, ali tekstovi još nisu spremni. Kad vlasnik kaže, vraća se handler iz commita `0d8491e`. Dogovoreno za tada: automatski vodič kreće sa zvukom uz kratko obaveštenje „🔊 Zvuk je uključen · Isključi" (3 s), a u automatskom režimu idu i titlovi.
+- **Glasovna naracija (TTS) radi** od 1. 10. 2026: `handleGenerateVoice` u `app/api/ai/auto-populate-room/route.ts` (ugovor koji `TourAdminTools` šalje: `voiceLanguages`, `content.establishText`, `content.waypoints[]`; vraća `audio`, `errors`, `skipped`). Model `eleven_v4`, jedan glas `ELEVENLABS_VOICE_ID` za sve jezike (`ELEVENLABS_VOICE_ID_<JEZIK>` ima prednost), prazan prevod se preskače (ne pada na srpski), najviše 3 poziva odjednom, 2 pokušaja po segmentu, segment do 700 znakova. MP3 ide na `narrations/{slug}/{roomId}/establish-{lang}.mp3` i `.../waypoint-{i}-{lang}.mp3`. Na Vercel-u moraju postojati `ELEVENLABS_API_KEY` i `ELEVENLABS_VOICE_ID`. Ceo tok teksta, prevoda i glasa: skill `.claude/skills/tura-tekst-prevod-naracija`.
 
 ---
 
