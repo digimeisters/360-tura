@@ -8,6 +8,7 @@ import PasswordInput from '../../../components/PasswordInput';
 import { slugify } from '../../lib/slug';
 import { SITE_URL } from '../../lib/site';
 import TourQrDialog from './TourQrDialog';
+import TourVideoLauncher from './TourVideoLauncher';
 import {
   STRUCTURE_ORDER,
   HEATING_OPTIONS,
@@ -199,6 +200,8 @@ export default function ToursAdminPage() {
   const [copiedEmbedSlug, setCopiedEmbedSlug] = useState<string | null>(null);
   // Tura čiji je QR prozor otvoren (Premium: QR kod za oglas, letak i izlog).
   const [qrTour, setQrTour] = useState<TourRow | null>(null);
+  // Tura za koju se pravi kratak video za Instagram/Facebook (Premium).
+  const [videoSlug, setVideoSlug] = useState<string | null>(null);
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
   // Tajni linkovi mesečnih izveštaja (lib/agencyReport.ts) - potpisuje ih server.
   const [agencyReports, setAgencyReports] = useState<{ agency: string; tours: number; path: string }[]>([]);
@@ -1120,6 +1123,14 @@ export default function ToursAdminPage() {
                         QR
                       </button>
                       <button
+                        onClick={() => setVideoSlug(tour.slug)}
+                        disabled={tour.roomsWithPanorama === 0}
+                        title="Kratak uspravan video iz ture za Instagram i Facebook (Premium) - MP4 na ovaj računar"
+                        style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', marginLeft: '6px' }}
+                      >
+                        Video
+                      </button>
+                      <button
                         onClick={() => void deleteTour(tour)}
                         disabled={deletingSlug === tour.slug}
                         title="Trajno briše turu, sobe, panorame i statistiku - ne može se vratiti"
@@ -1147,11 +1158,14 @@ export default function ToursAdminPage() {
           {"„Uredi sadržaj“"} otvara turu u admin režimu, gde se dodaju sobe, panorame i hotspotovi.
           {"„Iframe“"} kopira gotov kod za ugradnju ture na sajt agencije — radi tek kad je tura objavljena.
           {"„QR“"} pravi QR kod ture sa logom (PNG za oglas i poruke, SVG za štampu) — deo Premium paketa.
+          {"„Video“"} pravi kratak uspravan video iz ture za Instagram i Facebook (MP4, čuva se samo na ovom računaru) — deo Premium paketa, radi u Chrome-u.
+
           {"„Obriši“"} trajno uklanja turu, sobe, panorame i statistiku — traži da upišeš slug ture za potvrdu,
           jer se ne može vratiti. Crveno kod broja soba znači da neka soba nema panoramu. Nova tura kreće
           {"„u pripremi“"} — link radi samo tebi dok je ne objaviš.
         </p>
       </div>
+      {videoSlug && <TourVideoLauncher slug={videoSlug} onClose={() => setVideoSlug(null)} />}
       {qrTour && (
         <TourQrDialog
           slug={qrTour.slug}

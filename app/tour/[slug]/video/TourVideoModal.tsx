@@ -152,7 +152,7 @@ export default function TourVideoModal({
               </ol>
               {skipped > 0 && (
                 <div style={{ fontSize: '12px', marginTop: '6px' }}>
-                  Bez {skipped} {skipped === 1 ? 'sobe' : 'soba'} (najviše {MAX_ROOMS}, redom putanje vodiča; sobe bez panorame se preskaču).
+                  Bez {skipped} {skipped % 10 >= 1 && skipped % 10 <= 4 && (skipped % 100 < 12 || skipped % 100 > 14) ? 'sobe' : 'soba'} (najviše {MAX_ROOMS}, redom putanje vodiča; sobe bez panorame se preskaču).
                 </div>
               )}
             </div>
