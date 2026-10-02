@@ -15,5 +15,7 @@ export function refreshPublicPages(): void {
   revalidatePath('/ture');
   // Tura u vrhu strane za agencije.
   revalidatePath('/za-agencije');
+  // Primer na strani za investitore vodi na istu turu.
+  revalidatePath('/za-investitore');
   revalidatePath('/sitemap.xml');
 }

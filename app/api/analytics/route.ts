@@ -52,7 +52,9 @@ function summarizeSite(rows: SiteRow[]) {
     } else if (row.event_type === 'form_submit') {
       formSubmits++;
       formSessions.add(row.session_id);
-    } else if (row.target) {
+    } else if (row.target && !/^p[vu]:/.test(row.target)) {
+      // pv:/pu: su posete projekta i otvaranja stanova novogradnje - broje se
+      // u izveštaju projekta (lib/projectStats.ts), ne kao klikovi sajta.
       clicks.set(row.target, (clicks.get(row.target) ?? 0) + 1);
     }
   }

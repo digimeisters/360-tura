@@ -3,7 +3,9 @@
 Kompletan tok, od unosa nekretnine do objavljene ture.
 
 > Ovaj dokument je živ — kad promenimo neku funkciju, izmena se upisuje ovde.
-> Poslednja izmena: 27.09.2026.
+> Poslednja izmena: 02.10.2026.
+
+Novogradnja (projekti za investitore: zgrada → sprat → stan, pristup za prodaju) ima svoje uputstvo: [`uputstvo-novogradnja.md`](uputstvo-novogradnja.md). Ture se tamo samo biraju i ništa se na njima ne menja.
 
 ---
 
@@ -221,6 +223,8 @@ Ispod tura je odeljak **Početna strana** (radi posle migracije `008_site_events
 |---|---|---|
 | Admin nalog | Supabase Auth, e-mail mora biti u `ADMIN_EMAILS` | ti |
 | Kod za upitnik | `FORM_ACCESS_CODE` | agencija |
+| Link za prodaju investitora | `/admin/projekti` → projekat → „Pristup za prodaju" (lični, gasi se jednim klikom) | prodaja investitora |
+| Link za pokazivanje projekta | `/admin/projekti` → projekat → „Link za pokazivanje" (važi 30 dana) | ti, investitor |
 
 Javna registracija na Supabase-u je **isključena** — nalog može da napravi samo ti, iz Supabase panela.
 

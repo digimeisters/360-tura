@@ -540,6 +540,9 @@ export default function ToursAdminPage() {
             <a href="/admin/analitika" style={{ ...formBtnStyle, padding: '7px 14px', fontSize: '13px', textDecoration: 'none' }}>
               Analitika
             </a>
+            <a href="/admin/projekti" style={{ ...formBtnStyle, padding: '7px 14px', fontSize: '13px', textDecoration: 'none' }}>
+              Novogradnja
+            </a>
             <button onClick={() => supabase.auth.signOut()} style={{ ...formBtnStyle, padding: '7px 14px', fontSize: '13px' }}>
               Odjava
             </button>

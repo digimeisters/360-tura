@@ -2,9 +2,9 @@
 
 Ovo je prvi dokument koji AI agent (Claude, Codex, Gemini...) treba da pročita pre rada na projektu. Kaže šta je Kvadrat360, kako je sistem složen, gde šta stoji i koja pravila vlasnik traži.
 
-Stanje opisano ovde važi na dan **27. 9. 2026**. Ako se kod i ovaj dokument razilaze, **kod je tačan**. Tada ispravi i dokument.
+Stanje opisano ovde važi na dan **2. 10. 2026**. Ako se kod i ovaj dokument razilaze, **kod je tačan**. Tada ispravi i dokument.
 
-Uputstvo za ljude (kako se pravi tura, korak po korak) je u [`uputstvo-kreiranje-ture.md`](uputstvo-kreiranje-ture.md).
+Uputstva za ljude: kako se pravi tura — [`uputstvo-kreiranje-ture.md`](uputstvo-kreiranje-ture.md); novogradnja (projekti, pristup za prodaju) — [`uputstvo-novogradnja.md`](uputstvo-novogradnja.md).
 
 ---
 
@@ -12,7 +12,7 @@ Uputstvo za ljude (kako se pravi tura, korak po korak) je u [`uputstvo-kreiranje
 
 Platforma za **360° virtuelne ture nekretnina**, sajt **kvadrat360.com**. Kvadrat360 snima stan (360° panorame i HDR fotografije), a kupac ili zakupac posle „šeta" kroz njega u pregledaču, sa audio vodičem na više jezika.
 
-- **Kome se prodaje:** agencijama za nekretnine (mesečni paketi) i vlasnicima koji sami prodaju ili izdaju (pojedinačna tura).
+- **Kome se prodaje:** agencijama za nekretnine (mesečni paketi) i vlasnicima koji sami prodaju ili izdaju (pojedinačna tura). Od 2. 10. 2026 i **investitorima novogradnje** (paket „Novogradnja": izbor stana zgrada → sprat → stan, §15) — u pripremi, još bez cene i bez pravog klijenta.
 - **Tipovi oglasa:** prodaja (`sale`), izdavanje (`rent`), kratkoročni smeštaj (`booking`). Tip menja fokus teksta koji AI piše za turu.
 - **Jezici:** srpski (osnovni, latinica), engleski, nemački, ruski. Sadržaj ture se čuva po jezicima u JSONB poljima.
 - **Područje:** Kragujevac i okolina, drugi gradovi po dogovoru.
@@ -36,6 +36,13 @@ Vlasnik govori srpski, vodi se proizvodom i dizajnom, nije programer. Objašnjen
 | Izveštaj agencije | `/izvestaj/[token]?mesec=YYYY-MM` | agencija | Mesečni izveštaj o posetama njenih tura. Tajni potpisan link (`lib/agencyReport.ts`), bez prijave; linkovi su u `/admin/ture` → „Izveštaji za agencije". Nije za Google. |
 | Sve ture | `/ture` | posetioci | Baza objavljenih tura: jedna traka filtera, Leaflet mapa pored filtera (računar), kartice 4 u redu |
 | Za agencije | `/za-agencije` | agencije | Prodajna strana za agencije iz Kragujevca; živa tura u vrhu, moduli ture kao benefiti |
+| Za investitore | `/za-investitore` | investitori | Prodajna strana za investitore novogradnje sa klikabilnim primerom (`components/InvestorDemo.tsx`, izmišljen projekat). **Skrivena:** `noindex`, nije u meniju, podnožju ni sitemap-u (vlasnik, 2. 10. 2026) |
+| Projekat novogradnje | `/novogradnja/[slug]` | kupci | Izbor stana: fasada → sprat → stan → upit. Samo objavljen projekat (RLS). §15 |
+| Projekat (EN) | `/en/novogradnja/[slug]` (+ `/ugradnja`) | strani kupci | Isti podaci, tekst iz `lib/projectI18n.ts`, naziv/opis iz `title_en`/`description_en`; hreflang sr/en |
+| Ugradnja projekta | `/novogradnja/[slug]/ugradnja` | sajt investitora (iframe) | Samo izbor stana + potpis; `noindex`, kanonska = javna strana; visinu javlja roditelju (`EmbedAutoHeight`, poruka `{type:'k360-height', slug, height}`). Kod je u adminu projekta (`EmbedCodePanel`) |
+| Link za pokazivanje | `/novogradnja/[slug]/pregled?t=` (+ `/en/...`) | vlasnik, investitor | Izgleda kao javna strana (bez trake), i za neobjavljen projekat; potpisan link 30 dana (`lib/projectPreview.ts`), `noindex`, bez merenja |
+| Prodaja investitora | `/prodaja/[kod]` | prodaja investitora | Menja SAMO status i cenu stanova jednog projekta; lični link bez naloga (`lib/salesAccess.ts`) |
+| Admin, novogradnja | `/admin/projekti`, `/admin/projekti/[id]` | vlasnik | Projekti, fasada i spratovi, osnove i stanovi, uvoz iz Excela, kopiranje rasporeda, pregled, pristup za prodaju. Dugme „Novogradnja" u `/admin/ture` |
 | Šematski plan | `/admin/plan/[slug]` | vlasnik | Editor tlocrta: automatski nacrt iz tačaka vrata (`lib/schematicFloorplan.ts`) koji se ispravlja povlačenjem; čuvanje crta SVG (`lib/floorplanLayout.ts`), stavlja ga na R2 kao `<slug>/floorplan-schematic.svg` (+ `.json` sa rasporedom za kasniju izmenu) i upisuje `floorplan_url` i oznake soba. Pravi tlocrt se ne menja bez potvrde. Dugme „🗺 Plan" u `/admin/ture`. |
 
 ---
@@ -100,13 +107,24 @@ app/
     pannellum.ts          URL-ovi Pannellum skripte i CSS-a
     adminUtils.ts, utils.tsx, types.ts, Logo.tsx, opengraph-image.tsx
   admin/ture, admin/analitika     admin ekrani (klijentski, Supabase prijava)
+  admin/projekti/         novogradnja: spisak + [id] editor projekta (§15)
+  novogradnja/[slug]/     javna strana projekta + pregled/ (potpisan link)
+  prodaja/[token]/        strana za prodaju investitora (status i cena)
+  za-investitore/         prodajna strana za investitore (skrivena)
   unos/page.tsx           upitnik za agenta
   api/                    rute (vidi §8)
   lib/                    zajednička logika (vidi ispod)
   sitemap.ts, robots.ts, opengraph-image.tsx
 components/               komponente sajta: HeroDevice, ContactForm, PriceCalculator, SiteTracker,
-                          TourList + TourMap (/ture), TourModulesShowcase (moduli ture kao benefiti)
-supabase/migrations/      001–018, SQL koji vlasnik ručno pokreće u Supabase SQL editoru
+                          TourList + TourMap (/ture), TourModulesShowcase (moduli ture kao benefiti),
+                          InvestorDemo (primer na /za-investitore)
+components/projekat/      novogradnja: ProjectSelector (izbor stana), ProjectView (cela strana projekta),
+                          PolygonCanvas (crtanje oblika u adminu), SalesBoard (/prodaja), SalesAccessPanel
+                          (admin: linkovi + istorija), EmbedCodePanel + EmbedAutoHeight (ugradnja),
+                          InsightsPanel (izveštaj + upiti), ProgressPanel / ProjectProgress (gradilište),
+                          NameAdvice (savet za naziv),
+                          selectorStyles.ts (.inv-*), adminStyles.ts (.pa-*)
+supabase/migrations/      001–021 (019–021 = novogradnja)
 scripts/                  jednokratni skriptovi + gen-db-types.mjs (npm run db:types),
                           backfill-mobile-panoramas.mjs (lakše panorame za postojeće sobe; urađeno za sve)
 types/supabase.ts         generisani tipovi baze (`npm run db:types`, vidi §5)
@@ -135,6 +153,14 @@ Najvažnije u `app/lib/`:
 | `structuredData.ts` | JSON-LD (WebSite, LocalBusiness, FAQPage) |
 | `slug.ts` | slug od naziva (latinica i ćirilica, jedinstven) |
 | `telegram.ts` | slanje poruke na Telegram |
+| `projects.ts` | novogradnja: tipovi, statusi i boje, `floorName`, `parseLevels` („P-6"), `parseUnitTable` (Excel), `levelPrefix`/`unitSuffix` (uparivanje 2A→3A), `cleanPolygon` |
+| `projectData.ts` | čitanje projekta za javnu stranu (anon + RLS) i za pregled (service role posle provere potpisa) |
+| `projectPreview.ts` | potpisan link za pokazivanje projekta (HMAC, 30 dana) |
+| `salesAccess.ts` | linkovi za prodaju (kod + SHA-256 otisak), `resolveSalesLink`, `loadSalesData`, `recordUnitChanges` (istorija + Telegram) |
+| `investorCopy.ts` | tekst strane `/za-investitore` |
+| `projectI18n.ts` | tekst strane projekta SR/EN, `floorLabel`, `structureText`/`orientationText` (rečnik), `formatPrice`/`formatArea`, `trackKey` (oznake merenja), `srPlural` |
+| `projectStats.ts` | izveštaj po stanu (30 dana): `pv:`/`pu:` događaji + `project_inquiries` |
+| `projectMeta.ts`, `projectOgImage.tsx`, `revalidateProject.ts` | metapodaci + hreflang, slika za deljenje (ImageResponse), osvežavanje svih adresa projekta (SR/EN, ugradnja, OG) |
 
 ---
 
@@ -146,7 +172,14 @@ Najvažnije u `app/lib/`:
 |---|---|---|
 | `tours` | jedna nekretnina | `slug` (ključ za URL), `title_i18n`, `category` (`sale`/`rent`/`booking`), `about_text_i18n` (kratka napomena, ≤2 rečenice), `faq_1..5_i18n`, `location_map_url`, `floorplan_url`, `agency_name`, `agent_*`, `address`, `city` (011), `structure`, `district` (012), `area_sqm`, `price` (013), `floor`, `has_elevator`, `has_basement`, `heating` (014), `build_status`, `finish_status` (015), `lat`, `lng` (016, geokodirano), `terrace`, `parking`, `deposit` (samo izdavanje), `registration` (samo prodaja) (017), `property_type`, `status` (010, aktivna/izdato/prodato/pauza), **`published`** (007) |
 | `rooms` | prostorija u turi | `tour_slug` (FK na `tours.slug`), `order_index`, `title_i18n`, `panorama_url_cf` (R2/CDN), `panorama_url_mobile` (018, 6000 px kopija za telefone; prazno = telefon uzima punu), `panorama_url` (stari Supabase URL), `preview_url` (004), `waypoints_i18n`, `establish_i18n`, `floorplan_x/y` (003) |
-| `contact_requests` | upiti sa forme | `name`, `contact`, `package`, `agency`, `listing_type`, `size`, `message` (prvi red može biti „Željeni termin: ..."), `source` (`landing` / `landing_en`) |
+| `contact_requests` | upiti sa forme | `name`, `contact`, `package`, `agency`, `listing_type`, `size`, `message` (prvi red može biti „Željeni termin: ..."), `source` (`landing`, `landing_en`, `agencije`, `investitori` = `/za-investitore`, `novogradnja` = upit za stan; tada je u `agency` naziv projekta, a u `package` oznaka stana) |
+| `projects` | projekat novogradnje (019) | `slug`, `title`, `developer_name`, `address`, `city`, `move_in` (tekst), `description`, `contact_phone/email`, `facade_url`, `published`, `notify_sales` (020) |
+| `project_floors` | sprat (019) | `project_id`, `level` (0 = prizemlje, jedinstven u projektu), `label`, `polygon` (oblik na fasadi), `plan_url` (osnova), `view_tour_id` (pogled sa sprata → `tours.id`) |
+| `project_units` | stan (019) | `floor_id`, `code` (jedinstven u projektu), `structure`, `area_sqm`, `terrace_sqm`, `orientation`, `price`, `status` (`available`/`reserved`/`sold`), `polygon` (oblik na osnovi), `tour_id` (→ `tours.id`), `sort` |
+| `project_sales_links` | link za prodaju (020) | `project_id`, `person_name`, `token_hash` (SHA-256; sam kod se ne čuva), `last_used_at`, `revoked_at` |
+| `project_inquiries` | upit za stan (021) | `project_id`, `unit_id`, `unit_code`, `name`, `contact`, `message`, `embedded`, `lang`, `handled_at`, `handled_by` (prodaja: „javio/la sam se") |
+| `project_progress` | gradilište po mesecima (021) | `project_id`, `month` (1. u mesecu, jedinstven), `tour_id`, `note` |
+| `project_unit_changes` | istorija statusa i cena (020) | `unit_id`, `unit_code`, `link_id`, `actor` (ime iz linka ili `Admin`), `field` (`status`/`price`), `old_value`, `new_value` |
 | `tour_events` | analitika tura | `tour_slug`, `event_type` (`open`, `start`, `room_view`, `share`, `contact`), `session_id`, `room_id`, `duration_ms`, `lang` |
 | `site_events` | analitika početne (008) | `event_type` (`page_view`, `cta_click`, `contact_click`, `form_submit`), `target`, `session_id`, `device`, `source` |
 
@@ -165,6 +198,7 @@ Polja `*_i18n` su objekti po jezicima: `{ "sr": "...", "en": "...", "de": "...",
 - **anon** (javni ključ) čita **samo objavljene** ture (`published is true`) i njihove sobe, i sme da upisuje u `contact_requests`. Ne vidi analitiku.
 - **authenticated** (prijavljeni admin) čita sve, a u `rooms` i piše. Zato javna registracija na Supabase projektu **mora ostati isključena**.
 - **service role** (samo na serveru) zaobilazi RLS. Koriste ga API rute i admin rute posle `requireAdmin`.
+- **Novogradnja:** anon čita `projects` / `project_floors` / `project_units` samo za **objavljen** projekat. Za te tri tabele nema policy-ja za upis; `project_sales_links` i `project_unit_changes` nemaju nijedan policy (Supabase savetnik to javlja kao INFO — namerno). Sve izmene idu kroz server rute sa service role ključem.
 
 ### Tipovi baze
 
@@ -172,7 +206,7 @@ Polja `*_i18n` su objekti po jezicima: `{ "sr": "...", "en": "...", "de": "...",
 
 ### Migracije
 
-`supabase/migrations/NNN_naziv.sql` se pišu tako da ih je **bezbedno pokrenuti više puta** (`if not exists`, `drop policy if exists`). **Vlasnik ih pokreće ručno** u Supabase SQL editoru. Agent mu da SQL, sačeka potvrdu i posle proveri (npr. da tabela postoji i da anon ne može da čita).
+`supabase/migrations/NNN_naziv.sql` se pišu tako da ih je **bezbedno pokrenuti više puta** (`if not exists`, `drop policy if exists`). Do 018 ih je vlasnik pokretao ručno u Supabase SQL editoru. **019, 020 i 021 je pustio agent preko Supabase MCP alata** (`apply_migration`) — MCP vidi živu bazu sajta, za razliku od CLI-ja (§5 Tipovi). Posle svake migracije: `get_advisors` (security), `npm run db:types`. Migracija koja menja ili briše postojeće podatke ide tek uz izričitu potvrdu vlasnika; čisto dodavanje tabela/kolona je dogovoreno uz zadatak.
 
 ---
 
@@ -182,6 +216,7 @@ Polja `*_i18n` su objekti po jezicima: `{ "sr": "...", "en": "...", "de": "...",
 - Kopija za telefone: `<roomId>-panorama-m.webp` (6000×3000; ~72 MB u memoriji telefona umesto ~128 MB). Pravi je `/api/upload-panorama/finish`; brisanje sobe ili panorame briše i nju. Telefon = `(pointer: coarse)` ili širina < 1024 (`panoramaUrlFor` u `transition.ts`).
 - Sličica sobe: `<roomId>-preview.jpg` (1200×630, isečak oko horizonta; za OG i početnu)
 - URL-ovi se u bazu upisuju sa `?v=<vreme>`, da CDN posle zamene ne vraća staru sliku.
+- Novogradnja: `projekti/<projectId>/facade-<vreme>.<ext>` i `.../plan-<vreme>.<ext>` (presigned PUT iz `/api/admin/projects/upload`; pregledač pre slanja smanji sliku na ~3 MB). Zamenjena slika ostaje na R2 (namerno, da projekat nikad ne ostane bez slike) — kandidat za čišćenje, uvek suvim hodom.
 - ⚠️ Folderi **`Maglicka/`** i **`Slavisa -booking/`** u bucketu sadrže **originalne panorame** na koje nijedan red u bazi ne pokazuje. To **nisu siročići** i **nikad se ne brišu**. Pri čišćenju R2 briše se samo po tačnom obrascu ključeva soba, uvek prvo suvim hodom.
 
 ---
@@ -230,6 +265,9 @@ Polja `*_i18n` su objekti po jezicima: `{ "sr": "...", "en": "...", "de": "...",
 | `POST /api/upload-to-r2` | `requireAdmin` | Migracija panorame sa starog Supabase URL-a na R2 |
 | `POST /api/ai/auto-populate-room` | `requireAdmin` | `generate_draft` (Gemini gleda panoramu i predlaže naziv, tekst i tačke), `translate_step` (prevodi); `generate_voice` (ElevenLabs `eleven_v4` → kanta `narrations`, vraćeno 1. 10. 2026) |
 | `GET /api/analytics` | `requireAdmin` | Zbir za admin analitiku (ture i početna) |
+| `GET/POST /api/admin/projects` | `requireAdmin` | Novogradnja. GET = spisak / ceo projekat (`?id=`). POST `action`: `create`, `update`, `delete`, `preview-link`, `floor-save`, `floors-add`, `floor-copy`, `floor-delete`, `unit-save`, `unit-delete`, `units-import`, `sales-list`, `sales-link-create`, `sales-link-revoke`. Izmene statusa/cene upisuje u istoriju kao `Admin`; osvežava `/novogradnja/<slug>` |
+| `POST /api/admin/projects/upload` | `requireAdmin` | Presigned R2 PUT za fasadu ili osnovu (do 25 MB) |
+| `GET/POST /api/prodaja/[token]` | važeći neugašen link; 120 GET i 60 POST / min po IP-u | Strana za prodaju: GET sveži podaci, POST menja JEDAN stan (`unitId`, `status`, `price`, `expected`) ili `action: 'inquiry-handled'` (`inquiryId`, `handled`). Ako `expected` ne odgovara bazi → 409 sa novim stanjem (ne gazi tuđu izmenu). Istorija + Telegram (`notify_sales`, samo prodat/rezervisan) |
 
 Nova ruta koja menja podatke **mora** imati `requireAdmin` ili ograničenje broja zahteva. Tajne se nikad ne vraćaju klijentu.
 
@@ -286,7 +324,7 @@ Samo imena. **Vrednosti se nikad ne upisuju u kod, dokumente ni poruke.** Stoje 
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | obaveštenja o upitima |
 | `FORM_ACCESS_CODE` | kod koji agencija unosi u `/unos` |
 | `NEXT_PUBLIC_SITE_URL` | opciono; menja kanonski domen (npr. za staging) |
-| `REPORT_LINK_SECRET` | opciono; ključ za potpis linkova izveštaja agencija. Bez njega se izvodi iz service-role ključa. Promena poništava sve poslate linkove. |
+| `REPORT_LINK_SECRET` | opciono; ključ za potpis linkova izveštaja agencija **i linkova za pregled projekta**. Bez njega se izvodi iz service-role ključa. Promena poništava sve poslate linkove. (Linkovi za prodaju ne zavise od njega — to su nasumični kodovi čiji je otisak u bazi.) |
 
 `FORM_WEBHOOK_SECRET` iz `.env.local` se više ne koristi (stari Google Form tok je uklonjen).
 
@@ -297,7 +335,7 @@ Samo imena. **Vrednosti se nikad ne upisuju u kod, dokumente ni poruke.** Stoje 
 ### Pravila vlasnika (obavezna)
 
 1. **Nikad commit ni push dok vlasnik izričito ne napiše „pushuj"** (ili „push"). „Nastavi", „continue" i „ok" **nisu** dozvola za push.
-2. Folder **`.claude/` nikad ne ide u commit.** Isto važi za `docs/cowork/` (repo je javan), `public/mockup/` i `welcome-screen.png`, osim ako vlasnik ne traži.
+2. Folder **`.claude/` nikad ne ide u commit.** Isto važi za `docs/cowork/` (repo je javan), `public/mockup/` i `welcome-screen.png`, osim ako vlasnik ne traži. (`public/mockup/` sadrži i odobrene mockupe novogradnje: `Novogradnja.html`, `Prodaja.html` — referenca za izgled.)
 3. **Ne menjaj nazive tura** (`title` / `title_i18n`). To radi vlasnik u `/admin/ture` → Izmeni.
 4. Pri brisanju **ne pravi rezervne kopije**, osim ako vlasnik to traži. Uvek prvo **suvi hod** i pokaži šta će biti obrisano.
 5. R2 folderi sa originalima (§6) se ne diraju.
@@ -337,9 +375,16 @@ Samo imena. **Vrednosti se nikad ne upisuju u kod, dokumente ni poruke.** Stoje 
 - bogatija analitika (moduli, deljenja po kanalu)
 - test na pravom iPhone-u i Android-u (dugme nazad, žiroskop, ceo ekran)
 
+**Novogradnja — nije urađeno**
+- mejl prodaji investitora za nov upit (sada: strana prodaje + Telegram vlasniku; mejl traži servis za slanje, npr. Resend, i novu promenljivu okruženja)
+- nemački i ruski za stranu projekta (rečnik je spreman za proširenje u `lib/projectI18n.ts`)
+- puštanje `/za-investitore` u javnost (meni, podnožje, sitemap, `llms.txt`, skinuti `noindex`) — kad bude prava tura dronom; tada i `PROJECT_PAGES_INDEXABLE = true` u `lib/projectMeta.ts` (sada su i objavljeni projekti `noindex`) + projekti u sitemap
+
 **Tehnički dug**
 - rate limit je u memoriji, pa na više Vercel instanci važi približno
 - `/api/unos` još šalje fajlove kroz telo zahteva (limit 4,5 MB na Vercelu) — treba presigned R2 kao kod panorama
+- novogradnja nema automatske testove; najosetljivije su čiste funkcije u `lib/projects.ts` (`parseUnitTable`, `parseLevels`, `unitSuffix`)
+- stara greška lintera u `components/ContactForm.tsx` (`setDays` u efektu), nije od novogradnje
 
 ---
 
@@ -362,3 +407,33 @@ Samo imena. **Vrednosti se nikad ne upisuju u kod, dokumente ni poruke.** Stoje 
 **Novi klik za merenje:** dodaj `data-track="cta:naziv"` na element i `naziv` u `TARGET_LABELS` (admin analitika).
 
 **Objava ture:** radi je vlasnik (`/admin/ture` → Objavi). Tura bez soba ne može da se objavi; pre objave treba proveriti da sve sobe imaju panoramu.
+
+**Novo polje projekta novogradnje:** migracija (kolona u `projects`) → `ProjectRow` u `lib/projects.ts` → `PROJECT_FIELDS` u `api/admin/projects/route.ts` (dužina!) → `INFO_FIELDS` u `admin/projekti/[id]/page.tsx` → prikaz u `components/projekat/ProjectView.tsx` → `npm run db:types`.
+
+**Test novogradnje bez prijave:** ubaci privremen projekat SQL-om (sa `notify_sales = false`, da Telegram ne pošalje lažnu poruku vlasniku), testiraj javnu stranu / `/prodaja` sa kodom čiji si otisak upisao, pa obriši projekat (kaskadno briše spratove, stanove, linkove i istoriju). Nikad ne testiraj na pravom projektu vlasnika.
+
+---
+
+## 15. Novogradnja (paket za investitore)
+
+Od 2. 10. 2026. Ture i projekti su **odvojeni**: projekat na turu samo pokazuje (`tour_id`, `view_tour_id`), pa se `tours`/`rooms` ovde nikad ne menjaju.
+
+- **Oblici** (`polygon`) su nizovi tačaka `[[x, y], ...]` u **udelu slike (0..1)** — ne zavise od veličine slike na ekranu. U prikazu: SVG `viewBox="0 0 1 1"` + `preserveAspectRatio="none"` preko slike, linije `vectorEffect="non-scaling-stroke"`, natpisi kao HTML (da se ne izobliče). Server ih čisti kroz `cleanPolygon` (3–200 tačaka, ograničeno na 0..1).
+- **Crtanje u adminu** (`PolygonCanvas`): klik dodaje tačku; klik blizu prve tačke ili Enter zatvara; Backspace/z vraća tačku; Esc otkazuje.
+- **Ispravka oblika** (`onEdit`): izabrani (`active`) oblik dobija ručice. Povlačenje ugla (pointer capture na slici), povlačenje sredine ivice ubacuje ugao, dva brza pritiska na ugao (<400 ms) ga brišu — ručno, jer zbog pointer capture-a `dblclick` ide slici, ne ručici. Čuva se na puštanje; editor (`onShapeEdit`) odmah menja stanje i vraća stari oblik ako čuvanje ne uspe.
+- **Naziv projekta** (`projectNameAdvice` + `NameAdvice`): malo početno slovo, `-cki/-cka/-cko` → `-čki…`, `dj` → `đ`; predlog „Ispravi u …". Opšteg upozorenja „nema kvačica" namerno nema (smetalo bi ispravnim nazivima). Pri pravljenju se prikazuje i buduća adresa, a slanje sa upozorenjem traži potvrdu.
+- **Spratovi:** polje „Dodaj sprat" ide kroz `parseLevels` (`3`, `P`, `prizemlje`, `1. sprat`, `P, 1, 2`, `P-6`, `-1` = podrum) → akcija `floors-add` (postojeći se preskaču).
+- **Uvoz iz Excela** (`parseUnitTable`): kolone oznaka | sprat | struktura | m² | terasa | orijentacija | cena | status; tab, `;` ili `,`. Zaglavlje se preskače. Bilo koja greška = ništa se ne upisuje. Upsert po `(project_id, code)`, oblici i ture ostaju.
+- **Kopiranje rasporeda** (`floor-copy`): osnova + oblici sa jednog sprata na izabrane. Uparivanje po oznaci (`unitSuffix`: „2A" na 2. spratu → „A" → „3A"; posle oznake sprata ne sme cifra, pa „12" i „P1" ne uparuju po oznaci). Bez oznake sprata → redom, samo ako je broj stanova isti. `createMissing` pravi stan koji fali (bez cene, slobodan). Status i cena se nikad ne kopiraju.
+- **Javna strana** (`ProjectView` + `ProjectSelector`): ISR 1 h, a svaka izmena kroz admin ili prodaju radi `revalidatePath('/novogradnja/<slug>')`. Zgrada se vidi čim ima spratova. Dugme za turu samo za objavljenu turu. Stan „prodat" ne pokazuje cenu ni dugme za upit. Upit za stan → `/api/contact` sa `from: 'project'`.
+- **Telefon (≤960 px):** `ProjectSelector` prikazuje red dugmadi spratova (`.inv-floorchips`) ispod fasade i iznad osnove; izbor sprata iz spiska vraća pogled na osnovu, izbor stana spušta do kartice.
+- **Ugradnja** (`/ugradnja`): isti `getPublicProject` i keš; svaka izmena osvežava i tu adresu (`refresh()` u admin ruti, `recordUnitChanges`). Upit šalje `embedded: true` → red „🌐 Poslato sa sajta investitora" na Telegramu. Iframe sme jer sajt ne šalje `X-Frame-Options` / `frame-ancestors` (ture se ugrađuju isto). Visina se meri na `<main>`, ne na dokumentu (dokument nikad nije niži od iframe-a, pa se okvir ne bi skupljao).
+- **Link za pokazivanje** (`/pregled?t=`, SR i EN): posebna dinamična adresa (ne `?pregled` na javnoj, da javna ostane statična), `noindex`, `no-referrer`, bez `SiteTracker`-a; **bez trake „pregled"** (vlasnik ga pokazuje investitorima kao gotov primer, 2. 10. 2026). `ProjectView previewToken` drži prekidač jezika na pregledu.
+- **Prodaja investitora** (mockup `public/mockup/Prodaja.html`, odobren): **svaki stan se potvrđuje posebno** (izmena → „Potvrdi" → „Stan X: da li ste sigurni?" sa starim/novim vrednostima → „Da, potvrđujem"); zajedničkog „Sačuvaj sve" namerno nema. Strana je `force-dynamic`, `noindex`, `referrer: no-referrer` (kod u adresi ne sme da procuri). Kod: 32 nasumična bajta (base64url, 43 znaka); prikazuje se adminu samo jednom.
+- **Upit za stan:** `ProjectSelector` šalje `/api/contact` sa `from: 'project'`, `unitId`, `lang`, `embedded`. Ruta upisuje `contact_requests` (`source = novogradnja` — proverava se PRE `lang === 'en'`) i `project_inquiries` (projekat i oznaka iz baze po `unitId`, ne iz pregledača), pa Telegram. Prodaja ih vidi na vrhu `/prodaja` i označava obrađene.
+- **Izveštaj po stanu:** `ProjectSelector` šalje `cta_click` sa `pv:<slug>` (otvaranje strane) i `pu:<slug>:<oznaka>` (otvaranje stana), upit `form_submit` `pq:...`. `site_events.target` prima samo `[a-z0-9_:-]{1,80}`, zato `trackKey` čisti oznaku (stara `project_unit:2A` se zbog velikog slova nikad nije upisivala). Admin analitika sajta preskače `pv:`/`pu:` u „Klikovima". Prikaz: `InsightsPanel` (admin, akcija `insights`) i kraći u `SalesBoard`.
+- **Filteri:** struktura, „cena do", „kvadratura od" (pragovi samo unutar stvarnog opsega); „cena do" isključuje prodate. Cena po m² na kartici stana.
+- **Gradilište** (`project_progress`, admin `ProgressPanel`, javno `ProjectProgress`): mesec bez objavljene ture se ne prikazuje; napomena samo na srpskoj strani.
+- **Engleski** (`/en/novogradnja/[slug]`): `ProjectView lang="en"`; ručni naziv sprata (`label`) važi samo za SR; prevod opisa = admin akcija `translate-en` (`translateTexts`, Gemini), samo predlog.
+- **Slika za deljenje:** `opengraph-image.tsx` u `app/novogradnja/[slug]` i `app/en/novogradnja/[slug]` → `renderProjectOgImage`. Fasada u WEBP-u se preskače (Satori), ostaje plava kartica. Važi i za `/pregled` i `/ugradnja` (nasleđuju segment).
+- **Istorija** (`project_unit_changes`): svaka promena statusa/cene — iz prodaje (ime osobe), iz admina (`Admin`, i iz Excel uvoza za postojeće stanove). Telegram samo za prodaju i samo za prelaz u prodat/rezervisan, ako je `notify_sales`.

@@ -79,6 +79,11 @@ export async function POST(req: Request) {
     // Forma sa /za-agencije (ContactForm variant="agency"): u "paketu" je broj
     // nekretnina mesečno, pa se u bazi i na Telegramu vidi da je upit agencije.
     const fromAgencyPage = body.from === 'agency';
+    // Forma sa /za-investitore (variant="investor"): u "paketu" je broj stanova u projektu.
+    const fromInvestorPage = body.from === 'investor';
+    // Upit za konkretan stan sa strane projekta (/novogradnja/[slug]):
+    // u "agenciji" je naziv projekta, u "paketu" oznaka stana i sprat.
+    const fromProjectPage = body.from === 'project';
     // Željeni termin iz forme; tabela nema posebnu kolonu, pa se u bazi
     // čuva kao prvi red poruke, a na Telegramu ide u svoj red.
     const slot = describeSlot(body.slotDate, body.slotWindow);
@@ -96,7 +101,8 @@ export async function POST(req: Request) {
       listing_type: listingType || null,
       size: size || null,
       message: storedMessage || null,
-      source: fromEnglish ? 'landing_en' : fromAgencyPage ? 'agencije' : 'landing'
+      // Projekat pre jezika: upit sa engleske strane projekta je i dalje upit za stan.
+      source: fromProjectPage ? 'novogradnja' : fromEnglish ? 'landing_en' : fromAgencyPage ? 'agencije' : fromInvestorPage ? 'investitori' : 'landing'
     });
 
     if (error) {
@@ -105,6 +111,28 @@ export async function POST(req: Request) {
         { success: false, error: 'Upit nije sačuvan. Pokušajte ponovo ili nas pozovite.' },
         { status: 500 }
       );
+    }
+
+    // Upit za stan ide i prodaji investitora: vidi ga na svojoj strani
+    // (/prodaja/<kod>, migracija 021). Projekat i oznaka se čitaju iz baze po
+    // unitId - ne veruje se nazivu koji šalje pregledač.
+    let projectInquiry = false;
+    if (fromProjectPage && typeof body.unitId === 'string' && /^[0-9a-f-]{36}$/i.test(body.unitId)) {
+      const { data: unitRow } = await supabase.from('project_units').select('id, code, project_id').eq('id', body.unitId).maybeSingle();
+      if (unitRow) {
+        const { error: inqError } = await supabase.from('project_inquiries').insert({
+          project_id: unitRow.project_id,
+          unit_id: unitRow.id,
+          unit_code: unitRow.code,
+          name,
+          contact,
+          message: message || null,
+          embedded: body.embedded === true,
+          lang: fromEnglish ? 'en' : 'sr'
+        });
+        if (inqError) console.error('[api/contact] project inquiry failed:', inqError.message);
+        else projectInquiry = true;
+      }
     }
 
     // Upit je već u bazi - notifikacija je dodatak, njen neuspeh se ne
@@ -117,6 +145,15 @@ export async function POST(req: Request) {
     ];
     if (fromEnglish) lines.push('🌐 Sa engleske strane — odgovoriti na engleskom');
     if (fromAgencyPage) lines.push('🏢 Sa strane za agencije');
+    if (fromInvestorPage) lines.push('🏗️ Sa strane za investitore');
+    if (fromProjectPage) {
+      lines.push(
+        projectInquiry
+          ? '🏢 Upit za stan u novogradnji - prodaja investitora ga vidi na svojoj strani'
+          : '🏢 Upit za stan u novogradnji - proslediti prodaji investitora'
+      );
+    }
+    if (fromProjectPage && body.embedded === true) lines.push('🌐 Poslato sa sajta investitora (ugrađeni izbor stana)');
     if (agency) lines.push(`🏢 ${escapeHtml(agency)}`);
     if (pkg) lines.push(`📦 ${escapeHtml(pkg)}`);
     if (listingType) lines.push(`🏷️ ${escapeHtml(listingType)}`);

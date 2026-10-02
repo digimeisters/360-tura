@@ -135,6 +135,11 @@ const AGENCY_VOLUMES = ['1–2', '3–4', '5–9', '10+'] as const;
 const agencyVolumeValue = (v: string) =>
   `Agencija · ${v} ${v === '1–2' || v === '3–4' ? 'nekretnine' : 'nekretnina'} mesečno`;
 
+// Strana za investitore: veličina projekta umesto paketa - isto ide u polje
+// "paket", pa baza i Telegram ne traže izmenu.
+const INVESTOR_SIZES = ['do 20', '20–50', '50–100', 'preko 100'] as const;
+const investorSizeValue = (v: string) => `Investitor · ${v} stanova`;
+
 export default function ContactForm({
   lang = 'sr',
   // Paket koji je unapred izabran u formi (prvi = Osnovni).
@@ -143,8 +148,8 @@ export default function ContactForm({
 }: {
   lang?: HomeLang;
   defaultPackage?: string;
-  /** 'agency' = kraća forma za /za-agencije (vidi AGENCY_VOLUMES). */
-  variant?: 'default' | 'agency';
+  /** 'agency' = kraća forma za /za-agencije (vidi AGENCY_VOLUMES), 'investor' za /za-investitore. */
+  variant?: 'default' | 'agency' | 'investor';
 }) {
   const [status, setStatus] = useState<Status>({ kind: 'idle', text: '' });
   const t = TEXT[lang];
@@ -238,6 +243,47 @@ export default function ContactForm({
       </p>
     </div>
   );
+
+  if (variant === 'investor') {
+    return (
+      <form id="contact-form" className="card contact-form" onSubmit={handleSubmit}>
+        <input type="hidden" name="from" value="investor" />
+        <div className="row2">
+          <div className="field">
+            <label htmlFor="f-name">{t.name}</label>
+            <input className="input" id="f-name" name="name" type="text" required placeholder={t.namePh} />
+          </div>
+          <div className="field">
+            <label htmlFor="f-contact">{t.contact}</label>
+            <input className="input" id="f-contact" name="contact" type="text" required placeholder={t.contactPh} />
+          </div>
+        </div>
+        <div className="row2">
+          <div className="field">
+            <label htmlFor="f-agency">Firma ili naziv projekta</label>
+            <input className="input" id="f-agency" name="agency" type="text" placeholder="npr. Stambeni kompleks Centar" />
+          </div>
+          <div className="field">
+            <label htmlFor="f-units">Koliko stanova ima projekat?</label>
+            <select className="input" id="f-units" name="package" defaultValue={investorSizeValue(INVESTOR_SIZES[1])}>
+              {INVESTOR_SIZES.map((v) => (
+                <option key={v} value={investorSizeValue(v)}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="f-msg">
+            {t.message} <small style={{ fontWeight: 400 }}>(opciono)</small>
+          </label>
+          <textarea className="input" id="f-msg" name="message" placeholder="Npr. gradimo zgradu od 6 spratova, prodaja kreće na proleće…" />
+        </div>
+        {footer}
+      </form>
+    );
+  }
 
   if (variant === 'agency') {
     return (
