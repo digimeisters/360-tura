@@ -25,11 +25,37 @@ function fullscreenElement(): Element | null {
   return doc.fullscreenElement ?? doc.webkitFullscreenElement ?? null;
 }
 
-export function useViewerControls(viewerRef: RefObject<{
+type GyroViewer = {
   startOrientation?: () => void;
   stopOrientation?: () => void;
   stopAutoRotate?: () => void;
-} | null>) {
+  getConfig?: () => { roll?: number };
+  getNorthOffset?: () => number;
+  setNorthOffset?: (offset: number) => void;
+};
+
+/**
+ * Posle isključivanja žiroskopa slika ostaje nagnuta koliko je telefon bio
+ * nagnut (dodir ga više ne ispravlja naglo - scripts/patch-pannellum.mjs),
+ * pa se horizont ovde lagano vrati na ravno (~0,35 s). Pannellum nema javnu
+ * funkciju za nagib: vrednost se menja u config-u, a setNorthOffset sa istom
+ * vrednošću samo traži novo iscrtavanje.
+ */
+function settleRoll(viewer: GyroViewer) {
+  const config = viewer.getConfig?.();
+  if (!config || !config.roll || typeof viewer.setNorthOffset !== 'function') return;
+  const from = config.roll;
+  const startedAt = performance.now();
+  const step = (now: number) => {
+    const k = Math.min(1, (now - startedAt) / 350);
+    config.roll = from * (1 - k) * (1 - k);
+    try { viewer.setNorthOffset?.(viewer.getNorthOffset?.() ?? 0); } catch {}
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+export function useViewerControls(viewerRef: RefObject<GyroViewer | null>) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isGyroActive, setIsGyroActive] = useState(false);
   const isGyroActiveRef = useRef(false);
@@ -52,6 +78,7 @@ export function useViewerControls(viewerRef: RefObject<{
   const stopGyroscope = useCallback(() => {
     if (viewerRef.current && typeof viewerRef.current.stopOrientation === 'function') {
       viewerRef.current.stopOrientation();
+      settleRoll(viewerRef.current);
     }
     setIsGyroActive(false);
     isGyroActiveRef.current = false;
