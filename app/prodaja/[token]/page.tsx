@@ -89,6 +89,27 @@ const STYLES = `
   .sb-inq-toggle{border:0; background:none; color:#1E5AA8; font-weight:700; font-size:13px; padding:4px 2px; cursor:pointer;}
   .sb-statrow{display:flex; justify-content:space-between; gap:8px;}
   .sb-statrow span{color:#5B5D63;}
+  /* Kratka beleška (jedan red, ⚑ = važno). */
+  .sb-note{display:flex; align-items:flex-start; gap:8px; width:100%; margin-top:10px; padding:8px 10px; border:0; border-radius:10px; background:#F1F4F9; text-align:left; cursor:pointer; color:#1F2937; font:inherit;}
+  .sb-note-ic{flex:none; font-size:13px; line-height:1.4; color:#8C8E93;}
+  .sb-note-tx{flex:1; min-width:0; font-size:13.5px; line-height:1.4; overflow-wrap:anywhere;}
+  .sb-note-tx small{display:block; font-size:11px; color:#8C8E93; margin-top:1px; font-weight:400;}
+  .sb-note.is-imp{background:#FFF1DC;}
+  .sb-note.is-imp .sb-note-ic{color:#D97706;}
+  .sb-note.is-imp .sb-note-tx{color:#7C2D12; font-weight:600;}
+  .sb-note.is-empty{background:none; border:1.5px dashed #D5DEEB; color:#1E5AA8; font-weight:700; font-size:13px; padding:7px 10px;}
+  .sb-note:disabled{opacity:.6; cursor:default;}
+  .sb-note-edit{margin-top:10px;}
+  .sb-note-in{display:flex; gap:6px; align-items:center;}
+  .sb-note-in input{flex:1; min-width:0; border:1.5px solid #9DBBE3; border-radius:10px; padding:9px 10px; font-size:16px; color:#111113; background:#FFFFFF;}
+  .sb-note-flag{flex:none; border:1.5px solid #D5DEEB; background:#FFFFFF; border-radius:10px; padding:8px 11px; font-weight:800; font-size:14px; color:#8C8E93; cursor:pointer; min-height:44px;}
+  .sb-note-flag.is-on{background:#D97706; border-color:#D97706; color:#FFFFFF;}
+  .sb-note-meta{display:flex; justify-content:space-between; margin-top:4px; font-size:11px; color:#8C8E93;}
+  .sb-note-acts{display:flex; gap:6px; margin-top:6px;}
+  .sb-note-acts button{flex:1; border:0; border-radius:999px; padding:8px; min-height:40px; font-weight:700; font-size:13px; background:#EEF2F8; color:#374151; cursor:pointer;}
+  .sb-note-acts .is-save{background:#1E5AA8; color:#FFFFFF;}
+  .sb-note-acts button:disabled{opacity:.6; cursor:default;}
+  .sb-flag{display:inline-block; font-size:11px; font-weight:800; color:#FFFFFF; background:#D97706; border-radius:999px; padding:1px 7px; margin-left:6px; vertical-align:2px;}
   .sb-help{margin:18px 16px 0; font-size:12.5px; color:#6B7280; line-height:1.5;}
   .sb-toast{position:fixed; left:50%; top:14px; transform:translateX(-50%); z-index:20; background:#1F7A45; color:#FFFFFF; font-size:13.5px; font-weight:700; padding:10px 16px; border-radius:16px; box-shadow:0 10px 24px rgba(0,0,0,.2); width:max-content; max-width:calc(100% - 32px);}
   .sb-toast.is-err{background:#B42318;}

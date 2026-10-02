@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { floorName, UNIT_STATUSES, UNIT_STATUS_LABEL, type UnitStatus } from '../../app/lib/projects';
-import type { SalesChange, SalesData, SalesUnit } from '../../app/lib/salesAccess';
+import type { SalesChange, SalesData, SalesNote, SalesUnit } from '../../app/lib/salesAccess';
 import { srPlural } from '../../app/lib/projectI18n';
 
 /**
@@ -48,6 +48,101 @@ function when(iso: string): string {
   return `${d.getDate()}. ${d.getMonth() + 1}. ${time}`;
 }
 
+const NOTE_MAX = 120;
+
+/**
+ * Jedna kratka beleška prodaje (mockup public/mockup/ProdajaBeleske.html,
+ * vlasnik 2. 10. 2026): jedan red, nova zamenjuje staru, ⚑ = važno.
+ * Kupac je nikad ne vidi (tabela project_notes, samo server).
+ */
+function NoteRow({
+  note,
+  placeholder,
+  disabled,
+  onSave
+}: {
+  note: SalesNote | null;
+  placeholder: string;
+  disabled: boolean;
+  onSave: (text: string, important: boolean) => Promise<boolean>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState('');
+  const [important, setImportant] = useState(false);
+
+  const open = () => {
+    setText(note?.text ?? '');
+    setImportant(note?.important ?? false);
+    setEditing(true);
+  };
+  const save = async (value: string, imp: boolean) => {
+    if (await onSave(value, imp)) setEditing(false);
+  };
+
+  if (!editing) {
+    if (!note) {
+      return (
+        <button type="button" className="sb-note is-empty" onClick={open} disabled={disabled}>
+          + Beleška
+        </button>
+      );
+    }
+    return (
+      <button type="button" className={note.important ? 'sb-note is-imp' : 'sb-note'} onClick={open} disabled={disabled} aria-label={`Izmeni belešku: ${note.text}`}>
+        <span className="sb-note-ic" aria-hidden="true">{note.important ? '⚑' : '✎'}</span>
+        <span className="sb-note-tx">
+          {note.text}
+          <small>
+            {note.author} · {when(note.updated_at)}
+          </small>
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="sb-note-edit">
+      <div className="sb-note-in">
+        <input
+          type="text"
+          value={text}
+          maxLength={NOTE_MAX}
+          placeholder={placeholder}
+          aria-label="Beleška"
+          autoFocus
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') save(text, important);
+            if (e.key === 'Escape') setEditing(false);
+          }}
+        />
+        <button type="button" className={important ? 'sb-note-flag is-on' : 'sb-note-flag'} aria-pressed={important} title="Važno" onClick={() => setImportant((v) => !v)}>
+          ⚑
+        </button>
+      </div>
+      <div className="sb-note-meta">
+        <span>⚑ = važno · kupac ne vidi belešku</span>
+        <span>
+          {text.length}/{NOTE_MAX}
+        </span>
+      </div>
+      <div className="sb-note-acts">
+        {note && (
+          <button type="button" onClick={() => save('', false)} disabled={disabled}>
+            Obriši
+          </button>
+        )}
+        <button type="button" onClick={() => setEditing(false)} disabled={disabled}>
+          Otkaži
+        </button>
+        <button type="button" className="is-save" onClick={() => save(text, important)} disabled={disabled}>
+          {disabled ? 'Čuvam...' : 'Sačuvaj'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function SalesBoard({ token, initial }: { token: string; initial: SalesData }) {
   const [data, setData] = useState<SalesData>(initial);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
@@ -83,6 +178,29 @@ export default function SalesBoard({ token, initial }: { token: string; initial:
     setToast(t);
     if (t) window.setTimeout(() => setToast((cur) => (cur === t ? null : cur)), t.ok ? 2600 : 6000);
   };
+
+  async function saveNoteFor(target: 'unit' | 'inquiry', id: string, text: string, important: boolean): Promise<boolean> {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/prodaja/${encodeURIComponent(token)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'note', target, id, text, important })
+      });
+      const json = await res.json().catch(() => null);
+      if (json?.data) setData(json.data as SalesData);
+      if (!res.ok || !json?.success) {
+        showToast({ ok: false, text: json?.error || 'Beleška nije sačuvana.' });
+        return false;
+      }
+      return true;
+    } catch {
+      showToast({ ok: false, text: 'Nema veze sa serverom. Proverite internet i pokušajte ponovo.' });
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function markInquiry(inquiryId: string, handled: boolean) {
     setSaving(true);
@@ -203,6 +321,12 @@ export default function SalesBoard({ token, initial }: { token: string; initial:
                     {q.embedded && <span className="sb-inq-tag">sa vašeg sajta</span>}
                   </div>
                   {q.message && <p>{q.message}</p>}
+                  <NoteRow
+                    note={q.note}
+                    placeholder="Kratko: šta je sa ovim kupcem…"
+                    disabled={saving}
+                    onSave={(text, imp) => saveNoteFor('inquiry', q.id, text, imp)}
+                  />
                   {q.handled_at ? (
                     <div className="sb-inq-done">
                       ✓ Javio/la se {q.handled_by ?? ''} · {when(q.handled_at)}
@@ -250,6 +374,7 @@ export default function SalesBoard({ token, initial }: { token: string; initial:
         return (
           <section key={f.id} className="sb-floor">
             <h2>
+              {f.building ? `${f.building} · ` : ''}
               {floorName(f.level, f.label)}
               <span>{free} slobodno</span>
             </h2>
@@ -260,7 +385,10 @@ export default function SalesBoard({ token, initial }: { token: string; initial:
               return (
                 <div key={u.id} className={`sb-unit${dirty ? ' is-dirty' : ''}${flash === u.id ? ' is-flash' : ''}`}>
                   <div className="sb-unit-top">
-                    <b>Stan {u.code}</b>
+                    <b>
+                      Stan {u.code}
+                      {u.note?.important && <span className="sb-flag" title="Važna beleška">⚑</span>}
+                    </b>
                     <small>{[u.structure, u.area_sqm ? `${u.area_sqm} m²` : null].filter(Boolean).join(' · ')}</small>
                   </div>
                   <div className="sb-seg" role="group" aria-label={`Status stana ${u.code}`}>
@@ -288,6 +416,12 @@ export default function SalesBoard({ token, initial }: { token: string; initial:
                     </label>
                     <span className="sb-ppm">{np && u.area_sqm ? `${Math.round(np / u.area_sqm).toLocaleString('sr-RS')} €/m²` : ''}</span>
                   </div>
+                  <NoteRow
+                    note={u.note}
+                    placeholder="Kratko: npr. rezervisan do 20. 10., kapara…"
+                    disabled={saving}
+                    onSave={(text, imp) => saveNoteFor('unit', u.id, text, imp)}
+                  />
                   {dirty && (
                     <div className="sb-confirm">
                       <span>Izmena još nije na sajtu</span>

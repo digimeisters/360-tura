@@ -6,17 +6,35 @@ import { slugify } from '@/app/lib/slug';
 import { projectPreviewToken } from '@/app/lib/projectPreview';
 import { loadProjectStats } from '@/app/lib/projectStats';
 import { translateTexts } from '@/app/lib/translateTexts';
+import { geocodeAddress } from '@/app/lib/geocode';
+import { fetchNearby } from '@/app/lib/nearby';
 import {
   ADMIN_ACTOR,
   hashSalesToken,
+  loadNotes,
   newSalesToken,
   recordUnitChanges,
   type SalesProject,
   type UnitChange
 } from '@/app/lib/salesAccess';
-import { cleanPolygon, levelPrefix, parseUnitTable, unitSuffix, UNIT_STATUSES, type UnitStatus } from '@/app/lib/projects';
+import {
+  cleanPhotos,
+  cleanPolygon,
+  cleanRooms,
+  levelPrefix,
+  matchBuilding,
+  MAX_VIEWS_PER_BUILDING,
+  parseUnitTable,
+  SHAPE_COLUMN,
+  unitSuffix,
+  UNIT_STATUSES,
+  type ShapeTarget,
+  type UnitStatus
+} from '@/app/lib/projects';
 
 export const dynamic = 'force-dynamic';
+// Okolina (Overpass) ume da traje 10-20 s, a prevod opisa nekoliko sekundi.
+export const maxDuration = 60;
 
 /**
  * ============================================================
@@ -53,7 +71,6 @@ const PROJECT_FIELDS: Record<string, number> = {
   description: 2000,
   contact_phone: 60,
   contact_email: 120,
-  facade_url: 500,
   title_en: 120,
   description_en: 2000
 };
@@ -111,15 +128,31 @@ export async function GET(req: Request) {
     });
   }
 
-  const [{ data: project, error }, { data: floors }, { data: units }, { data: tours }] = await Promise.all([
-    db.from('projects').select('*').eq('id', id).maybeSingle(),
-    db.from('project_floors').select('*').eq('project_id', id).order('level', { ascending: true }),
-    db.from('project_units').select('*').eq('project_id', id).order('sort', { ascending: true }).order('code', { ascending: true }),
-    db.from('tours').select('id, slug, title, published').order('created_at', { ascending: false })
-  ]);
+  const [{ data: project, error }, { data: floors }, { data: units }, { data: tours }, { data: buildings }, { data: views }, { data: shapes }] =
+    await Promise.all([
+      db.from('projects').select('*').eq('id', id).maybeSingle(),
+      db.from('project_floors').select('*').eq('project_id', id).order('level', { ascending: true }),
+      db.from('project_units').select('*').eq('project_id', id).order('sort', { ascending: true }).order('code', { ascending: true }),
+      db.from('tours').select('id, slug, title, published').order('created_at', { ascending: false }),
+      db.from('project_buildings').select('*').eq('project_id', id).order('sort').order('name'),
+      db.from('project_views').select('*').eq('project_id', id).order('sort').order('created_at'),
+      db.from('project_view_shapes').select('id, view_id, project_id, building_id, floor_id, unit_id, polygon').eq('project_id', id)
+    ]);
   if (error) return fail(error.message, 500);
   if (!project) return fail('Projekat nije pronađen.', 404);
-  return NextResponse.json({ success: true, project, floors: floors ?? [], units: units ?? [], tours: tours ?? [] });
+  // Beleške prodaje po stanu (migracija 023) - admin ih vidi u tabeli stanova.
+  const notes = await loadNotes(db, id);
+  return NextResponse.json({
+    success: true,
+    project,
+    floors: floors ?? [],
+    units: units ?? [],
+    tours: tours ?? [],
+    buildings: buildings ?? [],
+    views: views ?? [],
+    shapes: shapes ?? [],
+    unitNotes: Object.fromEntries(notes.byUnit)
+  });
 }
 
 export async function POST(req: Request) {
@@ -152,13 +185,74 @@ export async function POST(req: Request) {
         if ('title' in fields && !patch.title) return fail('Naziv projekta ne sme biti prazan.');
         if ('published' in fields) patch.published = Boolean(fields.published);
         if ('notify_sales' in fields) patch.notify_sales = Boolean(fields.notify_sales);
+
+        // Ručno upisane koordinate (npr. prekopirane iz Google mapa) imaju prednost.
+        let coords: { lat: number; lng: number } | null = null;
+        if ('lat' in fields || 'lng' in fields) {
+          const lat = num(fields.lat);
+          const lng = num(fields.lng);
+          if (lat === null && lng === null) {
+            patch.lat = null;
+            patch.lng = null;
+          } else if (lat === null || lng === null || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+            return fail('Koordinate nisu ispravne - upišite širinu i dužinu, npr. 44.0128, 20.9114.');
+          } else {
+            patch.lat = lat;
+            patch.lng = lng;
+            coords = { lat, lng };
+          }
+        } else if ('address' in fields || 'city' in fields) {
+          // Nova adresa -> koordinate iz Nominatim-a (best effort, kao kod tura).
+          const { data: prev } = await db.from('projects').select('address, city, lat').eq('id', id).maybeSingle();
+          const p = prev as { address: string | null; city: string | null; lat: number | null } | null;
+          const changed = !p || p.address !== patch.address || p.city !== patch.city || p.lat === null;
+          if (changed && (patch.address || p?.address)) {
+            const found = await geocodeAddress((patch.address as string | null) ?? p?.address, (patch.city as string | null) ?? p?.city);
+            if (found) {
+              patch.lat = found.lat;
+              patch.lng = found.lng;
+              coords = found;
+            }
+          }
+        }
+
         const { data, error } = await db.from('projects').update(patch).eq('id', id).select('slug').single();
         if (error) return fail(error.message, 500);
         refresh(data.slug);
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true, coords });
       }
 
-      // Potpisan link za pregled pre objave (važi 7 dana, app/lib/projectPreview.ts).
+      // Okolina na mapi (OpenStreetMap/Overpass, migracija 022). Bez
+      // koordinata ih prvo traži iz adrese.
+      case 'nearby-refresh': {
+        const id = text(body.id, 40);
+        if (!id) return fail('Nedostaje id projekta.');
+        const { data: proj } = await db.from('projects').select('slug, address, city, lat, lng').eq('id', id).maybeSingle();
+        const p = proj as { slug: string; address: string | null; city: string | null; lat: number | null; lng: number | null } | null;
+        if (!p) return fail('Projekat nije pronađen.', 404);
+        let lat = p.lat;
+        let lng = p.lng;
+        if (lat === null || lng === null) {
+          const found = await geocodeAddress(p.address, p.city);
+          if (!found) return fail('Adresa nije pronađena na mapi. Upišite tačnu adresu ili koordinate, pa pokušajte ponovo.');
+          lat = found.lat;
+          lng = found.lng;
+        }
+        let places;
+        try {
+          places = await fetchNearby(lat, lng);
+        } catch (err) {
+          console.error('[api/admin/projects] nearby', err);
+          return fail('OpenStreetMap trenutno ne odgovara. Pokušajte ponovo za minut.', 502);
+        }
+        const updatedAt = new Date().toISOString();
+        const { error } = await db.from('projects').update({ lat, lng, nearby: places, nearby_updated_at: updatedAt }).eq('id', id);
+        if (error) return fail(error.message, 500);
+        refresh(p.slug);
+        return NextResponse.json({ success: true, lat, lng, nearby: places, nearby_updated_at: updatedAt });
+      }
+
+      // Poseban link za pokazivanje (važi 30 dana, app/lib/projectPreview.ts).
       case 'preview-link': {
         const id = text(body.id, 40);
         if (!id) return fail('Nedostaje id projekta.');
@@ -187,16 +281,16 @@ export async function POST(req: Request) {
         }
         const row: Record<string, unknown> = { project_id: projectId, level };
         if ('label' in body) row.label = text(body.label, 40);
-        if ('polygon' in body) row.polygon = cleanPolygon(body.polygon);
         if ('plan_url' in body) row.plan_url = text(body.plan_url, 500);
         if ('view_tour_id' in body) row.view_tour_id = text(body.view_tour_id, 40);
         const floorId = text(body.id, 40);
+        if (!floorId) row.building_id = text(body.buildingId, 40);
         const query = floorId
           ? db.from('project_floors').update(row).eq('id', floorId).eq('project_id', projectId)
           : db.from('project_floors').insert(row);
         const { data, error } = await query.select('*').single();
         if (error) {
-          return fail(error.code === '23505' ? `Sprat ${level} već postoji u ovom projektu.` : error.message, error.code === '23505' ? 409 : 500);
+          return fail(error.code === '23505' ? `Sprat ${level} već postoji u ovoj zgradi.` : error.message, error.code === '23505' ? 409 : 500);
         }
         refresh(await projectSlug(db, projectId));
         return NextResponse.json({ success: true, floor: data });
@@ -209,14 +303,18 @@ export async function POST(req: Request) {
         if (!projectId || !levels.length || levels.some((l: number | null) => l === null || !Number.isInteger(l) || l < -5 || l > 80)) {
           return fail('Spratovi moraju biti celi brojevi (0 = prizemlje).');
         }
-        const { data: existing, error: eErr } = await db.from('project_floors').select('level').eq('project_id', projectId);
+        // Lamela (migracija 025): nivoi su jedinstveni po lameli.
+        const buildingId = text(body.buildingId, 40);
+        let existingQuery = db.from('project_floors').select('level').eq('project_id', projectId);
+        existingQuery = buildingId ? existingQuery.eq('building_id', buildingId) : existingQuery.is('building_id', null);
+        const { data: existing, error: eErr } = await existingQuery;
         if (eErr) return fail(eErr.message, 500);
         const have = new Set((existing ?? []).map((f: { level: number }) => f.level));
         const fresh = [...new Set(levels as number[])].filter((l) => !have.has(l));
         if (!fresh.length) return NextResponse.json({ success: true, floors: [], skipped: levels.length });
         const { data, error } = await db
           .from('project_floors')
-          .insert(fresh.map((level) => ({ project_id: projectId, level })))
+          .insert(fresh.map((level) => ({ project_id: projectId, level, building_id: buildingId })))
           .select('*');
         if (error) return fail(error.message, 500);
         refresh(await projectSlug(db, projectId));
@@ -238,11 +336,11 @@ export async function POST(req: Request) {
         }
 
         const [{ data: floorsRaw, error: fErr }, { data: unitsRaw, error: uErr }] = await Promise.all([
-          db.from('project_floors').select('id, level, plan_url').eq('project_id', projectId),
+          db.from('project_floors').select('id, level, plan_url, building_id').eq('project_id', projectId),
           db.from('project_units').select('*').eq('project_id', projectId)
         ]);
         if (fErr || uErr) return fail((fErr ?? uErr)!.message, 500);
-        type F = { id: string; level: number; plan_url: string | null };
+        type F = { id: string; level: number; plan_url: string | null; building_id: string | null };
         type U = {
           id: string;
           floor_id: string;
@@ -267,7 +365,8 @@ export async function POST(req: Request) {
 
         for (const level of [...new Set(levels as number[])]) {
           if (level === source.level) continue;
-          const target = allFloors.find((f) => f.level === level);
+          // Samo spratovi iste lamele (migracija 025).
+          const target = allFloors.find((f) => f.level === level && f.building_id === source.building_id);
           if (!target) {
             report.missingFloors.push(level);
             continue;
@@ -359,6 +458,11 @@ export async function POST(req: Request) {
         }
         if ('polygon' in f) row.polygon = cleanPolygon(f.polygon);
         if ('tour_id' in f) row.tour_id = text(f.tour_id, 40);
+        // Kartica stana (migracija 024).
+        if ('plan_url' in f) row.plan_url = text(f.plan_url, 600);
+        if ('plan3d_url' in f) row.plan3d_url = text(f.plan3d_url, 600);
+        if ('photos' in f) row.photos = cleanPhotos(f.photos);
+        if ('rooms' in f) row.rooms = cleanRooms(f.rooms);
 
         let result;
         if (unitId) {
@@ -412,7 +516,12 @@ export async function POST(req: Request) {
           (proj as { slug: string }).slug,
           ((unitRows ?? []) as { code: string }[]).map((u) => u.code)
         );
-        return NextResponse.json({ success: true, stats, inquiries: inquiries ?? [] });
+        const notes = await loadNotes(db, projectId);
+        return NextResponse.json({
+          success: true,
+          stats,
+          inquiries: ((inquiries ?? []) as { id: string }[]).map((q) => ({ ...q, note: notes.byInquiry.get(q.id) ?? null }))
+        });
       }
 
       case 'progress-list': {
@@ -515,6 +624,222 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true });
       }
 
+      // Isti tip stana na drugim spratovima: osnova, 3D osnova, slike i
+      // prostorije (po želji i 360° tura) sa jednog stana na sve sa istim
+      // slovom (2A -> 3A, 4A...). Bez oznake sprata u kodu: stanovi iste
+      // strukture i kvadrature. Status, cena i oblik na osnovi se ne diraju.
+      case 'unit-media-copy': {
+        const projectId = text(body.projectId, 40);
+        const sourceId = text(body.sourceId, 40);
+        if (!projectId || !sourceId) return fail('Nedostaje stan.');
+        const [{ data: unitsRaw, error: uErr }, { data: floorsRaw }] = await Promise.all([
+          db.from('project_units').select('id, floor_id, code, structure, area_sqm, plan_url, plan3d_url, photos, rooms, tour_id').eq('project_id', projectId),
+          db.from('project_floors').select('id, level').eq('project_id', projectId)
+        ]);
+        if (uErr) return fail(uErr.message, 500);
+        type U = { id: string; floor_id: string; code: string; structure: string | null; area_sqm: number | null; plan_url: string | null; plan3d_url: string | null; photos: unknown; rooms: unknown; tour_id: string | null };
+        const all = (unitsRaw ?? []) as U[];
+        const levelOf = new Map(((floorsRaw ?? []) as { id: string; level: number }[]).map((f) => [f.id, f.level]));
+        const src = all.find((u) => u.id === sourceId);
+        if (!src) return fail('Stan nije pronađen.', 404);
+        const srcSuffix = unitSuffix(src.code, levelOf.get(src.floor_id) ?? 0);
+        const targets = all.filter((u) => {
+          if (u.id === src.id) return false;
+          if (srcSuffix !== null) return unitSuffix(u.code, levelOf.get(u.floor_id) ?? 0) === srcSuffix;
+          return u.structure === src.structure && Number(u.area_sqm) === Number(src.area_sqm) && src.area_sqm !== null;
+        });
+        if (!targets.length) return fail('Nema drugih stanova istog tipa (isto slovo u oznaci, npr. 2A, 3A…).');
+        const patch: Record<string, unknown> = {
+          plan_url: src.plan_url,
+          plan3d_url: src.plan3d_url,
+          photos: cleanPhotos(src.photos),
+          rooms: cleanRooms(src.rooms),
+          updated_at: new Date().toISOString()
+        };
+        if (body.includeTour === true) patch.tour_id = src.tour_id;
+        const { error } = await db.from('project_units').update(patch).in('id', targets.map((t) => t.id)).eq('project_id', projectId);
+        if (error) return fail(error.message, 500);
+        refresh(await projectSlug(db, projectId));
+        return NextResponse.json({ success: true, count: targets.length, codes: targets.map((t) => t.code).sort((a, b) => a.localeCompare(b, 'sr', { numeric: true })) });
+      }
+
+      // ---------- lamele, slike (pogledi) i oblici na njima (migracija 025) ----------
+      // Prva lamela pretvara projekat u kompleks: postojeći spratovi i fasade
+      // prelaze u lamelu `existingName`, pa se pravi nova.
+      case 'building-add': {
+        const projectId = text(body.projectId, 40);
+        const name = text(body.name, 40);
+        if (!projectId || !name) return fail('Upišite naziv lamele, npr. „Lamela B“.');
+        const { data: existing, error: bErr } = await db.from('project_buildings').select('id, name, sort').eq('project_id', projectId);
+        if (bErr) return fail(bErr.message, 500);
+        const list = (existing ?? []) as { id: string; name: string; sort: number }[];
+        if (list.some((b) => b.name.toLowerCase() === name.toLowerCase())) return fail(`Lamela „${name}“ već postoji.`, 409);
+        const added: unknown[] = [];
+        let sort = list.reduce((m, b) => Math.max(m, b.sort), -1) + 1;
+        if (!list.length) {
+          const [{ count: floorCount }, { count: viewCount }] = await Promise.all([
+            db.from('project_floors').select('id', { count: 'exact', head: true }).eq('project_id', projectId).is('building_id', null),
+            db.from('project_views').select('id', { count: 'exact', head: true }).eq('project_id', projectId).eq('kind', 'building').is('building_id', null)
+          ]);
+          if ((floorCount ?? 0) + (viewCount ?? 0) > 0) {
+            const firstName = text(body.existingName, 40) || 'Lamela A';
+            if (firstName.toLowerCase() === name.toLowerCase()) return fail('Postojeća i nova lamela moraju imati različite nazive.');
+            const { data: first, error } = await db.from('project_buildings').insert({ project_id: projectId, name: firstName, sort }).select('*').single();
+            if (error) return fail(error.message, 500);
+            sort++;
+            const [r1, r2] = await Promise.all([
+              db.from('project_floors').update({ building_id: first.id }).eq('project_id', projectId).is('building_id', null),
+              db.from('project_views').update({ building_id: first.id }).eq('project_id', projectId).eq('kind', 'building').is('building_id', null)
+            ]);
+            if (r1.error || r2.error) return fail((r1.error ?? r2.error)!.message, 500);
+            added.push(first);
+          }
+        }
+        const { data, error } = await db.from('project_buildings').insert({ project_id: projectId, name, sort }).select('*').single();
+        if (error) return fail(error.message, 500);
+        added.push(data);
+        refresh(await projectSlug(db, projectId));
+        return NextResponse.json({ success: true, buildings: added });
+      }
+
+      case 'building-save': {
+        const projectId = text(body.projectId, 40);
+        const id = text(body.id, 40);
+        const name = text(body.name, 40);
+        if (!projectId || !id || !name) return fail('Naziv lamele ne sme biti prazan.');
+        const { data, error } = await db.from('project_buildings').update({ name }).eq('id', id).eq('project_id', projectId).select('*').single();
+        if (error) return fail(error.message, 500);
+        refresh(await projectSlug(db, projectId));
+        return NextResponse.json({ success: true, building: data });
+      }
+
+      // Briše se samo prazna lamela - spratovi i stanovi nikad usput.
+      case 'building-delete': {
+        const projectId = text(body.projectId, 40);
+        const id = text(body.id, 40);
+        if (!projectId || !id) return fail('Nedostaje lamela.');
+        const { count } = await db.from('project_floors').select('id', { count: 'exact', head: true }).eq('building_id', id);
+        if (count) return fail('Lamela ima spratove - prvo obrišite njih (ili premestite stanove).');
+        const { error } = await db.from('project_buildings').delete().eq('id', id).eq('project_id', projectId);
+        if (error) return fail(error.message, 500);
+        refresh(await projectSlug(db, projectId));
+        return NextResponse.json({ success: true });
+      }
+
+      case 'view-add': {
+        const projectId = text(body.projectId, 40);
+        const kind = body.kind === 'site' ? 'site' : 'building';
+        const buildingId = kind === 'site' ? null : text(body.buildingId, 40);
+        const imageUrl = text(body.imageUrl, 600);
+        if (!projectId || !imageUrl || !/^https:\/\//.test(imageUrl)) return fail('Nedostaje slika.');
+        let q = db.from('project_views').select('sort').eq('project_id', projectId).eq('kind', kind);
+        q = buildingId ? q.eq('building_id', buildingId) : q.is('building_id', null);
+        const { data: same, error: sErr } = await q;
+        if (sErr) return fail(sErr.message, 500);
+        const siblings = (same ?? []) as { sort: number }[];
+        if (siblings.length >= MAX_VIEWS_PER_BUILDING) return fail(`Najviše ${MAX_VIEWS_PER_BUILDING} slika po zgradi.`);
+        const sort = siblings.reduce((m, v) => Math.max(m, v.sort), -1) + 1;
+        const { data, error } = await db
+          .from('project_views')
+          .insert({ project_id: projectId, kind, building_id: buildingId, image_url: imageUrl, label: text(body.label, 40), sort })
+          .select('*')
+          .single();
+        if (error) return fail(error.message, 500);
+        refresh(await projectSlug(db, projectId));
+        return NextResponse.json({ success: true, view: data });
+      }
+
+      // Natpis ili nova slika (oblici ostaju - ista kamera, nov render).
+      case 'view-save': {
+        const projectId = text(body.projectId, 40);
+        const id = text(body.id, 40);
+        if (!projectId || !id) return fail('Nedostaje slika.');
+        const patch: Record<string, unknown> = {};
+        if ('label' in body) patch.label = text(body.label, 40);
+        if ('imageUrl' in body) {
+          const url = text(body.imageUrl, 600);
+          if (!url || !/^https:\/\//.test(url)) return fail('Nedostaje slika.');
+          patch.image_url = url;
+        }
+        const { data, error } = await db.from('project_views').update(patch).eq('id', id).eq('project_id', projectId).select('*').single();
+        if (error) return fail(error.message, 500);
+        refresh(await projectSlug(db, projectId));
+        return NextResponse.json({ success: true, view: data });
+      }
+
+      // Redosled rotacije: slika menja mesto sa susednom slikom iste zgrade.
+      case 'view-move': {
+        const projectId = text(body.projectId, 40);
+        const id = text(body.id, 40);
+        const dir = body.dir === -1 ? -1 : 1;
+        if (!projectId || !id) return fail('Nedostaje slika.');
+        const { data: all, error: aErr } = await db.from('project_views').select('id, kind, building_id, sort, created_at').eq('project_id', projectId);
+        if (aErr) return fail(aErr.message, 500);
+        type V = { id: string; kind: string; building_id: string | null; sort: number; created_at: string };
+        const rows = (all ?? []) as V[];
+        const me = rows.find((v) => v.id === id);
+        if (!me) return fail('Slika nije pronađena.', 404);
+        const group = rows
+          .filter((v) => v.kind === me.kind && v.building_id === me.building_id)
+          .sort((a, b) => a.sort - b.sort || a.created_at.localeCompare(b.created_at));
+        const i = group.findIndex((v) => v.id === id);
+        const j = i + dir;
+        if (j >= 0 && j < group.length) {
+          [group[i], group[j]] = [group[j], group[i]];
+          for (let k = 0; k < group.length; k++) {
+            const { error } = await db.from('project_views').update({ sort: k }).eq('id', group[k].id);
+            if (error) return fail(error.message, 500);
+          }
+          refresh(await projectSlug(db, projectId));
+        }
+        return NextResponse.json({ success: true, order: group.map((v) => v.id) });
+      }
+
+      case 'view-delete': {
+        const projectId = text(body.projectId, 40);
+        const id = text(body.id, 40);
+        if (!projectId || !id) return fail('Nedostaje slika.');
+        const { error } = await db.from('project_views').delete().eq('id', id).eq('project_id', projectId);
+        if (error) return fail(error.message, 500);
+        refresh(await projectSlug(db, projectId));
+        return NextResponse.json({ success: true });
+      }
+
+      // Oblik lamele / sprata / stana na jednoj slici; polygon null = brisanje.
+      case 'shape-save': {
+        const projectId = text(body.projectId, 40);
+        const viewId = text(body.viewId, 40);
+        const target = body.target as ShapeTarget;
+        const targetId = text(body.targetId, 40);
+        if (!projectId || !viewId || !targetId || !Object.prototype.hasOwnProperty.call(SHAPE_COLUMN, target)) return fail('Nedostaje oblik.');
+        const column = SHAPE_COLUMN[target];
+        const table = target === 'building' ? 'project_buildings' : target === 'floor' ? 'project_floors' : 'project_units';
+        const [{ data: view }, { data: owner }] = await Promise.all([
+          db.from('project_views').select('id, kind').eq('id', viewId).eq('project_id', projectId).maybeSingle(),
+          db.from(table).select('id').eq('id', targetId).eq('project_id', projectId).maybeSingle()
+        ]);
+        if (!view || !owner) return fail('Slika ili oblik ne pripadaju ovom projektu.', 404);
+        if (((view as { kind: string }).kind === 'site') !== (target === 'building')) {
+          return fail((view as { kind: string }).kind === 'site' ? 'Na slici kompleksa se crtaju lamele.' : 'Lamele se crtaju na slici kompleksa.');
+        }
+        const { error: dErr } = await db.from('project_view_shapes').delete().eq('view_id', viewId).eq(column, targetId);
+        if (dErr) return fail(dErr.message, 500);
+        let shape = null;
+        if (body.polygon !== null) {
+          const polygon = cleanPolygon(body.polygon);
+          if (!polygon) return fail('Oblik nije ispravan - potrebne su bar 3 tačke.');
+          const { data, error } = await db
+            .from('project_view_shapes')
+            .insert({ view_id: viewId, project_id: projectId, [column]: targetId, polygon })
+            .select('id, view_id, project_id, building_id, floor_id, unit_id, polygon')
+            .single();
+          if (error) return fail(error.message, 500);
+          shape = data;
+        }
+        refresh(await projectSlug(db, projectId));
+        return NextResponse.json({ success: true, shape });
+      }
+
       case 'unit-delete': {
         const id = text(body.id, 40);
         const projectId = text(body.projectId, 40);
@@ -535,23 +860,53 @@ export async function POST(req: Request) {
         if (errors.length) return fail(errors.slice(0, 8).join('\n'));
         if (!rows.length) return fail('U tabeli nema nijednog stana.');
 
-        const { data: existingFloors, error: fErr } = await db.from('project_floors').select('id, level').eq('project_id', projectId);
+        // Lamele (migracija 025): 9. kolona tabele, inače lamela izabrana u adminu.
+        const [{ data: existingFloors, error: fErr }, { data: buildingsRaw }] = await Promise.all([
+          db.from('project_floors').select('id, level, building_id').eq('project_id', projectId),
+          db.from('project_buildings').select('id, name').eq('project_id', projectId)
+        ]);
         if (fErr) return fail(fErr.message, 500);
-        const floorByLevel = new Map((existingFloors ?? []).map((f: { id: string; level: number }) => [f.level, f.id]));
-        const missing = [...new Set(rows.map((r) => r.level))].filter((l) => !floorByLevel.has(l));
+        const buildings = (buildingsRaw ?? []) as { id: string; name: string }[];
+        const defaultBuilding = text(body.buildingId, 40);
+        const rowBuilding: (string | null)[] = [];
+        const bErrors: string[] = [];
+        for (const r of rows) {
+          if (!buildings.length) {
+            rowBuilding.push(null);
+          } else if (r.building) {
+            const b = matchBuilding(r.building, buildings);
+            if (!b) bErrors.push(`${r.code}: lamela „${r.building}" ne postoji (imate: ${buildings.map((x) => x.name).join(', ')}).`);
+            rowBuilding.push(b?.id ?? null);
+          } else {
+            if (!defaultBuilding) bErrors.push(`${r.code}: nedostaje lamela - dodajte 9. kolonu ili izaberite lamelu iznad tabele.`);
+            rowBuilding.push(defaultBuilding);
+          }
+        }
+        if (bErrors.length) return fail(bErrors.slice(0, 8).join('\n'));
+
+        const fkey = (b: string | null, level: number) => `${b ?? '-'}|${level}`;
+        const floorByKey = new Map(
+          ((existingFloors ?? []) as { id: string; level: number; building_id: string | null }[]).map((f) => [fkey(f.building_id, f.level), f.id])
+        );
+        const missing = [...new Set(rows.map((r, i) => fkey(rowBuilding[i], r.level)))].filter((k) => !floorByKey.has(k));
         if (missing.length) {
           const { data: created, error } = await db
             .from('project_floors')
-            .insert(missing.map((level) => ({ project_id: projectId, level })))
-            .select('id, level');
+            .insert(
+              missing.map((k) => {
+                const [b, level] = k.split('|');
+                return { project_id: projectId, level: Number(level), building_id: b === '-' ? null : b };
+              })
+            )
+            .select('id, level, building_id');
           if (error) return fail(error.message, 500);
-          for (const f of (created ?? []) as { id: string; level: number }[]) floorByLevel.set(f.level, f.id);
+          for (const f of (created ?? []) as { id: string; level: number; building_id: string | null }[]) floorByKey.set(fkey(f.building_id, f.level), f.id);
         }
 
         const now = new Date().toISOString();
         const payload = rows.map((r, i) => ({
           project_id: projectId,
-          floor_id: floorByLevel.get(r.level)!,
+          floor_id: floorByKey.get(fkey(rowBuilding[i], r.level))!,
           code: r.code,
           structure: r.structure,
           area_sqm: r.area_sqm,

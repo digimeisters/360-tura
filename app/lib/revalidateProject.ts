@@ -11,5 +11,7 @@ export function revalidateProject(slug: string | null | undefined): void {
     revalidatePath(base);
     revalidatePath(`${base}/ugradnja`);
     revalidatePath(`${base}/opengraph-image`);
+    // PDF letci svih stanova (/stan/[oznaka]/letak) - 'layout' osvežava i ugnežđene adrese.
+    revalidatePath(base, 'layout');
   }
 }

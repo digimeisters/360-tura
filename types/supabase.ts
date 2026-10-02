@@ -57,8 +57,41 @@ export type Database = {
         }
         Relationships: []
       }
+      project_buildings: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          project_id: string
+          sort: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          project_id: string
+          sort?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          project_id?: string
+          sort?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_buildings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_floors: {
         Row: {
+          building_id: string | null
           created_at: string
           id: string
           label: string | null
@@ -69,6 +102,7 @@ export type Database = {
           view_tour_id: string | null
         }
         Insert: {
+          building_id?: string | null
           created_at?: string
           id?: string
           label?: string | null
@@ -79,6 +113,7 @@ export type Database = {
           view_tour_id?: string | null
         }
         Update: {
+          building_id?: string | null
           created_at?: string
           id?: string
           label?: string | null
@@ -89,6 +124,13 @@ export type Database = {
           view_tour_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "project_floors_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "project_buildings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_floors_project_id_fkey"
             columns: ["project_id"]
@@ -158,6 +200,61 @@ export type Database = {
           },
           {
             foreignKeyName: "project_inquiries_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "project_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_notes: {
+        Row: {
+          author: string
+          id: string
+          important: boolean
+          inquiry_id: string | null
+          project_id: string
+          text: string
+          unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          author: string
+          id?: string
+          important?: boolean
+          inquiry_id?: string | null
+          project_id: string
+          text: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author?: string
+          id?: string
+          important?: boolean
+          inquiry_id?: string | null
+          project_id?: string
+          text?: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_notes_inquiry_id_fkey"
+            columns: ["inquiry_id"]
+            isOneToOne: false
+            referencedRelation: "project_inquiries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_notes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_notes_unit_id_fkey"
             columns: ["unit_id"]
             isOneToOne: false
             referencedRelation: "project_units"
@@ -313,9 +410,13 @@ export type Database = {
           floor_id: string
           id: string
           orientation: string | null
+          photos: Json | null
+          plan_url: string | null
+          plan3d_url: string | null
           polygon: Json | null
           price: number | null
           project_id: string
+          rooms: Json | null
           sort: number
           status: string
           structure: string | null
@@ -329,9 +430,13 @@ export type Database = {
           floor_id: string
           id?: string
           orientation?: string | null
+          photos?: Json | null
+          plan_url?: string | null
+          plan3d_url?: string | null
           polygon?: Json | null
           price?: number | null
           project_id: string
+          rooms?: Json | null
           sort?: number
           status?: string
           structure?: string | null
@@ -345,9 +450,13 @@ export type Database = {
           floor_id?: string
           id?: string
           orientation?: string | null
+          photos?: Json | null
+          plan_url?: string | null
+          plan3d_url?: string | null
           polygon?: Json | null
           price?: number | null
           project_id?: string
+          rooms?: Json | null
           sort?: number
           status?: string
           structure?: string | null
@@ -379,6 +488,123 @@ export type Database = {
           },
         ]
       }
+      project_view_shapes: {
+        Row: {
+          building_id: string | null
+          floor_id: string | null
+          id: string
+          polygon: Json
+          project_id: string
+          unit_id: string | null
+          updated_at: string
+          view_id: string
+        }
+        Insert: {
+          building_id?: string | null
+          floor_id?: string | null
+          id?: string
+          polygon: Json
+          project_id: string
+          unit_id?: string | null
+          updated_at?: string
+          view_id: string
+        }
+        Update: {
+          building_id?: string | null
+          floor_id?: string | null
+          id?: string
+          polygon?: Json
+          project_id?: string
+          unit_id?: string | null
+          updated_at?: string
+          view_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_view_shapes_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "project_buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_view_shapes_floor_id_fkey"
+            columns: ["floor_id"]
+            isOneToOne: false
+            referencedRelation: "project_floors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_view_shapes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_view_shapes_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "project_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_view_shapes_view_id_fkey"
+            columns: ["view_id"]
+            isOneToOne: false
+            referencedRelation: "project_views"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_views: {
+        Row: {
+          building_id: string | null
+          created_at: string
+          id: string
+          image_url: string
+          kind: string
+          label: string | null
+          project_id: string
+          sort: number
+        }
+        Insert: {
+          building_id?: string | null
+          created_at?: string
+          id?: string
+          image_url: string
+          kind?: string
+          label?: string | null
+          project_id: string
+          sort?: number
+        }
+        Update: {
+          building_id?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string
+          kind?: string
+          label?: string | null
+          project_id?: string
+          sort?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_views_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "project_buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_views_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           address: string | null
@@ -391,7 +617,11 @@ export type Database = {
           developer_name: string | null
           facade_url: string | null
           id: string
+          lat: number | null
+          lng: number | null
           move_in: string | null
+          nearby: Json | null
+          nearby_updated_at: string | null
           notify_sales: boolean
           published: boolean
           slug: string
@@ -410,7 +640,11 @@ export type Database = {
           developer_name?: string | null
           facade_url?: string | null
           id?: string
+          lat?: number | null
+          lng?: number | null
           move_in?: string | null
+          nearby?: Json | null
+          nearby_updated_at?: string | null
           notify_sales?: boolean
           published?: boolean
           slug: string
@@ -429,7 +663,11 @@ export type Database = {
           developer_name?: string | null
           facade_url?: string | null
           id?: string
+          lat?: number | null
+          lng?: number | null
           move_in?: string | null
+          nearby?: Json | null
+          nearby_updated_at?: string | null
           notify_sales?: boolean
           published?: boolean
           slug?: string

@@ -54,6 +54,11 @@ export async function resolveSalesLink(db: SupabaseClient, token: string): Promi
   return { link: link as SalesLink, project: project as SalesProject };
 }
 
+/** Kratka beleška prodaje (migracija 023): jedna po stanu / upitu, nova zamenjuje staru. */
+export type SalesNote = { text: string; important: boolean; author: string; updated_at: string };
+
+export const NOTE_MAX = 120;
+
 export type SalesUnit = {
   id: string;
   floor_id: string;
@@ -62,6 +67,7 @@ export type SalesUnit = {
   area_sqm: number | null;
   status: UnitStatus;
   price: number | null;
+  note: SalesNote | null;
 };
 
 export type SalesChange = {
@@ -86,12 +92,14 @@ export type SalesInquiry = {
   lang: string;
   handled_at: string | null;
   handled_by: string | null;
+  note: SalesNote | null;
 };
 
 export type SalesData = {
   project: { title: string; slug: string; published: boolean };
   person: string;
-  floors: { id: string; level: number; label: string | null }[];
+  /** building = naziv lamele (migracija 025), null kad projekat nema lamele. */
+  floors: { id: string; level: number; label: string | null; building: string | null }[];
   units: SalesUnit[];
   changes: SalesChange[];
   inquiries: SalesInquiry[];
@@ -100,9 +108,9 @@ export type SalesData = {
 
 /** Sve što strana za prodaju prikazuje: upiti, spratovi, stanovi, poslednje promene, izveštaj. */
 export async function loadSalesData(db: SupabaseClient, projectId: string, person: string): Promise<SalesData | null> {
-  const [{ data: project }, { data: floors }, { data: units }, { data: changes }, { data: inquiries }] = await Promise.all([
+  const [{ data: project }, { data: floors }, { data: units }, { data: changes }, { data: inquiries }, { data: buildings }] = await Promise.all([
     db.from('projects').select('title, slug, published').eq('id', projectId).maybeSingle(),
-    db.from('project_floors').select('id, level, label').eq('project_id', projectId).order('level', { ascending: false }),
+    db.from('project_floors').select('id, level, label, building_id').eq('project_id', projectId).order('level', { ascending: false }),
     db.from('project_units').select('id, floor_id, code, structure, area_sqm, status, price').eq('project_id', projectId),
     db
       .from('project_unit_changes')
@@ -115,23 +123,82 @@ export async function loadSalesData(db: SupabaseClient, projectId: string, perso
       .select('id, created_at, unit_code, name, contact, message, embedded, lang, handled_at, handled_by')
       .eq('project_id', projectId)
       .order('created_at', { ascending: false })
-      .limit(50)
+      .limit(50),
+    db.from('project_buildings').select('id, name, sort').eq('project_id', projectId)
   ]);
   if (!project) return null;
+  // Lamele: spratovi po lameli (redosled iz admina), pa od vrha ka dnu.
+  const bRows = (buildings ?? []) as { id: string; name: string; sort: number }[];
+  const bOrder = (bid: string | null) => bRows.find((b) => b.id === bid)?.sort ?? 0;
+  const floorRows = ((floors ?? []) as { id: string; level: number; label: string | null; building_id: string | null }[])
+    .map((f) => ({ id: f.id, level: f.level, label: f.label, building: bRows.find((b) => b.id === f.building_id)?.name ?? null, order: bOrder(f.building_id) }))
+    .sort((a, b) => a.order - b.order || b.level - a.level)
+    .map((f) => ({ id: f.id, level: f.level, label: f.label, building: f.building }));
+  const notes = await loadNotes(db, projectId);
   const unitRows = ((units ?? []) as SalesUnit[])
-    .map((u) => ({ ...u, area_sqm: u.area_sqm === null ? null : Number(u.area_sqm), price: u.price === null ? null : Number(u.price) }))
+    .map((u) => ({
+      ...u,
+      area_sqm: u.area_sqm === null ? null : Number(u.area_sqm),
+      price: u.price === null ? null : Number(u.price),
+      note: notes.byUnit.get(u.id) ?? null
+    }))
     .sort((a, b) => a.code.localeCompare(b.code, 'sr', { numeric: true }));
   const p = project as SalesData['project'];
   const stats = await loadProjectStats(db, projectId, p.slug, unitRows.map((u) => u.code));
   return {
     project: p,
     person,
-    floors: (floors ?? []) as SalesData['floors'],
+    floors: floorRows,
     units: unitRows,
     changes: (changes ?? []) as SalesChange[],
-    inquiries: (inquiries ?? []) as SalesInquiry[],
+    inquiries: ((inquiries ?? []) as SalesInquiry[]).map((q) => ({ ...q, note: notes.byInquiry.get(q.id) ?? null })),
     stats
   };
+}
+
+/** Sve beleške projekta, po stanu i po upitu (za stranu prodaje i admin). */
+export async function loadNotes(db: SupabaseClient, projectId: string) {
+  const { data } = await db
+    .from('project_notes')
+    .select('unit_id, inquiry_id, text, important, author, updated_at')
+    .eq('project_id', projectId);
+  const byUnit = new Map<string, SalesNote>();
+  const byInquiry = new Map<string, SalesNote>();
+  for (const n of (data ?? []) as (SalesNote & { unit_id: string | null; inquiry_id: string | null })[]) {
+    const note = { text: n.text, important: n.important, author: n.author, updated_at: n.updated_at };
+    if (n.unit_id) byUnit.set(n.unit_id, note);
+    if (n.inquiry_id) byInquiry.set(n.inquiry_id, note);
+  }
+  return { byUnit, byInquiry };
+}
+
+/**
+ * Upisuje (ili briše, kad je tekst prazan) belešku na stanu ili upitu.
+ * Proverava da stan/upit pripada projektu. Vraća grešku kao tekst, ili null.
+ */
+export async function saveNote(
+  db: SupabaseClient,
+  projectId: string,
+  target: 'unit' | 'inquiry',
+  targetId: string,
+  rawText: unknown,
+  important: unknown,
+  author: string
+): Promise<string | null> {
+  const table = target === 'unit' ? 'project_units' : 'project_inquiries';
+  const { data: owner } = await db.from(table).select('id').eq('id', targetId).eq('project_id', projectId).maybeSingle();
+  if (!owner) return target === 'unit' ? 'Stan nije pronađen u ovom projektu.' : 'Upit nije pronađen u ovom projektu.';
+  const column = target === 'unit' ? 'unit_id' : 'inquiry_id';
+  const text = typeof rawText === 'string' ? rawText.replace(/\s+/g, ' ').trim().slice(0, NOTE_MAX) : '';
+  if (!text) {
+    const { error } = await db.from('project_notes').delete().eq(column, targetId);
+    return error ? 'Beleška nije obrisana.' : null;
+  }
+  const { error } = await db.from('project_notes').upsert(
+    { project_id: projectId, [column]: targetId, text, important: important === true, author: author.slice(0, 80), updated_at: new Date().toISOString() },
+    { onConflict: column }
+  );
+  return error ? 'Beleška nije sačuvana.' : null;
 }
 
 export type UnitChange = {

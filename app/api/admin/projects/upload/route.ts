@@ -25,7 +25,7 @@ const MAX_FILE_BYTES = 25 * 1024 * 1024;
  * /api/admin/projects (update / floor-save). Stari fajl se ne briše:
  * slike su male, a ovako izmena nikad ne ostavi projekat bez slike.
  *
- * Body: { projectId: string, kind: 'facade' | 'plan', fileType: string, fileSize: number }
+ * Body: { projectId: string, kind: 'view' | 'plan' | 'unit', fileType: string, fileSize: number }
  */
 export async function POST(req: Request) {
   const ctx = await requireAdmin(req);
@@ -39,7 +39,8 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => ({}));
   const projectId = typeof body.projectId === 'string' ? body.projectId : '';
-  const kind = body.kind === 'plan' ? 'plan' : body.kind === 'facade' ? 'facade' : '';
+  // view (fasada ili kompleks - migracija 025; stari naziv facade) / plan (sprata) / unit (osnova, 3D osnova i slike stana - migracija 024)
+  const kind = ['view', 'facade', 'plan', 'unit'].includes(body.kind) ? (body.kind as string) : '';
   const fileType = typeof body.fileType === 'string' ? body.fileType : '';
   const fileSize = typeof body.fileSize === 'number' ? body.fileSize : 0;
 

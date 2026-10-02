@@ -98,6 +98,79 @@ export const SELECTOR_STYLES = `
   .inv-month-card .inv-mbtn{height:220px;}
   .inv-month-card p{margin:.4rem 0 0; color:#5B5D63; font-size:.95rem; line-height:1.55;}
 
+  /* Kartica stana: Osnova / 360° / 3D / Slike (UnitMedia). */
+  .inv-um{margin:.8rem 0 .2rem;}
+  .inv-um-tabs{display:flex; gap:4px; background:#EEF2F8; border-radius:12px; padding:3px; margin-bottom:6px; overflow-x:auto; scrollbar-width:none;}
+  .inv-um-tabs::-webkit-scrollbar{display:none;}
+  .inv-um-tabs button{flex:1 0 auto; border:0; background:transparent; border-radius:9px; padding:.45rem .6rem; font-size:.78rem; font-weight:700; color:#5B5D63; white-space:nowrap; min-height:36px;}
+  .inv-um-tabs button[aria-selected="true"]{background:#FFFFFF; color:#1E5AA8; box-shadow:0 1px 4px rgba(0,0,0,.08);}
+  .inv-um-stage{position:relative; border:1px solid #E3E8F1; border-radius:14px; overflow:hidden; background:#FFFFFF;}
+  .inv-um-img{display:flex; align-items:center; justify-content:center; height:240px; background:#FFFFFF; cursor:zoom-in;}
+  .inv-um-img img{max-width:100%; max-height:100%; object-fit:contain; display:block;}
+  .inv-um-stage iframe{display:block; width:100%; height:260px; border:0;}
+  .inv-um-full{position:absolute; right:8px; bottom:8px; background:rgba(15,23,42,.7); color:#fff; font-size:.72rem; font-weight:700; border-radius:999px; padding:.35rem .7rem; text-decoration:none;}
+  .inv-um-nav{position:absolute; left:0; right:0; bottom:8px; display:flex; justify-content:center; align-items:center; gap:10px;}
+  .inv-um-nav button{width:32px; height:32px; border-radius:50%; border:0; background:rgba(15,23,42,.65); color:#fff; font-size:1.1rem; line-height:1;}
+  .inv-um-nav span{background:rgba(15,23,42,.65); color:#fff; font-size:.72rem; font-weight:700; border-radius:999px; padding:.2rem .6rem;}
+  .inv-rooms{margin:0 0 .8rem;}
+  .inv-rooms-title{display:block; font-size:.68rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:#8C8E93; margin-bottom:.3rem;}
+  .inv-rooms table{width:100%; border-collapse:collapse; font-size:.85rem;}
+  .inv-rooms td{padding:.32rem 0; border-bottom:1px solid #EEF2F8; color:#374151;}
+  .inv-rooms td:last-child{text-align:right; white-space:nowrap; font-weight:600; color:#111113;}
+  .inv-rooms tr.is-total td{font-weight:800; color:#111113; border-bottom:0; border-top:1.5px solid #111113;}
+  .inv-pdf{display:flex; align-items:center; justify-content:center; gap:.5rem; width:100%; margin:0 0 .8rem; padding:.6rem; min-height:42px; border:1.5px solid #D5DEEB; border-radius:14px; background:#FFFFFF; color:#111113; font-weight:700; font-size:.88rem; text-decoration:none;}
+  .inv-pdf span{font-size:.62rem; font-weight:800; background:#B42318; color:#fff; border-radius:4px; padding:2px 5px;}
+  .inv-pdf:hover{border-color:#1E5AA8; color:#1E5AA8;}
+
+  /* Kalkulator plana plaćanja (kartica stana). */
+  .inv-pay-open{display:flex; align-items:center; justify-content:center; gap:.5rem; width:100%; margin:0 0 .8rem; padding:.7rem; min-height:44px; border:1.5px dashed #9DBBE3; border-radius:14px; background:#F6F8FC; color:#1E5AA8; font-weight:700; font-size:.9rem;}
+  .inv-pay-open span{display:inline-grid; place-items:center; width:1.5rem; height:1.5rem; border-radius:50%; background:#1E5AA8; color:#fff; font-size:.8rem;}
+  .inv-pay{border:1.5px solid #D5DEEB; border-radius:16px; padding:.85rem; margin:0 0 .8rem; background:#FBFCFE;}
+  .inv-pay-head{display:flex; justify-content:space-between; align-items:center;}
+  .inv-pay-head b{font-family:var(--font-display); font-size:1rem;}
+  .inv-pay-head button{border:0; background:#EEF2F8; width:30px; height:30px; border-radius:50%; font-size:1.1rem; line-height:1; color:#5B5D63;}
+  .inv-pay-label{display:block; font-size:.68rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:#8C8E93; margin:.7rem 0 .35rem;}
+  .inv-pay-chips{display:flex; gap:5px; flex-wrap:wrap;}
+  .inv-pay-chips button{border:1.5px solid #D5DEEB; background:#FFFFFF; border-radius:999px; padding:.35rem .75rem; font-size:.82rem; font-weight:700; color:#374151; min-height:34px;}
+  .inv-pay-chips button[aria-pressed="true"]{background:#1E5AA8; border-color:#1E5AA8; color:#FFFFFF;}
+  .inv-pay-tabs{display:grid; grid-template-columns:1fr 1fr; gap:4px; background:#EEF2F8; border-radius:12px; padding:3px; margin-top:.8rem;}
+  .inv-pay-tabs button{border:0; background:transparent; border-radius:9px; padding:.5rem .3rem; font-size:.8rem; font-weight:700; color:#5B5D63; min-height:38px;}
+  .inv-pay-tabs button[aria-selected="true"]{background:#FFFFFF; color:#1E5AA8; box-shadow:0 1px 4px rgba(0,0,0,.08);}
+  .inv-pay-rate{display:flex; justify-content:space-between; align-items:center; gap:.6rem; margin-top:.7rem; font-size:.82rem; font-weight:600; color:#5B5D63;}
+  .inv-pay-rate span{display:flex; align-items:center; gap:4px; font-weight:700; color:#111113;}
+  .inv-pay-rate input{width:4.2rem; font:inherit; font-weight:700; text-align:right; border:1.5px solid #D5DEEB; border-radius:9px; padding:.35rem .45rem; color:#111113; background:#FFFFFF;}
+  .inv-pay-sum{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:.85rem;}
+  .inv-pay-sum > div{background:#FFFFFF; border:1px solid #E3E8F1; border-radius:12px; padding:.5rem .6rem;}
+  .inv-pay-sum small{display:block; font-size:.66rem; font-weight:700; color:#8C8E93;}
+  .inv-pay-sum b{display:block; font-family:var(--font-display); font-size:.98rem; color:#111113; margin-top:1px;}
+  .inv-pay-sum .is-main{grid-column:1 / -1; background:#1E5AA8; border-color:#1E5AA8;}
+  .inv-pay-sum .is-main small{color:#DCE8F7;}
+  .inv-pay-sum .is-main b{color:#FFFFFF; font-size:1.3rem;}
+  /* color:inherit - sajt boji svaki <em> akcentnom bojom, a ovde je pozadina plava. */
+  .inv-pay-sum em{font-style:normal; font-family:var(--font-body); font-size:.78rem; font-weight:600; opacity:.85; color:inherit;}
+  .inv-pay-note{margin:.6rem 0 0; font-size:.72rem; color:#8C8E93; line-height:1.45;}
+
+  /* Šta je u blizini (ProjectNearby). */
+  .inv-nearby{margin-top:clamp(1.6rem,4vw,2.4rem);}
+  .inv-nearby h2{font-family:var(--font-display); font-size:clamp(1.4rem,3vw,1.9rem); margin:0;}
+  .inv-nearby-note{margin:.35rem 0 .9rem; color:var(--ink-soft);}
+  .inv-nearby-grid{display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); gap:1rem; align-items:stretch;}
+  @media (max-width:860px){ .inv-nearby-grid{grid-template-columns:1fr;} }
+  .inv-nearby-map{height:420px; border-radius:22px; overflow:hidden; border:1px solid var(--line); background:#E9EEF5; z-index:0;}
+  @media (max-width:860px){ .inv-nearby-map{height:320px;} }
+  .inv-nearby-map.is-loading{animation:invPulse 1.4s ease-in-out infinite;}
+  @keyframes invPulse{50%{opacity:.6}}
+  .inv-nearby-list{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; align-content:start; max-height:420px; overflow-y:auto; overflow-x:hidden;}
+  @media (max-width:860px){ .inv-nearby-list{max-height:none;} }
+  @media (max-width:640px){ .inv-nearby-list{grid-template-columns:minmax(0,1fr);} }
+  .inv-nearby-cat{background:#FFFFFF; color:#111113; border:1px solid var(--line); border-radius:16px; padding:.7rem .8rem;}
+  .inv-nearby-cat b{display:block; font-family:var(--font-display); font-size:.92rem; margin-bottom:.3rem;}
+  .inv-nearby-cat button{display:flex; justify-content:space-between; align-items:baseline; gap:.6rem; width:100%; border:0; background:transparent; padding:.3rem 0; text-align:left; font:inherit; font-size:.85rem; color:#374151; cursor:pointer; border-top:1px solid #F1F1EC;}
+  .inv-nearby-cat button span{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .inv-nearby-cat button small{color:#1E5AA8; font-weight:700; white-space:nowrap;}
+  .inv-nearby-cat button[aria-pressed="true"] span{color:#1E5AA8; font-weight:700;}
+  .inv-nearby-src{margin:.6rem 0 0; font-size:.75rem; color:var(--ink-faint);}
+
   /* Telefon: red velikih dugmadi spratova uz sliku (na računaru skriven). */
   .inv-floorchips{display:none;}
   @media (max-width:960px){
@@ -117,4 +190,62 @@ export const SELECTOR_STYLES = `
   .inv-form-msg{font-size:.85rem; font-weight:600; margin:.2rem 0 0;}
   .inv-form-msg.is-ok{color:#1F7A45;}
   .inv-form-msg.is-err{color:#B42318;}
+
+  /* Prekidač Zgrada / Lista (migracija 025). */
+  .inv-modebar{display:flex; justify-content:space-between; align-items:center; gap:.6rem;}
+  .inv-modebar .inv-tabs{margin-bottom:.8rem;}
+  .inv-tabs small{font-size:.72rem; font-weight:800; background:#E3E8F1; color:#5B5D63; border-radius:999px; padding:1px 7px; margin-left:4px;}
+  .inv-tabs button[aria-selected="true"] small{background:#DCE8F7; color:var(--d-accent);}
+  .inv-stagehd > span:empty{min-width:1px;}
+
+  /* Rotacija: više slika iste zgrade. */
+  .inv-rot{position:absolute; top:50%; transform:translateY(-50%); width:44px; height:44px; border-radius:50%; border:0; background:rgba(255,255,255,.92); color:var(--d-accent); font-size:1.7rem; line-height:1; font-weight:700; box-shadow:0 2px 10px rgba(0,0,0,.25); display:grid; place-items:center; padding:0 0 3px;}
+  .inv-rot.is-l{left:10px;} .inv-rot.is-r{right:10px;}
+  .inv-rot:hover{background:#FFFFFF;}
+  .inv-rot-label{position:absolute; left:50%; bottom:10px; transform:translateX(-50%); background:rgba(15,23,42,.72); color:#FFFFFF; font-size:.75rem; font-weight:700; border-radius:999px; padding:.25rem .7rem; white-space:nowrap; pointer-events:none;}
+  .inv-tag.is-unit{transform:translate(-50%,-115%); z-index:2;}
+  .inv-tag small.is-s{color:#1F7A45;} .inv-tag small.is-r{color:#9A6A0B;} .inv-tag small.is-p{color:#6B6B6B;}
+
+  /* Kompleks bez slike iz vazduha: kartice lamela. */
+  .inv-bcards{display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:10px; margin-top:.8rem;}
+  .inv-bcard{display:flex; flex-direction:column; align-items:flex-start; gap:2px; border:1px solid var(--d-line); background:#FFFFFF; border-radius:16px; padding:8px 8px 10px; text-align:left; color:var(--d-ink);}
+  .inv-bcard:hover{border-color:#9DBBE3;}
+  .inv-bcard-img{display:block; width:100%; aspect-ratio:4/3; border-radius:11px; background:#EEF2F8 center/cover; margin-bottom:6px;}
+  .inv-bcard b{font-family:var(--font-display); font-size:1rem;}
+  .inv-bcard small{font-size:.78rem; font-weight:700; color:#1F7A45;}
+  .inv-bcard small.is-none{color:#8A8A8A;}
+
+  /* Lista svih stanova. */
+  .inv-lst-filters{border:1px solid var(--d-line); border-radius:18px; padding:.8rem 1rem; margin-bottom:.8rem;}
+  .inv-lst-filters .inv-chips{margin-top:0;}
+  .inv-selects.is-wide{grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); align-items:end; margin-bottom:.4rem;}
+  .inv-check{flex-direction:row !important; align-items:center; gap:8px !important; min-height:38px; font-size:.86rem !important; color:#111113 !important; cursor:pointer;}
+  .inv-check input{width:18px; height:18px; accent-color:#1E5AA8;}
+  .inv-lst-wrap{border:1px solid var(--d-line); border-radius:18px; overflow:auto; max-height:640px;}
+  .inv-lst-table{width:100%; border-collapse:collapse; font-size:.9rem; color:var(--d-ink);}
+  .inv-lst-table th{position:sticky; top:0; z-index:1; background:#F6F8FC; text-align:left; padding:0; border-bottom:1px solid var(--d-line);}
+  .inv-lst-table th button{display:flex; align-items:center; gap:4px; width:100%; border:0; background:transparent; padding:.65rem .7rem; font-size:.72rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:#5B5D63; white-space:nowrap;}
+  .inv-lst-table th[aria-sort="ascending"] button, .inv-lst-table th[aria-sort="descending"] button{color:var(--d-accent);}
+  .inv-lst-table th i{font-style:normal; opacity:.6;}
+  .inv-lst-table th.is-num button{justify-content:flex-end;}
+  .inv-lst-table td{padding:.6rem .7rem; border-bottom:1px solid #EEF2F8; white-space:nowrap;}
+  .inv-lst-table td.is-num{text-align:right; font-variant-numeric:tabular-nums;}
+  .inv-lst-table td.is-price{font-weight:700;}
+  .inv-lst-table td.is-code b{font-family:var(--font-display);}
+  .inv-lst-table tbody tr{cursor:pointer; outline:none;}
+  .inv-lst-table tbody tr:hover, .inv-lst-table tbody tr:focus-visible{background:#F3F7FD;}
+  .inv-lst-table tbody tr:last-child td{border-bottom:0;}
+  /* Telefon: svaki stan je kartica (oznaka + status gore, podaci ispod). */
+  @media (max-width:700px){
+    .inv-lst-wrap{border:0; max-height:none; overflow:visible;}
+    .inv-lst-table thead{display:none;}
+    .inv-lst-table, .inv-lst-table tbody{display:block;}
+    .inv-lst-table tbody tr{display:grid; grid-template-columns:1fr 1fr; gap:2px 12px; border:1px solid var(--d-line); border-radius:16px; padding:.7rem .8rem; margin-bottom:8px;}
+    .inv-lst-table td{display:flex; justify-content:space-between; gap:8px; padding:.15rem 0; border:0; white-space:normal; font-size:.85rem;}
+    .inv-lst-table td.is-num{text-align:left;}
+    .inv-lst-table td[data-l]::before{content:attr(data-l); color:#8C8E93; font-size:.75rem; font-weight:600;}
+    .inv-lst-table td.is-code{font-size:1.05rem; grid-column:1; grid-row:1;}
+    .inv-lst-table td.is-status{justify-content:flex-end; grid-column:2; grid-row:1;}
+    .inv-lst-filters{padding:.7rem .75rem;}
+  }
 `;

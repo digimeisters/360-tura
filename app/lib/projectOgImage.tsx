@@ -36,7 +36,9 @@ export async function renderProjectOgImage(slug: string, lang: ProjectLang) {
   const free = data ? data.units.filter((u) => u.status === 'available').length : 0;
   const total = data ? data.units.length : 0;
   const city = data?.project.city || '';
-  const photo = await loadImage(data?.project.facade_url ?? null);
+  // Slika za deljenje: kompleks iz vazduha, inače prva fasada (migracija 025).
+  const cover = data ? (data.views.find((v) => v.kind === 'site') ?? data.views.find((v) => v.kind === 'building'))?.imageUrl ?? null : null;
+  const photo = await loadImage(cover ?? data?.project.facade_url ?? null);
   const badge = lang === 'en' ? 'NEW DEVELOPMENT' : 'NOVOGRADNJA';
   const freeText = lang === 'en' ? `${free} of ${total} apartments available` : `Slobodnih stanova: ${free} od ${total}`;
   const cta = lang === 'en' ? 'Choose your apartment →' : 'Izaberite stan →';

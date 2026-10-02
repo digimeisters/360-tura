@@ -44,6 +44,11 @@ export type ProjectRow = {
   /** Engleska strana projekta (migracija 021); prazno = srpski naziv / bez opisa. */
   title_en: string | null;
   description_en: string | null;
+  /** Lokacija i okolina na mapi (migracija 022). */
+  lat: number | null;
+  lng: number | null;
+  nearby: unknown;
+  nearby_updated_at: string | null;
   published: boolean;
   created_at: string;
   updated_at: string;
@@ -54,10 +59,51 @@ export type FloorRow = {
   project_id: string;
   level: number;
   label: string | null;
+  /** ZASTARELO od 025 - oblik na fasadi je u project_view_shapes. */
   polygon: Polygon | null;
   plan_url: string | null;
   view_tour_id: string | null;
+  /** Lamela (migracija 025); null = projekat bez lamela. */
+  building_id: string | null;
 };
+
+/** Lamela / zgrada kompleksa (migracija 025). */
+export type BuildingRow = { id: string; project_id: string; name: string; sort: number };
+
+/** 'site' = kompleks iz vazduha (na njemu lamele), 'building' = fasada (na njoj spratovi i stanovi). */
+export type ViewKind = 'site' | 'building';
+
+/** Jedna slika projekta; više slika iste zgrade = rotacija strelicama. */
+export type ViewRow = {
+  id: string;
+  project_id: string;
+  kind: ViewKind;
+  building_id: string | null;
+  label: string | null;
+  image_url: string;
+  sort: number;
+};
+
+/** Oblik lamele, sprata ili stana na jednoj slici (tačno jedan od tri id-ja). */
+export type ShapeRow = {
+  id: string;
+  view_id: string;
+  project_id: string;
+  building_id: string | null;
+  floor_id: string | null;
+  unit_id: string | null;
+  polygon: Polygon;
+};
+
+export type ShapeTarget = 'building' | 'floor' | 'unit';
+
+export const SHAPE_COLUMN: Record<ShapeTarget, 'building_id' | 'floor_id' | 'unit_id'> = {
+  building: 'building_id',
+  floor: 'floor_id',
+  unit: 'unit_id'
+};
+
+export const MAX_VIEWS_PER_BUILDING = 8;
 
 export type UnitRow = {
   id: string;
@@ -73,7 +119,62 @@ export type UnitRow = {
   polygon: Polygon | null;
   tour_id: string | null;
   sort: number;
+  /** Kartica stana (migracija 024). */
+  plan_url: string | null;
+  plan3d_url: string | null;
+  photos: unknown;
+  rooms: unknown;
 };
+
+/** Prostorija stana za tabelu kvadrature (migracija 024). */
+export type UnitRoom = { name: string; m2: number };
+
+export const MAX_UNIT_PHOTOS = 12;
+
+/** Slike stana iz baze (JSONB) - samo ispravni https URL-ovi. */
+export function cleanPhotos(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((u): u is string => typeof u === 'string' && /^https?:\/\//.test(u) && u.length < 600).slice(0, MAX_UNIT_PHOTOS);
+}
+
+/** Prostorije iz baze (JSONB). */
+export function cleanRooms(value: unknown): UnitRoom[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((r) => r && typeof r === 'object' && typeof (r as UnitRoom).name === 'string' && Number.isFinite(Number((r as UnitRoom).m2)))
+    .map((r) => ({ name: String((r as UnitRoom).name).slice(0, 60), m2: Math.round(Number((r as UnitRoom).m2) * 100) / 100 }))
+    .slice(0, 30);
+}
+
+/**
+ * Prostorije iz teksta (admin; može i nalepljeno iz Excela): jedan red =
+ * jedna prostorija, kvadratura je POSLEDNJI broj u redu.
+ *   „Dnevna soba sa kuhinjom 28,44" / „Hodnik<TAB>15.17" / „Terasa 9,26 m²"
+ * Red „Ukupno …" se preskače (zbir se računa sam).
+ */
+export function parseRoomsText(text: string): { rooms: UnitRoom[]; errors: string[] } {
+  const rooms: UnitRoom[] = [];
+  const errors: string[] = [];
+  text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .forEach((line, i) => {
+      const m = line.match(/^(.*?)[\s\t:;-]*([0-9]+(?:[.,][0-9]+)?)\s*(m2|m²)?$/i);
+      if (!m || !m[1].trim()) {
+        errors.push(`Red ${i + 1}: „${line.slice(0, 40)}" - na kraju treba kvadratura, npr. „Hodnik 15,17".`);
+        return;
+      }
+      const name = m[1].trim().replace(/[\t:;-]+$/, '').trim();
+      if (/^(ukupno|total|svega)$/i.test(name)) return;
+      rooms.push({ name: name.slice(0, 60), m2: Number(m[2].replace(',', '.')) });
+    });
+  return { rooms: rooms.slice(0, 30), errors };
+}
+
+export function roomsToText(rooms: UnitRoom[]): string {
+  return rooms.map((r) => `${r.name} ${String(r.m2).replace('.', ',')}`).join('\n');
+}
 
 /** Tura na koju stan ili sprat može da pokazuje (izbor u adminu, link na javnoj strani). */
 export type TourOption = { id: string; slug: string; title: string | null; published: boolean };
@@ -83,6 +184,12 @@ export type ProjectBundle = {
   floors: FloorRow[];
   units: UnitRow[];
   tours: TourOption[];
+  /** Migracija 025: lamele, slike (pogledi) i oblici na njima. */
+  buildings: BuildingRow[];
+  views: ViewRow[];
+  shapes: ShapeRow[];
+  /** Kratke beleške prodaje po id-ju stana (migracija 023) - samo za prikaz. */
+  unitNotes?: Record<string, { text: string; important: boolean; author: string; updated_at: string }>;
 };
 
 export function floorName(level: number, label?: string | null): string {
@@ -277,11 +384,27 @@ export type ImportRow = {
   orientation: string | null;
   price: number | null;
   status: UnitStatus;
+  /** Opciona 9. kolona: lamela ("A", "Lamela A") - za komplekse (migracija 025). */
+  building: string | null;
 };
 
 /**
+ * Lamela iz tabele: "A", "Lamela A", "lamela a" -> lamela čije je ime isto
+ * ili se završava tim slovom/brojem. Null = nije pronađena.
+ */
+export function matchBuilding<T extends { name: string }>(raw: string, buildings: T[]): T | null {
+  const v = raw.trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!v) return null;
+  const exact = buildings.find((b) => b.name.trim().toLowerCase() === v);
+  if (exact) return exact;
+  const tail = v.split(' ').pop()!;
+  const byTail = buildings.filter((b) => b.name.trim().toLowerCase().split(/\s+/).pop() === tail);
+  return byTail.length === 1 ? byTail[0] : null;
+}
+
+/**
  * Tabela nalepljena iz Excela (kolone razdvojene tabom, ili ; / ,), redom:
- *   oznaka | sprat | struktura | m² | terasa m² | orijentacija | cena | status
+ *   oznaka | sprat | struktura | m² | terasa m² | orijentacija | cena | status [| lamela]
  * Prvi red se preskače ako je zaglavlje. Vraća redove i greške po redu.
  */
 export function parseUnitTable(text: string): { rows: ImportRow[]; errors: string[] } {
@@ -315,7 +438,8 @@ export function parseUnitTable(text: string): { rows: ImportRow[]; errors: strin
       terrace_sqm: parseNumber(c[4] ?? ''),
       orientation: c[5] ? c[5].slice(0, 40) : null,
       price: parseNumber(c[6] ?? ''),
-      status
+      status,
+      building: c[8] ? c[8].slice(0, 40) : null
     });
   });
   return { rows, errors };

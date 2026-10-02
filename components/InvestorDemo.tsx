@@ -51,18 +51,25 @@ const BASE_Y = 492;
 const X0 = 70;
 const W = 250;
 
-function Building({
+// Deli ih i vrh strane /za-investitore (InvestorHeroDevice), da „živa"
+// zgrada u vrhu i primer ispod pokazuju isti izmišljeni projekat.
+export { FLOORS, LETTERS, TYPES, statusOf, priceOf, eur, floorName, unitId };
+
+export function Building({
   built = FLOORS,
   freeOn,
   hover,
   onHover,
-  onPick
+  onPick,
+  highlight = null
 }: {
   built?: number;
   freeOn?: (f: number) => number;
   hover?: number | null;
   onHover?: (f: number | null) => void;
   onPick?: (f: number) => void;
+  /** Samo za prikaz (bez klika): sprat istaknut plavo, npr. u vrhu strane. */
+  highlight?: number | null;
 }) {
   const interactive = Boolean(onPick && freeOn);
   const floors = Array.from({ length: FLOORS }, (_, i) => i);
@@ -120,6 +127,19 @@ function Building({
         );
       })}
 
+      {!interactive && highlight !== null && highlight < built && (
+        <rect
+          className="inv-hl"
+          x={X0 - 4}
+          y={BASE_Y - (highlight + 1) * FLOOR_H}
+          width={W + 8}
+          height={FLOOR_H}
+          rx="4"
+          fill="rgba(30,90,168,.30)"
+          stroke="#1E5AA8"
+          strokeWidth="3"
+        />
+      )}
       {built >= FLOORS ? (
         <rect x={X0 - 8} y={BASE_Y - FLOORS * FLOOR_H - 10} width={W + 16} height="10" rx="2" fill="#6F6A60" />
       ) : (

@@ -3,6 +3,8 @@ import { SiteNav, SiteFooter } from '../SiteChrome';
 import SiteTracker from '../SiteTracker';
 import ProjectSelector from './ProjectSelector';
 import ProjectProgress from './ProjectProgress';
+import ProjectNearby from './ProjectNearby';
+import { parseNearby } from '../../app/lib/nearby';
 import EmbedAutoHeight from './EmbedAutoHeight';
 import { SITE_STYLES } from '../../app/lib/siteStyles';
 import { SITE_URL } from '../../app/lib/site';
@@ -28,6 +30,13 @@ const PAGE_STYLES = `
   .proj-contact a{color:inherit;}
 `;
 
+/** Okolina za mapu: samo kad projekat ima koordinate i bar jedno mesto u blizini. */
+function nearbyOf(data: ProjectPageData) {
+  const { lat, lng } = data.project;
+  const places = parseNearby(data.project.nearby);
+  return lat !== null && lng !== null && places.length > 0 ? { lat, lng, places } : null;
+}
+
 export function projectTitle(data: ProjectPageData, lang: ProjectLang): string {
   return (lang === 'en' && data.project.title_en?.trim()) || data.project.title;
 }
@@ -40,8 +49,7 @@ function selectorProject(data: ProjectPageData, lang: ProjectLang) {
     developer: project.developer_name,
     address: project.address,
     city: project.city,
-    moveIn: project.move_in,
-    facadeUrl: project.facade_url
+    moveIn: project.move_in
   };
 }
 
@@ -69,6 +77,7 @@ export default function ProjectView({
   const suffix = preview ? `/pregled?t=${encodeURIComponent(previewToken!)}` : '';
   const srHref = `/novogradnja/${project.slug}${suffix}`;
   const enHref = `/en/novogradnja/${project.slug}${suffix}`;
+  const nearby = nearbyOf(data);
 
   return (
     <div lang={lang} style={{ display: 'contents' }}>
@@ -80,6 +89,11 @@ export default function ProjectView({
         brandAria="Kvadrat360"
         cta={{ href: '#izbor', label: lang === 'en' ? 'Choose an apartment' : 'Izaberite stan', track: 'cta:project_nav' }}
       >
+        {nearby && (
+          <li>
+            <a href="#okolina">{t.nearbyNav}</a>
+          </li>
+        )}
         {progress.length > 0 && (
           <li>
             <a href="#gradiliste">{t.progress}</a>
@@ -125,8 +139,17 @@ export default function ProjectView({
             {floors.length === 0 ? (
               <p className="note">{t.soon}</p>
             ) : (
-              <ProjectSelector lang={lang} project={selectorProject(data, lang)} floors={floors} units={units} />
+              <ProjectSelector
+                lang={lang}
+                project={selectorProject(data, lang)}
+                floors={floors}
+                units={units}
+                buildings={data.buildings}
+                views={data.views}
+                letakBase={preview ? null : `${lang === 'en' ? '/en' : ''}/novogradnja/${project.slug}/stan`}
+              />
             )}
+            {nearby && <ProjectNearby lang={lang} title={title} {...nearby} />}
             <ProjectProgress entries={progress} lang={lang} />
             {(project.contact_phone || project.contact_email) && (
               <p className="proj-contact">
@@ -157,6 +180,7 @@ const EMBED_STYLES = `
 export function ProjectEmbed({ data, lang = 'sr' }: { data: ProjectPageData; lang?: ProjectLang }) {
   const { project, floors, units, progress } = data;
   const t = PROJECT_TEXT[lang];
+  const embedNearby = nearbyOf(data);
   return (
     <main className="emb" lang={lang}>
       <style dangerouslySetInnerHTML={{ __html: SITE_STYLES + SELECTOR_STYLES + EMBED_STYLES }} />
@@ -164,8 +188,18 @@ export function ProjectEmbed({ data, lang = 'sr' }: { data: ProjectPageData; lan
       {floors.length === 0 ? (
         <p className="note">{t.soon}</p>
       ) : (
-        <ProjectSelector embedded lang={lang} project={selectorProject(data, lang)} floors={floors} units={units} />
+        <ProjectSelector
+          embedded
+          lang={lang}
+          project={selectorProject(data, lang)}
+          floors={floors}
+          units={units}
+          buildings={data.buildings}
+          views={data.views}
+          letakBase={`${lang === 'en' ? '/en' : ''}/novogradnja/${project.slug}/stan`}
+        />
       )}
+      {embedNearby && <ProjectNearby lang={lang} title={projectTitle(data, lang)} {...embedNearby} />}
       <ProjectProgress entries={progress} lang={lang} />
       <p className="emb-credit">
         <a href={`${SITE_URL}${lang === 'en' ? '/en' : '/'}?utm_source=ugradnja&utm_medium=potpis&utm_campaign=${encodeURIComponent(project.slug)}`} target="_blank" rel="noopener">

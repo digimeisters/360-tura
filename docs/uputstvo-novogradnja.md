@@ -3,7 +3,7 @@
 Kako se postavlja projekat novogradnje: zgrada → sprat → stan, i kako prodaja investitora sama menja status i cene.
 
 > Ovaj dokument je živ — kad promenimo neku funkciju, izmena se upisuje ovde.
-> Poslednja izmena: 02.10.2026.
+> Poslednja izmena: 02.10.2026. (lamele, rotacija, stanovi na fasadi, lista stanova)
 
 Uputstvo za ture je u [`uputstvo-kreiranje-ture.md`](uputstvo-kreiranje-ture.md). Ture i projekti su odvojeni: projekat na turu samo pokazuje, pa izmena projekta nikad ne kvari turu.
 
@@ -14,7 +14,8 @@ Uputstvo za ture je u [`uputstvo-kreiranje-ture.md`](uputstvo-kreiranje-ture.md)
 ```
 1. Novi projekat         →  /admin/projekti  (dugme „Novogradnja" u /admin/ture)
 2. Podaci projekta       →  naziv, investitor, adresa, useljenje, kontakt prodaje
-3. Fasada i spratovi     →  slika zgrade + obeležavanje spratova
+2a. Lamele (opciono)     →  kompleks sa više zgrada + slika iz vazduha
+3. Fasada i spratovi     →  slike zgrade (rotacija) + obeležavanje spratova i/ili stanova
 4. Stanovi               →  uvoz iz Excela (ili jedan po jedan)
 5. Osnove spratova       →  slika osnove + obeležavanje stanova, pa kopiranje na tipske spratove
 6. Ture i pogled         →  360° tura za stan, „pogled sa sprata" za sprat
@@ -41,15 +42,33 @@ Naziv, investitor, adresa, grad, useljenje (slobodan tekst, npr. „jun 2027"), 
 
 Telefon i email prodaje stoje na dnu javne strane („Prodaja: …").
 
+## 2a. Lamele i kompleks (više zgrada)
+
+Ako investitor gradi **više lamela ili zgrada**, kartica **Zgrade i lamele**:
+
+1. Prvi put: upiši naziv postojeće zgrade (npr. „Lamela A") i nove („Lamela B") → **+ Podeli na lamele**. Spratovi, stanovi i slike koji već postoje prelaze u prvu lamelu — ništa se ne briše.
+2. Svaka sledeća: upiši naziv → **+ Lamela**.
+3. **Klik na lamelu** bira koju uređuješ — fasada, spratovi i osnove ispod su za nju. Tabela stanova na dnu prikazuje sve lamele.
+4. Naziv lamele menjaš u polju ispod; **Obriši lamelu** radi samo za praznu lamelu (bez spratova).
+
+**Kompleks iz vazduha** (pojavi se kad postoje bar dve lamele): otpremi render ili snimak dronom celog kompleksa → za svaku lamelu u spisku desno **Iscrtaj** → obeleži je klik po klik. Kupac na javnoj strani prvo klikne lamelu na toj slici. Bez ove slike kupac bira lamelu sa kartica (slika fasade + broj slobodnih).
+
+Oznake stanova moraju biti različite u celom projektu — npr. „A12" i „B12", a ne dva puta „12".
+
 ## 3. Fasada i spratovi
 
-1. **Slika fasade:** fotografija ili render zgrade (JPG, PNG, WEBP). Velika slika se sama smanji pre slanja.
+Kartica **Fasada i spratovi** (kod kompleksa: za izabranu lamelu).
+
+1. **Slike fasade:** fotografija ili render zgrade (JPG, PNG, WEBP). Velika slika se sama smanji pre slanja.
+   - **Više slika = rotacija:** **+ Slika** dodaje istu zgradu iz drugog ugla (ulica, dvorište…). Kupac ih okreće strelicama ‹ › (na telefonu i prevlačenjem prstom). Najviše 8 slika po zgradi.
+   - Ispod slike: **natpis** („Ulica", „Dvorište" — vidi se na javnoj strani), **← →** menja redosled, **Zameni sliku** (nov render iz ISTOG ugla — nacrtani oblici ostaju), **Obriši sliku** (briše i oblike na njoj).
+   - Oblici se crtaju posebno na svakoj slici.
 2. **Dodaj spratove** u polju pored spiska:
    - jedan sprat: `3`, `P`, `prizemlje`, `1. sprat`
    - više odjednom: `P, 1, 2`
    - **sve odjednom: `P-6`** (prizemlje i spratovi 1–6)
    - sprat koji već postoji se preskače
-3. **Obeleži svaki sprat na slici:** izaberi sprat u spisku → **Iscrtaj na fasadi** → klikći redom na uglove sprata na slici. Oblik zatvaraš klikom na prvu tačku ili tasterom **Enter**.
+3. **Obeleži svaki sprat na slici:** prekidač **Na slici crtam: Spratove** → izaberi sprat u spisku → **Iscrtaj na slici** → klikći redom na uglove sprata na slici. Oblik zatvaraš klikom na prvu tačku ili tasterom **Enter**.
    - `↶ Poništi tačku` (ili `Backspace`) briše poslednju tačku
    - `Otkaži` (ili `Esc`) prekida crtanje
    - **ispravka bez ponovnog crtanja:** izaberi sprat (klik na njega na slici ili u spisku) — na uglovima se pojave kvadratići:
@@ -57,9 +76,14 @@ Telefon i email prodaje stoje na dnu javne strane („Prodaja: …").
      - **povuci malu tačku na sredini ivice** = dodaš novi ugao;
      - **dvoklik na kvadratić** = obrišeš ugao (ostaju najmanje 3);
      - čuva se čim pustiš miš; ako čuvanje ne uspe, oblik se vrati na stari;
-   - potpuno pogrešan oblik: **Iscrtaj ponovo**
+   - potpuno pogrešan oblik: **Iscrtaj ponovo**; sklanjanje sa slike: **Ukloni sa slike**
+4. **Stanovi na fasadi (kao Sokolis):** prekidač **Na slici crtam: Stanove** → u spisku desno za svaki stan **Iscrtaj** → obeleži njegov deo fasade (prozori i terasa tog stana). × sklanja oblik sa slike. Stan koji se ne vidi sa te strane ostavi neiscrtan, ili ga nacrtaj na drugoj slici.
+   - Kupac na javnoj strani vidi stanove obojene po statusu (zeleno slobodan, žuto rezervisan, sivo prodat); prelaz mišem pokaže oznaku i cenu, a klik odmah otvara karticu stana — bez ulaska na sprat.
+   - Na istoj slici mogu i spratovi i stanovi: tada kupac klikne stan, a sprat tamo gde stan nije nacrtan.
 
-Na javnoj strani se pored svakog sprata piše koliko je slobodnih stanova („3 slob." / „nema").
+Na javnoj strani se pored svakog sprata piše koliko je slobodnih stanova („3 slob." / „nema") — kad su na slici i stanovi, te oznake se ne prikazuju (bilo bi pretrpano).
+
+**Lista stanova:** iznad izbora stana na javnoj strani je prekidač **Zgrada / Lista stanova**. Lista je tabela svih stanova (kod kompleksa i kolona „Zgrada") sa filterima (zgrada, sprat, cena do, kvadratura od, struktura, samo slobodni) i sortiranjem klikom na naslov kolone. Klik na red otvara stan. Na telefonu je svaki stan kartica. Ne podešava se ništa — pravi se sama iz tabele stanova.
 
 Poruke (greške i potvrde) se pojavljuju **na dnu ekrana** i stoje dok ih ne zatvoriš ×.
 
@@ -69,15 +93,16 @@ Poruke (greške i potvrde) se pojavljuju **na dnu ekrana** i stoje dok ih ne zat
 
 Na dnu stranice: **Uvoz iz Excela**. U Excelu označi kolone **ovim redom**, kopiraj i nalepi:
 
-| oznaka | sprat | struktura | m² | terasa m² | orijentacija | cena | status |
-|---|---|---|---|---|---|---|---|
-| 1A | 1 | Dvosoban | 54 | 6 | Jug | 89000 | slobodan |
-| 1B | 1 | Trosoban | 72 | 9 | Zapad | 118000 | prodat |
+| oznaka | sprat | struktura | m² | terasa m² | orijentacija | cena | status | lamela (samo kompleks) |
+|---|---|---|---|---|---|---|---|---|
+| 1A | 1 | Dvosoban | 54 | 6 | Jug | 89000 | slobodan | A |
+| 1B | 1 | Trosoban | 72 | 9 | Zapad | 118000 | prodat | A |
 
 - Sprat `P` = prizemlje. Status: `slobodan`, `rezervisan` ili `prodat`.
 - Cena može sa tačkama i znakom evra („95.600 €"), kvadratura sa zarezom („54,5").
 - Red zaglavlja (Oznaka, Sprat…) se sam preskače.
 - **Spratovi koji fale se sami naprave.**
+- Kompleks: deveta kolona je lamela („A" ili „Lamela A"). Redovi bez nje idu u lamelu izabranu iznad tabele za uvoz. Projekat bez lamela deveta kolona ne zanima.
 - Stan koji već postoji (ista oznaka) se **ažurira** — nacrtani oblici i ture ostaju.
 - Ako je nešto u tabeli nejasno (npr. status „možda"), uvoz javlja red i razlog, i ne upisuje ništa.
 
@@ -103,6 +128,20 @@ Svaki red: oznaka, sprat, struktura, m², terasa, orijentacija, cena, status, 36
 
 Stan bez oblika na osnovi se i dalje bira iz spiska pored osnove, samo se ne može kliknuti na slici.
 
+## 5a. Detalji stana: osnova, 3D osnova, slike, prostorije
+
+Tabela stanova → dugme **Detalji** u redu stana (✓ kad stan već ima nešto od ovoga):
+- **Osnova stana** — tlocrt samo tog stana (PNG/JPG);
+- **3D osnova** — render stana odozgo, ako postoji;
+- **Slike stana** — do 12 slika (renderi ili uzorni stan); strelica ← menja redosled;
+- **Prostorije i kvadratura** — jedan red = jedna prostorija, kvadratura na kraju („Hodnik 15,17“); može da se nalepi iz Excela. Zbir se računa sam i upozori ako se ne slaže sa površinom stana.
+
+**Sačuvaj i primeni na iste stanove** prenese osnovu, 3D osnovu, slike i prostorije (po želji i 360° turu) na isti tip stana na drugim spratovima — 2A → 3A, 4A… Status, cena i oblik na osnovi sprata se ne diraju.
+
+Kupac u kartici stana dobija kartice **Osnova / 360° tura / 3D osnova / Slike** (samo one koje postoje; 360° tura se otvara u samoj kartici), **tabelu prostorija** sa zbirom i dugme **PDF letak stana**.
+
+**PDF letak** (`/novogradnja/<projekat>/stan/<oznaka>/letak`): jedna A4 strana sa osnovom, podacima, prostorijama, cenom, kontaktom prodaje i QR kodom ka projektu. Dugme **Sačuvaj kao PDF / Štampaj** — u prozoru za štampu izabrati „Sačuvaj kao PDF“. Postoji i na engleskom.
+
 ## 6. Ture i pogled sa sprata
 
 - **360° tura stana:** u tabeli stanova, kolona „360° tura" — izaberi postojeću turu. Više stanova istog tipa može na istu turu.
@@ -127,11 +166,25 @@ Zgrada se na javnoj strani vidi čim postoje spratovi; stanovi mogu da stignu i 
 
 **Upit za stan** (dugme „Raspitaj se za ovaj stan") stiže **i tebi na Telegram i prodaji investitora** — na njihovom linku za prodaju, u odeljku „Upiti kupaca" na vrhu (vidi 9). Ne moraš ništa da prosleđuješ.
 
+**Plan plaćanja:** u kartici stana (kad stan ima cenu i nije prodat) je dugme **„Izračunajte plan plaćanja“**. Kupac bira **učešće** (10, 20, 30 ili 50%), pa **rate investitoru** (6–36 rata, bez kamate) ili **stambeni kredit** (15–30 godina, kamatu upisuje sam, početno 4,5%). Vidi koliko mu treba odmah, koliko ostaje i **mesečnu ratu**. Piše da je obračun informativan i da tačne uslove daje prodaja, odnosno banka. Ništa se ne šalje i ne čuva.
+
 **Filteri za kupca:** struktura, **cena do** i **kvadratura od** (ponude se samo pragovi koji postoje u projektu). Kartica stana pokazuje i **cenu po m²**.
 
 **Engleska verzija:** `kvadrat360.com/en/novogradnja/<naziv-projekta>` — sav tekst strane je na engleskom (strukture i orijentacije se prevode same: Dvosoban → Two-room, Jug → South). U „Podaci projekta" popuni **Naziv na engleskom** (prazno = srpski naziv) i **Opis na engleskom** — dugme **🌐 Prevedi opis na engleski** predloži prevod, proveri ga pa klikni „Sačuvaj podatke". Dugme za turu na engleskoj strani otvara turu na engleskom, ako ga ima. Gore u meniju je prekidač SR / EN.
 
 **Slika za deljenje:** kad se link projekta podeli na Viberu, WhatsApp-u ili Facebooku, prikazuje se kartica sa fotografijom fasade, nazivom, gradom i „Slobodnih stanova: 4 od 6" (na engleskoj strani na engleskom). Pravi se sama. Fotografija u WEBP formatu se na kartici ne prikazuje (ostaje plava kartica) — za fasadu je bolje otpremiti JPG. Viber i Facebook pamte karticu, pa se broj slobodnih stanova na već podeljenom linku ne menja sam.
+
+### Okolina na mapi
+
+Stranica projekta → **Okolina na mapi**:
+1. upiši tačnu **adresu** u „Podaci projekta“ i sačuvaj — lokacija se nađe sama (ili u polje **Koordinate** nalepi npr. „44.0128, 20.9114“: desni klik na zgradu u Google mapama ih kopira);
+2. klikni **Pronađi okolinu** — za nekoliko sekundi stigne spisak: škole, vrtići, prodavnice, apoteke, dom zdravlja, autobus i parkovi u krugu od 1,2 km (najbližih do 3 po vrsti).
+
+Na strani projekta (i na engleskoj, i u ugradnji) pojavi se odeljak **„Šta je u blizini“**: mapa sa zgradom i mestima, i spisak sa **minutima hoda**. U meniju strane pojavi se link „Okolina“. Klik na mesto u spisku ga pokaže na mapi.
+
+- Podaci su iz **OpenStreetMap-a** (besplatno). Ako nešto fali ili je pogrešno, to je u OpenStreetMap-u — posle ispravke tamo klikni **Osveži okolinu**.
+- OpenStreetMap ume da bude preopterećen — ako piše „trenutno ne odgovara“, pokušaj ponovo za minut.
+- Udaljenost je vazdušnom linijom, preračunata u minute hoda (oko 80 m u minuti) — tako i piše ispod mape.
 
 ### Gradilište po mesecima
 
@@ -187,6 +240,17 @@ Prodaja **ne može** da menja slike, oblike, tekstove, ture, druge projekte, nit
 ### Gašenje
 
 **Ugasi** pored imena → link odmah prestaje da radi (otvara „stranica ne postoji"). Ugaši kad neko ode iz firme ili kad link procuri.
+
+### Kratka beleška
+
+Na svakom **stanu** (ispod cene) i svakom **upitu** (ispod poruke kupca) prodaja može da ostavi **jednu kratku belešku** — jedan red, najviše 120 znakova, npr. „Rezervisan do 20. 10., kapara 5.000 €“ ili „Zvala, dolazi u subotu 11h“.
+
+- dodir na **+ Beleška** (ili na postojeću belešku) otvara polje; **Sačuvaj** / **Otkaži** / **Obriši**;
+- **nova beleška zamenjuje staru** — nema spiska ni istorije; ispod piše ko i kada;
+- **⚑** = važno: beleška je narandžasta, a ⚑ se vidi i u naslovu stana;
+- **kupac je nikad ne vidi** (ni na javnoj strani, ni u ugradnji).
+
+U tvom adminu ista beleška stoji u koloni **„Beleška prodaje“** — u tabeli stanova i u „Izveštaj i upiti“.
 
 ### Upiti i izveštaj na strani prodaje
 

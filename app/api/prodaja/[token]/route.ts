@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { rateLimit, tooManyRequests } from '@/app/lib/rateLimit';
-import { loadSalesData, recordUnitChanges, resolveSalesLink, serviceClient } from '@/app/lib/salesAccess';
+import { loadSalesData, recordUnitChanges, resolveSalesLink, saveNote, serviceClient } from '@/app/lib/salesAccess';
 import { UNIT_STATUSES, type UnitStatus } from '@/app/lib/projects';
 
 export const dynamic = 'force-dynamic';
@@ -53,6 +53,18 @@ export async function POST(req: Request, { params }: Params) {
   const { link, project } = access;
 
   const body = await req.json().catch(() => ({}));
+
+  // Kratka beleška na stanu ili upitu (migracija 023): nova zamenjuje staru,
+  // prazan tekst je briše. Autor = ime iz linka.
+  if (body.action === 'note') {
+    const target = body.target === 'inquiry' ? 'inquiry' : body.target === 'unit' ? 'unit' : null;
+    const targetId = typeof body.id === 'string' ? body.id : '';
+    if (!target || !/^[0-9a-f-]{36}$/i.test(targetId)) return fail('Neispravna beleška.');
+    const err = await saveNote(db, project.id, target, targetId, body.text, body.important, link.person_name);
+    if (err) return fail(err, 400);
+    const data = await loadSalesData(db, project.id, link.person_name);
+    return NextResponse.json({ success: true, data });
+  }
 
   // Upit za stan: prodaja ga označava kao "javio/la sam se" (ili vraća nazad).
   if (body.action === 'inquiry-handled') {

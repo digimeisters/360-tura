@@ -2,8 +2,8 @@ import { cache } from 'react';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from './supabaseClient';
 import { isValidPreviewToken } from './projectPreview';
-import type { FloorRow, ProjectRow, UnitRow } from './projects';
-import type { SelectorFloor, SelectorUnit } from '../../components/projekat/ProjectSelector';
+import { cleanPhotos, cleanPolygon, cleanRooms, type BuildingRow, type FloorRow, type ProjectRow, type ShapeRow, type UnitRow, type ViewRow } from './projects';
+import type { SelectorBuilding, SelectorFloor, SelectorShape, SelectorUnit, SelectorView } from '../../components/projekat/ProjectSelector';
 
 /**
  * Podaci projekta za /novogradnja/[slug] i za pregled pre objave
@@ -35,6 +35,9 @@ export type ProjectPageData = {
   floors: SelectorFloor[];
   units: SelectorUnit[];
   progress: ProgressEntry[];
+  /** Migracija 025: lamele (prazno = jedna zgrada) i slike sa oblicima. */
+  buildings: SelectorBuilding[];
+  views: SelectorView[];
 };
 
 async function loadProject(db: Db, slug: string, onlyPublished: boolean): Promise<ProjectPageData | null> {
@@ -44,10 +47,13 @@ async function loadProject(db: Db, slug: string, onlyPublished: boolean): Promis
   if (!project) return null;
   const p = project as unknown as ProjectRow;
 
-  const [{ data: floorsRaw }, { data: unitsRaw }, { data: progressRaw }] = await Promise.all([
+  const [{ data: floorsRaw }, { data: unitsRaw }, { data: progressRaw }, { data: buildingsRaw }, { data: viewsRaw }, { data: shapesRaw }] = await Promise.all([
     db.from('project_floors').select('*').eq('project_id', p.id).order('level'),
     db.from('project_units').select('*').eq('project_id', p.id).order('sort'),
-    db.from('project_progress').select('id, month, note, tour_id').eq('project_id', p.id).order('month', { ascending: false })
+    db.from('project_progress').select('id, month, note, tour_id').eq('project_id', p.id).order('month', { ascending: false }),
+    db.from('project_buildings').select('*').eq('project_id', p.id).order('sort').order('name'),
+    db.from('project_views').select('*').eq('project_id', p.id).order('sort').order('created_at'),
+    db.from('project_view_shapes').select('id, view_id, project_id, building_id, floor_id, unit_id, polygon').eq('project_id', p.id)
   ]);
   const floors = (floorsRaw ?? []) as unknown as FloorRow[];
   const units = (unitsRaw ?? []) as unknown as UnitRow[];
@@ -85,7 +91,7 @@ async function loadProject(db: Db, slug: string, onlyPublished: boolean): Promis
     id: f.id,
     level: f.level,
     label: f.label,
-    polygon: f.polygon,
+    buildingId: f.building_id,
     planUrl: f.plan_url,
     viewHref: href(f.view_tour_id)
   }));
@@ -104,7 +110,11 @@ async function loadProject(db: Db, slug: string, onlyPublished: boolean): Promis
       status: u.status,
       polygon: u.polygon,
       tourHref: href(u.tour_id),
-      tourPreview: slugForTour ? tourPreview.get(slugForTour) ?? null : null
+      tourPreview: slugForTour ? tourPreview.get(slugForTour) ?? null : null,
+      planUrl: u.plan_url,
+      plan3dUrl: u.plan3d_url,
+      photos: cleanPhotos(u.photos),
+      rooms: cleanRooms(u.rooms)
     };
   });
 
@@ -116,7 +126,35 @@ async function loadProject(db: Db, slug: string, onlyPublished: boolean): Promis
       return { id: r.id, month: r.month, note: r.note, tourHref: href(r.tour_id), preview: slugForTour ? tourPreview.get(slugForTour) ?? null : null };
     });
 
-  return { project: p, floors: selectorFloors, units: selectorUnits, progress };
+  // Slike i oblici (migracija 025). Oblik bez važeće mete se preskače.
+  const buildings = (buildingsRaw ?? []) as unknown as BuildingRow[];
+  const shapes = (shapesRaw ?? []) as unknown as ShapeRow[];
+  const views: SelectorView[] = ((viewsRaw ?? []) as unknown as ViewRow[]).map((v) => ({
+    id: v.id,
+    kind: v.kind,
+    buildingId: v.building_id,
+    label: v.label,
+    imageUrl: v.image_url,
+    shapes: shapes
+      .filter((sh) => sh.view_id === v.id)
+      .flatMap((sh): SelectorShape[] => {
+        const polygon = cleanPolygon(sh.polygon);
+        if (!polygon) return [];
+        if (sh.unit_id) return [{ target: 'unit', id: sh.unit_id, polygon }];
+        if (sh.floor_id) return [{ target: 'floor', id: sh.floor_id, polygon }];
+        if (sh.building_id) return [{ target: 'building', id: sh.building_id, polygon }];
+        return [];
+      })
+  }));
+
+  return {
+    project: p,
+    floors: selectorFloors,
+    units: selectorUnits,
+    progress,
+    buildings: buildings.map((b) => ({ id: b.id, name: b.name })),
+    views
+  };
 }
 
 /** Javna strana: samo objavljen projekat (anon ključ + RLS). cache(): metadata i strana dele upit. */

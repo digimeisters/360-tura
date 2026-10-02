@@ -117,6 +117,7 @@ export default function InsightsPanel({ projectId }: { projectId: string }) {
                   <th>Stan</th>
                   <th>Kupac</th>
                   <th>Poruka</th>
+                  <th>Beleška prodaje</th>
                   <th>Obrađen</th>
                 </tr>
               </thead>
@@ -138,6 +139,17 @@ export default function InsightsPanel({ projectId }: { projectId: string }) {
                       )}
                     </td>
                     <td style={{ maxWidth: 260 }}>{q.message}</td>
+                    <td style={{ maxWidth: 220 }}>
+                      {q.note ? (
+                        <span style={{ color: q.note.important ? '#B45309' : 'var(--ink-soft)', fontWeight: q.note.important ? 700 : 400 }}>
+                          {q.note.important ? '⚑ ' : ''}
+                          {q.note.text}
+                          <small style={{ display: 'block', fontWeight: 400, color: 'var(--ink-faint)' }}>{q.note.author}</small>
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--ink-faint)' }}>—</span>
+                      )}
+                    </td>
                     <td style={{ whiteSpace: 'nowrap' }}>
                       {q.handled_at ? (
                         <span style={{ color: 'var(--ok)' }}>
