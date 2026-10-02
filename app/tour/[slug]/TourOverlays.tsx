@@ -265,10 +265,13 @@ export function DragHint({ text }: { text: string }) {
 
 /**
  * Telefon: dok posetilac prstom razgleda panoramu, gornja traka i dugmad sa
- * strane se sklanjaju (zauzimaju skoro četvrtinu ekrana), a vraćaju se čim
- * pusti. Pali se tek na pomeranje prsta, ne na dodir - dodir tačke ili
+ * strane se sklanjaju (zauzimaju skoro četvrtinu ekrana), a vraćaju se
+ * IMMERSIVE_RESTORE_MS posle puštanja. Pali se tek na pomeranje prsta, ne na dodir - dodir tačke ili
  * dugmeta ne sme ništa da sakrije.
  */
+/** Vraćanje kontrola posle puštanja panorame (vlasnik: 2 s → 3 s 28. 9, pa 2,2 s 2. 10. 2026). */
+const IMMERSIVE_RESTORE_MS = 2200;
+
 export function useImmersiveWhileDragging(enabled: boolean): boolean {
   const [immersive, setImmersive] = useState(false);
 
@@ -298,7 +301,7 @@ export function useImmersiveWhileDragging(enabled: boolean): boolean {
     const onEnd = () => {
       if (!dragging) return;
       dragging = false;
-      showTimer = setTimeout(() => setImmersive(false), 3000);
+      showTimer = setTimeout(() => setImmersive(false), IMMERSIVE_RESTORE_MS);
     };
 
     panorama.addEventListener('touchstart', onStart, { passive: true });

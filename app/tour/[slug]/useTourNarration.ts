@@ -56,6 +56,8 @@ export function useTourNarration({
     textFallback: unknown;
     title: unknown;
     index?: number;
+    /** Kartica se skloni kad se snimljeni glas odsluša do kraja ("Istražite sami"). */
+    closeWhenDone?: boolean;
   } | null>(null);
 
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -110,7 +112,8 @@ export function useTourNarration({
     const resolvedAudioUrl = getLocalizedText(raw.audioUrlI18n, langRef.current);
     const resolvedText = getLocalizedText(raw.textFallback, langRef.current);
 
-    const finish = () => {
+    // spoken = glas je odslušan do kraja (ne greška, ne tekst bez snimka).
+    const finish = (spoken: boolean = false) => {
       activeAudioRef.current = null;
       audioCurrentTimeRef.current = 0;
       audioDurationRef.current = 0;
@@ -118,6 +121,10 @@ export function useTourNarration({
       const resolveFn = activeResolveRef.current;
       activeResolveRef.current = null;
       activePlaybackRawRef.current = null;
+      // "Istražite sami": posle odslušanog glasa kartica se sama skloni
+      // (vlasnik, 2. 10. 2026). Bez snimka ili sa isključenim zvukom ostaje -
+      // posetilac čita svojim tempom, pa nema "kraja" priče.
+      if (spoken && raw.closeWhenDone && isMountedRef.current) onNarrationChange(null);
       if (isMountedRef.current && resolveFn) resolveFn();
     };
 
@@ -144,11 +151,11 @@ export function useTourNarration({
       if (isMountedRef.current && activeAudioRef.current === audio) setAudioActive(true);
     };
 
-    audio.onended = finish;
-    audio.onerror = finish;
+    audio.onended = () => finish(true);
+    audio.onerror = () => finish();
 
-    audio.play().catch(finish);
-  }, [isMountedRef, isMutedRef, langRef, setAudioActive]);
+    audio.play().catch(() => finish());
+  }, [isMountedRef, isMutedRef, langRef, onNarrationChange, setAudioActive]);
 
   /**
    * Trenutak i dužina glasa koji se čuje. Za vreme pauze vraća mesto na kom
@@ -171,7 +178,8 @@ export function useTourNarration({
     textFallback?: unknown,
     title?: unknown,
     index?: number,
-    startAt: number = 0
+    startAt: number = 0,
+    options?: { closeWhenDone?: boolean }
   ): Promise<void> => {
     return new Promise((resolve) => {
       stopAudio();
@@ -179,7 +187,7 @@ export function useTourNarration({
       if (!isMountedRef.current) return resolve();
 
       activeResolveRef.current = resolve;
-      activePlaybackRawRef.current = { audioUrlI18n, textFallback, title, index };
+      activePlaybackRawRef.current = { audioUrlI18n, textFallback, title, index, closeWhenDone: options?.closeWhenDone };
 
       onNarrationChange({ titleRaw: title, textRaw: textFallback, index, audio_url: audioUrlI18n });
 

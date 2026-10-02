@@ -346,7 +346,8 @@ export default function TourPage() {
           stopCurrentAnimation();
           resetPosition();
           if (viewerRef.current) viewerRef.current.setHfov(pickHfov(INFO_HFOV));
-          playNarration(wp.audio_url_i18n ?? wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0);
+          // Info-tačka na dodir je uvek ručni režim - kartica se skloni posle glasa.
+          playNarration(wp.audio_url_i18n ?? wp.audio_url, wp.text_i18n, wp.title_i18n, index, 0, { closeWhenDone: true });
         }
       }
     };

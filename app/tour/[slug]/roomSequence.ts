@@ -83,7 +83,8 @@ export type RoomSequenceContext = {
     text: unknown,
     title: unknown,
     index: number | undefined,
-    startAt: number
+    startAt: number,
+    options?: { closeWhenDone?: boolean }
   ) => Promise<unknown>;
   waitWhilePaused: () => Promise<void>;
   /** Dokle je stigao snimljeni glas (useTourNarration) - za puls vrata. */
@@ -370,9 +371,11 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
   // je i ovde kamera sama kružila i obilazila info-tačke, a tekst se menjao na
   // svakih par sekundi - posetilac je dobijao niz prekinutih rečenica koje mu
   // beže, i naslov sobe iznad teksta o nekom detalju. Sada: kadar se otvori,
-  // kartica pokaže naziv sobe i uvod (ceo, "Više" za ostatak) i STOJI dok je
-  // posetilac ne zatvori; info-tačke pričaju tek na dodir, svaka sa svojim
-  // naslovom. Snimljena naracija (ako soba ima audio) se i dalje pušta.
+  // kartica pokaže naziv sobe i uvod (ceo, "Više" za ostatak); info-tačke
+  // pričaju tek na dodir, svaka sa svojim naslovom. Snimljena naracija (ako
+  // soba ima audio) se i dalje pušta, a kad se odsluša, kartica se sama
+  // skloni (vlasnik, 2. 10. 2026). Bez snimka kartica stoji dok je posetilac
+  // ne zatvori - čita svojim tempom.
   if (guideModeRef.current !== 'auto') {
     stopCurrentAnimation();
     if (!entry && viewerRef.current) {
@@ -387,7 +390,7 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
     window.setTimeout(() => {
       if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
-      void playNarration(hasRecordedAudio ? introAudioUrl : undefined, introTextRaw, currentRoom.title_i18n, undefined, 0);
+      void playNarration(hasRecordedAudio ? introAudioUrl : undefined, introTextRaw, currentRoom.title_i18n, undefined, 0, { closeWhenDone: true });
     }, glideMs);
     roomSequenceFinishedRef.current = true;
     setIsRoomTourFullyCompleted(true);
