@@ -49,6 +49,9 @@ export type ProjectRow = {
   lng: number | null;
   nearby: unknown;
   nearby_updated_at: string | null;
+  /** Prezentacija (migracija 026): sve kartice stana, prazne popunjene demo sadržajem. */
+  show_all_tabs: boolean;
+  demo_tour_id: string | null;
   published: boolean;
   created_at: string;
   updated_at: string;

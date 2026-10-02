@@ -130,6 +130,14 @@ Stan bez oblika na osnovi se i dalje bira iz spiska pored osnove, samo se ne mo�
 
 ## 5a. Detalji stana: osnova, 3D osnova, slike, prostorije
 
+**Strana stana** (kao kod Sokolisa): svaki stan ima svoju adresu `kvadrat360.com/novogradnja/<projekat>/stan/<oznaka>` (npr. `.../lepenicki-cvet/stan/5I`), i na engleskom pod `/en/...`. Otvara se dugmetom **Otvori stranu stana →** u kartici stana. Na njoj su velike kartice Osnova / 360° tura / 3D osnova / Slike, cena, prostorije, PDF letak, plan plaćanja, upit, strelice na prethodni i sledeći stan i „Slični slobodni stanovi“. Ovaj link prodaja šalje kupcu na Viber.
+
+**Prezentacija (prikaži sve kartice stana):** u „Podaci projekta“ je kvačica **Prezentacija: prikaži sve kartice stana**. Kad je uključena, svaki stan ima sve četiri kartice: stan bez ture dobija **demo turu** (biraš je ispod kvačice; na turi piše „Primer ture“), bez slika — rendere zgrade, a 3D osnova bez slike piše „Uskoro za ovaj stan“. Za pravi projekat kvačicu isključi — tada se vidi samo ono što stan stvarno ima. „Lepenički cvet“ je uključen (demo tura: Maglićka).
+
+**Osnova bez posebne slike:** ako stan nema svoju osnovu, a iscrtan je na osnovi sprata, kao osnova stana se sama prikazuje uvećan isečak osnove sprata, sa obeleženim stanom. Posebna slika osnove (Detalji) uvek ima prednost.
+
+**Filteri na javnoj strani:** jedna traka iznad izbora stana (struktura, cena do, kvadratura od, „samo slobodni“; u listi još sprat i zgrada), dugme „Poništi“. Stanovi koji ne odgovaraju izblede i na fasadi i na osnovi.
+
 Tabela stanova → dugme **Detalji** u redu stana (✓ kad stan već ima nešto od ovoga):
 - **Osnova stana** — tlocrt samo tog stana (PNG/JPG);
 - **3D osnova** — render stana odozgo, ako postoji;

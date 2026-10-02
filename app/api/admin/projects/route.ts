@@ -185,6 +185,9 @@ export async function POST(req: Request) {
         if ('title' in fields && !patch.title) return fail('Naziv projekta ne sme biti prazan.');
         if ('published' in fields) patch.published = Boolean(fields.published);
         if ('notify_sales' in fields) patch.notify_sales = Boolean(fields.notify_sales);
+        // Prezentacija (migracija 026).
+        if ('show_all_tabs' in fields) patch.show_all_tabs = Boolean(fields.show_all_tabs);
+        if ('demo_tour_id' in fields) patch.demo_tour_id = text(fields.demo_tour_id, 40);
 
         // Ručno upisane koordinate (npr. prekopirane iz Google mapa) imaju prednost.
         let coords: { lat: number; lng: number } | null = null;

@@ -585,6 +585,57 @@ export default function ProjectEditorPage() {
               </a>
             )}
           </div>
+
+          {/* Prezentacija (migracija 026): sve kartice stana, i kad stan nema sadržaj. */}
+          <div className="pa-card" style={{ marginTop: 14, marginBottom: 0, padding: 14, background: 'var(--surface-2)' }}>
+            <label className="pa-row" style={{ fontSize: 14, fontWeight: 650 }}>
+              <input
+                type="checkbox"
+                checked={project.show_all_tabs}
+                disabled={busy === 'demo'}
+                onChange={(e) => {
+                  const show_all_tabs = e.target.checked;
+                  run('demo', async () => {
+                    await api('update', { id, fields: { show_all_tabs } });
+                    setData((d) => (d ? { ...d, project: { ...d.project, show_all_tabs } } : d));
+                    return show_all_tabs
+                      ? 'Prezentacija uključena: svaki stan ima sve kartice (Osnova, 360° tura, 3D osnova, Slike).'
+                      : 'Prezentacija isključena: stan pokazuje samo ono što ima.';
+                  });
+                }}
+              />
+              Prezentacija: prikaži sve kartice stana
+            </label>
+            <p className="pa-hint" style={{ margin: '4px 0 8px' }}>
+              Za pokazivanje investitoru. Stan bez ture dobija demo turu (sa oznakom „Primer ture“), bez slika - rendere zgrade, a 3D osnova
+              oznaku „uskoro“. Za pravi projekat isključite - tada se vidi samo ono što stan stvarno ima.
+            </p>
+            {project.show_all_tabs && (
+              <label className="pa-field" style={{ maxWidth: 360 }}>
+                Demo tura
+                <select
+                  value={project.demo_tour_id ?? ''}
+                  onChange={(e) => {
+                    const demo_tour_id = e.target.value || null;
+                    run('demo', async () => {
+                      await api('update', { id, fields: { demo_tour_id } });
+                      setData((d) => (d ? { ...d, project: { ...d.project, demo_tour_id } } : d));
+                      return 'Demo tura je sačuvana.';
+                    });
+                  }}
+                >
+                  <option value="">— bez demo ture —</option>
+                  {tours
+                    .filter((t) => t.published)
+                    .map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.title || t.slug}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            )}
+          </div>
         </section>
 
         <NearbyPanel

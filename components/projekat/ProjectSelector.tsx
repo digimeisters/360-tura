@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { polygonCenter, UNIT_STATUS_COLORS, type Polygon, type UnitStatus } from '../../app/lib/projects';
 import {
   floorFrom,
@@ -17,6 +17,8 @@ import {
 import { trackSiteEvent } from '../../app/lib/track';
 import PaymentCalculator from './PaymentCalculator';
 import UnitMedia, { UnitRooms } from './UnitMedia';
+import UnitInquiry from './UnitInquiry';
+import type { DemoMedia } from '../../app/lib/projectData';
 
 /**
  * Izbor stana na javnoj strani projekta (/novogradnja/[slug], engleski na
@@ -98,7 +100,6 @@ export type SelectorProject = {
   moveIn: string | null;
 };
 
-type FormState = { kind: 'idle' | 'sending' | 'ok' | 'error'; text: string };
 type SortKey = 'code' | 'building' | 'floor' | 'structure' | 'area' | 'terrace' | 'price' | 'sqm' | 'status';
 
 const PRICE_STEPS = [50_000, 60_000, 70_000, 80_000, 90_000, 100_000, 120_000, 150_000, 200_000, 250_000, 300_000];
@@ -119,7 +120,8 @@ export default function ProjectSelector({
   views = [],
   embedded = false,
   lang = 'sr',
-  letakBase = null
+  letakBase = null,
+  demoMedia = null
 }: {
   project: SelectorProject;
   floors: SelectorFloor[];
@@ -131,6 +133,8 @@ export default function ProjectSelector({
   lang?: ProjectLang;
   /** Npr. „/novogradnja/<slug>/stan" - odatle „/<oznaka>/letak" (PDF letak). Null = bez dugmeta (pregled pre objave). */
   letakBase?: string | null;
+  /** Prezentacija (migracija 026): sve kartice stana, prazne popunjene demo sadržajem. */
+  demoMedia?: DemoMedia | null;
 }) {
   const t = PROJECT_TEXT[lang];
   const isComplex = buildings.length > 1;
@@ -153,8 +157,6 @@ export default function ProjectSelector({
     key: 'floor',
     dir: 1
   });
-  const [asking, setAsking] = useState(false);
-  const [form, setForm] = useState<FormState>({ kind: 'idle', text: '' });
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -164,14 +166,27 @@ export default function ProjectSelector({
     trackSiteEvent('cta_click', trackKey('pv', project.slug));
   }, [project.slug]);
 
+  // „#lista" u adresi (dugme „Lista svih stanova" u vrhu strane) otvara listu.
+  useEffect(() => {
+    const sync = () => {
+      if (window.location.hash === '#lista') setMode('list');
+    };
+    sync();
+    window.addEventListener('hashchange', sync);
+    return () => window.removeEventListener('hashchange', sync);
+  }, []);
+
   const floorById = useMemo(() => new Map(floors.map((f) => [f.id, f])), [floors]);
   const buildingName = (id: string | null) => buildings.find((b) => b.id === id)?.name ?? '';
   const buildingOfUnit = (u: SelectorUnit) => floorById.get(u.floorId)?.buildingId ?? null;
 
-  const structures = useMemo(
-    () => [...new Set(units.map((u) => u.structure).filter((s): s is string => Boolean(s)))].sort((a, b) => a.localeCompare(b, 'sr')),
-    [units]
-  );
+  // Strukture od najmanje ka najvećoj (prosečna kvadratura), ne po abecedi.
+  const structures = useMemo(() => {
+    const avg = new Map<string, number[]>();
+    for (const u of units) if (u.structure) avg.set(u.structure, [...(avg.get(u.structure) ?? []), u.areaSqm ?? 0]);
+    const mean = (k: string) => avg.get(k)!.reduce((a, b) => a + b, 0) / avg.get(k)!.length;
+    return [...avg.keys()].sort((a, b) => mean(a) - mean(b) || a.localeCompare(b, 'sr'));
+  }, [units]);
   // Ponuđeni pragovi samo u opsegu stvarnih cena i kvadratura, da filter ne nudi prazne izbore.
   const priceOptions = useMemo(() => {
     const prices = units.filter((u) => u.status !== 'sold' && u.price).map((u) => u.price as number);
@@ -191,8 +206,9 @@ export default function ProjectSelector({
   const matches = (u: SelectorUnit) =>
     (structure === null || u.structure === structure) &&
     (maxPrice === null || (u.price !== null && u.price <= maxPrice && u.status !== 'sold')) &&
-    (minArea === null || (u.areaSqm !== null && u.areaSqm >= minArea));
-  const anyFilter = structure !== null || maxPrice !== null || minArea !== null;
+    (minArea === null || (u.areaSqm !== null && u.areaSqm >= minArea)) &&
+    (!onlyFree || u.status === 'available');
+  const anyFilter = structure !== null || maxPrice !== null || minArea !== null || onlyFree;
 
   // Trenutna zgrada: spratovi, stanovi i slike samo te lamele.
   const inBuilding = (f: SelectorFloor) => (buildings.length ? f.buildingId === buildingId : true);
@@ -251,10 +267,6 @@ export default function ProjectSelector({
       });
     }
   };
-  const resetForm = () => {
-    setAsking(false);
-    setForm({ kind: 'idle', text: '' });
-  };
   const track = (u: SelectorUnit) => trackSiteEvent('cta_click', trackKey('pu', project.slug, u.code));
 
   const pickBuilding = (bid: string | null) => {
@@ -263,7 +275,6 @@ export default function ProjectSelector({
     setUnitId(null);
     setOnFacade(false);
     setHover(null);
-    resetForm();
     scrollToStage();
   };
   const pickFloor = (fid: string | null) => {
@@ -272,12 +283,10 @@ export default function ProjectSelector({
     setHover(null);
     // Sprat bez osnove ostaje na fasadi - spisak stanova je u panelu.
     setOnFacade(Boolean(fid && !floorById.get(fid)?.planUrl && bViews.length));
-    resetForm();
     scrollToStage();
   };
   const pickUnit = (uid: string | null) => {
     setUnitId(uid);
-    resetForm();
     if (uid) {
       const u = units.find((x) => x.id === uid);
       if (u) track(u);
@@ -290,7 +299,6 @@ export default function ProjectSelector({
     setUnitId(u.id);
     setOnFacade(true);
     setHover(null);
-    resetForm();
     track(u);
     scrollToPanel();
   };
@@ -304,7 +312,6 @@ export default function ProjectSelector({
     // Sprat bez osnove: stan se pokazuje na fasadi (ako lamela ima sliku).
     setOnFacade(!f?.planUrl && views.some((v) => v.kind === 'building' && (buildings.length ? v.buildingId === f?.buildingId : true)));
     setHover(null);
-    resetForm();
     track(u);
     requestAnimationFrame(() =>
       (narrow() ? panelRef : rootRef).current?.scrollIntoView({
@@ -314,93 +321,102 @@ export default function ProjectSelector({
     );
   };
 
-  async function sendInquiry(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!unit || !floor) return;
-    const fd = new FormData(e.currentTarget);
-    setForm({ kind: 'sending', text: t.sending });
-    const where = [isComplex ? buildingName(floor.buildingId) : null, floorLabel(floor.level, floor.label, 'sr')].filter(Boolean).join(' · ');
-    try {
-      const res = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from: 'project',
-          embedded,
-          unitId: unit.id,
-          name: fd.get('name'),
-          contact: fd.get('contact'),
-          agency: project.title,
-          package: `Stan ${unit.code} · ${where} · ${statusLabel(unit.status, 'sr')}`,
-          message: fd.get('message'),
-          lang
-        })
-      });
-      const json = await res.json().catch(() => null);
-      if (!res.ok || !json?.success) {
-        setForm({
-          kind: 'error',
-          text: lang === 'sr' && json?.error ? json.error : t.failed
-        });
-        return;
-      }
-      trackSiteEvent('form_submit', trackKey('pq', project.slug, unit.code));
-      setForm({ kind: 'ok', text: t.sent });
-    } catch {
-      setForm({ kind: 'error', text: t.offline });
-    }
-  }
-
-  const selectFilters = (priceOptions.length > 0 || areaOptions.length > 0) && (
-    <div className="inv-selects">
-      {priceOptions.length > 0 && (
-        <label>
-          {t.priceTo}
-          <select value={maxPrice ?? ''} onChange={(e) => setMaxPrice(e.target.value ? Number(e.target.value) : null)}>
-            <option value="">{t.any}</option>
-            {priceOptions.map((p) => (
-              <option key={p} value={p}>
-                {formatPrice(p, lang)}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-      {areaOptions.length > 0 && (
-        <label>
-          {t.areaFrom}
-          <select value={minArea ?? ''} onChange={(e) => setMinArea(e.target.value ? Number(e.target.value) : null)}>
-            <option value="">{t.any}</option>
-            {areaOptions.map((a) => (
-              <option key={a} value={a}>
-                {formatArea(a, lang)}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-    </div>
+  // ---------- traka filtera: ista za zgradu i za listu ----------
+  const listLevels = [...new Set(floors.map((f) => f.level))].sort((a, b) => a - b);
+  const listOnly = mode === 'list';
+  const activeCount =
+    [structure, maxPrice, minArea].filter((v) => v !== null).length +
+    (onlyFree ? 1 : 0) +
+    (listOnly ? (listFloor !== null ? 1 : 0) + (listBuilding !== null ? 1 : 0) : 0);
+  const resetFilters = () => {
+    setStructure(null);
+    setMaxPrice(null);
+    setMinArea(null);
+    setOnlyFree(false);
+    setListFloor(null);
+    setListBuilding(null);
+  };
+  const pill = (key: string, label: string, value: string, onChange: (v: string) => void, options: { value: string; label: string }[]) => (
+    <label key={key} className={value ? 'inv-pill is-on' : 'inv-pill'}>
+      <span>{label}</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">{t.any}</option>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
-
-  const structureChips = structures.length > 1 && (
-    <div className="inv-chips" role="group" aria-label={t.structure}>
-      <button type="button" className="inv-chip" aria-pressed={structure === null} onClick={() => setStructure(null)}>
-        {t.all}
+  const filterBar = (
+    <div className="inv-fbar" role="group" aria-label={t.filters}>
+      {structures.length > 1 &&
+        pill(
+          'structure',
+          t.structure,
+          structure ?? '',
+          (v) => setStructure(v || null),
+          structures.map((x) => ({ value: x, label: structureText(x, lang) || x }))
+        )}
+      {listOnly &&
+        isComplex &&
+        pill(
+          'building',
+          t.buildingCol,
+          listBuilding ?? '',
+          (v) => setListBuilding(v || null),
+          buildings.map((b) => ({ value: b.id, label: b.name }))
+        )}
+      {listOnly &&
+        listLevels.length > 1 &&
+        pill(
+          'floor',
+          t.floor,
+          listFloor === null ? '' : String(listFloor),
+          (v) => setListFloor(v === '' ? null : Number(v)),
+          listLevels.map((l) => ({ value: String(l), label: floorLabel(l, null, lang) }))
+        )}
+      {priceOptions.length > 0 &&
+        pill(
+          'price',
+          t.priceTo,
+          maxPrice === null ? '' : String(maxPrice),
+          (v) => setMaxPrice(v ? Number(v) : null),
+          priceOptions.map((p) => ({ value: String(p), label: formatPrice(p, lang) }))
+        )}
+      {areaOptions.length > 0 &&
+        pill(
+          'area',
+          t.areaFrom,
+          minArea === null ? '' : String(minArea),
+          (v) => setMinArea(v ? Number(v) : null),
+          areaOptions.map((a) => ({ value: String(a), label: formatArea(a, lang) }))
+        )}
+      <button type="button" className={onlyFree ? 'inv-pill is-on is-toggle' : 'inv-pill is-toggle'} aria-pressed={onlyFree} onClick={() => setOnlyFree((v) => !v)}>
+        <i aria-hidden="true" />
+        {t.onlyFree}
       </button>
-      {structures.map((s) => (
-        <button key={s} type="button" className="inv-chip" aria-pressed={structure === s} onClick={() => setStructure(s)}>
-          {structureText(s, lang)}
+      {activeCount > 0 && (
+        <button type="button" className="inv-reset" onClick={resetFilters}>
+          {t.reset(activeCount)}
         </button>
-      ))}
+      )}
     </div>
   );
 
-  const filters = (
-    <>
-      {structureChips}
-      {selectFilters}
-    </>
-  );
+  // Traka zauzetosti: slobodno / rezervisano / prodato.
+  const occupancy = (list: SelectorUnit[]) => {
+    const n = list.length || 1;
+    const c = (st: UnitStatus) => list.filter((u) => u.status === st).length;
+    return (
+      <span className="inv-occ" aria-hidden="true">
+        <i className="is-s" style={{ width: `${(c('available') / n) * 100}%` }} />
+        <i className="is-r" style={{ width: `${(c('reserved') / n) * 100}%` }} />
+        <i className="is-p" style={{ width: `${(c('sold') / n) * 100}%` }} />
+      </span>
+    );
+  };
 
   const legend = (
     <div className="inv-legend">
@@ -590,7 +606,7 @@ export default function ProjectSelector({
                 className="inv-poly"
                 points={pts(s.polygon)}
                 fill={on || sel ? 'rgba(30,90,168,.45)' : c.fill}
-                fillOpacity={matches(u) ? 1 : 0.35}
+                fillOpacity={matches(u) ? 0.75 : 0.18}
                 stroke={sel || on ? '#1E5AA8' : c.stroke}
                 strokeWidth={sel ? 3 : on ? 2.5 : 1.5}
                 vectorEffect="non-scaling-stroke"
@@ -819,13 +835,26 @@ export default function ProjectSelector({
     </div>
   );
 
+  // Na strani projekta naslov i brojke su već u vrhu strane - ovde samo u ugradnji.
+  const panelHead = (title: string, hint: string, list: SelectorUnit[]) =>
+    embedded ? (
+      <>
+        {projectHead}
+        {statsOf(list)}
+      </>
+    ) : (
+      <div className="inv-phead">
+        <div className="inv-title">{title}</div>
+        <p className="inv-muted">{hint}</p>
+      </div>
+    );
+  const rowFree = (n: number) => <span className={n ? 'inv-badge is-s' : 'inv-badge is-p'}>{n ? t.freeLong(n) : t.none}</span>;
+
   let panel: ReactNode;
   if (atComplex) {
     panel = (
       <>
-        {projectHead}
-        {statsOf(units)}
-        {filters}
+        {panelHead(t.pickBuilding, t.occHint, units)}
         <div className="inv-list">
           {buildings.map((b) => {
             const list = unitsOfBuilding(b.id);
@@ -835,17 +864,19 @@ export default function ProjectSelector({
               <button
                 key={b.id}
                 type="button"
-                className={hover === b.id ? 'inv-row is-hover' : 'inv-row'}
+                className={hover === b.id ? 'inv-frow is-hover' : 'inv-frow'}
                 style={anyFilter && !n ? { opacity: 0.5 } : undefined}
                 onClick={() => pickBuilding(b.id)}
                 onMouseEnter={() => setHover(b.id)}
                 onMouseLeave={() => setHover(null)}
               >
-                <span>
+                <span className="inv-frow-n">{b.name.split(/\s+/).pop()}</span>
+                <span className="inv-frow-main">
                   <b>{b.name}</b>
                   <small>{from ? t.from(formatPrice(from, lang)) : t.unitsCount(list.length)}</small>
+                  {occupancy(list)}
                 </span>
-                <span className={n ? 'inv-badge is-s' : 'inv-badge is-p'}>{n ? t.freeLong(n) : t.none}</span>
+                {rowFree(n)}
               </button>
             );
           })}
@@ -856,16 +887,7 @@ export default function ProjectSelector({
   } else if (!floor) {
     panel = (
       <>
-        {isComplex ? (
-          <>
-            <span className="inv-eyebrow">{project.title}</span>
-            <div className="inv-title">{buildingName(buildingId)}</div>
-          </>
-        ) : (
-          projectHead
-        )}
-        {statsOf(isComplex ? bUnits : units)}
-        {filters}
+        {panelHead(isComplex ? buildingName(buildingId) : t.floorsTitle, t.occHint, isComplex ? bUnits : units)}
         <div className="inv-list">
           {floorsDesc.map((f) => {
             const n = freeOn(f.id);
@@ -874,17 +896,19 @@ export default function ProjectSelector({
               <button
                 key={f.id}
                 type="button"
-                className={hover === f.id ? 'inv-row is-hover' : 'inv-row'}
+                className={hover === f.id ? 'inv-frow is-hover' : 'inv-frow'}
                 style={anyFilter && !n ? { opacity: 0.5 } : undefined}
                 onClick={() => pickFloor(f.id)}
                 onMouseEnter={() => setHover(f.id)}
                 onMouseLeave={() => setHover(null)}
               >
-                <span>
+                <span className="inv-frow-n">{fShort(f.level)}</span>
+                <span className="inv-frow-main">
                   <b>{fName(f)}</b>
                   <small>{from ? t.from(formatPrice(from, lang)) : t.unitsCount(unitsOn(f.id).length)}</small>
+                  {occupancy(unitsOn(f.id))}
                 </span>
-                <span className={n ? 'inv-badge is-s' : 'inv-badge is-p'}>{n ? t.freeLong(n) : t.none}</span>
+                {rowFree(n)}
               </button>
             );
           })}
@@ -898,19 +922,19 @@ export default function ProjectSelector({
         <span className="inv-eyebrow">{[isComplex ? buildingName(floor.buildingId) : null, fName(floor)].filter(Boolean).join(' · ')}</span>
         <div className="inv-title">{t.pickUnit}</div>
         <p className="inv-muted">{floor.planUrl && !onFacade ? t.pickUnitHint : t.pickUnitList}</p>
-        {filters}
         <div className="inv-list">
           {unitsOn(floor.id).map((u) => (
             <button
               key={u.id}
               type="button"
-              className={hover === u.id ? 'inv-row is-hover' : 'inv-row'}
+              className={hover === u.id ? 'inv-frow is-hover' : 'inv-frow'}
               style={{ opacity: matches(u) ? 1 : 0.45 }}
               onClick={() => pickUnit(u.id)}
               onMouseEnter={() => setHover(u.id)}
               onMouseLeave={() => setHover(null)}
             >
-              <span>
+              <span className={`inv-frow-n is-${badgeOf(u.status)}`}>{u.code}</span>
+              <span className="inv-frow-main">
                 <b>
                   {t.unit} {u.code}
                 </b>
@@ -945,7 +969,10 @@ export default function ProjectSelector({
     const sqm = perSqm(unit);
     // Osnova / 3D / slike -> kartice (UnitMedia, u kojima je i 360° tura);
     // bez njih ostaje staro dugme „Prošetajte kroz stan".
-    const hasExtraMedia = Boolean(unit.planUrl || unit.plan3dUrl || unit.photos.length);
+    // Stan bez svoje osnove, a iscrtan na osnovi sprata: isečak osnove sprata.
+    const fallbackPlan = !unit.planUrl && floor.planUrl && unit.polygon ? { src: floor.planUrl, polygon: unit.polygon } : null;
+    const hasExtraMedia = Boolean(demoMedia || unit.planUrl || fallbackPlan || unit.plan3dUrl || unit.photos.length);
+    const unitPage = letakBase ? `${letakBase}/${encodeURIComponent(unit.code)}` : null;
     panel = (
       <>
         <div className="inv-unit-head">
@@ -968,7 +995,14 @@ export default function ProjectSelector({
             tourHref={unit.tourHref}
             code={unit.code}
             lang={lang}
+            fallbackPlan={fallbackPlan}
+            demo={demoMedia}
           />
+        )}
+        {unitPage && (
+          <a className="inv-open" href={unitPage} data-track="cta:project_unit_page">
+            {t.openUnitPage} <span aria-hidden="true">→</span>
+          </a>
         )}
         <div className="inv-facts">
           <div>
@@ -1037,30 +1071,17 @@ export default function ProjectSelector({
           </div>
         )}
 
-        {unit.status !== 'sold' && !asking && form.kind !== 'ok' && (
-          <button type="button" className="inv-cta" onClick={() => setAsking(true)}>
-            {unit.status === 'reserved' ? t.notifyMe : t.ask}
-          </button>
-        )}
-        {asking && form.kind !== 'ok' && (
-          <form className="inv-form" onSubmit={sendInquiry}>
-            <input name="name" type="text" required placeholder={t.name} aria-label={t.name} autoComplete="name" />
-            <input name="contact" type="text" required placeholder={t.contact} aria-label={t.contact} autoComplete="tel" />
-            <textarea
-              name="message"
-              aria-label={t.message}
-              defaultValue={unit.status === 'reserved' ? t.msgReserved(unit.code) : t.msgDefault(unit.code)}
-            />
-            <button type="submit" className="inv-cta" disabled={form.kind === 'sending'}>
-              {form.kind === 'sending' ? t.sending : t.send}
-            </button>
-          </form>
-        )}
-        {form.text && (
-          <p className={form.kind === 'error' ? 'inv-form-msg is-err' : 'inv-form-msg is-ok'} role="status">
-            {form.text}
-          </p>
-        )}
+        <UnitInquiry
+          key={`inq-${unit.id}`}
+          slug={project.slug}
+          projectTitle={project.title}
+          unitId={unit.id}
+          code={unit.code}
+          status={unit.status}
+          where={[isComplex ? buildingName(floor.buildingId) : null, floorLabel(floor.level, floor.label, 'sr')].filter(Boolean).join(' · ')}
+          embedded={embedded}
+          lang={lang}
+        />
         {/* Sa fasade nazad na zgradu, sa osnove na ostale stanove sprata. */}
         <button type="button" className="inv-cta is-out" onClick={() => (onFacade ? pickFloor(null) : pickUnit(null))}>
           {onFacade ? t.backToBuilding : t.otherUnits}
@@ -1070,13 +1091,11 @@ export default function ProjectSelector({
   }
 
   // ---------- lista svih stanova ----------
-  const listLevels = [...new Set(floors.map((f) => f.level))].sort((a, b) => a - b);
   const listUnits = units
     .filter((u) => {
       const f = floorById.get(u.floorId);
       return (
         matches(u) &&
-        (!onlyFree || u.status === 'available') &&
         (listFloor === null || f?.level === listFloor) &&
         (listBuilding === null || f?.buildingId === listBuilding)
       );
@@ -1129,70 +1148,6 @@ export default function ProjectSelector({
 
   const list = (
     <div className="inv-lst">
-      <div className="inv-lst-filters">
-        {structureChips}
-        <div className="inv-selects is-wide">
-          {isComplex && (
-            <label>
-              {t.buildingCol}
-              <select value={listBuilding ?? ''} onChange={(e) => setListBuilding(e.target.value || null)}>
-                <option value="">{t.any}</option>
-                {buildings.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          {listLevels.length > 1 && (
-            <label>
-              {t.floor}
-              <select value={listFloor ?? ''} onChange={(e) => setListFloor(e.target.value === '' ? null : Number(e.target.value))}>
-                <option value="">{t.any}</option>
-                {listLevels.map((l) => (
-                  <option key={l} value={l}>
-                    {floorLabel(l, null, lang)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          {priceOptions.length > 0 && (
-            <label>
-              {t.priceTo}
-              <select value={maxPrice ?? ''} onChange={(e) => setMaxPrice(e.target.value ? Number(e.target.value) : null)}>
-                <option value="">{t.any}</option>
-                {priceOptions.map((p) => (
-                  <option key={p} value={p}>
-                    {formatPrice(p, lang)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          {areaOptions.length > 0 && (
-            <label>
-              {t.areaFrom}
-              <select value={minArea ?? ''} onChange={(e) => setMinArea(e.target.value ? Number(e.target.value) : null)}>
-                <option value="">{t.any}</option>
-                {areaOptions.map((a) => (
-                  <option key={a} value={a}>
-                    {formatArea(a, lang)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          <label className="inv-check">
-            <input type="checkbox" checked={onlyFree} onChange={(e) => setOnlyFree(e.target.checked)} />
-            {t.onlyFree}
-          </label>
-        </div>
-        <p className="inv-muted" aria-live="polite">
-          {t.shownOf(listUnits.length, units.length)}
-        </p>
-      </div>
       {listUnits.length === 0 ? (
         <p className="inv-muted">{t.noMatch}</p>
       ) : (
@@ -1267,8 +1222,12 @@ export default function ProjectSelector({
               {t.tabList} <small>{units.length}</small>
             </button>
           </div>
+          <span className="inv-count" aria-live="polite">
+            {listOnly ? t.shownOf(listUnits.length, units.length) : anyFilter ? t.matchOf(units.filter(matches).length, units.length) : ''}
+          </span>
         </div>
       )}
+      {units.length > 1 && filterBar}
       {mode === 'list' && units.length > 0 ? (
         list
       ) : (

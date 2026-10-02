@@ -58,10 +58,11 @@ export const NEARBY_COLORS: Record<NearbyCategory, string> = {
 
 export const RADIUS_M = 1200;
 
+// 2. 10. 2026: kumi i private.coffee nisu odgovarali (timeout), maps.mail.ru jeste.
 const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.private.coffee/api/interpreter'
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter'
 ];
 const PER_CATEGORY = 3;
 

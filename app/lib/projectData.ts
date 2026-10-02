@@ -38,7 +38,12 @@ export type ProjectPageData = {
   /** Migracija 025: lamele (prazno = jedna zgrada) i slike sa oblicima. */
   buildings: SelectorBuilding[];
   views: SelectorView[];
+  /** Prezentacija (migracija 026): popuna praznih kartica stana; null = prikazuje se samo ono što postoji. */
+  demoMedia: DemoMedia | null;
 };
+
+/** Demo sadržaj za kartice stana kad je projects.show_all_tabs. */
+export type DemoMedia = { tourHref: string | null; photos: string[] };
 
 async function loadProject(db: Db, slug: string, onlyPublished: boolean): Promise<ProjectPageData | null> {
   let query = db.from('projects').select('*').eq('slug', slug);
@@ -61,7 +66,7 @@ async function loadProject(db: Db, slug: string, onlyPublished: boolean): Promis
 
   const tourIds = [
     ...new Set(
-      [...units.map((u) => u.tour_id), ...floors.map((f) => f.view_tour_id), ...progressRows.map((r) => r.tour_id)].filter((x): x is string =>
+      [...units.map((u) => u.tour_id), ...floors.map((f) => f.view_tour_id), ...progressRows.map((r) => r.tour_id), p.demo_tour_id].filter((x): x is string =>
         Boolean(x)
       )
     )
@@ -153,7 +158,11 @@ async function loadProject(db: Db, slug: string, onlyPublished: boolean): Promis
     units: selectorUnits,
     progress,
     buildings: buildings.map((b) => ({ id: b.id, name: b.name })),
-    views
+    views,
+    // Slike stana za prezentaciju = renderi zgrade (bez duplikata).
+    demoMedia: p.show_all_tabs
+      ? { tourHref: href(p.demo_tour_id), photos: [...new Set(views.filter((v) => v.kind === 'building').map((v) => v.imageUrl))].slice(0, 12) }
+      : null
   };
 }
 

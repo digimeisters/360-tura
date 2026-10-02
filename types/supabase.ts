@@ -612,6 +612,7 @@ export type Database = {
           contact_email: string | null
           contact_phone: string | null
           created_at: string
+          demo_tour_id: string | null
           description: string | null
           description_en: string | null
           developer_name: string | null
@@ -624,6 +625,7 @@ export type Database = {
           nearby_updated_at: string | null
           notify_sales: boolean
           published: boolean
+          show_all_tabs: boolean
           slug: string
           title: string
           title_en: string | null
@@ -635,6 +637,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
+          demo_tour_id?: string | null
           description?: string | null
           description_en?: string | null
           developer_name?: string | null
@@ -647,6 +650,7 @@ export type Database = {
           nearby_updated_at?: string | null
           notify_sales?: boolean
           published?: boolean
+          show_all_tabs?: boolean
           slug: string
           title: string
           title_en?: string | null
@@ -658,6 +662,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
+          demo_tour_id?: string | null
           description?: string | null
           description_en?: string | null
           developer_name?: string | null
@@ -670,12 +675,21 @@ export type Database = {
           nearby_updated_at?: string | null
           notify_sales?: boolean
           published?: boolean
+          show_all_tabs?: boolean
           slug?: string
           title?: string
           title_en?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_demo_tour_id_fkey"
+            columns: ["demo_tour_id"]
+            isOneToOne: false
+            referencedRelation: "tours"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rooms: {
         Row: {

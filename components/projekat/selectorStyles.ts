@@ -248,4 +248,99 @@ export const SELECTOR_STYLES = `
     .inv-lst-table td.is-status{justify-content:flex-end; grid-column:2; grid-row:1;}
     .inv-lst-filters{padding:.7rem .75rem;}
   }
+  /* ===== Dizajn 2 (2. 10. 2026): traka filtera, redovi sa zauzetošću, bez okvira u okviru ===== */
+  .inv-demo{padding:clamp(.9rem,2.2vw,1.5rem); border-radius:30px; box-shadow:0 30px 60px -30px rgba(17,24,39,.28), 0 2px 6px rgba(17,24,39,.05);}
+  .inv-modebar{flex-wrap:wrap; margin-bottom:.9rem;}
+  .inv-modebar .inv-tabs{margin-bottom:0;}
+  .inv-count{font-size:.82rem; font-weight:600; color:#6B7280;}
+  .inv-grid{gap:clamp(1rem,2vw,1.6rem);}
+  .inv-stage{border:0; padding:0; border-radius:0;}
+  /* Računar: slika ostaje na ekranu dok se spisak spratova pomera. */
+  @media (min-width:961px){ .inv-grid > .inv-stage{position:sticky; top:88px;} }
+  .inv-stagehd{min-height:40px; margin-bottom:.2rem;}
+  .inv-stagehd h3{font-size:1.3rem; letter-spacing:-.01em;}
+  .inv-imgbox{border-radius:22px; box-shadow:0 12px 30px -18px rgba(17,24,39,.45);}
+  .inv-panel{border:0; background:#F4F7FB; border-radius:24px; padding:1.1rem;}
+  .inv-phead{margin:.1rem .2rem .9rem;}
+  .inv-phead .inv-title{font-size:1.35rem; margin-top:0;}
+  .inv-panel > .inv-title{font-size:1.45rem;}
+  .inv-list{gap:8px;}
+  .inv-legend{gap:.5rem;}
+  .inv-legend span{display:inline-flex; align-items:center; background:#F4F7FB; border-radius:999px; padding:.3rem .7rem; font-weight:600;}
+  .inv-legend i{border-radius:50%; width:10px; height:10px;}
+
+  /* Traka filtera: „pilule" sa padajućim izborom + prekidač „samo slobodni". */
+  .inv-fbar{display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:0 0 1rem; margin:0 0 1.1rem; border-bottom:1px solid #EAEFF6;}
+  .inv-pill{position:relative; display:inline-flex; align-items:center; gap:.35rem; height:42px; padding:0 .35rem 0 .95rem; border:1.5px solid #DCE3EE; border-radius:999px; background:#FFFFFF; font-size:.86rem; color:#111113; transition:border-color .15s, background .15s; cursor:pointer;}
+  .inv-pill:hover{border-color:#9DBBE3;}
+  .inv-pill > span{font-weight:600; color:#6B7280; white-space:nowrap;}
+  .inv-pill select{appearance:none; -webkit-appearance:none; border:0; background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%23111113' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right .55rem center; font:inherit; font-weight:750; color:#111113; padding:0 1.7rem 0 .1rem; height:100%; cursor:pointer; outline:none; max-width:11rem;}
+  .inv-pill select:focus-visible{box-shadow:0 0 0 2px #9DBBE3; border-radius:8px;}
+  .inv-pill.is-on{border-color:#1E5AA8; background:#EEF4FC;}
+  .inv-pill.is-on > span{color:#1E5AA8;}
+  .inv-pill.is-toggle{padding:0 1rem 0 .7rem; gap:.55rem; font:inherit; font-size:.86rem; font-weight:700; color:#374151;}
+  .inv-pill.is-toggle i{position:relative; width:30px; height:18px; border-radius:999px; background:#D5DEEB; transition:background .15s; flex:none;}
+  .inv-pill.is-toggle i::after{content:""; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:#FFFFFF; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:transform .15s;}
+  .inv-pill.is-toggle.is-on{color:#1E5AA8;}
+  .inv-pill.is-toggle.is-on i{background:#2E9E5B;}
+  .inv-pill.is-toggle.is-on i::after{transform:translateX(12px);}
+  .inv-reset{border:0; background:transparent; color:#1E5AA8; font-weight:750; font-size:.86rem; padding:.5rem .6rem; border-radius:999px; min-height:42px;}
+  .inv-reset:hover{background:#EEF4FC;}
+  @media (max-width:700px){
+    .inv-fbar{flex-wrap:nowrap; overflow-x:auto; margin-inline:calc(-1 * clamp(.9rem,2.2vw,1.5rem)); padding-inline:clamp(.9rem,2.2vw,1.5rem); scrollbar-width:none; -webkit-overflow-scrolling:touch;}
+    .inv-fbar::-webkit-scrollbar{display:none;}
+    .inv-pill, .inv-reset{flex:none;}
+    .inv-modebar{gap:.4rem;}
+  }
+
+  /* Red sprata / lamele / stana: broj, naziv + cena, traka zauzetosti, slobodni. */
+  .inv-frow{display:grid; grid-template-columns:44px minmax(0,1fr) auto; align-items:center; gap:12px; width:100%; padding:.6rem .75rem .6rem .6rem; border:1px solid transparent; border-radius:16px; background:#FFFFFF; color:#111113; text-align:left; box-shadow:0 1px 2px rgba(16,24,40,.06); transition:border-color .15s, box-shadow .15s, transform .15s;}
+  .inv-frow:hover, .inv-frow.is-hover{border-color:#9DBBE3; box-shadow:0 8px 20px -12px rgba(30,90,168,.45); transform:translateY(-1px);}
+  .inv-frow:focus-visible{outline:2px solid #1E5AA8; outline-offset:2px;}
+  .inv-frow-n{display:grid; place-items:center; width:44px; height:44px; border-radius:13px; background:#EEF4FC; color:#1E5AA8; font-family:var(--font-display); font-weight:800; font-size:1.02rem; letter-spacing:-.01em;}
+  .inv-frow-n.is-s{background:#DCF3E4; color:#1F7A45;}
+  .inv-frow-n.is-r{background:#FCEFD3; color:#9A6A0B;}
+  .inv-frow-n.is-p{background:#ECECEC; color:#6B6B6B;}
+  .inv-frow-main{min-width:0;}
+  .inv-frow-main b{display:block; font-family:var(--font-display); font-size:.95rem; line-height:1.2;}
+  .inv-frow-main small{display:block; color:#6B7280; font-size:.79rem; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .inv-occ{display:flex; height:5px; border-radius:999px; overflow:hidden; background:#EEF2F8; margin-top:7px; max-width:180px;}
+  .inv-occ i{display:block; height:100%;}
+  .inv-occ i.is-s{background:#2E9E5B;} .inv-occ i.is-r{background:#D99A1E;} .inv-occ i.is-p{background:#C4C7CE;}
+
+  /* Kartica stana: mekše površine u panelu. */
+  .inv-panel .inv-facts > div{background:#FFFFFF;}
+  .inv-panel .inv-price{border-color:#E3E9F2;}
+  .inv-panel .inv-um-stage, .inv-panel .inv-pdf, .inv-panel .inv-pay{border-color:#DCE3EE;}
+  /* Isečak osnove sprata = osnova stana (UnitPlanCrop). */
+  .inv-crop{display:flex; justify-content:center; align-items:center; background:#FFFFFF; padding:8px; min-height:120px;}
+  .inv-crop-box{position:relative; overflow:hidden; max-width:100%; border-radius:6px;}
+  .inv-crop-box img{position:absolute; max-width:none; height:auto; display:block;}
+  .inv-crop-box svg{position:absolute; inset:0; width:100%; height:100%; pointer-events:none;}
+  .inv-crop.is-tall{padding:clamp(10px,2vw,22px);}
+
+  /* Link „Otvori stranu stana" u kartici. */
+  .inv-open{display:flex; justify-content:space-between; align-items:center; gap:.6rem; margin:.7rem 0 0; padding:.7rem .95rem; border-radius:14px; background:#1E5AA8; color:#FFFFFF; font-weight:750; font-size:.9rem; text-decoration:none; transition:background .15s;}
+  .inv-open:hover{background:#174A8C;}
+  .inv-open span{font-size:1.1rem;}
+
+  /* Strana stana: kartice kao velika dugmad preko cele širine (kao Sokolis). */
+  .inv-um.is-large .inv-um-tabs{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; background:transparent; padding:0; margin-bottom:12px; overflow:visible;}
+  .inv-um.is-large .inv-um-tabs button{min-height:48px; border-radius:14px; background:#111113; color:#FFFFFF; font-size:.92rem; font-weight:700; box-shadow:none;}
+  .inv-um.is-large .inv-um-tabs button[aria-selected="true"]{background:#EEF2F8; color:#111113;}
+  .inv-um.is-large .inv-um-tabs button:hover{filter:brightness(1.15);}
+  .inv-um.is-large .inv-um-stage{border:0; border-radius:18px;}
+  .inv-um.is-large .inv-um-img{height:min(68vh,640px);}
+  .inv-um.is-large .inv-um-stage iframe{height:min(70vh,660px);}
+  @media (max-width:700px){
+    .inv-um.is-large .inv-um-tabs{grid-template-columns:1fr 1fr;}
+    .inv-um.is-large .inv-um-img{height:52vh;}
+    .inv-um.is-large .inv-um-stage iframe{height:60vh;}
+  }
+  /* Prezentacija (migracija 026): prazna kartica i oznaka demo ture. */
+  .inv-um-soon{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.35rem; height:240px; background:repeating-linear-gradient(135deg,#F6F8FC 0 14px,#EEF2F8 14px 28px); color:#5B5D63; text-align:center; padding:1rem;}
+  .inv-um-soon b{font-family:var(--font-display); font-size:1.05rem; color:#111113;}
+  .inv-um-soon small{font-size:.82rem; font-weight:600;}
+  .inv-um.is-large .inv-um-soon{height:min(52vh,460px);}
+  .inv-um-demo{position:absolute; left:10px; top:58px; background:rgba(15,23,42,.72); color:#fff; font-size:.7rem; font-weight:800; letter-spacing:.04em; text-transform:uppercase; border-radius:999px; padding:.3rem .65rem; pointer-events:none;}
 `;
