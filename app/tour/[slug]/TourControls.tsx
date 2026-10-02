@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { THEME, GLASS, GLASS_ACCENT, FILL_ACCENT, FILL_ACCENT_EDGE, FILL_ACTIVE_ICON, FILL_GLASS_ACCENT, overlayIconStyle, SCREEN_BOTTOM, ABOVE_MENU_BOTTOM, MENU_HEIGHT } from './theme';
-import { IconCheck, IconCollapse, IconCompass, IconExpand, IconHand, IconHeadphones, IconMute, IconPause, IconPlay, IconShare, IconSound } from './icons';
+import { IconCheck, IconCompass, IconExpand, IconHand, IconHeadphones, IconMute, IconPause, IconPlay, IconShare, IconSound } from './icons';
 import type { Language } from './types';
 import { toSubtitleCues } from './subtitleCues';
 
@@ -116,6 +116,143 @@ export function TourTitleCard({
   );
 }
 
+/** Koliko dugo se posle uključivanja vidi natpis pre nego što ostane samo ✕. */
+const ACTIVE_LABEL_MS = 2500;
+
+/**
+ * Uključeno stanje (žiroskop, ceo ekran): dugme se prvo raširi u plavu
+ * pilulu sa natpisom i ✕ (posetilac vidi šta je uključio i kako se izlazi),
+ * a posle ACTIVE_LABEL_MS se lagano skupi u plavi krug sa ✕ - da ne
+ * zaklanja panoramu (vlasnik, 2. 10. 2026). Nova komponenta pri svakom
+ * uključivanju, pa natpis kreće ispočetka.
+ */
+function ActiveStateButton({
+  icon,
+  labels,
+  onClose
+}: {
+  icon: React.ReactNode;
+  labels: { on: string; off: string };
+  onClose: () => void;
+}) {
+  const [expanded, setExpanded] = useState(true);
+  useEffect(() => {
+    const id = window.setTimeout(() => setExpanded(false), ACTIVE_LABEL_MS);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  return (
+    <button
+      onClick={onClose}
+      className="k360-active-pill"
+      title={labels.off}
+      aria-label={labels.off}
+      aria-pressed
+      style={{
+        ...overlayIconStyle,
+        ...FILL_GLASS_ACCENT,
+        width: 'auto',
+        minWidth: '44px',
+        gap: expanded ? '8px' : 0,
+        padding: expanded ? '0 6px 0 12px' : '0 6px',
+        borderRadius: '999px',
+        border: '1px solid rgba(255, 255, 255, 0.35)',
+        fontFamily: THEME.fontBody,
+        fontSize: '13px',
+        fontWeight: 700,
+        whiteSpace: 'nowrap',
+        transition: 'padding 0.3s ease, gap 0.3s ease'
+      }}
+    >
+      {/* Natpis se skuplja (širina + providnost), ne nestaje naglo. */}
+      <span
+        aria-hidden="true"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          overflow: 'hidden',
+          maxWidth: expanded ? '180px' : 0,
+          opacity: expanded ? 1 : 0,
+          transition: 'max-width 0.3s ease, opacity 0.2s ease'
+        }}
+      >
+        {icon}
+        <span>{labels.on}</span>
+      </span>
+      <span aria-hidden="true" style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '19px', lineHeight: 1, flex: 'none' }}>×</span>
+    </button>
+  );
+}
+
+/**
+ * Dugme vodič/sami. Pri svakoj promeni režima (dugmetom, ili kad posetilac
+ * sam klikne sobu pa vodič stane) dugme se na ACTIVE_LABEL_MS raširi i kaže
+ * u kom je režimu - same ikonice (slušalice, ruka) nisu svima jasne. Bez ✕:
+ * ovo bira način razgledanja, ne gasi nešto (vlasnik, 2. 10. 2026). Pri
+ * prvom crtanju se natpis ne pokazuje - samo na promenu.
+ */
+function ModeButton({
+  guideMode,
+  labels,
+  title,
+  onToggle
+}: {
+  guideMode: 'auto' | 'manual';
+  labels: { guide: string; self: string };
+  title: string;
+  onToggle: () => void;
+}) {
+  const [flash, setFlash] = useState(false);
+  const firstRef = useRef(true);
+  useEffect(() => {
+    if (firstRef.current) {
+      firstRef.current = false;
+      return;
+    }
+    setFlash(true);
+    const id = window.setTimeout(() => setFlash(false), ACTIVE_LABEL_MS);
+    return () => window.clearTimeout(id);
+  }, [guideMode]);
+
+  const auto = guideMode === 'auto';
+  return (
+    <button
+      onClick={onToggle}
+      title={title}
+      aria-label={title}
+      aria-pressed={auto}
+      style={{
+        ...overlayIconStyle,
+        ...(auto ? FILL_ACTIVE_ICON : {}),
+        width: 'auto',
+        minWidth: '44px',
+        gap: flash ? '8px' : 0,
+        padding: flash ? '0 14px 0 12px' : 0,
+        borderRadius: '999px',
+        fontFamily: THEME.fontBody,
+        fontSize: '13px',
+        fontWeight: 700,
+        whiteSpace: 'nowrap',
+        transition: 'padding 0.3s ease, gap 0.3s ease'
+      }}
+    >
+      {auto ? <IconHeadphones size={21} /> : <IconHand size={21} />}
+      <span
+        aria-live="polite"
+        style={{
+          overflow: 'hidden',
+          maxWidth: flash ? '180px' : 0,
+          opacity: flash ? 1 : 0,
+          transition: 'max-width 0.3s ease, opacity 0.2s ease'
+        }}
+      >
+        {auto ? labels.guide : labels.self}
+      </span>
+    </button>
+  );
+}
+
 /**
  * Uspravna dugmad uz desnu ivicu: ceo ekran (gde ga pregledač podržava -
  * iPhone ga nema), žiroskop (telefoni i tableti), zvuk i vodič/ručno.
@@ -124,28 +261,37 @@ export function OverlayButtons({
   isFullscreen,
   canFullscreen,
   onToggleFullscreen,
+  fullscreenLabels,
   isGyroActive,
   canGyro,
   onToggleGyroscope,
+  gyroLabels,
   isMuted,
   onToggleMute,
   hasGuide,
   guideMode,
   onToggleGuideMode,
+  modeLabels,
   isGuidePaused,
   onTogglePauseGuide
 }: {
   isFullscreen: boolean;
   canFullscreen: boolean;
   onToggleFullscreen: () => void;
+  /** Natpis pilule u celom ekranu i tekst za ✕. */
+  fullscreenLabels: { on: string; off: string };
   isGyroActive: boolean;
   canGyro: boolean;
   onToggleGyroscope: () => void;
+  /** Natpis na raširenom dugmetu dok je žiroskop uključen, i tekst za ✕. */
+  gyroLabels: { on: string; off: string };
   isMuted: boolean;
   onToggleMute: () => void;
   hasGuide: boolean;
   guideMode: 'auto' | 'manual';
   onToggleGuideMode: () => void;
+  /** Natpis koji se kratko pokaže pri promeni režima (vidi ModeButton). */
+  modeLabels: { guide: string; self: string };
   isGuidePaused: boolean;
   onTogglePauseGuide: () => void;
 }) {
@@ -164,31 +310,41 @@ export function OverlayButtons({
         marginRight: '4px',
         display: 'flex',
         flexDirection: 'column',
+        // Raširen žiroskop (pilula) raste ulevo; okrugla dugmad ostaju uz desnu ivicu.
+        alignItems: 'flex-end',
         gap: '8px',
         pointerEvents: 'auto'
       }}
     >
-      {canFullscreen && (
+      {/* Ceo ekran isto kao žiroskop: u celom ekranu pilula sa natpisom, pa ✕. */}
+      {canFullscreen && !isFullscreen && (
         <button
           onClick={onToggleFullscreen}
           style={overlayIconStyle}
-          title={isFullscreen ? 'Napusti ceo ekran' : 'Ceo ekran'}
-          aria-label={isFullscreen ? 'Napusti ceo ekran' : 'Ceo ekran'}
+          title={fullscreenLabels.on}
+          aria-label={fullscreenLabels.on}
         >
-          {isFullscreen ? <IconCollapse size={21} /> : <IconExpand size={21} />}
+          <IconExpand size={21} />
         </button>
       )}
+      {canFullscreen && isFullscreen && (
+        <ActiveStateButton icon={<IconExpand size={19} />} labels={fullscreenLabels} onClose={onToggleFullscreen} />
+      )}
 
-      {canGyro && (
+      {/* Dok je žiroskop uključen: pilula sa natpisom, pa samo ✕ - vidi ActiveStateButton. */}
+      {canGyro && !isGyroActive && (
         <button
           onClick={onToggleGyroscope}
-          style={{ ...overlayIconStyle, ...(isGyroActive ? FILL_ACTIVE_ICON : {}) }}
-          title={isGyroActive ? 'Ugasi razgledanje pomeranjem telefona' : 'Razgledajte pomeranjem telefona'}
-          aria-label={isGyroActive ? 'Ugasi razgledanje pomeranjem telefona' : 'Razgledajte pomeranjem telefona'}
-          aria-pressed={isGyroActive}
+          style={overlayIconStyle}
+          title="Razgledajte pomeranjem telefona"
+          aria-label="Razgledajte pomeranjem telefona"
+          aria-pressed={false}
         >
           <IconCompass size={21} />
         </button>
+      )}
+      {canGyro && isGyroActive && (
+        <ActiveStateButton icon={<IconCompass size={19} />} labels={gyroLabels} onClose={onToggleGyroscope} />
       )}
 
       <button
@@ -213,15 +369,7 @@ export function OverlayButtons({
       )}
 
       {hasGuide && (
-        <button
-          onClick={onToggleGuideMode}
-          style={{ ...overlayIconStyle, ...(guideMode === 'auto' ? FILL_ACTIVE_ICON : {}) }}
-          title={guideTitle}
-          aria-label={guideTitle}
-          aria-pressed={guideMode === 'auto'}
-        >
-          {guideMode === 'auto' ? <IconHeadphones size={21} /> : <IconHand size={21} />}
-        </button>
+        <ModeButton guideMode={guideMode} labels={modeLabels} title={guideTitle} onToggle={onToggleGuideMode} />
       )}
     </div>
   );

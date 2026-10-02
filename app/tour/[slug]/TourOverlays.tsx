@@ -26,6 +26,9 @@ export function TourGlobalStyles() {
       .k360-fade-ui { transition: opacity 0.25s ease; }
       .k360-fade-ui.is-immersive { opacity: 0; }
       .k360-fade-ui.is-immersive, .k360-fade-ui.is-immersive * { pointer-events: none !important; }
+      /* Žiroskop/ceo ekran uključen: dugme se raširi u pilulu - blago "izraste" iz kruga (ActiveStateButton). */
+      @keyframes k360ActivePill { from { opacity: 0; transform: scale(0.85); transform-origin: right center; } to { opacity: 1; transform: none; } }
+      .k360-active-pill { animation: k360ActivePill 0.22s ease-out both; transform-origin: right center; }
       /* Titl uz glas: svaka nova rečenica se blago pojavi (NarrationSubtitles). */
       @keyframes k360SubtitleIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
       .k360-subtitle { animation: k360SubtitleIn 0.22s ease-out both; }
@@ -36,7 +39,7 @@ export function TourGlobalStyles() {
       .k360-voice-wave i:nth-child(3) { animation-delay: 0.3s; }
       .k360-voice-wave i:nth-child(4) { animation-delay: 0.45s; }
       @keyframes k360Wave { 0%, 100% { height: 4px; } 50% { height: 11px; } }
-      @media (prefers-reduced-motion: reduce) { .k360-top-ui { transition: none; } .k360-subtitle, .k360-voice-wave i { animation: none; } }
+      @media (prefers-reduced-motion: reduce) { .k360-top-ui { transition: none; } .k360-subtitle, .k360-voice-wave i, .k360-active-pill { animation: none; } }
       @media (min-width: 1024px) {
         .tour-ui-scale { zoom: 1.122; }
         /* Zoom ide na unutrašnji omotač (.k360-hotspot-scale), NE na

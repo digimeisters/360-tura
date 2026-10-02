@@ -1059,6 +1059,9 @@ export default function TourPage() {
             isGyroActive={isGyroActive}
             canGyro={canGyro}
             onToggleGyroscope={toggleGyroscope}
+            gyroLabels={{ on: t.gyroOn, off: t.gyroOff }}
+            fullscreenLabels={{ on: t.fullscreenOn, off: t.fullscreenOff }}
+            modeLabels={{ guide: t.modeGuide, self: t.modeSelf }}
             isMuted={isMuted}
             onToggleMute={toggleMute}
             hasGuide={hasGuide}
