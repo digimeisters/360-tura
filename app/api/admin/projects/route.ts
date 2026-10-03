@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+import sharp from 'sharp';
+import { Type, type Schema } from '@google/genai';
+import { GEMINI_FALLBACK_MODEL, GEMINI_MODEL, generateJsonWithRetry, TEMP_EXTRACT } from '@/app/lib/gemini';
 import { revalidateProject } from '@/app/lib/revalidateProject';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { requireAdmin } from '@/app/lib/adminAuth';
@@ -74,6 +77,70 @@ const PROJECT_FIELDS: Record<string, number> = {
   title_en: 120,
   description_en: 2000
 };
+
+/** Osnova stana (JPG/PNG) za AI čitanje prostorija: preuzme, smanji na razumnu širinu, PNG (oštrije linije i brojevi od JPEG-a). */
+async function fetchPlanImage(url: string): Promise<{ contentType: string; base64: string }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status} pri preuzimanju slike.`);
+    const buf = Buffer.from(await res.arrayBuffer());
+    const resized = await sharp(buf, { limitInputPixels: false }).resize({ width: 1800, withoutEnlargement: true }).png().toBuffer();
+    return { contentType: 'image/png', base64: resized.toString('base64') };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function roomsFromPlanSchema(): Schema {
+  return {
+    type: Type.OBJECT,
+    properties: {
+      rooms: {
+        type: Type.ARRAY,
+        description: 'Jedna prostorija po redu, redom kako se čita osnova (ne abecedno).',
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            name: { type: Type.STRING, description: 'Naziv prostorije na srpskom.' },
+            dims: { type: Type.STRING, description: 'Mere pročitane sa osnove, u metrima, npr. "4,57 × 3,03"; prazno ako je kvadratura odštampana na osnovi.' },
+            m2: { type: Type.NUMBER, description: 'Površina prostorije u m², zaokružena na 2 decimale.' }
+          },
+          required: ['name', 'dims', 'm2']
+        }
+      }
+    },
+    required: ['rooms']
+  };
+}
+
+/** Prompt za čitanje osnove stana: linije sa merama u mm, legenda tipova prostorija, ponekad već odštampana kvadratura. */
+function buildRoomsFromPlanPrompt(areaSqm: number | null): string {
+  return `You are reading an architectural floor plan of ONE apartment (not a whole floor, not a building).
+
+The plan may show:
+- wall dimension lines with numbers along room edges, in CENTIMETERS or MILLIMETERS - infer the unit from the size: a room wall written as 300-800 is centimeters, 3000-8000 is millimeters
+- a legend mapping numbers to room types (e.g. 1 = Kitchen/Living room, 2 = Bedroom, 3 = WC, 4 = Bathroom, 5 = Hall, 6 = Balcony/Terrace, 7 = Corridor, 8 = Stairs, 9 = Lift, 10 = Technical room)
+- furniture icons (bed, sofa, sink, stove...) that also hint at room use
+- sometimes an area already printed inside a room (e.g. "15,2 m²") - if present, PREFER that printed number over computing one yourself
+
+For EVERY room that belongs to THIS apartment (inside its own walls), output one entry with:
+- "dims": the two dimensions you read for that room, converted to meters with a comma decimal, e.g. "4,57 × 3,03" (empty string if you used an area printed on the plan). Read the numbers that sit on THIS room's own edges - not a neighbour's.
+- "name": the room's purpose, in SERBIAN. Use these exact terms when they apply: "Dnevna soba sa kuhinjom i trpezarijom" (or "Dnevna soba sa kuhinjom" if there is no separate dining area), "Spavaća soba", "Kupatilo", "Toalet", "Hodnik", "Ostava", "Terasa", "Balkon", "Radna soba", "Garderober". Use a plain descriptive Serbian name for anything else.
+- "m2": the room's floor area in square meters = the product of "dims" for a rectangular room (best effort for an irregular one), rounded to 2 decimals. Double-check the multiplication.
+
+Rules:
+- Skip anything that is NOT part of this apartment: shared building stairs, shared elevator/lift, shared corridors used by other apartments, technical risers belonging to the building. Only include a private hallway/corridor if it is clearly inside this apartment's own walls.
+- If the same room type appears more than once (e.g. two bedrooms), output each one as its own entry with the same name - do not merge them.
+- Do not output a "total" row - it is computed separately.
+- Every room and every number must come from something actually visible in the image. Never invent a room or a dimension that is not shown, and never guess when the image is unreadable - return fewer rooms instead.${
+    areaSqm ? `
+- The apartment's total area from the listing is about ${areaSqm} m² - use it only as a sanity check, not as a target to force the sum to match.` : ''
+  }
+
+Respond with JSON matching the schema exactly.`;
+}
 
 function refresh(slug?: string | null) {
   if (!slug) return;
@@ -223,6 +290,37 @@ export async function POST(req: Request) {
         if (error) return fail(error.message, 500);
         refresh(data.slug);
         return NextResponse.json({ success: true, coords });
+      }
+
+      // AI čitanje osnove stana: iz slike sa merama u mm predlaže spisak
+      // prostorija i kvadraturu (draft - admin ga proverava pre čuvanja).
+      case 'rooms-from-plan': {
+        const projectId = text(body.projectId, 40);
+        const imageUrl = text(body.imageUrl, 600);
+        if (!projectId || !imageUrl || !/^https:\/\//.test(imageUrl)) return fail('Nedostaje slika osnove.');
+        const areaSqm = num(body.areaSqm);
+        try {
+          const image = await fetchPlanImage(imageUrl);
+          // Flash čita mere tačno (test 3. 10. 2026: 8/8 prostorija); Lite uzima mere
+          // susednih prostorija, pa je samo rezerva kad je Flash preopterećen (503).
+          const { data, usedModel } = await generateJsonWithRetry<{ rooms: { name: string; dims?: string; m2: number }[] }>({
+            contents: [{ inlineData: { mimeType: image.contentType, data: image.base64 } }, { text: buildRoomsFromPlanPrompt(areaSqm) }],
+            config: { responseMimeType: 'application/json', responseSchema: roomsFromPlanSchema(), temperature: TEMP_EXTRACT },
+            model: GEMINI_FALLBACK_MODEL,
+            fallbackModel: GEMINI_MODEL,
+            timeoutMs: 14_000,
+            attempts: 2,
+            label: 'rooms-from-plan'
+          });
+          const rooms = cleanRooms(data.rooms);
+          if (!rooms.length) return fail('AI nije prepoznao nijednu prostoriju na ovoj slici. Probajte jasniju sliku osnove ili unesite prostorije ručno.');
+          // Pročitane mere, istim redom - admin ih poredi sa osnovom pre čuvanja.
+          const dims = (data.rooms ?? []).slice(0, rooms.length).map((r) => (typeof r.dims === 'string' ? r.dims.slice(0, 40) : ''));
+          return NextResponse.json({ success: true, rooms, dims, backup: usedModel !== GEMINI_FALLBACK_MODEL });
+        } catch (err) {
+          console.error('[api/admin/projects] rooms-from-plan', err);
+          return fail('Čitanje osnove trenutno nije uspelo. Pokušajte ponovo ili unesite prostorije ručno.', 502);
+        }
       }
 
       // Okolina na mapi (OpenStreetMap/Overpass, migracija 022). Bez

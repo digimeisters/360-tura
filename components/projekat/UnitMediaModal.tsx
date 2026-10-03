@@ -72,6 +72,26 @@ export default function UnitMediaModal({
     run(label, async () => onUrl(await upload(file, 'unit')));
   };
 
+  const aiFillRooms = () => {
+    if (!planUrl) return;
+    if (roomsText.trim() && !window.confirm('Ovo zamenjuje unetu listu prostorija predlogom AI-ja pročitanim sa osnove. Nastaviti?')) return;
+    run('ai-rooms', async () => {
+      const json = await api('rooms-from-plan', { projectId, imageUrl: planUrl, areaSqm: unit.area_sqm });
+      const rooms = cleanRooms(json.rooms);
+      const dims = Array.isArray(json.dims) ? (json.dims as string[]) : [];
+      setRoomsText(roomsToText(rooms));
+      // Pročitane mere uz svaku prostoriju - brza provera uz osnovu pre čuvanja.
+      const lines = rooms.map((r, i) => `${r.name}${dims[i] ? `: ${dims[i]}` : ''} = ${String(r.m2).replace('.', ',')} m²`);
+      return [
+        `AI je pročitao ${rooms.length} ${rooms.length === 1 ? 'prostoriju' : 'prostorija'} sa osnove. Uporedite mere sa osnovom pa kliknite „Sačuvaj“:`,
+        ...lines,
+        json.backup ? 'Glavni model je bio zauzet, pa je čitao rezervni - proverite mere posebno pažljivo.' : ''
+      ]
+        .filter(Boolean)
+        .join('\n');
+    });
+  };
+
   const save = () =>
     run('save', async () => {
       if (parsed.errors.length) throw new Error(parsed.errors.slice(0, 3).join('\n'));
@@ -180,8 +200,21 @@ export default function UnitMediaModal({
         </div>
 
         <div className="um-block">
-          <b>Prostorije i kvadratura</b>
-          <small>Jedan red = jedna prostorija, kvadratura na kraju. Može da se nalepi iz Excela ili sa osnove arhitekte.</small>
+          <div className="pa-row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <b>Prostorije i kvadratura</b>
+              <small style={{ display: 'block' }}>Jedan red = jedna prostorija, kvadratura na kraju. Može da se nalepi iz Excela ili sa osnove arhitekte.</small>
+            </div>
+            <button
+              type="button"
+              className="pa-btn"
+              disabled={!planUrl || Boolean(busy)}
+              title={planUrl ? 'Čita mere sa otpremljene osnove stana i predlaže prostorije - proverite pre čuvanja' : 'Prvo otpremite osnovu stana gore'}
+              onClick={aiFillRooms}
+            >
+              {busy === 'ai-rooms' ? 'Čitam osnovu…' : '✨ Popuni iz osnove'}
+            </button>
+          </div>
           <textarea
             value={roomsText}
             onChange={(e) => setRoomsText(e.target.value)}

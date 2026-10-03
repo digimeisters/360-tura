@@ -130,6 +130,8 @@ Stan bez oblika na osnovi se i dalje bira iz spiska pored osnove, samo se ne mo�
 
 ## 5a. Detalji stana: osnova, 3D osnova, slike, prostorije
 
+**✨ Popuni iz osnove (AI):** u prozoru „Detalji“ stana, kad je otpremljena **Osnova stana** (tlocrt sa merama, kao od arhitekte), dugme pored „Prostorije i kvadratura“ pročita mere sa slike i samo popuni spisak prostorija sa kvadraturom. Ispod se pojave pročitane mere (npr. „Spavaća soba: 4,62 × 3,00 = 13,86 m²“) — uporedi ih sa osnovom, ispravi ako treba, pa klikni **Sačuvaj**. Ništa se ne čuva samo. Mere mogu biti u cm ili mm, AI prepozna sam. Ako piše da je čitao rezervni model, proveri mere posebno pažljivo.
+
 **Strana stana** (kao kod Sokolisa): svaki stan ima svoju adresu `kvadrat360.com/novogradnja/<projekat>/stan/<oznaka>` (npr. `.../lepenicki-cvet/stan/5I`), i na engleskom pod `/en/...`. Otvara se dugmetom **Otvori stranu stana →** u kartici stana. Na njoj su velike kartice Osnova / 360° tura / 3D osnova / Slike, cena, prostorije, PDF letak, plan plaćanja, upit, strelice na prethodni i sledeći stan i „Slični slobodni stanovi“. Ovaj link prodaja šalje kupcu na Viber.
 
 **Prezentacija (prikaži sve kartice stana):** u „Podaci projekta“ je kvačica **Prezentacija: prikaži sve kartice stana**. Kad je uključena, svaki stan ima sve četiri kartice: stan bez ture dobija **demo turu** (biraš je ispod kvačice; na turi piše „Primer ture“), bez slika — rendere zgrade, a 3D osnova bez slike piše „Uskoro za ovaj stan“. Za pravi projekat kvačicu isključi — tada se vidi samo ono što stan stvarno ima. „Lepenički cvet“ je uključen (demo tura: Maglićka).
