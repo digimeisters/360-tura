@@ -18,6 +18,7 @@ import { trackSiteEvent } from '../../app/lib/track';
 import PaymentCalculator from './PaymentCalculator';
 import UnitMedia, { UnitRooms } from './UnitMedia';
 import UnitInquiry from './UnitInquiry';
+import FacadeFullscreen from './FacadeFullscreen';
 import type { DemoMedia } from '../../app/lib/projectData';
 
 /**
@@ -161,10 +162,32 @@ export default function ProjectSelector({
   const panelRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const swipeX = useRef<number | null>(null);
+  // Ceo ekran (FacadeFullscreen): samo računar, samo kad ima slike zgrade; u ugradnji (iframe) ne.
+  const [full, setFull] = useState(false);
+  const canFull = !embedded && views.some((v) => v.kind === 'building');
 
   useEffect(() => {
     trackSiteEvent('cta_click', trackKey('pv', project.slug));
   }, [project.slug]);
+
+  // Računar: „Izaberite stan" (link na #izbor) i adresa sa #ceo-ekran (link za prezentaciju) otvaraju izbor preko celog ekrana.
+  useEffect(() => {
+    if (!canFull) return;
+    const sync = () => {
+      if (window.location.hash === '#ceo-ekran' && !narrow()) setFull(true);
+    };
+    sync();
+    window.addEventListener('hashchange', sync);
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as Element | null)?.closest?.('a[href="#izbor"]');
+      if (a && !narrow()) setFull(true);
+    };
+    document.addEventListener('click', onClick);
+    return () => {
+      document.removeEventListener('click', onClick);
+      window.removeEventListener('hashchange', sync);
+    };
+  }, [canFull]);
 
   // „#lista" u adresi (dugme „Lista svih stanova" u vrhu strane) otvara listu.
   useEffect(() => {
@@ -490,6 +513,11 @@ export default function ProjectSelector({
           <img src={view.imageUrl} alt={view.label ? `${project.title} - ${view.label}` : project.title} />
           {svg}
           {tags}
+          {canFull && (
+            <button type="button" className="inv-fullbtn is-onimg" onClick={() => setFull(true)}>
+              <span aria-hidden="true">⛶</span> {lang === 'en' ? 'Full screen' : 'Prikaz preko celog ekrana'}
+            </button>
+          )}
           {list.length > 1 && (
             <>
               <button type="button" className="inv-rot is-l" aria-label={t.rotatePrev} onClick={() => go(-1)}>
@@ -1225,7 +1253,31 @@ export default function ProjectSelector({
           <span className="inv-count" aria-live="polite">
             {listOnly ? t.shownOf(listUnits.length, units.length) : anyFilter ? t.matchOf(units.filter(matches).length, units.length) : ''}
           </span>
+          {canFull && (
+            <button type="button" className="inv-fullbtn" onClick={() => setFull(true)}>
+              <span aria-hidden="true">⛶</span> {lang === 'en' ? 'Full screen' : 'Ceo ekran'}
+            </button>
+          )}
         </div>
+      )}
+      {full && (
+        <FacadeFullscreen
+          project={project}
+          floors={floors}
+          units={units}
+          buildings={buildings}
+          views={views}
+          lang={lang}
+          letakBase={letakBase}
+          demoMedia={demoMedia}
+          startBuildingId={buildingId}
+          onClose={() => setFull(false)}
+          onList={() => {
+            setFull(false);
+            setMode('list');
+            requestAnimationFrame(() => rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+          }}
+        />
       )}
       {units.length > 1 && filterBar}
       {mode === 'list' && units.length > 0 ? (

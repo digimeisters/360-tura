@@ -131,6 +131,14 @@ export default function ProjectEditorPage() {
   const [firstBuilding, setFirstBuilding] = useState('Lamela A');
   const [importBuilding, setImportBuilding] = useState('');
   const [importOpen, setImportOpen] = useState(false);
+  // AI predlog spratova ili stanova na slici fasade - vidi se na slici, upisuje se tek na „Sačuvaj predlog".
+  const [aiFloors, setAiFloors] = useState<{
+    viewId: string;
+    kind: 'floor' | 'unit';
+    items: { id: string; label: string; polygon: Polygon }[];
+    note: string;
+  } | null>(null);
+  const [aiFloorSel, setAiFloorSel] = useState<string | null>(null);
   const [busy, setBusy] = useState('');
   const [msg, setMsg] = useState<Msg>(null);
 
@@ -442,6 +450,80 @@ export default function ProjectEditorPage() {
         return [{ id: b.id, label: b.name, polygon: sh.polygon, fill: b.id === bId ? 'rgba(30,90,168,.30)' : 'rgba(30,90,168,.12)', stroke: '#1E5AA8', active: b.id === bId }];
       });
   const drawingOn = (viewId: string | undefined) => (draw?.on === 'view' && draw.viewId === viewId ? draw : null);
+  const previewOn = Boolean(
+    aiFloors && activeView && aiFloors.viewId === activeView.id && (facadeMode === 'floors' ? aiFloors.kind === 'floor' : aiFloors.kind === 'unit')
+  );
+  // Predlog stanova: naizmenične nijanse ljubičaste, da se susedni stanovi razlikuju.
+  const previewShapes: CanvasShape[] = previewOn
+    ? aiFloors!.items.map((it, i) => ({
+        id: it.id,
+        label: it.label,
+        polygon: it.polygon,
+        fill: it.id === aiFloorSel ? 'rgba(124,58,237,.38)' : aiFloors!.kind === 'unit' && i % 2 ? 'rgba(124,58,237,.24)' : 'rgba(124,58,237,.12)',
+        stroke: '#7C3AED',
+        active: it.id === aiFloorSel
+      }))
+    : [];
+
+  const suggestFloors = () => {
+    if (!activeView) return;
+    const has = bFloors.some((f) => shapeOf(activeView.id, 'floor', f.id));
+    run('ai-floors', async () => {
+      const json = await api('facade-floors', { projectId: id, viewId: activeView.id });
+      const items = ((json.proposals as { floorId: string; level: number; polygon: Polygon }[]) ?? []).map((p) => ({
+        id: p.floorId,
+        label: p.level === 0 ? 'P' : String(p.level),
+        polygon: p.polygon
+      }));
+      const seen = Number(json.seen ?? items.length);
+      const total = Number(json.floors ?? items.length);
+      const parts = [`AI je našao ${seen} ${seen === 1 ? 'etažu' : 'etaža'} (spratova u projektu: ${total}).`];
+      if (seen !== total) parts.push(seen < total ? 'Nedostaju gornji spratovi - dodajte ih ručno posle čuvanja.' : 'Višak etaža je izostavljen odozgo.');
+      if (has) parts.push('Čuvanje zamenjuje spratove već nacrtane na ovoj slici.');
+      if (json.backup) parts.push('Čitao je rezervni model - proverite granice pažljivije.');
+      parts.push('Kliknite sprat na slici i povucite ugao ako treba, pa „Sačuvaj predlog".');
+      setAiFloors({ viewId: activeView.id, kind: 'floor', items, note: parts.join(' ') });
+      setAiFloorSel(null);
+      setDraw(null);
+    });
+  };
+
+  const suggestUnits = () => {
+    if (!activeView) return;
+    const has = bUnits.some((u) => shapeOf(activeView.id, 'unit', u.id));
+    run('ai-floors', async () => {
+      const json = await api('facade-units', { projectId: id, viewId: activeView.id });
+      const items = ((json.proposals as { unitId: string; code: string; polygon: Polygon }[]) ?? []).map((p) => ({
+        id: p.unitId,
+        label: p.code,
+        polygon: p.polygon
+      }));
+      const parts = [`AI je podelio spratove na ${items.length} ${items.length === 1 ? 'stan' : 'stanova'} koji se vide na ovoj slici.`];
+      if (!json.withPlan) parts.push('Bez osnove sprata sa iscrtanim stanovima AI teže pogađa koji je stan koji - proverite oznake.');
+      if (has) parts.push('Čuvanje zamenjuje stanove već nacrtane na ovoj slici.');
+      if (json.backup) parts.push('Čitao je rezervni model - proverite granice pažljivije.');
+      parts.push('Kliknite stan i povucite ugao ako treba, pa „Sačuvaj predlog".');
+      setAiFloors({ viewId: activeView.id, kind: 'unit', items, note: parts.join(' ') });
+      setAiFloorSel(null);
+      setDraw(null);
+    });
+  };
+
+  const saveAiFloors = () => {
+    if (!aiFloors) return;
+    const { viewId, items, kind } = aiFloors;
+    run('ai-floors-save', async () => {
+      // Stanovi: prvo se brišu stari oblici stanova sa ove slike kojih nema u predlogu, da ne ostanu stari preklopi.
+      if (kind === 'unit') {
+        const keep = new Set(items.map((it) => it.id));
+        for (const u of bUnits) if (!keep.has(u.id) && shapeOf(viewId, 'unit', u.id)) await saveShape(viewId, 'unit', u.id, null);
+      }
+      for (const it of items) await saveShape(viewId, kind, it.id, it.polygon);
+      setAiFloors(null);
+      setAiFloorSel(null);
+      return `Sačuvani oblici ${items.length} ${kind === 'floor' ? 'spratova' : 'stanova'}. Uglove i dalje možete da pomerate povlačenjem.`;
+    });
+  };
 
 
   const planShapes: CanvasShape[] = floorUnits
@@ -870,7 +952,53 @@ export default function ProjectEditorPage() {
                 Stanove
               </button>
             </div>
+            {facadeMode === 'units' && activeView && bUnits.length > 0 && !previewOn && (
+              <button
+                type="button"
+                className="pa-btn"
+                disabled={Boolean(busy) || Boolean(draw) || !bFloors.some((f) => shapeOf(activeView.id, 'floor', f.id))}
+                title={
+                  bFloors.some((f) => shapeOf(activeView.id, 'floor', f.id))
+                    ? 'AI podeli svaki sprat na stanove koji se vide na ovoj slici - vi ih proverite pre čuvanja'
+                    : 'Prvo označite spratove na ovoj slici (Spratove → ✨ Predloži spratove)'
+                }
+                onClick={suggestUnits}
+              >
+                {busy === 'ai-floors' ? 'AI deli spratove na stanove…' : '✨ Predloži stanove (AI)'}
+              </button>
+            )}
+            {facadeMode === 'floors' && activeView && bFloors.length > 0 && !previewOn && (
+              <button
+                type="button"
+                className="pa-btn"
+                disabled={Boolean(busy) || Boolean(draw)}
+                title="AI pronađe spratove na ovoj slici i predloži njihove oblike - vi ih proverite pre čuvanja"
+                onClick={suggestFloors}
+              >
+                {busy === 'ai-floors' ? 'AI traži spratove…' : '✨ Predloži spratove (AI)'}
+              </button>
+            )}
           </div>
+          {previewOn && (
+            <div className="pc-bar" style={{ background: 'color-mix(in srgb, #7C3AED 12%, transparent)', marginBottom: 10 }}>
+              <span style={{ flex: '1 1 300px' }}>{aiFloors!.note}</span>
+              <span className="pc-actions">
+                <button type="button" className="is-primary" disabled={busy === 'ai-floors-save'} onClick={saveAiFloors}>
+                  {busy === 'ai-floors-save' ? 'Čuvam…' : `Sačuvaj predlog (${aiFloors!.items.length})`}
+                </button>
+                <button
+                  type="button"
+                  disabled={busy === 'ai-floors-save'}
+                  onClick={() => {
+                    setAiFloors(null);
+                    setAiFloorSel(null);
+                  }}
+                >
+                  Odbaci
+                </button>
+              </span>
+            </div>
+          )}
           <div className="pa-split">
             <ViewManager
               views={bViews}
@@ -891,13 +1019,21 @@ export default function ProjectEditorPage() {
               {activeView && (
                 <PolygonCanvas
                   imageUrl={activeView.image_url}
-                  shapes={facadeShapes}
-                  drawing={Boolean(drawingOn(activeView.id))}
+                  shapes={previewOn ? previewShapes : facadeShapes}
+                  drawing={!previewOn && Boolean(drawingOn(activeView.id))}
                   drawLabel={drawingOn(activeView.id) ? shapeName(drawingOn(activeView.id)!.target, drawingOn(activeView.id)!.id) : undefined}
                   onComplete={onPolygon}
                   onCancel={() => setDraw(null)}
-                  onEdit={(sid, poly) => onViewEdit(activeView.id, facadeMode === 'floors' ? 'floor' : 'unit', sid, poly)}
+                  onEdit={(sid, poly) =>
+                    previewOn
+                      ? setAiFloors((a) => (a ? { ...a, items: a.items.map((it) => (it.id === sid ? { ...it, polygon: poly } : it)) } : a))
+                      : onViewEdit(activeView.id, facadeMode === 'floors' ? 'floor' : 'unit', sid, poly)
+                  }
                   onShapeClick={(sid) => {
+                    if (previewOn) {
+                      setAiFloorSel(sid);
+                      return;
+                    }
                     if (facadeMode === 'floors') {
                       setFloorId(sid);
                       setUnitId(null);
