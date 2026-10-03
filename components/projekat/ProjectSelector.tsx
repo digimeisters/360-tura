@@ -18,7 +18,7 @@ import { trackSiteEvent } from '../../app/lib/track';
 import PaymentCalculator from './PaymentCalculator';
 import UnitMedia, { UnitRooms } from './UnitMedia';
 import UnitInquiry from './UnitInquiry';
-import FacadeFullscreen from './FacadeFullscreen';
+import FacadeFullscreen, { RangeSlider, shortStructure } from './FacadeFullscreen';
 import type { DemoMedia } from '../../app/lib/projectData';
 
 /**
@@ -110,6 +110,31 @@ const STATUS_ORDER: Record<UnitStatus, number> = {
   reserved: 1,
   sold: 2
 };
+/** Panel filtera na telefonu. */
+const MOBILE_TXT = {
+  sr: {
+    filters: 'Filteri',
+    rooms: 'Broj soba',
+    reset: 'Poništi',
+    close: 'Zatvori',
+    remove: 'Ukloni filter',
+    noStatus: 'nijedan status',
+    count: (n: number) => `${n} ${n === 1 ? 'stan' : 'stanova'}`,
+    of: (n: number, all: number) => `${n} od ${all}`,
+    show: (n: number) => `Prikaži ${n} ${n === 1 ? 'stan' : 'stanova'}`
+  },
+  en: {
+    filters: 'Filters',
+    rooms: 'Rooms',
+    reset: 'Clear',
+    close: 'Close',
+    remove: 'Remove filter',
+    noStatus: 'no status',
+    count: (n: number) => `${n} ${n === 1 ? 'apartment' : 'apartments'}`,
+    of: (n: number, all: number) => `${n} of ${all}`,
+    show: (n: number) => `Show ${n} ${n === 1 ? 'apartment' : 'apartments'}`
+  }
+};
 const pts = (poly: Polygon) => poly.map(([x, y]) => `${x},${y}`).join(' ');
 const narrow = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 960px)').matches;
 
@@ -154,6 +179,12 @@ export default function ProjectSelector({
   const [onlyFree, setOnlyFree] = useState(false);
   const [listFloor, setListFloor] = useState<number | null>(null);
   const [listBuilding, setListBuilding] = useState<string | null>(null);
+  // Telefon (panel „Filteri"): klizači od-do, više struktura, statusi. null = bez ograničenja.
+  const [floorRange, setFloorRange] = useState<[number, number] | null>(null);
+  const [areaRange, setAreaRange] = useState<[number, number] | null>(null);
+  const [rooms, setRooms] = useState<string[]>([]);
+  const [statuses, setStatuses] = useState<UnitStatus[] | null>(null);
+  const [sheet, setSheet] = useState(false);
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({
     key: 'floor',
     dir: 1
@@ -188,6 +219,21 @@ export default function ProjectSelector({
       window.removeEventListener('hashchange', sync);
     };
   }, [canFull]);
+
+  // Panel filtera na telefonu: strana se ne pomera ispod njega, Esc ga zatvara.
+  useEffect(() => {
+    if (!sheet) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') setSheet(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [sheet]);
 
   // „#lista" u adresi (dugme „Lista svih stanova" u vrhu strane) otvara listu.
   useEffect(() => {
@@ -226,12 +272,39 @@ export default function ProjectSelector({
     return AREA_STEPS.filter((a) => a > lo && a < hi);
   }, [units]);
 
+  // Opsezi za klizače na telefonu (stvarne vrednosti projekta).
+  const levelSpan = useMemo<[number, number]>(() => {
+    const ls = floors.map((f) => f.level);
+    return ls.length ? [Math.min(...ls), Math.max(...ls)] : [0, 0];
+  }, [floors]);
+  const areaSpan = useMemo<[number, number]>(() => {
+    const as = units.filter((u) => u.areaSqm).map((u) => u.areaSqm as number);
+    return as.length ? [Math.floor(Math.min(...as)), Math.ceil(Math.max(...as))] : [0, 0];
+  }, [units]);
+  const priceSpan = useMemo<[number, number]>(() => {
+    const ps = units.filter((u) => u.status !== 'sold' && u.price).map((u) => u.price as number);
+    return ps.length > 1 ? [Math.floor(Math.min(...ps) / 5000) * 5000, Math.ceil(Math.max(...ps) / 5000) * 5000] : [0, 0];
+  }, [units]);
+
+  const levelOfUnit = (u: SelectorUnit) => floorById.get(u.floorId)?.level ?? 0;
   const matches = (u: SelectorUnit) =>
     (structure === null || u.structure === structure) &&
     (maxPrice === null || (u.price !== null && u.price <= maxPrice && u.status !== 'sold')) &&
     (minArea === null || (u.areaSqm !== null && u.areaSqm >= minArea)) &&
-    (!onlyFree || u.status === 'available');
-  const anyFilter = structure !== null || maxPrice !== null || minArea !== null || onlyFree;
+    (!onlyFree || u.status === 'available') &&
+    (floorRange === null || (levelOfUnit(u) >= floorRange[0] && levelOfUnit(u) <= floorRange[1])) &&
+    (areaRange === null || (u.areaSqm !== null && u.areaSqm >= areaRange[0] && u.areaSqm <= areaRange[1])) &&
+    (!rooms.length || (u.structure !== null && rooms.includes(u.structure))) &&
+    (statuses === null || statuses.includes(u.status));
+  const anyFilter =
+    structure !== null ||
+    maxPrice !== null ||
+    minArea !== null ||
+    onlyFree ||
+    floorRange !== null ||
+    areaRange !== null ||
+    rooms.length > 0 ||
+    statuses !== null;
 
   // Trenutna zgrada: spratovi, stanovi i slike samo te lamele.
   const inBuilding = (f: SelectorFloor) => (buildings.length ? f.buildingId === buildingId : true);
@@ -348,8 +421,9 @@ export default function ProjectSelector({
   const listLevels = [...new Set(floors.map((f) => f.level))].sort((a, b) => a - b);
   const listOnly = mode === 'list';
   const activeCount =
-    [structure, maxPrice, minArea].filter((v) => v !== null).length +
+    [structure, maxPrice, minArea, floorRange, areaRange, statuses].filter((v) => v !== null).length +
     (onlyFree ? 1 : 0) +
+    (rooms.length ? 1 : 0) +
     (listOnly ? (listFloor !== null ? 1 : 0) + (listBuilding !== null ? 1 : 0) : 0);
   const resetFilters = () => {
     setStructure(null);
@@ -358,6 +432,10 @@ export default function ProjectSelector({
     setOnlyFree(false);
     setListFloor(null);
     setListBuilding(null);
+    setFloorRange(null);
+    setAreaRange(null);
+    setRooms([]);
+    setStatuses(null);
   };
   const pill = (key: string, label: string, value: string, onChange: (v: string) => void, options: { value: string; label: string }[]) => (
     <label key={key} className={value ? 'inv-pill is-on' : 'inv-pill'}>
@@ -425,6 +503,182 @@ export default function ProjectSelector({
           {t.reset(activeCount)}
         </button>
       )}
+    </div>
+  );
+
+  // ---------- telefon: dugme „Filteri" + čipovi + panel od dole ----------
+  const mt = MOBILE_TXT[lang];
+  const scopeUnits = listOnly || atComplex ? units : bUnits;
+  const scopeMatch = (u: SelectorUnit) =>
+    matches(u) &&
+    (!listOnly || listBuilding === null || floorById.get(u.floorId)?.buildingId === listBuilding) &&
+    (!listOnly || listFloor === null || floorById.get(u.floorId)?.level === listFloor);
+  const shownCount = scopeUnits.filter(scopeMatch).length;
+  const fl = (v: number) => (v === 0 ? (lang === 'en' ? 'G' : 'P') : String(v));
+  const chips: { key: string; label: string; clear: () => void }[] = [];
+  if (floorRange) chips.push({ key: 'fr', label: `${t.floor} ${fl(floorRange[0])}–${fl(floorRange[1])}`, clear: () => setFloorRange(null) });
+  if (listOnly && listFloor !== null) chips.push({ key: 'lf', label: floorLabel(listFloor, null, lang), clear: () => setListFloor(null) });
+  if (listOnly && listBuilding !== null) chips.push({ key: 'lb', label: buildingName(listBuilding), clear: () => setListBuilding(null) });
+  if (areaRange) chips.push({ key: 'ar', label: `${areaRange[0]}–${areaRange[1]} m²`, clear: () => setAreaRange(null) });
+  if (minArea !== null) chips.push({ key: 'ma', label: `${t.areaFrom} ${formatArea(minArea, lang)}`, clear: () => setMinArea(null) });
+  if (maxPrice !== null) chips.push({ key: 'mp', label: `${t.priceTo} ${formatPrice(maxPrice, lang)}`, clear: () => setMaxPrice(null) });
+  if (rooms.length) chips.push({ key: 'ro', label: rooms.map((r) => structureText(r, lang) || r).join(', '), clear: () => setRooms([]) });
+  if (structure !== null) chips.push({ key: 'st', label: structureText(structure, lang) || structure, clear: () => setStructure(null) });
+  if (statuses) chips.push({ key: 'ss', label: statuses.map((s) => status(s)).join(', ') || mt.noStatus, clear: () => setStatuses(null) });
+  if (onlyFree) chips.push({ key: 'of', label: t.onlyFree, clear: () => setOnlyFree(false) });
+
+  const mobileFilters = (
+    <div className="inv-mf">
+      <button type="button" className={activeCount ? 'inv-mf-btn is-on' : 'inv-mf-btn'} onClick={() => setSheet(true)} aria-haspopup="dialog">
+        <span className="inv-mf-l">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 6h16M7 12h10M10 18h4" />
+          </svg>
+          {mt.filters}
+          {activeCount > 0 && <span className="inv-mf-n">{activeCount}</span>}
+        </span>
+        <span className="inv-mf-r">{activeCount ? mt.of(shownCount, scopeUnits.length) : mt.count(scopeUnits.length)}</span>
+      </button>
+      {chips.length > 0 && (
+        <div className="inv-mf-chips">
+          {chips.map((c) => (
+            <button key={c.key} type="button" onClick={c.clear} aria-label={`${mt.remove}: ${c.label}`}>
+              {c.label} <span aria-hidden="true">✕</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
+  const allStatuses: UnitStatus[] = ['available', 'reserved', 'sold'];
+  const filterSheet = sheet && (
+    <div className="inv-sheet-wrap" role="dialog" aria-modal="true" aria-label={mt.filters}>
+      <div className="inv-sheet-shade" onClick={() => setSheet(false)} />
+      <div className="inv-sheet">
+        <div className="inv-sheet-grab" aria-hidden="true" />
+        <div className="inv-sheet-head">
+          <b>{mt.filters}</b>
+          <button type="button" onClick={() => setSheet(false)} aria-label={mt.close}>
+            ×
+          </button>
+        </div>
+        <div className="inv-sheet-body">
+          {isComplex && listOnly && (
+            <div className="inv-sheet-grp">
+              <div className="inv-sheet-l">{t.buildingCol}</div>
+              <div className="inv-sheet-seg" style={{ gridTemplateColumns: `repeat(${Math.min(4, buildings.length)}, minmax(0,1fr))` }}>
+                {buildings.map((b) => (
+                  <button key={b.id} type="button" aria-pressed={listBuilding === b.id} onClick={() => setListBuilding(listBuilding === b.id ? null : b.id)}>
+                    {b.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {levelSpan[1] > levelSpan[0] && (
+            <div className="inv-sheet-grp">
+              <div className="inv-sheet-l">
+                {t.floor}
+                <span className="inv-sheet-v">
+                  {fl((floorRange ?? levelSpan)[0])} – {fl((floorRange ?? levelSpan)[1])}
+                </span>
+              </div>
+              <RangeSlider
+                className="is-light"
+                min={levelSpan[0]}
+                max={levelSpan[1]}
+                value={floorRange ?? levelSpan}
+                label={t.floor}
+                format={fl}
+                onChange={(v) => setFloorRange(v[0] === levelSpan[0] && v[1] === levelSpan[1] ? null : v)}
+              />
+            </div>
+          )}
+          {areaSpan[1] > areaSpan[0] && (
+            <div className="inv-sheet-grp">
+              <div className="inv-sheet-l">
+                {t.area}
+                <span className="inv-sheet-v">
+                  {(areaRange ?? areaSpan)[0]} m² – {(areaRange ?? areaSpan)[1]} m²
+                </span>
+              </div>
+              <RangeSlider
+                className="is-light"
+                min={areaSpan[0]}
+                max={areaSpan[1]}
+                value={areaRange ?? areaSpan}
+                label={t.area}
+                format={(v) => `${v} m²`}
+                onChange={(v) => setAreaRange(v[0] === areaSpan[0] && v[1] === areaSpan[1] ? null : v)}
+              />
+            </div>
+          )}
+          {priceSpan[1] > priceSpan[0] && (
+            <div className="inv-sheet-grp">
+              <div className="inv-sheet-l">
+                {t.priceTo}
+                <span className="inv-sheet-v">{maxPrice === null ? t.any : formatPrice(maxPrice, lang)}</span>
+              </div>
+              <div className="fs-range is-light">
+                <div className="fs-range-track">
+                  <i style={{ left: 0, width: `${(((maxPrice ?? priceSpan[1]) - priceSpan[0]) / (priceSpan[1] - priceSpan[0])) * 100}%` }} />
+                  <input
+                    type="range"
+                    min={priceSpan[0]}
+                    max={priceSpan[1]}
+                    step={5000}
+                    value={maxPrice ?? priceSpan[1]}
+                    aria-label={t.priceTo}
+                    onChange={(e) => setMaxPrice(Number(e.target.value) >= priceSpan[1] ? null : Number(e.target.value))}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          {structures.length > 1 && (
+            <div className="inv-sheet-grp">
+              <div className="inv-sheet-l">{mt.rooms}</div>
+              <div className="inv-sheet-seg" style={{ gridTemplateColumns: `repeat(${Math.min(5, structures.length)}, minmax(0,1fr))` }}>
+                {structures.map((s) => (
+                  <button key={s} type="button" aria-pressed={rooms.includes(s)} onClick={() => setRooms((r) => toggle(r, s))}>
+                    {shortStructure(s)}
+                    <small>{structureText(s, lang) || s}</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="inv-sheet-grp">
+            <div className="inv-sheet-l">{t.statusCol}</div>
+            <div className="inv-sheet-st">
+              {allStatuses.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  aria-pressed={(statuses ?? allStatuses).includes(s)}
+                  onClick={() => {
+                    const next = toggle(statuses ?? allStatuses, s);
+                    setStatuses(next.length === allStatuses.length ? null : next);
+                  }}
+                >
+                  <i style={{ background: UNIT_STATUS_COLORS[s].stroke }} />
+                  {status(s)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="inv-sheet-foot">
+          <button type="button" className="is-reset" disabled={!activeCount} onClick={resetFilters}>
+            {mt.reset}
+          </button>
+          <button type="button" className="is-go" onClick={() => setSheet(false)}>
+            {mt.show(shownCount)}
+          </button>
+        </div>
+      </div>
     </div>
   );
 
@@ -1086,7 +1340,7 @@ export default function ProjectSelector({
                 style={unit.tourPreview ? { backgroundImage: `url(${unit.tourPreview})` } : undefined}
                 data-track="cta:project_unit_tour"
               >
-                <em>360°</em>
+                <span className="inv-sheet-v">360°</span>
                 <span>{t.walk}</span>
               </a>
             )}
@@ -1279,7 +1533,13 @@ export default function ProjectSelector({
           }}
         />
       )}
-      {units.length > 1 && filterBar}
+      {units.length > 1 && (
+        <>
+          {filterBar}
+          {mobileFilters}
+          {filterSheet}
+        </>
+      )}
       {mode === 'list' && units.length > 0 ? (
         list
       ) : (

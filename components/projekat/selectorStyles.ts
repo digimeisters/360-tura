@@ -417,4 +417,59 @@ export const SELECTOR_STYLES = `
   .fs-drawer-x{position:absolute; top:12px; right:12px; width:40px; height:40px; border:0; border-radius:50%; background:#E3E8F1; color:#111113; font-size:1.4rem; line-height:1;}
   .fs-drawer-x:hover{background:#D5DEEB;}
   .fs-badge{color:#FFFFFF; font-size:.72rem; font-weight:800; border-radius:999px; padding:.25rem .65rem; white-space:nowrap;}
+
+  /* ===== Telefon: dugme „Filteri" + panel od dole (umesto reda padajućih izbora) ===== */
+  .inv-mf{display:none;}
+  @media (max-width:960px){
+    .inv-fbar{display:none;}
+    .inv-mf{display:block; margin:0 0 1rem;}
+  }
+  .inv-mf-btn{display:flex; align-items:center; justify-content:space-between; width:100%; min-height:50px; padding:.7rem .95rem; border:1.5px solid #DCE3EE; border-radius:16px; background:#FFFFFF; color:#111113; font-weight:700; font-size:.95rem;}
+  .inv-mf-btn.is-on{border-color:#1E5AA8; background:#EEF4FC;}
+  .inv-mf-l{display:flex; align-items:center; gap:.55rem;}
+  .inv-mf-l svg{width:18px; height:18px; fill:none; stroke:#1E5AA8; stroke-width:2; stroke-linecap:round;}
+  .inv-mf-n{background:#1E5AA8; color:#FFFFFF; border-radius:999px; font-size:.74rem; padding:.12rem .5rem; margin-left:.1rem;}
+  .inv-mf-r{font-size:.84rem; font-weight:600; color:#5B5D63;}
+  .inv-mf-chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;}
+  .inv-mf-chips button{display:inline-flex; align-items:center; gap:6px; border:0; background:#EEF4FC; color:#1E5AA8; font-size:.8rem; font-weight:700; border-radius:999px; padding:.4rem .7rem; min-height:34px;}
+  .inv-mf-chips button span{font-size:.7rem; opacity:.75;}
+  .inv-sheet-wrap{position:fixed; inset:0; z-index:1000;}
+  .inv-sheet-shade{position:absolute; inset:0; background:rgba(10,14,22,.45); animation:invFade .2s ease-out;}
+  @keyframes invFade{from{opacity:0}}
+  .inv-sheet{position:absolute; left:0; right:0; bottom:0; max-height:88vh; display:flex; flex-direction:column; background:#FFFFFF; color:#111113; border-radius:24px 24px 0 0; box-shadow:0 -20px 40px -20px rgba(0,0,0,.35); animation:invUp .25s ease-out; padding-bottom:env(safe-area-inset-bottom);}
+  @keyframes invUp{from{transform:translateY(100%)}}
+  .inv-sheet button{font:inherit; cursor:pointer;}
+  .inv-sheet-grab{width:40px; height:5px; border-radius:5px; background:#D5DEEB; margin:8px auto 4px;}
+  .inv-sheet-head{display:flex; justify-content:space-between; align-items:center; padding:4px 18px 4px;}
+  .inv-sheet-head b{font-family:var(--font-display); font-size:1.3rem;}
+  .inv-sheet-head button{border:0; background:#EEF2F8; width:38px; height:38px; border-radius:50%; font-size:1.3rem; line-height:1; color:#111113;}
+  .inv-sheet-body{overflow-y:auto; padding:0 18px; overscroll-behavior:contain;}
+  .inv-sheet-grp{padding:14px 0; border-bottom:1px solid #EEF2F8;}
+  .inv-sheet-grp:last-child{border-bottom:0;}
+  .inv-sheet-l{display:flex; justify-content:space-between; font-size:.85rem; font-weight:700; color:#5B5D63; margin-bottom:10px;}
+  .inv-sheet-v{font-weight:800; color:#111113;}
+  .inv-sheet-seg{display:grid; gap:6px;}
+  .inv-sheet-seg button{min-height:48px; padding:4px 2px; border:1.5px solid #DCE3EE; background:#FFFFFF; border-radius:12px; font-weight:800; font-size:.95rem; color:#111113; min-width:0;}
+  .inv-sheet-seg button small{display:block; font-size:.56rem; font-weight:600; opacity:.75; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .inv-sheet-seg button[aria-pressed="true"]{background:#1E5AA8; border-color:#1E5AA8; color:#FFFFFF;}
+  .inv-sheet-st{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px;}
+  .inv-sheet-st button{display:flex; align-items:center; justify-content:center; gap:6px; min-height:46px; border:1.5px solid #DCE3EE; background:#FFFFFF; border-radius:12px; font-weight:700; font-size:.82rem; color:#111113; padding:0 4px;}
+  .inv-sheet-st button i{width:10px; height:10px; border-radius:50%; flex:none;}
+  .inv-sheet-st button[aria-pressed="false"]{background:#F4F5F7; border-color:#EEF0F3; color:#9CA3AF;}
+  .inv-sheet-st button[aria-pressed="false"] i{opacity:.3;}
+  .inv-sheet-foot{display:grid; grid-template-columns:1fr 1.6fr; gap:8px; padding:12px 18px 16px; border-top:1px solid #EEF2F8;}
+  .inv-sheet-foot button{min-height:50px; border-radius:999px; font-weight:750; font-size:.95rem;}
+  .inv-sheet-foot .is-reset{border:1.5px solid #DCE3EE; background:#FFFFFF; color:#111113;}
+  .inv-sheet-foot .is-reset:disabled{opacity:.45; cursor:default;}
+  .inv-sheet-foot .is-go{border:0; background:#1E5AA8; color:#FFFFFF;}
+  /* Klizač (FacadeFullscreen RangeSlider) u svetloj varijanti: velike ručice za prst. */
+  .fs-range.is-light{width:auto; padding:0 6px;}
+  .fs-range.is-light .fs-range-track{height:32px;}
+  .fs-range.is-light .fs-range-track::before{top:14px; background:#E3E8F1;}
+  .fs-range.is-light .fs-range-track > i{top:14px; background:#1E5AA8;}
+  .fs-range.is-light input{height:32px;}
+  .fs-range.is-light input::-webkit-slider-runnable-track{height:32px;}
+  .fs-range.is-light input::-webkit-slider-thumb{width:30px; height:30px; margin-top:1px; border:2px solid #1E5AA8; box-shadow:0 2px 6px rgba(0,0,0,.18);}
+  .fs-range.is-light input::-moz-range-thumb{width:28px; height:28px; border:2px solid #1E5AA8;}
+  .fs-range.is-light .fs-range-val{display:none;}
 `;

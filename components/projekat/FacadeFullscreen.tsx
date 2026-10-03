@@ -81,17 +81,18 @@ const ROOM_WORDS: [RegExp, string][] = [
   [/^petosob|^5\b/i, '5'],
   [/^lokal|^shop|^poslovn/i, 'L']
 ];
-const shortStructure = (s: string) => ROOM_WORDS.find(([re]) => re.test(s.trim()))?.[1] ?? s.slice(0, 3);
+export const shortStructure = (s: string) => ROOM_WORDS.find(([re]) => re.test(s.trim()))?.[1] ?? s.slice(0, 3);
 
-/** Klizač sa dve ručice (od - do). */
-function RangeSlider({
+/** Klizač sa dve ručice (od - do). Svetla varijanta (className "is-light") je u panelu filtera na telefonu. */
+export function RangeSlider({
   min,
   max,
   step = 1,
   value,
   onChange,
   label,
-  format
+  format,
+  className
 }: {
   min: number;
   max: number;
@@ -100,12 +101,13 @@ function RangeSlider({
   onChange: (v: [number, number]) => void;
   label: string;
   format: (v: number) => string;
+  className?: string;
 }) {
   const span = max - min || 1;
   const a = ((value[0] - min) / span) * 100;
   const b = ((value[1] - min) / span) * 100;
   return (
-    <div className="fs-range">
+    <div className={className ? `fs-range ${className}` : "fs-range"}>
       <div className="fs-range-track">
         <i style={{ left: `${a}%`, width: `${b - a}%` }} />
         <input
