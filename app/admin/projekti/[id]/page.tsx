@@ -17,6 +17,8 @@ import ProgressPanel from '../../../../components/projekat/ProgressPanel';
 import UnitMediaModal from '../../../../components/projekat/UnitMediaModal';
 import NearbyPanel from '../../../../components/projekat/NearbyPanel';
 import ViewManager from '../../../../components/projekat/ViewManager';
+import BulkPlansPanel from '../../../../components/projekat/BulkPlansPanel';
+import PriceListReader from '../../../../components/projekat/PriceListReader';
 import {
   floorName,
   cleanPhotos,
@@ -128,6 +130,7 @@ export default function ProjectEditorPage() {
   const [newBuilding, setNewBuilding] = useState('');
   const [firstBuilding, setFirstBuilding] = useState('Lamela A');
   const [importBuilding, setImportBuilding] = useState('');
+  const [importOpen, setImportOpen] = useState(false);
   const [busy, setBusy] = useState('');
   const [msg, setMsg] = useState<Msg>(null);
 
@@ -1422,8 +1425,8 @@ export default function ProjectEditorPage() {
             </button>
           </div>
 
-          <details style={{ marginTop: 14 }}>
-            <summary style={{ cursor: 'pointer', fontWeight: 650 }}>Uvoz iz Excela</summary>
+          <details style={{ marginTop: 14 }} open={importOpen} onToggle={(e) => setImportOpen((e.currentTarget as HTMLDetailsElement).open)}>
+            <summary style={{ cursor: 'pointer', fontWeight: 650 }}>Uvoz iz Excela ili cenovnika</summary>
             <p className="pa-hint" style={{ marginTop: 8 }}>
               U Excelu označite kolone redom: <b>oznaka, sprat, struktura, m², terasa, orijentacija, cena, status</b> - kopirajte i nalepite ovde.
               Sprat „P“ je prizemlje; status je slobodan, rezervisan ili prodat. Postojeći stanovi (ista oznaka) se ažuriraju, a nacrtani oblici i
@@ -1447,6 +1450,14 @@ export default function ProjectEditorPage() {
                 </select>
               </label>
             )}
+            <PriceListReader
+              projectId={id}
+              api={api}
+              onText={(text, info) => {
+                setImportText(text);
+                setMsg({ ok: true, text: info });
+              }}
+            />
             <textarea value={importText} onChange={(e) => setImportText(e.target.value)} placeholder={IMPORT_EXAMPLE} rows={7} style={{ fontFamily: 'ui-monospace, monospace' }} />
             <div className="pa-row" style={{ marginTop: 8 }}>
               <button
@@ -1468,6 +1479,8 @@ export default function ProjectEditorPage() {
             </div>
           </details>
         </section>
+
+        <BulkPlansPanel projectId={id} units={units} floors={floors} api={api} upload={upload} onSaved={load} />
 
         <ProgressPanel projectId={id} tours={tours} />
 

@@ -447,3 +447,56 @@ export function parseUnitTable(text: string): { rows: ImportRow[]; errors: strin
   });
   return { rows, errors };
 }
+
+/**
+ * Oznaka stana za poređenje: velika slova, bez kvačica, bez reči „stan",
+ * „apartman", „tip"… i bez razmaka, tačaka i crtica („Stan 3-A" → „3A").
+ */
+export function normCode(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toUpperCase()
+    .replace(/\b(STAN|APARTMAN|APARTMENT|APT|UNIT|LOKAL|TIP|TYPE|BROJ|BR|NO|NR|OSNOVA|PLAN)\b/g, ' ')
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+export type PlanMatch = { unitId: string; how: 'label' | 'file' | 'type' };
+
+/**
+ * Masovno otpremanje osnova (admin): kom stanu pripada slika osnove.
+ *   1) oznaka pročitana sa osnove („STAN 3A") = oznaka stana
+ *   2) ime fajla („3A.jpg", „osnova_stan_3A.png") sadrži oznaku
+ *   3) osnova tipa („Tip A") → najniži stan sa tim slovom (2A, 3A… dobijaju
+ *      je posle preko „primeni na iste stanove")
+ */
+export function matchPlanToUnit(label: string, fileName: string, units: { id: string; code: string; level: number }[]): PlanMatch | null {
+  const byNorm = new Map(units.map((u) => [normCode(u.code), u]));
+  const l = normCode(label);
+  if (l && byNorm.has(l)) return { unitId: byNorm.get(l)!.id, how: 'label' };
+
+  const base = fileName.replace(/\.[a-z0-9]+$/i, '');
+  const whole = normCode(base);
+  if (whole && byNorm.has(whole)) return { unitId: byNorm.get(whole)!.id, how: 'file' };
+  for (const token of base.split(/[^A-Za-z0-9čćšžđČĆŠŽĐ]+/)) {
+    const t = normCode(token);
+    if (t && byNorm.has(t)) return { unitId: byNorm.get(t)!.id, how: 'file' };
+  }
+
+  // Tip stana: „A" / „B2" → stanovi čiji je deo posle oznake sprata baš to.
+  // „TIP B - trosoban" / „type_b.jpg" → „B" (samo oznaka posle reči tip).
+  const typed = `${label} ${base}`.match(/(?:^|[^a-z])(?:tip|type)[\s_.:-]*([a-z0-9]{1,3})(?![a-z0-9])/i);
+  const typeKey = typed ? normCode(typed[1]) : l || normCode(base);
+  if (typeKey && typeKey.length <= 3) {
+    const same = units
+      .filter((u) => {
+        const suffix = unitSuffix(u.code, u.level);
+        return suffix !== null && normCode(suffix) === typeKey;
+      })
+      .sort((a, b) => a.level - b.level);
+    // Prednost stanu iznad prizemlja (u prizemlju su često lokali sa istim slovom).
+    const pick = same.find((u) => u.level >= 1) ?? same[0];
+    if (pick) return { unitId: pick.id, how: 'type' };
+  }
+  return null;
+}

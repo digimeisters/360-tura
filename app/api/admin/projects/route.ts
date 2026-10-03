@@ -1,7 +1,17 @@
 import { NextResponse } from 'next/server';
-import sharp from 'sharp';
-import { Type, type Schema } from '@google/genai';
 import { GEMINI_FALLBACK_MODEL, GEMINI_MODEL, generateJsonWithRetry, TEMP_EXTRACT } from '@/app/lib/gemini';
+import {
+  buildPlanReadPrompt,
+  buildRoomsFromPlanPrompt,
+  fetchDocForAi,
+  fetchPlanImage,
+  planReadSchema,
+  PRICE_LIST_PROMPT,
+  priceListSchema,
+  priceRowToLine,
+  roomsFromPlanSchema,
+  type PriceRow
+} from '@/app/lib/planAi';
 import { revalidateProject } from '@/app/lib/revalidateProject';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { requireAdmin } from '@/app/lib/adminAuth';
@@ -77,70 +87,6 @@ const PROJECT_FIELDS: Record<string, number> = {
   title_en: 120,
   description_en: 2000
 };
-
-/** Osnova stana (JPG/PNG) za AI čitanje prostorija: preuzme, smanji na razumnu širinu, PNG (oštrije linije i brojevi od JPEG-a). */
-async function fetchPlanImage(url: string): Promise<{ contentType: string; base64: string }> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15_000);
-  try {
-    const res = await fetch(url, { signal: controller.signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status} pri preuzimanju slike.`);
-    const buf = Buffer.from(await res.arrayBuffer());
-    const resized = await sharp(buf, { limitInputPixels: false }).resize({ width: 1800, withoutEnlargement: true }).png().toBuffer();
-    return { contentType: 'image/png', base64: resized.toString('base64') };
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-function roomsFromPlanSchema(): Schema {
-  return {
-    type: Type.OBJECT,
-    properties: {
-      rooms: {
-        type: Type.ARRAY,
-        description: 'Jedna prostorija po redu, redom kako se čita osnova (ne abecedno).',
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            name: { type: Type.STRING, description: 'Naziv prostorije na srpskom.' },
-            dims: { type: Type.STRING, description: 'Mere pročitane sa osnove, u metrima, npr. "4,57 × 3,03"; prazno ako je kvadratura odštampana na osnovi.' },
-            m2: { type: Type.NUMBER, description: 'Površina prostorije u m², zaokružena na 2 decimale.' }
-          },
-          required: ['name', 'dims', 'm2']
-        }
-      }
-    },
-    required: ['rooms']
-  };
-}
-
-/** Prompt za čitanje osnove stana: linije sa merama u mm, legenda tipova prostorija, ponekad već odštampana kvadratura. */
-function buildRoomsFromPlanPrompt(areaSqm: number | null): string {
-  return `You are reading an architectural floor plan of ONE apartment (not a whole floor, not a building).
-
-The plan may show:
-- wall dimension lines with numbers along room edges, in CENTIMETERS or MILLIMETERS - infer the unit from the size: a room wall written as 300-800 is centimeters, 3000-8000 is millimeters
-- a legend mapping numbers to room types (e.g. 1 = Kitchen/Living room, 2 = Bedroom, 3 = WC, 4 = Bathroom, 5 = Hall, 6 = Balcony/Terrace, 7 = Corridor, 8 = Stairs, 9 = Lift, 10 = Technical room)
-- furniture icons (bed, sofa, sink, stove...) that also hint at room use
-- sometimes an area already printed inside a room (e.g. "15,2 m²") - if present, PREFER that printed number over computing one yourself
-
-For EVERY room that belongs to THIS apartment (inside its own walls), output one entry with:
-- "dims": the two dimensions you read for that room, converted to meters with a comma decimal, e.g. "4,57 × 3,03" (empty string if you used an area printed on the plan). Read the numbers that sit on THIS room's own edges - not a neighbour's.
-- "name": the room's purpose, in SERBIAN. Use these exact terms when they apply: "Dnevna soba sa kuhinjom i trpezarijom" (or "Dnevna soba sa kuhinjom" if there is no separate dining area), "Spavaća soba", "Kupatilo", "Toalet", "Hodnik", "Ostava", "Terasa", "Balkon", "Radna soba", "Garderober". Use a plain descriptive Serbian name for anything else.
-- "m2": the room's floor area in square meters = the product of "dims" for a rectangular room (best effort for an irregular one), rounded to 2 decimals. Double-check the multiplication.
-
-Rules:
-- Skip anything that is NOT part of this apartment: shared building stairs, shared elevator/lift, shared corridors used by other apartments, technical risers belonging to the building. Only include a private hallway/corridor if it is clearly inside this apartment's own walls.
-- If the same room type appears more than once (e.g. two bedrooms), output each one as its own entry with the same name - do not merge them.
-- Do not output a "total" row - it is computed separately.
-- Every room and every number must come from something actually visible in the image. Never invent a room or a dimension that is not shown, and never guess when the image is unreadable - return fewer rooms instead.${
-    areaSqm ? `
-- The apartment's total area from the listing is about ${areaSqm} m² - use it only as a sanity check, not as a target to force the sum to match.` : ''
-  }
-
-Respond with JSON matching the schema exactly.`;
-}
 
 function refresh(slug?: string | null) {
   if (!slug) return;
@@ -308,8 +254,8 @@ export async function POST(req: Request) {
             config: { responseMimeType: 'application/json', responseSchema: roomsFromPlanSchema(), temperature: TEMP_EXTRACT },
             model: GEMINI_FALLBACK_MODEL,
             fallbackModel: GEMINI_MODEL,
-            timeoutMs: 14_000,
-            attempts: 2,
+            timeoutMs: 24_000,
+            attempts: 1,
             label: 'rooms-from-plan'
           });
           const rooms = cleanRooms(data.rooms);
@@ -320,6 +266,73 @@ export async function POST(req: Request) {
         } catch (err) {
           console.error('[api/admin/projects] rooms-from-plan', err);
           return fail('Čitanje osnove trenutno nije uspelo. Pokušajte ponovo ili unesite prostorije ručno.', 502);
+        }
+      }
+
+      // Masovne osnove: jedna slika = oznaka stana + prostorije. Uparivanje
+      // završava admin (matchPlanToUnit + ručni izbor), ništa se ne upisuje.
+      case 'plan-read': {
+        const projectId = text(body.projectId, 40);
+        const imageUrl = text(body.imageUrl, 600);
+        const fileName = text(body.fileName, 160) ?? '';
+        const codes: string[] = Array.isArray(body.codes)
+          ? body.codes.filter((c: unknown): c is string => typeof c === 'string').map((c: string) => c.slice(0, 20)).slice(0, 400)
+          : [];
+        if (!projectId || !imageUrl || !/^https:\/\//.test(imageUrl)) return fail('Nedostaje slika osnove.');
+        try {
+          const image = await fetchPlanImage(imageUrl);
+          const { data, usedModel } = await generateJsonWithRetry<{ label?: string; matchedCode?: string; rooms: { name: string; dims?: string; m2: number }[] }>({
+            contents: [{ inlineData: { mimeType: image.contentType, data: image.base64 } }, { text: buildPlanReadPrompt(codes, fileName) }],
+            config: { responseMimeType: 'application/json', responseSchema: planReadSchema(), temperature: TEMP_EXTRACT },
+            model: GEMINI_FALLBACK_MODEL,
+            fallbackModel: GEMINI_MODEL,
+            timeoutMs: 24_000,
+            attempts: 1,
+            label: 'plan-read'
+          });
+          const rooms = cleanRooms(data.rooms);
+          const dims = (data.rooms ?? []).slice(0, rooms.length).map((r) => (typeof r.dims === 'string' ? r.dims.slice(0, 40) : ''));
+          const matched = typeof data.matchedCode === 'string' && codes.includes(data.matchedCode) ? data.matchedCode : '';
+          return NextResponse.json({
+            success: true,
+            label: typeof data.label === 'string' ? data.label.slice(0, 60) : '',
+            matchedCode: matched,
+            rooms,
+            dims,
+            backup: usedModel !== GEMINI_FALLBACK_MODEL
+          });
+        } catch (err) {
+          console.error('[api/admin/projects] plan-read', err);
+          return fail('Čitanje osnove nije uspelo - probajte ponovo za ovu sliku.', 502);
+        }
+      }
+
+      // Cenovnik investitora (PDF ili slika) → tekst za „Uvoz iz Excela".
+      // Ništa se ne upisuje: admin pregleda tabelu i klikne „Uvezi".
+      case 'pricelist-read': {
+        const projectId = text(body.projectId, 40);
+        const fileUrl = text(body.fileUrl, 600);
+        if (!projectId || !fileUrl || !/^https:\/\//.test(fileUrl)) return fail('Nedostaje cenovnik.');
+        const { count: buildingCount } = await db.from('project_buildings').select('id', { count: 'exact', head: true }).eq('project_id', projectId);
+        try {
+          const doc = await fetchDocForAi(fileUrl);
+          const { data, usedModel } = await generateJsonWithRetry<{ units: PriceRow[] }>({
+            contents: [{ inlineData: doc }, { text: PRICE_LIST_PROMPT }],
+            config: { responseMimeType: 'application/json', responseSchema: priceListSchema(), temperature: TEMP_EXTRACT },
+            model: GEMINI_FALLBACK_MODEL,
+            fallbackModel: GEMINI_MODEL,
+            timeoutMs: 26_000,
+            attempts: 1,
+            label: 'pricelist-read'
+          });
+          const rows = (data.units ?? []).filter((r) => r && typeof r.code === 'string' && r.code.trim()).slice(0, 600);
+          if (!rows.length) return fail('U cenovniku nije pronađen nijedan stan. Proverite da li je to prava strana sa tabelom.');
+          const withBuilding = (buildingCount ?? 0) > 0;
+          const lines = rows.map((r) => priceRowToLine(r, withBuilding));
+          return NextResponse.json({ success: true, text: lines.join('\n'), count: rows.length, backup: usedModel !== GEMINI_FALLBACK_MODEL });
+        } catch (err) {
+          console.error('[api/admin/projects] pricelist-read', err);
+          return fail('Čitanje cenovnika trenutno nije uspelo. Pokušajte ponovo ili nalepite tabelu iz Excela.', 502);
         }
       }
 

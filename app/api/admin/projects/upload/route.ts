@@ -40,16 +40,21 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const projectId = typeof body.projectId === 'string' ? body.projectId : '';
   // view (fasada ili kompleks - migracija 025; stari naziv facade) / plan (sprata) / unit (osnova, 3D osnova i slike stana - migracija 024)
-  const kind = ['view', 'facade', 'plan', 'unit'].includes(body.kind) ? (body.kind as string) : '';
+  // doc = cenovnik investitora (PDF ili slika) samo za AI čitanje u tabelu stanova
+  const kind = ['view', 'facade', 'plan', 'unit', 'doc'].includes(body.kind) ? (body.kind as string) : '';
   const fileType = typeof body.fileType === 'string' ? body.fileType : '';
   const fileSize = typeof body.fileSize === 'number' ? body.fileSize : 0;
 
   if (!/^[0-9a-f-]{36}$/i.test(projectId) || !kind) {
     return NextResponse.json({ success: false, error: 'Nedostaje projekat ili vrsta slike.' }, { status: 400 });
   }
-  const ext = ALLOWED_TYPES[fileType];
+  const ext = ALLOWED_TYPES[fileType] ?? (kind === 'doc' && fileType === 'application/pdf' ? 'pdf' : undefined);
   if (!ext) {
-    return NextResponse.json({ success: false, error: 'Dozvoljene su samo JPG, PNG i WEBP slike.' }, { status: 400 });
+    return NextResponse.json({ success: false, error: kind === 'doc' ? 'Dozvoljeni su PDF, JPG, PNG i WEBP.' : 'Dozvoljene su samo JPG, PNG i WEBP slike.' }, { status: 400 });
+  }
+  // Cenovnik ide modelu kao celina (Gemini prima do ~20MB po pozivu).
+  if (kind === 'doc' && fileSize > 15 * 1024 * 1024) {
+    return NextResponse.json({ success: false, error: 'Cenovnik je veći od 15MB - sačuvajte manji PDF ili samo strane sa tabelom.' }, { status: 400 });
   }
   if (fileSize > MAX_FILE_BYTES) {
     return NextResponse.json({ success: false, error: 'Slika je veća od 25MB.' }, { status: 400 });

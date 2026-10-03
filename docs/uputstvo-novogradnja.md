@@ -106,6 +106,25 @@ Na dnu stranice: **Uvoz iz Excela**. U Excelu označi kolone **ovim redom**, kop
 - Stan koji već postoji (ista oznaka) se **ažurira** — nacrtani oblici i ture ostaju.
 - Ako je nešto u tabeli nejasno (npr. status „možda"), uvoz javlja red i razlog, i ne upisuje ništa.
 
+### Cenovnik investitora (AI)
+
+U „Uvoz iz Excela ili cenovnika" klikni **📄 Pročitaj cenovnik (PDF ili slika)** i izaberi cenovnik koji je poslao investitor. AI ga pročita (do pola minuta) i popuni polje za uvoz istim kolonama kao Excel: oznaka, sprat, struktura, m², terasa, orijentacija, cena, status (i lamela kod kompleksa). Proveri tabelu, pa klikni **Uvezi tabelu**. Ništa se ne upisuje pre tog klika.
+
+- Prepoznaje hiljade sa tačkom („95.600"), prizemlje kao „PR/VP", „PRODATO", cenu po m² (pomnoži sa kvadraturom) i skraćene orijentacije (SZ → Severozapad).
+- Novi cenovnik za isti projekat = isto: postojeći stanovi (ista oznaka) dobiju nove cene i statuse, a osnove, prostorije i ture ostaju.
+- Ako piše da je čitao rezervni model, proveri tabelu posebno pažljivo.
+
+### Osnove stanova odjednom (AI)
+
+Ispod tabele stanova je kartica **Osnove stanova odjednom (AI)**. Prevuci (ili izaberi) sve slike osnova koje je poslao investitor (JPG, PNG, WEBP; PDF prvo sačuvaj kao slike):
+
+1. AI na svakoj slici pročita oznaku stana („STAN 3A") i prostorije sa kvadraturom. Dve slike se čitaju istovremeno, oko 10–25 sekundi po slici.
+2. Stan se bira sam: po natpisu na osnovi, po imenu fajla („osnova_3A.jpg") ili po tipu („Tip B" → najniži stan B iznad prizemlja, sa kvačicom **prenesi** na 2B, 3B…).
+3. U tabeli proveri stan za svaku osnovu (ispravi u padajućem spisku ako treba), klikni broj prostorija da vidiš pročitane mere. Narandžasto = zbir prostorija se ne slaže sa površinom stana, ili je čitao rezervni model.
+4. **Sačuvaj sve** upiše osnove (i prostorije, ako je kvačica uključena). Tipske osnove se prvo prenesu na iste stanove, a osnova dodeljena baš određenom stanu ostaje njegova.
+
+Isti stan na dve slike je označen crveno i ne može da se sačuva dok ne izabereš drugi stan ili ukloniš jednu sliku.
+
 ### Jedan po jedan
 
 Izaberi sprat → **+ Novi stan** → u tabeli mu promeni oznaku i podatke → **Sačuvaj** u tom redu.
