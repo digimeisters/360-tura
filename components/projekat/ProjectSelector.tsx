@@ -15,6 +15,7 @@ import {
   type ProjectLang
 } from '../../app/lib/projectI18n';
 import { trackSiteEvent } from '../../app/lib/track';
+import { getImageProps } from 'next/image';
 import PaymentCalculator from './PaymentCalculator';
 import UnitMedia, { UnitRooms } from './UnitMedia';
 import UnitInquiry from './UnitInquiry';
@@ -135,6 +136,14 @@ const MOBILE_TXT = {
     show: (n: number) => `Show ${n} ${n === 1 ? 'apartment' : 'apartments'}`
   }
 };
+// Slika zgrade: telefon dobija smanjenu kopiju (/_next/image), računar veću.
+// Samo slike projekata na CDN-u (next.config images.remotePatterns).
+const VIEW_SIZES = '(max-width: 960px) 100vw, 62vw';
+function viewImg(url: string): { src: string; srcSet?: string; sizes?: string } {
+  if (!url.startsWith('https://cdn.kvadrat360.com/projekti/')) return { src: url };
+  const { props } = getImageProps({ src: url, alt: '', fill: true, sizes: VIEW_SIZES, quality: 75 });
+  return { src: props.src, srcSet: props.srcSet, sizes: props.sizes };
+}
 const pts = (poly: Polygon) => poly.map(([x, y]) => `${x},${y}`).join(' ');
 const narrow = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 960px)').matches;
 
@@ -333,13 +342,35 @@ export default function ProjectSelector({
   const status = (s: UnitStatus) => statusLabel(s, lang);
   const badgeOf = (s: UnitStatus) => (s === 'available' ? 's' : s === 'reserved' ? 'r' : 'p');
 
-  // Sledeće slike rotacije se učitavaju unapred, da strelica odmah prikaže sliku.
+  // Ostale slike iste zgrade (rotacija) se učitavaju unapred, da strelica odmah
+  // prikaže sliku - ali tek kad se strana učita, u istoj veličini kao prikazana
+  // slika, i samo za zgradu koju kupac gleda (snimak kompleksa samo kod kompleksa).
+  const preloadKey = (atComplex ? views.filter((v) => v.kind === 'site') : views.filter((v) => v.kind === 'building' && (buildings.length ? v.buildingId === buildingId : true)))
+    .map((v) => v.imageUrl)
+    .join('|');
   useEffect(() => {
-    for (const v of views) {
-      const img = new Image();
-      img.src = v.imageUrl;
-    }
-  }, [views]);
+    if (!preloadKey) return;
+    let idle = 0;
+    const run = () => {
+      idle = window.setTimeout(() => {
+        for (const url of preloadKey.split('|')) {
+          const { src, srcSet, sizes } = viewImg(url);
+          const img = new Image();
+          if (srcSet && sizes) {
+            img.sizes = sizes;
+            img.srcset = srcSet;
+          }
+          img.src = src;
+        }
+      }, 1200);
+    };
+    if (document.readyState === 'complete') run();
+    else window.addEventListener('load', run, { once: true });
+    return () => {
+      window.clearTimeout(idle);
+      window.removeEventListener('load', run);
+    };
+  }, [preloadKey]);
 
   const scrollToPanel = () => {
     if (narrow())
@@ -764,7 +795,7 @@ export default function ProjectSelector({
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- slika sa R2 CDN-a */}
-          <img src={view.imageUrl} alt={view.label ? `${project.title} - ${view.label}` : project.title} />
+          <img {...viewImg(view.imageUrl)} alt={view.label ? `${project.title} - ${view.label}` : project.title} />
           {svg}
           {tags}
           {canFull && (
@@ -1525,7 +1556,11 @@ export default function ProjectSelector({
           letakBase={letakBase}
           demoMedia={demoMedia}
           startBuildingId={buildingId}
-          onClose={() => setFull(false)}
+          onClose={() => {
+            setFull(false);
+            // Bez ovoga drugi klik na link #ceo-ekran ne bi ništa uradio (adresa se ne menja).
+            if (window.location.hash === '#ceo-ekran') history.replaceState(null, '', window.location.pathname + window.location.search);
+          }}
           onList={() => {
             setFull(false);
             setMode('list');

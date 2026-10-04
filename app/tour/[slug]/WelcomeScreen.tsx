@@ -176,9 +176,10 @@ export function WelcomeScreen({
           </div>
         )}
 
-        <h1 style={{ color: '#fff', fontSize: 'clamp(26px, 5vw, 38px)', lineHeight: 1.15, margin: '0 0 12px', fontWeight: 700, fontFamily: THEME.fontDisplay, textWrap: 'balance', textShadow: '0 2px 12px rgba(0, 0, 0, 0.35)' }}>
+        {/* h2: glavni naslov strane (h1) je u TourSeoSummary - jedan h1 po strani. */}
+        <h2 style={{ color: '#fff', fontSize: 'clamp(26px, 5vw, 38px)', lineHeight: 1.15, margin: '0 0 12px', fontWeight: 700, fontFamily: THEME.fontDisplay, textWrap: 'balance', textShadow: '0 2px 12px rgba(0, 0, 0, 0.35)' }}>
           {keepUnitsTogether(title)}
-        </h1>
+        </h2>
         {/* Cena odmah uz naslov - prvo što kupac pita, pre nego što krene
             u obilazak. Jedinica (mesečno / noć) sitnije, kao na karticama. */}
         {price && (

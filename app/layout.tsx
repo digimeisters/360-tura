@@ -35,11 +35,14 @@ const serif = Newsreader({
   display: "swap",
 });
 
-// Urbanist: moderan, topao font za info kutije u turi.
+// Urbanist: moderan, topao font za info kutije u turi. Bez preload-a: sajt ga
+// (osim ture i prikaza modula na početnoj) ne koristi, a preload bi ga skidao
+// na svakoj strani pre prvog prikaza. Pregledač ga skine tek kad ga tekst traži.
 const urbanist = Urbanist({
   subsets: ["latin", "latin-ext"],
   variable: "--font-urbanist",
   display: "swap",
+  preload: false,
 });
 
 export const metadata: Metadata = {

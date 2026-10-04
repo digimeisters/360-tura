@@ -4,11 +4,11 @@ import Link from 'next/link';
 import SiteTracker from '../../../components/SiteTracker';
 import { SiteNav, SiteFooter } from '../../../components/SiteChrome';
 import { BlogPricingSnapshot } from '../../../components/BlogPricingSnapshot';
-import { SITE_STYLES } from '../../lib/siteStyles';
 import { HOME_COPY } from '../../lib/homeCopy';
 import { SITE_NAME, SITE_URL } from '../../lib/site';
 import { serializeJsonLd } from '../../lib/structuredData';
 import { BLOG_POSTS, getBlogPost } from '../../lib/blogPosts';
+import SiteStylesheets from '../../../components/SiteStylesheets';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -75,7 +75,7 @@ export default async function BlogPostPage({ params }: Props) {
 
   return (
     <div lang="sr" style={{ display: 'contents' }}>
-      <style dangerouslySetInnerHTML={{ __html: SITE_STYLES }} />
+      <SiteStylesheets />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <SiteTracker />
 

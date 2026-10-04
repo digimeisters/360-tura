@@ -4,8 +4,6 @@ import SiteTracker from '../SiteTracker';
 import UnitMedia, { UnitRooms } from './UnitMedia';
 import UnitInquiry from './UnitInquiry';
 import PaymentCalculator from './PaymentCalculator';
-import { SITE_STYLES } from '../../app/lib/siteStyles';
-import { SELECTOR_STYLES } from './selectorStyles';
 import {
   floorLabel,
   formatArea,
@@ -18,6 +16,8 @@ import {
 } from '../../app/lib/projectI18n';
 import type { ProjectPageData } from '../../app/lib/projectData';
 import type { SelectorFloor, SelectorUnit } from './ProjectSelector';
+import SiteStylesheets from '../SiteStylesheets';
+import HtmlLang from '../HtmlLang';
 
 /**
  * Strana jednog stana: /novogradnja/[slug]/stan/[oznaka] (+ /en), po uzoru
@@ -107,7 +107,9 @@ export default function UnitPage({
 
   return (
     <div lang={lang} style={{ display: 'contents' }}>
-      <style dangerouslySetInnerHTML={{ __html: SITE_STYLES + SELECTOR_STYLES + PAGE_STYLES }} />
+      {lang === 'en' && <HtmlLang lang="en" />}
+      <SiteStylesheets selector />
+      <style dangerouslySetInnerHTML={{ __html: PAGE_STYLES }} />
       <SiteTracker />
       <SiteNav brandHref={lang === 'en' ? '/en' : '/'} brandAria="Kvadrat360" cta={{ href: `${base}#izbor`, label: t.allUnits, track: 'cta:unit_nav' }}>
         <li className="nav-lang">

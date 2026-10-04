@@ -6,13 +6,14 @@
  * meniju ni u sitemap-u) - vlasnik link šalje investitorima direktno.
  *
  * Raspored prati /za-agencije (vlasnik, 2. 10. 2026: „uskladi se sa stilom
- * celog sajta"): vrh sa živom zgradom -> prodaja danas / sa nama -> primer
- * -> kupac (četiri ekrana) -> vaša prodaja (tamno) -> plava traka -> paket
- * -> kako radimo -> pitanja -> kontakt.
+ * celog sajta"): vrh sa pravom fotografijom zgrade -> prodaja danas / sa
+ * nama -> pravi izbor stana (primer) -> kupac (četiri ekrana) -> vaša prodaja
+ * (tamno) -> plava traka -> postavljanje (AI čita materijal) -> paket ->
+ * kako radimo -> pitanja -> kontakt.
  *
- * Opisuje samo ono što aplikacija danas radi (izbor stana, link za prodaju,
- * upiti, izveštaj, ugradnja, engleski, gradilište). Primer na strani je
- * izmišljen projekat i tako je i označen. Cene namerno ne stoje.
+ * Opisuje samo ono što aplikacija danas radi. Primer je projekat
+ * „Lepenički cvet" sa izmišljenim cenama i statusima i tako je označen.
+ * Cene usluge namerno ne stoje.
  *
  * Tekst između zvezdica u naslovima ide u kurziv (lib/accent.tsx).
  */
@@ -29,7 +30,7 @@ export type InvestorCopy = {
     ctaContact: string;
     ctaDemo: string;
     trust: string[];
-    device: { project: string; floorCard: string; unitLabel: string };
+    device: { project: string; kicker: string; floorCard: string; unitLabel: string };
   };
   compare: {
     eyebrow: string;
@@ -38,7 +39,7 @@ export type InvestorCopy = {
     without: { title: string; tag: string; rows: Row[] };
     with: { title: string; tag: string; rows: Row[] };
   };
-  demo: { eyebrow: string; title: string; note: string; badge: string };
+  demo: { eyebrow: string; title: string; note: string; badge: string; fullNote: string; open: string };
   buyer: {
     eyebrow: string;
     title: string;
@@ -54,6 +55,13 @@ export type InvestorCopy = {
     card: { title: string; badge: string; inquiry: string; inquiryWho: string; topTitle: string; top: { code: string; pct: number; views: string }[] };
   };
   midCta: { title: string; points: string[]; button: string; call: string };
+  setup: {
+    eyebrow: string;
+    title: string;
+    note: string;
+    items: { from: string; to: string; title: string; text: string }[];
+    foot: string;
+  };
   offer: { eyebrow: string; title: string; note: string; items: { title: string; text: string }[] };
   steps: {
     eyebrow: string;
@@ -71,7 +79,7 @@ export const INVESTOR_COPY: InvestorCopy = {
   meta: {
     title: 'Za investitore novogradnje | Kvadrat360',
     description:
-      'Izbor stana po spratu, 360° ture, pogled sa sprata dronom i link preko koga vaša prodaja sama menja statuse i cene. Kragujevac.'
+      'Stanovi obojeni po statusu na fotografiji zgrade, kartica stana sa osnovom i 360° turom, i link preko koga vaša prodaja sama menja statuse i cene. Kragujevac.'
   },
   nav: {
     brandAria: 'Kvadrat360 - početna',
@@ -88,11 +96,11 @@ export const INVESTOR_COPY: InvestorCopy = {
     eyebrow: 'Za investitore novogradnje · Kragujevac',
     title: 'Prodajte stan *pre nego što je sazidan*',
     lede:
-      'Kupac na telefonu izabere sprat, klikne na stan i odmah vidi kvadraturu, cenu, raspored i pogled. Bez PDF-a i bez poziva „da li je još slobodan“.',
+      'Kupac na fotografiji zgrade klikne na stan i odmah vidi kvadraturu, raspored, cenu i pogled. Bez PDF-a i bez poziva „da li je još slobodan“.',
     ctaContact: 'Zakažite razgovor',
     ctaDemo: 'Isprobajte primer',
-    trust: ['Izbor stana po spratu', '360° ture i dron', 'Prodaja menja statuse sama'],
-    device: { project: 'Rezidencija Lipa · primer', floorCard: 'slobodno', unitLabel: 'Stan' }
+    trust: ['Stanovi na fotografiji zgrade', '360° ture i dron', 'Prodaja menja statuse sama'],
+    device: { project: 'Lepenički cvet · primer', kicker: 'Izbor stana', floorCard: 'slobodno', unitLabel: 'Stan' }
   },
   compare: {
     eyebrow: 'Prodaja danas',
@@ -112,7 +120,7 @@ export const INVESTOR_COPY: InvestorCopy = {
       title: 'Sa Kvadrat360',
       tag: 'Kupac bira sam',
       rows: [
-        { day: 'Pon', title: 'Kupac klikne na sprat, pa na stan', text: 'Odmah vidi kvadraturu, strukturu, cenu i cenu po m².' },
+        { day: 'Pon', title: 'Kupac klikne na stan na zgradi', text: 'Odmah vidi kvadraturu, prostorije, cenu i cenu po m².' },
         { day: 'Uto', title: 'Status je uvek tačan', text: 'Vaša prodaja ga menja sa telefona, sajt se osvežava odmah.' },
         { day: 'Sre', title: 'Pogled sa sprata, snimljen dronom', text: 'Kupac sa šestog sprata vidi tačno ono što plaća.' },
         { day: 'Čet', title: 'Upit za tačan stan', text: 'Stiže pravo prodaji, sa oznakom stana i kontaktom kupca.' }
@@ -122,17 +130,19 @@ export const INVESTOR_COPY: InvestorCopy = {
   demo: {
     eyebrow: 'Primer',
     title: 'Ovako kupac *bira stan*',
-    note: 'Kliknite na sprat, pa na stan. Zelen je slobodan, žut rezervisan, siv prodat.',
-    badge: 'Primer: izmišljen projekat, cene i statusi nisu stvarni'
+    note: 'Pravi izbor stana, isti kakav dobija vaš projekat. Kliknite na stan na zgradi, okrenite zgradu strelicama, otvorite listu ili filtere.',
+    badge: 'Primer: cene, statusi i opisi su izmišljeni',
+    fullNote: 'Na računaru probajte „Ceo ekran“ - ovako izgleda na sastanku sa kupcem.',
+    open: 'Cela strana projekta'
   },
   buyer: {
     eyebrow: 'Kupac',
     title: 'Od linka *do upita* za dva minuta',
     note: 'Sve na telefonu, bez aplikacije i bez dolaska u prodajnu kancelariju.',
     steps: [
-      { time: 'Zgrada', title: 'Bira sprat', text: 'Na fotografiji zgrade vidi koliko je slobodnih stanova na svakom spratu.' },
-      { time: 'Sprat', title: 'Bira stan', text: 'Osnova sprata, stanovi obojeni po statusu: slobodan, rezervisan, prodat.' },
-      { time: 'Stan', title: 'Vidi sve bitno', text: 'Kvadratura, terasa, cena i cena po m², 360° tura i pogled sa sprata.' },
+      { time: 'Zgrada', title: 'Bira na zgradi', text: 'Na fotografiji zgrade stanovi su obojeni: slobodan, rezervisan, prodat.' },
+      { time: 'Sprat', title: 'Sužava izbor', text: 'Osnova sprata ili lista svih stanova, uz filtere po spratu, m², sobama i ceni.' },
+      { time: 'Stan', title: 'Vidi sve bitno', text: 'Osnova, 360° tura, 3D i slike, prostorije sa m², PDF letak i kalkulator rata.' },
       { time: 'Upit', title: 'Javlja se prodaji', text: 'Ime i telefon, a prodaja odmah zna o kom stanu je reč.' }
     ],
     end: { text: 'Primer iznad radi isto - isprobajte ga na telefonu.', cta: 'Zakažite razgovor' }
@@ -144,20 +154,21 @@ export const INVESTOR_COPY: InvestorCopy = {
     points: [
       'Slobodan, rezervisan, prodat - jednim dodirom, uz potvrdu za svaki stan',
       'Upiti kupaca stižu na isti link, sa oznakom stana',
+      'Kratka beleška uz stan ili upit, da cela prodaja zna dogovor',
       'Izveštaj: koji stanovi se najviše gledaju i gde treba korigovati cenu',
       'Svaka izmena je zapisana - ko, kada i šta',
       'Link se gasi jednim klikom kad neko ode iz firme'
     ],
     card: {
-      title: 'Rezidencija Lipa',
+      title: 'Lepenički cvet',
       badge: 'primer',
-      inquiry: 'Novi upit · Stan 4A',
+      inquiry: 'Novi upit · Stan 4I',
       inquiryWho: 'Marko P. · 06x xxx xxxx',
       topTitle: 'Najgledaniji stanovi · 30 dana',
       top: [
         { code: '6B', pct: 100, views: '84 otvaranja' },
-        { code: '4A', pct: 71, views: '60 otvaranja' },
-        { code: '5D', pct: 52, views: '44 otvaranja' }
+        { code: '4I', pct: 71, views: '60 otvaranja' },
+        { code: '5G', pct: 52, views: '44 otvaranja' }
       ]
     }
   },
@@ -167,17 +178,46 @@ export const INVESTOR_COPY: InvestorCopy = {
     button: 'Zakažite razgovor',
     call: 'Pozovite'
   },
+  setup: {
+    eyebrow: 'Postavljanje',
+    title: 'Vi pošaljete, *sistem pročita*',
+    note: 'Cenovnik, osnove i fotografiju zgrade ne prekucavamo ručno. Sistem ih pročita, a mi proverimo svaki broj pre objave.',
+    items: [
+      {
+        from: 'cenovnik.pdf',
+        to: '56 stanova u tabeli',
+        title: 'Cenovnik postaje tabela',
+        text: 'PDF, Excel ili slika cenovnika: oznake, spratovi, strukture, m², cene i statusi upišu se sami.'
+      },
+      {
+        from: '23 osnove odjednom',
+        to: 'prostorije i m²',
+        title: 'Sve osnove odjednom',
+        text: 'Osnove se same spoje sa stanovima, po oznaci ili tipu stana, a sa svake se pročitaju prostorije i kvadrature.'
+      },
+      {
+        from: 'render zgrade',
+        to: '7 spratova, 20 stanova',
+        title: 'Stanovi na fotografiji',
+        text: 'Sistem sam obeleži spratove i stanove na renderu ili fotografiji zgrade, na svakoj slici posebno.'
+      }
+    ],
+    foot: 'Posle objave, promena cene ili statusa je jedan dodir na telefonu vaše prodaje.'
+  },
   offer: {
     eyebrow: 'Paket',
     title: 'Ceo projekat *na jednom linku*',
     note: 'Sve što prodaja danas objašnjava telefonom, kupac vidi sam, u bilo koje doba.',
     items: [
-      { title: 'Izbor stana po spratu', text: 'Fotografija ili render zgrade, klik na sprat, pa na stan. Filteri po strukturi, ceni i kvadraturi.' },
+      { title: 'Stanovi na fotografiji zgrade', text: 'Render ili fotografija zgrade, stanovi obojeni po statusu, više uglova koje kupac okreće strelicama.' },
+      { title: 'Kartica stana', text: 'Osnova, 360° tura, 3D osnova i slike, prostorije sa m², PDF letak i kalkulator rata.' },
+      { title: 'Ceo ekran za sastanke', text: 'Zgrada preko celog ekrana, sa filterima i karticom stana - za prodajnu kancelariju i sajam.' },
+      { title: 'Kompleks sa više zgrada', text: 'Pogled iz vazduha: kupac prvo bira zgradu, pa sprat i stan.' },
+      { title: 'Link za vašu prodaju', text: 'Status i cena sa telefona, upiti kupaca, beleške i izveštaj po stanu na jednom mestu.' },
       { title: '360° tura i pogled sa sprata', text: 'Tura iz rendera ili uzornog stana, i pogled snimljen dronom na visini sprata.' },
-      { title: 'Link za vašu prodaju', text: 'Status i cena sa telefona, upiti kupaca i izveštaj po stanu na jednom mestu.' },
       { title: 'Gradilište svakog meseca', text: 'Novi 360° snimak mesečno - kupci koji su dali kaparu vide da radovi idu.' },
-      { title: 'Na vašem sajtu', text: 'Isti izbor stana ugrađen na vaš sajt, bez našeg menija. Menja se zajedno sa našim.' },
-      { title: 'Na engleskom', text: 'Cela strana i na engleskom - za kupce iz dijaspore, bez posebnog održavanja.' }
+      { title: 'Okolina na mapi', text: 'Škole, vrtići, prodavnice i prevoz oko zgrade, sa udaljenošću od zgrade.' },
+      { title: 'Na vašem sajtu, i na engleskom', text: 'Isti izbor stana ugrađen na vaš sajt, ceo i na engleskom - bez posebnog održavanja.' }
     ]
   },
   steps: {
@@ -186,16 +226,17 @@ export const INVESTOR_COPY: InvestorCopy = {
     note: 'Vi šaljete ono što već imate. Snimanje, obradu i objavu radimo mi.',
     items: [
       { title: 'Razgovor', text: 'Pogledamo projekat, šta prodajete i kome. Bez obaveze.' },
-      { title: 'Šaljete materijal', text: 'Osnove spratova, tabelu stanova i rendere koje već imate.' },
+      { title: 'Šaljete materijal', text: 'Cenovnik, osnove i rendere - u obliku u kom ih već imate.' },
       { title: 'Snimamo i slažemo', text: 'Let dronom, ture, izbor stana i tekst na jezicima koje izaberete.' },
       { title: 'Objava i mesečno', text: 'Link za oglase i vaš sajt, novi snimak gradilišta svakog meseca.' }
     ],
     needs: {
       title: 'Šta nam treba od vas',
       items: [
-        'Osnove spratova (PDF ili DWG od arhitekte)',
-        'Tabela stanova iz Excela: oznaka, sprat, m², struktura, cena, status',
-        'Render ili fotografija fasade',
+        'Cenovnik - PDF, Excel ili slika, kakav već imate',
+        'Osnove stanova i spratova (PDF ili slike, sve odjednom)',
+        'Render ili fotografija zgrade - može iz više uglova',
+        'Snimak iz vazduha ako gradite više zgrada (ili ga snimimo dronom)',
         '360° renderi enterijera, ako ih arhitekta ima (nije obavezno)',
         'Pristup gradilištu jednom mesečno'
       ]
@@ -207,9 +248,19 @@ export const INVESTOR_COPY: InvestorCopy = {
     note: 'Ako vaše pitanje nije ovde, pozovite - odgovor stiže odmah.',
     items: [
       {
+        question: 'Koliko posla je na nama?',
+        answer:
+          'Malo. Pošaljete cenovnik, osnove i rendere kakve već imate - sistem ih pročita, a mi proverimo i složimo. Posle objave vaša prodaja samo menja statuse i cene sa telefona.'
+      },
+      {
         question: 'Šta ako nemamo 3D model enterijera?',
         answer:
-          'Izbor stana, pogled sa sprata i snimak gradilišta rade i bez njega. Ture enterijera dodajemo kad bude gotov uzorni stan, ili iz rendera ako ih vaš arhitekta ili vizualizator napravi.'
+          'Izbor stana, kartica sa osnovom i prostorijama, pogled sa sprata i snimak gradilišta rade i bez njega. Ture enterijera dodajemo kad bude gotov uzorni stan, ili iz rendera ako ih vaš arhitekta ili vizualizator napravi.'
+      },
+      {
+        question: 'Gradimo više zgrada - da li to radi?',
+        answer:
+          'Radi. Kupac prvo vidi kompleks iz vazduha i bira zgradu, pa sprat i stan. Lista svih stanova ima i kolonu zgrade, a filteri važe za ceo kompleks.'
       },
       {
         question: 'Ko menja status i cene stanova?',

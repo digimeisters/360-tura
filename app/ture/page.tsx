@@ -6,11 +6,11 @@ import TourList from '../../components/TourList';
 import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 
 import { Logo } from '../tour/[slug]/Logo';
-import { SITE_STYLES } from '../lib/siteStyles';
 import { getShowcaseTours, TOUR_FILTERS_FROM } from '../lib/showcaseTours';
 import { HOME_COPY } from '../lib/homeCopy';
 import { SITE_NAME, SITE_URL } from '../lib/site';
 import { serializeJsonLd } from '../lib/structuredData';
+import SiteStylesheets from '../../components/SiteStylesheets';
 
 /**
  * Javni spisak objavljenih tura (/ture). Sve ture su u HTML-u sa servera
@@ -101,7 +101,7 @@ export default async function ToursPage() {
 
   return (
     <div lang="sr" style={{ display: 'contents' }}>
-      <style dangerouslySetInnerHTML={{ __html: SITE_STYLES }} />
+      <SiteStylesheets />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <SiteTracker />
       <CardSpotlight />

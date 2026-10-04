@@ -58,7 +58,8 @@ export default function ProjectNearbyMap({
         popupAnchor: [0, -34]
       });
       const bounds = L.latLngBounds([[lat, lng]]);
-      L.marker([lat, lng], { icon: home, zIndexOffset: 1000 }).addTo(map).bindPopup(`<b>${esc(title)}</b>`);
+      // title = ime tačke za čitač ekrana (marker je fokusabilno dugme bez teksta).
+      L.marker([lat, lng], { icon: home, zIndexOffset: 1000, title }).addTo(map).bindPopup(`<b>${esc(title)}</b>`);
 
       markersRef.current = places.map((p) => {
         const icon = L.divIcon({
@@ -71,7 +72,7 @@ export default function ProjectNearbyMap({
         bounds.extend([p.lat, p.lng]);
         const label = p.name || NEARBY_LABELS[lang][p.cat];
         const walk = lang === 'en' ? `${walkMinutes(p.m)} min walk` : `${walkMinutes(p.m)} min peške`;
-        return L.marker([p.lat, p.lng], { icon })
+        return L.marker([p.lat, p.lng], { icon, title: `${label} · ${walk}` })
           .addTo(map)
           .bindPopup(`<b>${esc(label)}</b><br><span style="color:#5B5D63">${esc(NEARBY_LABELS[lang][p.cat])} · ${walk}</span>`);
       });

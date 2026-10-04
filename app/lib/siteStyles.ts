@@ -16,7 +16,7 @@ export const SITE_STYLES = `
     --surface-2:#F1F1EC;
     --ink:#111113;
     --ink-soft:#5B5D63;
-    --ink-faint:#8C8E93;
+    --ink-faint:#686A70;
     --line:#E4E4DE;
     --line-strong:#D3D3CB;
     --accent:#1E5AA8;
@@ -41,7 +41,7 @@ export const SITE_STYLES = `
       --surface-2:#1D1D21;
       --ink:#F2F2EF;
       --ink-soft:#AEB0B6;
-      --ink-faint:#797B81;
+      --ink-faint:#8E9096;
       --line:#2A2A2E;
       --line-strong:#38383D;
       --accent:#5B92D6;
@@ -61,7 +61,7 @@ export const SITE_STYLES = `
     --surface-2:#1D1D21;
     --ink:#F2F2EF;
     --ink-soft:#AEB0B6;
-    --ink-faint:#797B81;
+    --ink-faint:#8E9096;
     --line:#2A2A2E;
     --line-strong:#38383D;
     --accent:#5B92D6;
@@ -700,7 +700,7 @@ export const SITE_STYLES = `
   .contact .wrap{display:grid; grid-template-columns:1.1fr .9fr; gap:1.5rem clamp(2rem,5vw,3.4rem); align-items:start; background:#1E5AA8; border-radius:36px; padding:clamp(1.6rem,5vw,4.5rem); max-width:calc(1280px - 5rem); width:calc(100% - clamp(1.5rem,6vw,5rem));
     --ink:#FFFFFF; --ink-soft:rgba(255,255,255,.85); --ink-faint:rgba(255,255,255,.66); --line:rgba(255,255,255,.28); --line-strong:rgba(255,255,255,.4); --surface:rgba(255,255,255,.12); --accent:#FFFFFF; --accent-soft:rgba(255,255,255,.16); --on-accent:#1E5AA8; --shadow:none; color:var(--ink);}
   @media (max-width:640px){ .contact .wrap{border-radius:26px;} }
-  .contact .contact-form{--surface:#FFFFFF; --surface-2:#F4F4F0; --ink:#111113; --ink-soft:#5B5D63; --ink-faint:#8C8E93; --line:#E4E4DE; --line-strong:#D3D3CB; --accent:#1E5AA8; --accent-soft:#E9EFF6; --on-accent:#FFFFFF; --shadow:0 2px 8px rgba(17,17,19,.08); background:#FFFFFF; color:#111113; border:0;}
+  .contact .contact-form{--surface:#FFFFFF; --surface-2:#F4F4F0; --ink:#111113; --ink-soft:#5B5D63; --ink-faint:#686A70; --line:#E4E4DE; --line-strong:#D3D3CB; --accent:#1E5AA8; --accent-soft:#E9EFF6; --on-accent:#FFFFFF; --shadow:0 2px 8px rgba(17,17,19,.08); background:#FFFFFF; color:#111113; border:0;}
   .contact .contact-form .btn-primary{background:#1E5AA8; color:#FFFFFF; box-shadow:none;}
   .contact .contact-form .btn-primary:hover{background:#17447E;}
   .contact .info-list > div{background:none; border:0; box-shadow:none; padding:.3rem 0;}

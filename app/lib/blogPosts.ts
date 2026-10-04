@@ -105,7 +105,7 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: 'koliko-kosta-fotografisanje-nekretnine-za-oglas',
     title: 'Koliko košta fotografisanje nekretnine za oglas u Srbiji',
     description:
-      'Cena fotografisanja i virtuelne ture za nekretninu zavisi od broja prostorija, tipa fotografije i broja jezika audio vodiča. Evo od čega zavisi cena, i orijentacioni raspon na tržištu u Srbiji.',
+      'Od čega zavisi cena fotografisanja i virtuelne ture za nekretninu - prostorije, vrsta fotografije, jezici audio vodiča - i koliki je raspon cena u Srbiji.',
     excerpt:
       'Nema jedne cene za "fotografisanje stana" - zavisi šta tačno naručujete. Evo od čega cena zavisi, i gde se kreće na tržištu u Srbiji.',
     publishedAt: '2026-09-18',

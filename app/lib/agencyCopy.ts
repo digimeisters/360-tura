@@ -99,7 +99,7 @@ export const AGENCY_COPY: AgencyCopy = {
   meta: {
     title: 'Kvadrat360 za agencije — 360° ture za oglase u Kragujevcu',
     description:
-      '360° virtuelne ture za agencije za nekretnine u Kragujevcu i okolini: vaš oglas se izdvaja od ostalih agencija, manje uzaludnih razgledanja, kupci iz drugih gradova obiđu nekretninu sa telefona, a vlasnik svakog meseca dobija brojke.'
+      '360° ture za oglase agencija u Kragujevcu i okolini: vaš oglas se izdvaja, manje je uzaludnih razgledanja, a vlasnik svakog meseca dobija brojke.'
   },
   nav: {
     brandAria: 'Kvadrat360, početna strana',

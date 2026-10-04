@@ -14,7 +14,8 @@ function buildDescription(
 ): string {
   if (about) {
     const trimmed = about.replace(/\s+/g, ' ').trim();
-    return trimmed.length > 200 ? trimmed.slice(0, 197) + '...' : trimmed;
+    // Google prikazuje ~155 znakova; seče se na celoj reči.
+    return trimmed.length > 158 ? trimmed.slice(0, trimmed.lastIndexOf(' ', 155)).replace(/[,.;:\s]+$/, '') + '…' : trimmed;
   }
   const parts = ['360° virtuelna tura sa audio vodičem na srpskom, engleskom, nemačkom i ruskom.'];
   if (address) parts.push(`Lokacija: ${address}.`);
@@ -34,7 +35,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  const title = tour.agencyName ? `${tour.title} — ${tour.agencyName}` : tour.title;
+  // Naše primere (agencija „Kvadrat360 · primer") ne potpisujemo: template već dodaje „| Kvadrat360".
+  const agency = tour.agencyName && !/kvadrat\s*360/i.test(tour.agencyName) ? tour.agencyName : null;
+  const title = agency ? `${tour.title} — ${agency}` : tour.title;
   const description = buildDescription(tour.about, tour.address, tour.agencyName);
   const url = `${SITE_URL}/tour/${tour.slug}`;
 

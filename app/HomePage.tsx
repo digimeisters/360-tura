@@ -13,7 +13,6 @@ import { SITE_NAME, CONTACT, CONTACT_LINKS, whatsappLink } from './lib/site';
 import { HOME_COPY, type HomeLang } from './lib/homeCopy';
 import { HOME_FAQ } from './lib/homeFaq';
 import { homeJsonLd, serializeJsonLd } from './lib/structuredData';
-import { SITE_STYLES } from './lib/siteStyles';
 import TourCard, { tourCardLabels } from '../components/TourCard';
 import { getPublicOpenCount } from './lib/tourStats';
 import { tourHref } from './lib/tourHref';
@@ -23,6 +22,8 @@ import PromoTopBar from '../components/PromoTopBar';
 import TourModulesShowcase from '../components/TourModulesShowcase';
 import ChatBubble from '../components/ChatBubble';
 import { IconPhone, IconPlay } from '../components/SiteIcons';
+import SiteStylesheets from '../components/SiteStylesheets';
+import HtmlLang from '../components/HtmlLang';
 
 /**
  * Početna strana, jedan raspored za obe jezičke verzije: app/page.tsx (/,
@@ -81,7 +82,8 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
     // čitaču ekrana (i pregledaču pri deljenju reči) na kom je jeziku strana.
     // display: contents - omotač ne menja raspored.
     <div lang={lang} style={{ display: 'contents' }}>
-      <style dangerouslySetInnerHTML={{ __html: SITE_STYLES }} />
+      {lang === 'en' && <HtmlLang lang="en" />}
+      <SiteStylesheets />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(homeJsonLd(faq, lang)) }}

@@ -4,25 +4,34 @@ import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 import ContactForm from '../../components/ContactForm';
 import InvestorDemo, { Building } from '../../components/InvestorDemo';
 import InvestorHeroDevice from '../../components/InvestorHeroDevice';
+import InvestorHeroPhoto, { FacadeMini, type HeroUnit } from '../../components/InvestorHeroPhoto';
+import ProjectSelector from '../../components/projekat/ProjectSelector';
+import { selectorProject } from '../../components/projekat/ProjectView';
+import { getPublicProject, type ProjectPageData } from '../lib/projectData';
+import { floorLabel, formatArea, formatPrice, statusLabel, structureText } from '../lib/projectI18n';
+import type { UnitStatus } from '../lib/projects';
 import SiteTracker from '../../components/SiteTracker';
 import NavScrollSpy from '../../components/NavScrollSpy';
 import { IconPhone } from '../../components/SiteIcons';
-import { SITE_STYLES } from '../lib/siteStyles';
-import { SELECTOR_STYLES } from '../../components/projekat/selectorStyles';
 import { INVESTOR_COPY } from '../lib/investorCopy';
 import { accent } from '../lib/accent';
 import { CONTACT, CONTACT_LINKS, SITE_NAME, whatsappLink } from '../lib/site';
 import { tourHref } from '../lib/tourHref';
 import { getShowcaseTours, pickHeroTour } from '../lib/showcaseTours';
+import SiteStylesheets from '../../components/SiteStylesheets';
 
 /**
  * Prodajna strana za investitore novogradnje (/za-investitore). Raspored i
  * elementi prate /za-agencije (vlasnik, 2. 10. 2026: „uskladi se sa stilom
  * celog sajta"):
- *   vrh (živa zgrada u okviru .device) -> 01 prodaja danas / sa nama (dve
- *   kolone kao „nedelja") -> 02 klikabilan primer -> 03 kupac (četiri
- *   ekrana telefona) -> 04 vaša prodaja (tamna sekcija + kartica) -> plava
- *   traka -> 05 paket (.feat-grid) -> 06 kako radimo -> 07 pitanja -> kontakt.
+ *   vrh (prava fotografija zgrade primera, InvestorHeroPhoto) -> 01 prodaja
+ *   danas / sa nama -> 02 pravi izbor stana (ProjectSelector projekta
+ *   DEMO_SLUG, sa dugmetom za ceo ekran) -> 03 kupac (četiri ekrana
+ *   telefona) -> 04 vaša prodaja (tamna sekcija + kartica) -> plava traka ->
+ *   05 postavljanje (AI čita cenovnik, osnove, fasadu) -> 06 paket ->
+ *   07 kako radimo -> 08 pitanja -> kontakt.
+ * Bez projekta primera (nije objavljen) vrh i primer padaju na stari crtež
+ * izmišljenog projekta (InvestorHeroDevice, InvestorDemo).
  *
  * Za sada SKRIVENA: noindex, nema je u meniju, podnožju ni sitemap-u.
  * Vlasnik link šalje investitorima direktno.
@@ -30,6 +39,38 @@ import { getShowcaseTours, pickHeroTour } from '../lib/showcaseTours';
 
 const PATH = '/za-investitore';
 const copy = INVESTOR_COPY;
+// Primer na strani: pravi projekat sa izmišljenim cenama i statusima (vlasnik ga koristi za prezentacije).
+// Ako nije objavljen ili nema slike sa stanovima, strana pokazuje stari crtež.
+const DEMO_SLUG = 'lepenicki-cvet';
+
+/** Slika fasade sa najviše iscrtanih stanova i ti stanovi, za fotografiju u vrhu strane. */
+function heroFromProject(data: ProjectPageData | null): { imageUrl: string; units: HeroUnit[] } | null {
+  if (!data) return null;
+  const best = data.views
+    .filter((v) => v.kind === 'building')
+    .map((v) => ({ v, n: v.shapes.filter((s) => s.target === 'unit').length }))
+    .sort((a, b) => b.n - a.n)[0];
+  if (!best || best.n < 3) return null;
+  const floorById = new Map(data.floors.map((f) => [f.id, f]));
+  const units = best.v.shapes.flatMap((s) => {
+    const u = s.target === 'unit' ? data.units.find((x) => x.id === s.id) : null;
+    const f = u ? floorById.get(u.floorId) : null;
+    if (!u || !f) return [];
+    return [
+      {
+        id: u.id,
+        code: u.code,
+        floor: floorLabel(f.level, f.label, 'sr'),
+        structure: structureText(u.structure, 'sr'),
+        area: u.areaSqm ? formatArea(u.areaSqm, 'sr') : null,
+        price: u.status !== 'sold' && u.price ? formatPrice(u.price, 'sr') : null,
+        status: u.status,
+        polygon: s.polygon
+      }
+    ];
+  });
+  return units.length >= 3 ? { imageUrl: best.v.imageUrl, units } : null;
+}
 
 // Dugme "Prošetajte kroz stan" u primeru vodi na pravu turu iz vrha sajta.
 export const revalidate = 3600;
@@ -132,7 +173,7 @@ const INVESTOR_STYLES = `
   .report-card{background:#FFFFFF; color:#111113; border-radius:28px; padding:clamp(1.3rem,3vw,2rem); box-shadow:0 30px 70px rgba(0,0,0,.5);}
   .report-head{display:flex; justify-content:space-between; align-items:baseline; gap:1rem;}
   .report-head strong{font-family:var(--font-display); font-size:1.15rem;}
-  .report-head span{font-size:.75rem; color:#8C8E93;}
+  .report-head span{font-size:.75rem; color:#686A70;}
   .sc-inq{margin-top:1rem; background:#FFFBEB; border:1.5px solid #F2C46D; border-radius:16px; padding:.75rem .9rem; display:flex; justify-content:space-between; align-items:center; gap:.8rem;}
   .sc-inq b{display:block; font-size:.85rem; color:#B45309;}
   .sc-inq small{font-size:.8rem; color:#374151;}
@@ -156,14 +197,54 @@ const INVESTOR_STYLES = `
   .inv-needs li{display:flex; gap:.6rem; font-size:.97rem;}
   .inv-needs li::before{content:"✓"; color:var(--accent); font-weight:700; flex:none;}
 
+  /* Vrh: prava fotografija zgrade primera, stanovi obojeni po statusu (InvestorHeroPhoto). */
+  .inv-hero-photo{background:#0B0F17;}
+  .inv-hero-photo::after{display:none;}
+  .inv-hp-svg{position:absolute; inset:0; width:100%; height:100%; display:block;}
+  .inv-hp-poly{transition:fill .35s, fill-opacity .35s;}
+  .inv-hp-legend{display:flex; flex-direction:column; gap:3px; border-radius:12px; padding:6px 10px; font-size:.66rem; font-weight:700; color:#fff;}
+  .inv-hp-legend span{display:flex; align-items:center; gap:6px; white-space:nowrap;}
+  .inv-hp-legend i{width:9px; height:9px; border-radius:50%; flex:none;}
+  .inv-hp-meta{margin:.15rem 0 0; font-size:.74rem; color:rgba(255,255,255,.82);}
+  @media (max-width:480px){ .inv-hp-legend{display:none;} }
+
+  /* 02 Primer: pravi izbor stana + traka sa dugmetom za ceo ekran. */
+  .inv-demo-bar{display:flex; flex-wrap:wrap; align-items:center; gap:.6rem 1rem; margin:0 0 1rem;}
+  .inv-demo-fullnote{display:none;}
+  @media (min-width:961px){ .inv-demo-fullnote{display:inline; color:var(--ink-soft); font-size:.92rem;} }
+  .inv-demo-open{margin-left:auto; font-weight:700; font-size:.92rem; color:var(--accent); text-decoration:none;}
+  .inv-demo-open:hover{text-decoration:underline;}
+
+  /* 03 Kupac: kartice stana na trećem telefonu. */
+  .ph-tabs{display:flex; gap:3px; background:#EEF2F8; border-radius:8px; padding:2px;}
+  .ph-tabs i{flex:1; font-style:normal; text-align:center; font-size:.56rem; font-weight:700; color:#5B5D63; padding:3px 0; border-radius:6px;}
+  .ph-tabs i.on{background:#FFFFFF; color:#1E5AA8;}
+
+  /* 05 Postavljanje: ulaz -> šta sistem napravi. */
+  .setup-grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1.2rem;}
+  @media (max-width:900px){ .setup-grid{grid-template-columns:1fr;} }
+  .setup-card{padding:1.5rem 1.5rem 1.7rem; display:flex; flex-direction:column; gap:.6rem; box-shadow:none;}
+  .setup-flow{display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.5rem;}
+  .setup-in{font-size:.8rem; font-weight:700; color:var(--ink-soft); background:var(--surface-2); border:1px dashed var(--line-strong); border-radius:10px; padding:.4rem .65rem;}
+  .setup-arrow{color:var(--accent); font-weight:800;}
+  .setup-out{font-size:.8rem; font-weight:800; color:#FFFFFF; background:#1E5AA8; border-radius:10px; padding:.4rem .65rem;}
+  .setup-card h3{font-size:1.15rem;}
+  .setup-card p{color:var(--ink-soft); font-size:.95rem; line-height:1.6; margin:0;}
+  .setup-foot{margin:1.4rem 0 0; padding:1rem 1.3rem; border-radius:18px; background:var(--accent-soft); color:var(--ink); font-weight:600;}
+
   .contact-line{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem; font-size:.95rem; color:var(--ink-soft); grid-column:1 / -1;}
   #kontakt .contact-form{grid-column:1 / -1;}
   .contact-line a{color:inherit; text-decoration:none;}
 `;
 
 export default async function InvestorPage() {
-  const { nav, hero, compare, demo, buyer, sales, midCta, offer, steps, faq, contact } = copy;
+  const { nav, hero, compare, demo, buyer, sales, midCta, setup, offer, steps, faq, contact } = copy;
   const address = [CONTACT.street, CONTACT.city].filter(Boolean).join(', ');
+
+  const demoData = await getPublicProject(DEMO_SLUG);
+  const heroPhoto = heroFromProject(demoData);
+  const liveDemo = demoData && demoData.floors.length > 0 && demoData.units.length > 0 ? demoData : null;
+  const statusLabels = Object.fromEntries((['available', 'reserved', 'sold'] as UnitStatus[]).map((s) => [s, statusLabel(s, 'sr')])) as Record<UnitStatus, string>;
 
   const tours = await getShowcaseTours('sr');
   const heroTour = pickHeroTour(tours, 'sr');
@@ -172,7 +253,8 @@ export default async function InvestorPage() {
 
   return (
     <div lang="sr" style={{ display: 'contents' }}>
-      <style dangerouslySetInnerHTML={{ __html: SITE_STYLES + SELECTOR_STYLES + INVESTOR_STYLES }} />
+      <SiteStylesheets selector />
+      <style dangerouslySetInnerHTML={{ __html: INVESTOR_STYLES }} />
       <SiteTracker />
       <NavScrollSpy />
 
@@ -205,7 +287,18 @@ export default async function InvestorPage() {
                 ))}
               </div>
             </div>
-            <InvestorHeroDevice project={hero.device.project} freeLabel={hero.device.floorCard} unitLabel={hero.device.unitLabel} />
+            {heroPhoto ? (
+              <InvestorHeroPhoto
+                imageUrl={heroPhoto.imageUrl}
+                units={heroPhoto.units}
+                project={hero.device.project}
+                kicker={hero.device.kicker}
+                unitLabel={hero.device.unitLabel}
+                statusLabels={statusLabels}
+              />
+            ) : (
+              <InvestorHeroDevice project={hero.device.project} freeLabel={hero.device.floorCard} unitLabel={hero.device.unitLabel} />
+            )}
           </div>
         </section>
 
@@ -250,9 +343,33 @@ export default async function InvestorPage() {
               <p className="note">{demo.note}</p>
               <span className="inv-badge-note">{demo.badge}</span>
             </div>
-            <div className="inv-demo-wrap">
-              <InvestorDemo tourUrl={tourUrl} tourPreview={tourPreview} />
-            </div>
+            {liveDemo ? (
+              <>
+                {/* Na računaru izbor ima svoje dugme „Ceo ekran" - ovde samo napomena i link na celu stranu. */}
+                <div className="inv-demo-bar">
+<span className="inv-demo-fullnote">{demo.fullNote}</span>
+                  <a className="inv-demo-open" href={`/novogradnja/${DEMO_SLUG}`} target="_blank" rel="noopener" data-track="cta:investor_demo_open">
+                    {demo.open} ↗
+                  </a>
+                </div>
+                <div className="inv-demo-wrap">
+                  <ProjectSelector
+                    lang="sr"
+                    project={selectorProject(liveDemo, 'sr')}
+                    floors={liveDemo.floors}
+                    units={liveDemo.units}
+                    buildings={liveDemo.buildings}
+                    views={liveDemo.views}
+                    demoMedia={liveDemo.demoMedia}
+                    letakBase={`/novogradnja/${DEMO_SLUG}/stan`}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="inv-demo-wrap">
+                <InvestorDemo tourUrl={tourUrl} tourPreview={tourPreview} />
+              </div>
+            )}
           </div>
         </section>
 
@@ -268,9 +385,16 @@ export default async function InvestorPage() {
               <div className="path-step">
                 <span className="path-time">{buyer.steps[0].time}</span>
                 <div className="phone" aria-hidden="true">
-                  <div className="phone-screen ph-building">
-                    <Building highlight={4} />
-                  </div>
+                  {heroPhoto ? (
+                    <div className="phone-screen">
+                      {/* Ekran telefona je 4 : 3.4 (.phone). */}
+                      <FacadeMini imageUrl={heroPhoto.imageUrl} units={heroPhoto.units} frame={4 / 3.4} />
+                    </div>
+                  ) : (
+                    <div className="phone-screen ph-building">
+                      <Building highlight={4} />
+                    </div>
+                  )}
                 </div>
                 <div><h3>{buyer.steps[0].title}</h3><p>{buyer.steps[0].text}</p></div>
               </div>
@@ -299,6 +423,12 @@ export default async function InvestorPage() {
                       <h4>Stan 4A</h4>
                       <span className="ph-badge">Slobodan</span>
                     </div>
+                    <div className="ph-tabs">
+                      <i className="on">Osnova</i>
+                      <i>360°</i>
+                      <i>3D</i>
+                      <i>Slike</i>
+                    </div>
                     <div className="ph-facts">
                       <span>Površina<b>54 m²</b></span>
                       <span>Terasa<b>6 m²</b></span>
@@ -307,7 +437,7 @@ export default async function InvestorPage() {
                       <span>1.810 €/m²</span>
                       <b>97.700 €</b>
                     </div>
-                    <span className="ph-btn">360° · Prošetajte kroz stan</span>
+                    <span className="ph-btn">PDF letak · Plan rata</span>
                   </div>
                 </div>
                 <div><h3>{buyer.steps[2].title}</h3><p>{buyer.steps[2].text}</p></div>
@@ -400,7 +530,32 @@ export default async function InvestorPage() {
           </div>
         </section>
 
-        {/* 05 Paket. */}
+        {/* 05 Postavljanje: AI čita materijal investitora - odgovor na „koliko posla je na nama". */}
+        <section id="postavljanje">
+          <div className="wrap">
+            <div className="section-head">
+              <span className="eyebrow">{setup.eyebrow}</span>
+              <h2>{accent(setup.title)}</h2>
+              <p className="note">{setup.note}</p>
+            </div>
+            <div className="setup-grid">
+              {setup.items.map((item) => (
+                <div key={item.title} className="card setup-card">
+                  <div className="setup-flow" aria-hidden="true">
+                    <span className="setup-in">{item.from}</span>
+                    <span className="setup-arrow">→</span>
+                    <span className="setup-out">{item.to}</span>
+                  </div>
+                  <h3>{item.title}</h3>
+                  <p>{item.text}</p>
+                </div>
+              ))}
+            </div>
+            <p className="setup-foot">{setup.foot}</p>
+          </div>
+        </section>
+
+        {/* 06 Paket. */}
         <section className="band" id="paket">
           <div className="wrap">
             <div className="section-head">
@@ -419,7 +574,7 @@ export default async function InvestorPage() {
           </div>
         </section>
 
-        {/* 06 Kako radimo + šta nam treba. */}
+        {/* 07 Kako radimo + šta nam treba. */}
         <section id="kako-radi">
           <div className="wrap steps-split">
             <div className="section-head left">
@@ -445,7 +600,7 @@ export default async function InvestorPage() {
           </div>
         </section>
 
-        {/* 07 Pitanja. */}
+        {/* 08 Pitanja. */}
         <section className="band" id="pitanja">
           <div className="wrap faq-split">
             <div className="section-head left">

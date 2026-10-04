@@ -7,7 +7,7 @@
 export const SELECTOR_STYLES = `
   /* 02 Primer: kartica je uvek svetla (boje statusa su za svetlu pozadinu). */
   .inv-badge-note{display:inline-flex; font-size:.8rem; font-weight:700; color:var(--ink-soft); background:var(--surface); border:1px dashed var(--line-strong); border-radius:999px; padding:.35rem .85rem;}
-  .inv-demo{--d-ink:#111113; --d-soft:#5B5D63; --d-faint:#8C8E93; --d-line:#E3E8F1; --d-accent:#1E5AA8; --d-soft-bg:#F6F8FC;
+  .inv-demo{--d-ink:#111113; --d-soft:#5B5D63; --d-faint:#686A70; --d-line:#E3E8F1; --d-accent:#1E5AA8; --d-soft-bg:#F6F8FC;
     background:#FFFFFF; color:var(--d-ink); border-radius:28px; padding:clamp(.8rem,2vw,1.3rem); box-shadow:var(--shadow-lg); border:1px solid var(--line);}
   .inv-demo button{font:inherit; cursor:pointer;}
   .inv-tabs{display:inline-flex; gap:4px; background:#EEF2F8; border-radius:999px; padding:4px; margin-bottom:1rem;}
@@ -113,7 +113,7 @@ export const SELECTOR_STYLES = `
   .inv-um-nav button{width:32px; height:32px; border-radius:50%; border:0; background:rgba(15,23,42,.65); color:#fff; font-size:1.1rem; line-height:1;}
   .inv-um-nav span{background:rgba(15,23,42,.65); color:#fff; font-size:.72rem; font-weight:700; border-radius:999px; padding:.2rem .6rem;}
   .inv-rooms{margin:0 0 .8rem;}
-  .inv-rooms-title{display:block; font-size:.68rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:#8C8E93; margin-bottom:.3rem;}
+  .inv-rooms-title{display:block; font-size:.68rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:#686A70; margin-bottom:.3rem;}
   .inv-rooms table{width:100%; border-collapse:collapse; font-size:.85rem;}
   .inv-rooms td{padding:.32rem 0; border-bottom:1px solid #EEF2F8; color:#374151;}
   .inv-rooms td:last-child{text-align:right; white-space:nowrap; font-weight:600; color:#111113;}
@@ -129,7 +129,7 @@ export const SELECTOR_STYLES = `
   .inv-pay-head{display:flex; justify-content:space-between; align-items:center;}
   .inv-pay-head b{font-family:var(--font-display); font-size:1rem;}
   .inv-pay-head button{border:0; background:#EEF2F8; width:30px; height:30px; border-radius:50%; font-size:1.1rem; line-height:1; color:#5B5D63;}
-  .inv-pay-label{display:block; font-size:.68rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:#8C8E93; margin:.7rem 0 .35rem;}
+  .inv-pay-label{display:block; font-size:.68rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:#686A70; margin:.7rem 0 .35rem;}
   .inv-pay-chips{display:flex; gap:5px; flex-wrap:wrap;}
   .inv-pay-chips button{border:1.5px solid #D5DEEB; background:#FFFFFF; border-radius:999px; padding:.35rem .75rem; font-size:.82rem; font-weight:700; color:#374151; min-height:34px;}
   .inv-pay-chips button[aria-pressed="true"]{background:#1E5AA8; border-color:#1E5AA8; color:#FFFFFF;}
@@ -141,14 +141,14 @@ export const SELECTOR_STYLES = `
   .inv-pay-rate input{width:4.2rem; font:inherit; font-weight:700; text-align:right; border:1.5px solid #D5DEEB; border-radius:9px; padding:.35rem .45rem; color:#111113; background:#FFFFFF;}
   .inv-pay-sum{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:.85rem;}
   .inv-pay-sum > div{background:#FFFFFF; border:1px solid #E3E8F1; border-radius:12px; padding:.5rem .6rem;}
-  .inv-pay-sum small{display:block; font-size:.66rem; font-weight:700; color:#8C8E93;}
+  .inv-pay-sum small{display:block; font-size:.66rem; font-weight:700; color:#686A70;}
   .inv-pay-sum b{display:block; font-family:var(--font-display); font-size:.98rem; color:#111113; margin-top:1px;}
   .inv-pay-sum .is-main{grid-column:1 / -1; background:#1E5AA8; border-color:#1E5AA8;}
   .inv-pay-sum .is-main small{color:#DCE8F7;}
   .inv-pay-sum .is-main b{color:#FFFFFF; font-size:1.3rem;}
   /* color:inherit - sajt boji svaki <em> akcentnom bojom, a ovde je pozadina plava. */
   .inv-pay-sum em{font-style:normal; font-family:var(--font-body); font-size:.78rem; font-weight:600; opacity:.85; color:inherit;}
-  .inv-pay-note{margin:.6rem 0 0; font-size:.72rem; color:#8C8E93; line-height:1.45;}
+  .inv-pay-note{margin:.6rem 0 0; font-size:.72rem; color:#686A70; line-height:1.45;}
 
   /* Šta je u blizini (ProjectNearby). */
   .inv-nearby{margin-top:clamp(1.6rem,4vw,2.4rem);}
@@ -243,7 +243,7 @@ export const SELECTOR_STYLES = `
     .inv-lst-table tbody tr{display:grid; grid-template-columns:1fr 1fr; gap:2px 12px; border:1px solid var(--d-line); border-radius:16px; padding:.7rem .8rem; margin-bottom:8px;}
     .inv-lst-table td{display:flex; justify-content:space-between; gap:8px; padding:.15rem 0; border:0; white-space:normal; font-size:.85rem;}
     .inv-lst-table td.is-num{text-align:left;}
-    .inv-lst-table td[data-l]::before{content:attr(data-l); color:#8C8E93; font-size:.75rem; font-weight:600;}
+    .inv-lst-table td[data-l]::before{content:attr(data-l); color:#686A70; font-size:.75rem; font-weight:600;}
     .inv-lst-table td.is-code{font-size:1.05rem; grid-column:1; grid-row:1;}
     .inv-lst-table td.is-status{justify-content:flex-end; grid-column:2; grid-row:1;}
     .inv-lst-filters{padding:.7rem .75rem;}
@@ -352,7 +352,7 @@ export const SELECTOR_STYLES = `
     .inv-fullbtn.is-onimg{position:absolute; top:12px; left:12px; z-index:2; background:rgba(17,17,19,.78); backdrop-filter:blur(6px); box-shadow:0 4px 14px rgba(0,0,0,.25);}
     .inv-fullbtn.is-onimg:hover{background:#1E5AA8;}
   }
-  .inv-fs{--d-ink:#111113; --d-soft:#5B5D63; --d-faint:#8C8E93; --d-line:#E3E8F1; --d-accent:#1E5AA8; --d-soft-bg:#F6F8FC;
+  .inv-fs{--d-ink:#111113; --d-soft:#5B5D63; --d-faint:#686A70; --d-line:#E3E8F1; --d-accent:#1E5AA8; --d-soft-bg:#F6F8FC;
     position:fixed; inset:0; z-index:1000; outline:none; background:#0B0F17; color:#FFFFFF; overflow:hidden; font-family:var(--font-body);}
   .inv-fs button{font:inherit; cursor:pointer;}
   .fs-bg{position:absolute; inset:-40px; background:center/cover no-repeat; filter:blur(28px) brightness(.55); transform:scale(1.05);}

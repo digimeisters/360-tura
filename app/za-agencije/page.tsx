@@ -10,7 +10,6 @@ import { IconPhone, IconPlay } from '../../components/SiteIcons';
 import Pricing from '../../components/Pricing';
 import SiteTracker from '../../components/SiteTracker';
 import NavScrollSpy from '../../components/NavScrollSpy';
-import { SITE_STYLES } from '../lib/siteStyles';
 import { AGENCY_COPY } from '../lib/agencyCopy';
 import { HOME_COPY } from '../lib/homeCopy';
 import { accent, plainAccent } from '../lib/accent';
@@ -18,6 +17,7 @@ import { CONTACT, CONTACT_LINKS, SITE_NAME, SITE_URL, whatsappLink } from '../li
 import { serializeJsonLd } from '../lib/structuredData';
 import { tourHref } from '../lib/tourHref';
 import { getShowcaseTours, pickHeroTour } from '../lib/showcaseTours';
+import SiteStylesheets from '../../components/SiteStylesheets';
 
 /**
  * Prodajna strana za agencije (/za-agencije), ispričana kao jedna nedelja
@@ -125,8 +125,8 @@ const AGENCY_STYLES = `
   .chat-card{display:block; align-self:flex-start; width:85%; background:#FFFFFF; border-radius:14px; overflow:hidden;}
   .chat-card-img{display:block; position:relative; height:90px; background:#E4E4DE;}
   .chat-card-text{display:block; padding:.5rem .65rem; font-size:.75rem;}
-  .chat-card small{display:block; color:#8C8E93;}
-  .chat-reply{align-self:flex-end; max-width:78%; background:#7360F2; color:#FFFFFF; border-radius:16px 16px 4px 16px; padding:.65rem .75rem;}
+  .chat-card small{display:block; color:#686A70;}
+  .chat-reply{align-self:flex-end; max-width:78%; background:#6A55E8; color:#FFFFFF; border-radius:16px 16px 4px 16px; padding:.65rem .75rem;}
   .ph-chip{position:absolute; top:12px; left:10px; background:rgba(15,23,42,.5); color:#FFFFFF; border:1px solid rgba(255,255,255,.6); border-radius:999px; padding:3px 9px; font-size:.68rem; font-weight:700;}
   .ph-card{position:absolute; left:8px; right:8px; bottom:10px; background:rgba(15,23,42,.66); color:#FFFFFF; border-radius:14px; padding:.7rem;}
   .ph-card small{display:block; font-size:.6rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#7FB0EC;}
@@ -171,12 +171,12 @@ const AGENCY_STYLES = `
   .report-card{background:#FFFFFF; color:#111113; border-radius:28px; padding:clamp(1.3rem,3vw,2rem); box-shadow:0 30px 70px rgba(0,0,0,.5);}
   .report-head{display:flex; justify-content:space-between; align-items:baseline; gap:1rem;}
   .report-head strong{font-family:var(--font-display); font-size:1.15rem;}
-  .report-head span{font-size:.75rem; color:#8C8E93;}
+  .report-head span{font-size:.75rem; color:#686A70;}
   .kpi-grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.7rem; margin-top:1.2rem;}
   .kpi{background:#F1F1EC; border-radius:14px; padding:.9rem;}
   .kpi small{display:block; font-size:.72rem; color:#5B5D63;}
   .kpi b{display:block; font-family:var(--font-display); font-size:1.8rem; font-weight:800; line-height:1.2;}
-  .kpi i{font-style:normal; font-size:.72rem; font-weight:700; color:#15803d;}
+  .kpi i{font-style:normal; font-size:.72rem; font-weight:700; color:#166534;}
   .rooms-title{font-size:.72rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#5B5D63; margin:1.4rem 0 .7rem;}
   .room-bar{display:grid; grid-template-columns:8rem 1fr; gap:.8rem; align-items:center; font-size:.85rem; margin-bottom:.55rem;}
   .room-bar span{height:10px; border-radius:999px; background:#F1F1EC; overflow:hidden;}
@@ -228,7 +228,8 @@ export default async function AgencyPage() {
 
   return (
     <div lang="sr" style={{ display: 'contents' }}>
-      <style dangerouslySetInnerHTML={{ __html: SITE_STYLES + AGENCY_STYLES }} />
+      <SiteStylesheets />
+      <style dangerouslySetInnerHTML={{ __html: AGENCY_STYLES }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd()) }} />
       <SiteTracker />
       <NavScrollSpy />

@@ -2,11 +2,11 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import SiteTracker from '../../components/SiteTracker';
 import { SiteNav, SiteFooter } from '../../components/SiteChrome';
-import { SITE_STYLES } from '../lib/siteStyles';
 import { HOME_COPY } from '../lib/homeCopy';
 import { SITE_NAME, SITE_URL } from '../lib/site';
 import { serializeJsonLd } from '../lib/structuredData';
 import { BLOG_POSTS } from '../lib/blogPosts';
+import SiteStylesheets from '../../components/SiteStylesheets';
 
 /**
  * Spisak svih blog postova (/blog). Postovi su statični (lib/blogPosts.ts),
@@ -73,7 +73,7 @@ export default function BlogIndexPage() {
 
   return (
     <div lang="sr" style={{ display: 'contents' }}>
-      <style dangerouslySetInnerHTML={{ __html: SITE_STYLES }} />
+      <SiteStylesheets />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <SiteTracker />
 

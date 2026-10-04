@@ -6,11 +6,11 @@ import ProjectProgress from './ProjectProgress';
 import ProjectNearby from './ProjectNearby';
 import { parseNearby } from '../../app/lib/nearby';
 import EmbedAutoHeight from './EmbedAutoHeight';
-import { SITE_STYLES } from '../../app/lib/siteStyles';
 import { SITE_URL } from '../../app/lib/site';
-import { SELECTOR_STYLES } from './selectorStyles';
 import { formatPrice, PROJECT_TEXT, type ProjectLang } from '../../app/lib/projectI18n';
 import type { ProjectPageData } from '../../app/lib/projectData';
+import SiteStylesheets from '../SiteStylesheets';
+import HtmlLang from '../HtmlLang';
 
 /**
  * Cela strana projekta novogradnje. Deli je javna adresa
@@ -55,7 +55,7 @@ export function projectTitle(data: ProjectPageData, lang: ProjectLang): string {
   return (lang === 'en' && data.project.title_en?.trim()) || data.project.title;
 }
 
-function selectorProject(data: ProjectPageData, lang: ProjectLang) {
+export function selectorProject(data: ProjectPageData, lang: ProjectLang) {
   const { project } = data;
   return {
     slug: project.slug,
@@ -100,7 +100,9 @@ export default function ProjectView({
 
   return (
     <div lang={lang} style={{ display: 'contents' }}>
-      <style dangerouslySetInnerHTML={{ __html: SITE_STYLES + SELECTOR_STYLES + PAGE_STYLES }} />
+      {lang === 'en' && <HtmlLang lang="en" />}
+      <SiteStylesheets selector />
+      <style dangerouslySetInnerHTML={{ __html: PAGE_STYLES }} />
       {/* Pregled se ne broji u posetama - gleda ga samo admin ili investitor. */}
       {!preview && <SiteTracker />}
       <SiteNav
@@ -242,7 +244,8 @@ export function ProjectEmbed({ data, lang = 'sr' }: { data: ProjectPageData; lan
   const embedNearby = nearbyOf(data);
   return (
     <main className="emb" lang={lang}>
-      <style dangerouslySetInnerHTML={{ __html: SITE_STYLES + SELECTOR_STYLES + EMBED_STYLES }} />
+      <SiteStylesheets selector />
+      <style dangerouslySetInnerHTML={{ __html: EMBED_STYLES }} />
       <EmbedAutoHeight slug={project.slug} />
       {floors.length === 0 ? (
         <p className="note">{t.soon}</p>
