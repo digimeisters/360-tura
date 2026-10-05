@@ -13,6 +13,7 @@ import {
   ENTRY_HOLD_MS,
   INFO_TURN_MIN_MS,
   LEVEL_PITCH,
+  ROTATE_PITCH,
   ROTATE_RAMP_MS,
   clampPitch,
   pickHfov,
@@ -163,7 +164,7 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
       // telefona - naše okretanje bi se sudaralo sa tim (vidi startGyroscope).
       if (!isGyroActiveRef.current) {
         const idleRotateDegPerSec = 360 / 30; // 360° za 30 sekundi
-        viewerRef.current.startAutoRotate(idleRotateDegPerSec, LEVEL_PITCH);
+        viewerRef.current.startAutoRotate(idleRotateDegPerSec, ROTATE_PITCH);
       }
     }
   };
@@ -203,7 +204,7 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
       };
       const idleRotate = () => {
         if (!viewerRef.current || isGyroActiveRef.current) return;
-        viewerRef.current.startAutoRotate(360 / 30, LEVEL_PITCH); // 360° za 30 s, bez cilja
+        viewerRef.current.startAutoRotate(360 / 30, ROTATE_PITCH); // 360° za 30 s, bez cilja
       };
 
       let turnMs = 0;
@@ -337,9 +338,9 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
       const fromYaw = normalizeYaw(viewerRef.current.getYaw());
       const toYaw = getShortestTargetYaw(fromYaw, targetEstablishYaw);
       const ms = turnMsFor(toYaw - fromYaw, ARRIVE_GLIDE_MIN_MS, ARRIVE_GLIDE_MAX_MS, ARRIVE_GLIDE_DEG_PER_S);
-      // Vodič posle ovoga kruži, pa odmah na ravan horizont; ručni režim
+      // Vodič posle ovoga kruži, pa odmah na nagib kruženja; ručni režim
       // staje na kadru koji je autor ture izabrao.
-      const pitch = guideModeRef.current === 'auto' ? LEVEL_PITCH : clampPitch(targetEstablishPitch);
+      const pitch = guideModeRef.current === 'auto' ? ROTATE_PITCH : clampPitch(targetEstablishPitch);
       window.setTimeout(() => {
         // Posetilac je za tu sekundu mogao da pređe u drugu sobu ili da
         // sam uhvati panoramu - tada se ne okreće.
@@ -433,7 +434,7 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
     if (!viewer) return;
     if (prefersReducedMotion()) {
       if (toSpeed === 0) viewer.stopAutoRotate();
-      else viewer.startAutoRotate(toSpeed, LEVEL_PITCH);
+      else viewer.startAutoRotate(toSpeed, ROTATE_PITCH);
       return;
     }
     const config = viewer.getConfig?.();
@@ -442,7 +443,7 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
       if (toSpeed === 0) return;
       // Kreni jedva primetno, pa ubrzaj (startAutoRotate ujedno vrati nagib i zoom).
       fromSpeed = toSpeed * 0.02;
-      viewer.startAutoRotate(fromSpeed, LEVEL_PITCH);
+      viewer.startAutoRotate(fromSpeed, ROTATE_PITCH);
     }
     const cfg = viewer.getConfig?.();
     if (!cfg) return;
@@ -497,7 +498,7 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
         } else {
           if (!zoomedIn) viewerRef.current.setHfov(pickHfov(DEFAULT_HFOV));
           viewerRef.current.setYaw(targetEstablishYaw);
-          viewerRef.current.setPitch(LEVEL_PITCH);
+          viewerRef.current.setPitch(ROTATE_PITCH);
           if (!isGyroActiveRef.current) easeAutoRotate(speed, stillValid);
         }
       }

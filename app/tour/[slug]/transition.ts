@@ -196,6 +196,12 @@ export function turnMsFor(angleDeg: number, minMs: number, maxMs: number, degPer
  * info-tački i prilaz vratima i dalje smeju da se spuste ili podignu.
  */
 export const LEVEL_PITCH = 0;
+/**
+ * Nagib dok vodič kruži uz naraciju: blago nadole, da se vidi pod i nameštaj
+ * umesto ravne linije horizonta (vlasnik, 5. 10. 2026 - "ne sviđa mi se ravan
+ * pogled"). Okret ka vratima i prilaz ostaju na LEVEL_PITCH.
+ */
+export const ROTATE_PITCH = -15;
 
 export function clampPitch(pitch: number): number {
   return Math.min(Math.max(pitch, WALK_PITCH_MIN), WALK_PITCH_MAX);
