@@ -55,10 +55,38 @@ export class VideoFrameRenderer {
   constructor(
     private plan: VideoPlan,
     private pano: PanoRenderer,
-    private qr: HTMLCanvasElement | null
+    private qr: HTMLCanvasElement | null,
+    /** Logo agencije (agency_branding); null = kartice nose samo naziv agencije. */
+    private logo: HTMLImageElement | null = null
   ) {
     this.display = cssFont('--font-urbanist', 'system-ui, sans-serif');
     this.body = cssFont('--font-inter', 'system-ui, sans-serif');
+  }
+
+  /**
+   * Logo agencije na beloj zaobljenoj pločici (logoi su pravljeni za svetlu
+   * podlogu, na tamnoplavoj kartici bi se izgubili). Pločica prati oblik
+   * loga: visina je stalna, širina koliko logo traži, do maxW.
+   * x je leva ivica, ili sredina kad je center.
+   */
+  private drawLogoBadge(ctx: CanvasRenderingContext2D, x: number, y: number, height: number, maxW: number, center: boolean): void {
+    const logo = this.logo;
+    if (!logo) return;
+    const pad = Math.round(height * 0.18);
+    const ratio = (logo.naturalWidth || 300) / (logo.naturalHeight || 150);
+    let logoH = height - pad * 2;
+    let logoW = logoH * ratio;
+    if (logoW > maxW - pad * 2) {
+      logoW = maxW - pad * 2;
+      logoH = logoW / ratio;
+    }
+    const badgeW = Math.max(height, logoW + pad * 2);
+    const left = center ? x - badgeW / 2 : x;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.roundRect(left, y, badgeW, height, Math.min(28, height / 3));
+    ctx.fill();
+    ctx.drawImage(logo, left + (badgeW - logoW) / 2, y + (height - logoH) / 2, logoW, logoH);
   }
 
   /** Pogled kamere u sobi u trenutku t: ravnomerno klizi i lagano se primiče. */
@@ -173,7 +201,10 @@ export class VideoFrameRenderer {
     const titleLines = wrap(ctx, intro.title, maxW);
     const blocks: { h: number; draw: (y: number) => void }[] = [];
 
-    blocks.push({
+    // Agencija sa logom: logo na pločici umesto znaka i naziva.
+    if (this.logo) {
+      blocks.push({ h: 130, draw: (y) => this.drawLogoBadge(ctx, PAD, y, 130, 520, false) });
+    } else blocks.push({
       h: 50,
       draw: (y) => {
         ctx.strokeStyle = ACCENT;
@@ -311,9 +342,15 @@ export class VideoFrameRenderer {
     if (this.qr) ctx.drawImage(this.qr, W / 2 - 235, y + 35, 470, 470);
     y += box + 100;
 
-    ctx.font = `700 56px ${this.display}`;
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillText(outro.agency, W / 2, y);
+    if (this.logo) {
+      // Logo agencije umesto naziva (pločica 150 px, ispod QR koda).
+      this.drawLogoBadge(ctx, W / 2, y - 60, 150, 640, true);
+      y += 90;
+    } else {
+      ctx.font = `700 56px ${this.display}`;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText(outro.agency, W / 2, y);
+    }
     if (outro.contact) {
       y += 72;
       ctx.font = `600 46px ${this.body}`;

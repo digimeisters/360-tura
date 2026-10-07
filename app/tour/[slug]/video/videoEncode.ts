@@ -16,6 +16,16 @@ export type VideoProgress =
   | { stage: 'encoding'; done: number; total: number }
   | { stage: 'finishing' };
 
+function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('logo'));
+    img.src = url;
+  });
+}
+
 export async function renderTourVideo(
   plan: VideoPlan,
   options: {
@@ -48,6 +58,10 @@ export async function renderTourVideo(
     // Fontovi sajta moraju biti spremni pre prvog kadra.
     await document.fonts.ready;
 
+    // Logo agencije: CDN šalje CORS zaglavlja (isto kao za panorame), pa platno
+    // ostaje čisto za kodiranje. Ako se ne učita, kartice idu samo sa nazivom.
+    const logo = plan.agencyLogoUrl ? await loadImage(plan.agencyLogoUrl).catch(() => null) : null;
+
     const qr = document.createElement('canvas');
     await QRCode.toCanvas(qr, plan.outro.url, { width: 400, margin: 1, color: { dark: '#0E2040', light: '#FFFFFF' } });
 
@@ -57,7 +71,7 @@ export async function renderTourVideo(
     canvas.height = VIDEO_HEIGHT;
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('2D platno nije dostupno.');
-    const frames = new VideoFrameRenderer(plan, pano, qr);
+    const frames = new VideoFrameRenderer(plan, pano, qr, logo);
 
     const output = new Output({ format: new Mp4OutputFormat({ fastStart: 'in-memory' }), target: new BufferTarget() });
     const source = new CanvasSource(canvas, { codec: 'avc', quality: QUALITY_HIGH, keyFrameInterval: 1 });

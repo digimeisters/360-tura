@@ -58,6 +58,21 @@ export function useTourData(
         setError(tourErr ? `Greška (tours): ${tourErr.message}` : translations[langRef.current].tourNotFound);
       } else {
         setTour(loadedTour);
+        // Logo agencije za krug na dnu panorame stiže naknadno - ne sme da
+        // drži otvaranje ture. Dok ne stigne (ili ga nema), krug nosi Kvadrat360 znak.
+        const agency = loadedTour.agency_name;
+        if (agency) {
+          void supabase
+            .from('agency_branding')
+            .select('logo_url')
+            .eq('agency_name', agency)
+            .maybeSingle()
+            .then(({ data }) => {
+              if (data?.logo_url && isMountedRef.current) {
+                setTour((cur) => (cur ? { ...cur, agency_logo_url: data.logo_url as string } : cur));
+              }
+            });
+        }
         if (roomsErr) setError(`Greška (rooms): ${roomsErr.message}`);
         else if (!loadedRooms || loadedRooms.length === 0) setError(translations[langRef.current].noRooms);
         else setRooms(loadedRooms);

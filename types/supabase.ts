@@ -1,5 +1,5 @@
 // GENERISANO skriptom scripts/gen-db-types.mjs (npm run db:types) - ne menjati ručno.
-// Izvor: živa baza sajta (tmnaguwmzlwirhjprdbh), 2026-10-02.
+// Izvor: živa baza sajta (tmnaguwmzlwirhjprdbh), 2026-10-06.
 
 export type Json =
   | string
@@ -15,6 +15,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      agency_branding: {
+        Row: {
+          agency_name: string
+          logo_url: string
+          updated_at: string
+        }
+        Insert: {
+          agency_name: string
+          logo_url: string
+          updated_at?: string
+        }
+        Update: {
+          agency_name?: string
+          logo_url?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contact_requests: {
         Row: {
           agency: string | null
@@ -871,6 +889,7 @@ export type Database = {
           lng: number | null
           location_map_url: string | null
           location_text_i18n: Json | null
+          nadir_logo: boolean
           panorama_url: string | null
           parking: string | null
           price: number | null
@@ -917,6 +936,7 @@ export type Database = {
           lng?: number | null
           location_map_url?: string | null
           location_text_i18n?: Json | null
+          nadir_logo?: boolean
           panorama_url?: string | null
           parking?: string | null
           price?: number | null
@@ -963,6 +983,7 @@ export type Database = {
           lng?: number | null
           location_map_url?: string | null
           location_text_i18n?: Json | null
+          nadir_logo?: boolean
           panorama_url?: string | null
           parking?: string | null
           price?: number | null

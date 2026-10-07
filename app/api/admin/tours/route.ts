@@ -164,7 +164,7 @@ export async function GET(req: Request) {
 
   const [toursResult, { data: rooms }] = await Promise.all([
     readTours(
-      `${BASE_COLUMNS}, district, structure, area_sqm, price, floor, has_elevator, has_basement, heating, build_status, finish_status, terrace, parking, deposit, registration, faq_1_i18n, faq_2_i18n, faq_3_i18n, faq_4_i18n, faq_5_i18n`
+      `${BASE_COLUMNS}, district, structure, area_sqm, price, floor, has_elevator, has_basement, heating, build_status, finish_status, terrace, parking, deposit, registration, nadir_logo, faq_1_i18n, faq_2_i18n, faq_3_i18n, faq_4_i18n, faq_5_i18n`
     ),
     ctx.supabase.from('rooms').select('tour_slug, panorama_url, panorama_url_cf')
   ]);
@@ -172,7 +172,7 @@ export async function GET(req: Request) {
 
   if (
     error &&
-    /\b(district|structure|area_sqm|price|floor|has_elevator|has_basement|heating|build_status|finish_status|terrace|parking|deposit|registration)\b/i.test(
+    /\b(district|structure|area_sqm|price|floor|has_elevator|has_basement|heating|build_status|finish_status|terrace|parking|deposit|registration|nadir_logo)\b/i.test(
       error.message
     )
   ) {
@@ -193,9 +193,18 @@ export async function GET(req: Request) {
     const name = (tour as { agency_name?: string | null }).agency_name;
     if (name?.trim()) agencyCounts.set(name, (agencyCounts.get(name) ?? 0) + 1);
   }
+  // Logo agencije za krug na dnu ture (migracija 027). Bez tabele spisak
+  // ostaje isti, samo bez logoa.
+  const { data: branding } = await ctx.supabase.from('agency_branding').select('agency_name, logo_url');
+  const logos = new Map((branding ?? []).map((b) => [b.agency_name as string, b.logo_url as string]));
   const agencyReports = [...agencyCounts.entries()]
     .sort((a, b) => a[0].localeCompare(b[0], 'sr'))
-    .map(([agency, count]) => ({ agency, tours: count, path: `/izvestaj/${agencyReportToken(agency)}` }));
+    .map(([agency, count]) => ({
+      agency,
+      tours: count,
+      path: `/izvestaj/${agencyReportToken(agency)}`,
+      logoUrl: logos.get(agency) ?? null
+    }));
 
   const roomCount = new Map<string, { total: number; withPanorama: number }>();
   for (const room of rooms ?? []) {
@@ -269,6 +278,8 @@ export async function POST(req: Request) {
     agent_phone: clean(body.agent_phone, 'agent_phone') || null,
     agent_email: clean(body.agent_email, 'agent_email') || null,
     category,
+    // Krug sa logom na mestu stativa - isključuje se samo izričito (NadirLogo.tsx).
+    nadir_logo: body.nadir_logo !== false,
     ...facts017(body)
   };
   let { error } = await ctx.supabase.from('tours').insert(newRow);
@@ -438,6 +449,7 @@ export async function PATCH(req: Request) {
       agent_phone: clean(body.agent_phone, 'agent_phone') || null,
       agent_email: clean(body.agent_email, 'agent_email') || null,
       category: CATEGORIES.has(body.category) ? body.category : 'rent',
+      nadir_logo: body.nadir_logo !== false,
       ...faq.update,
       ...facts017(body)
   };

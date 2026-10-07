@@ -9,6 +9,7 @@ import { slugify } from '../../lib/slug';
 import { SITE_URL } from '../../lib/site';
 import TourQrDialog from './TourQrDialog';
 import TourVideoLauncher from './TourVideoLauncher';
+import AgencyLogoButton from './AgencyLogoButton';
 import {
   STRUCTURE_ORDER,
   HEATING_OPTIONS,
@@ -51,6 +52,8 @@ type TourRow = {
   agent_name: string | null;
   agent_phone: string | null;
   agent_email: string | null;
+  /** Krug sa logom na mestu stativa (migracija 027); false = klijent ne želi logo. */
+  nadir_logo?: boolean;
   created_at: string | null;
   published: boolean;
   // Nezavisno od `published` - da li je nekretnina i dalje dostupna
@@ -97,6 +100,7 @@ type FormState = {
   agent_name: string;
   agent_phone: string;
   agent_email: string;
+  nadir_logo: boolean;
   /** Srpski odgovori na pet pitanja - samo pri izmeni postojeće ture. */
   faq: string[];
 };
@@ -125,6 +129,7 @@ const EMPTY_FORM: FormState = {
   agent_name: '',
   agent_phone: '',
   agent_email: '',
+  nadir_logo: true,
   faq: ['', '', '', '', '']
 };
 
@@ -204,7 +209,7 @@ export default function ToursAdminPage() {
   const [videoSlug, setVideoSlug] = useState<string | null>(null);
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
   // Tajni linkovi mesečnih izveštaja (lib/agencyReport.ts) - potpisuje ih server.
-  const [agencyReports, setAgencyReports] = useState<{ agency: string; tours: number; path: string }[]>([]);
+  const [agencyReports, setAgencyReports] = useState<{ agency: string; tours: number; path: string; logoUrl: string | null }[]>([]);
   const [copiedReport, setCopiedReport] = useState<string | null>(null);
 
   useEffect(() => {
@@ -443,6 +448,7 @@ export default function ToursAdminPage() {
       agent_name: tour.agent_name || '',
       agent_phone: tour.agent_phone || '',
       agent_email: tour.agent_email || '',
+      nadir_logo: tour.nadir_logo !== false,
       faq: [tour.faq_1_i18n, tour.faq_2_i18n, tour.faq_3_i18n, tour.faq_4_i18n, tour.faq_5_i18n].map(pickSr)
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -553,16 +559,17 @@ export default function ToursAdminPage() {
             ture (posete, ulazak u turu, kontakt, zahtevi za razgledanje). */}
         {agencyReports.length > 0 && (
           <section style={{ ...cardStyle, maxWidth: 'none', marginBottom: '22px' }}>
-            <h2 style={{ fontSize: '15px', margin: 0, fontFamily: FORM.fontDisplay }}>Izveštaji za agencije</h2>
+            <h2 style={{ fontSize: '15px', margin: 0, fontFamily: FORM.fontDisplay }}>Agencije: logo i izveštaji</h2>
             <p style={{ margin: 0, fontSize: '12.5px', color: FORM.textSecondary }}>
-              Pošaljite agenciji njen link - vidi samo svoje ture, po mesecima, bez prijave. Link ne ističe.
+              Logo agencije stoji u krugu na dnu svake njene ture (na mestu stativa); bez loga tura prikazuje Kvadrat360 znak. Link izveštaja pošaljite agenciji - vidi samo svoje ture, po mesecima, bez prijave, i ne ističe.
             </p>
             {agencyReports.map((r) => (
               <div key={r.agency} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', borderTop: `1px solid ${FORM.border}`, paddingTop: '10px' }}>
                 <span style={{ fontSize: '14px', fontWeight: 600 }}>
                   {r.agency} <span style={{ color: FORM.textSecondary, fontWeight: 400 }}>· {r.tours} {r.tours === 1 ? 'tura' : r.tours < 5 ? 'ture' : 'tura'}</span>
                 </span>
-                <span style={{ display: 'flex', gap: '8px' }}>
+                <span style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <AgencyLogoButton agency={r.agency} logoUrl={r.logoUrl} onChanged={() => void load()} />
                   <button
                     type="button"
                     onClick={async () => {
@@ -903,7 +910,7 @@ export default function ToursAdminPage() {
             </Field>
           </div>
 
-          <Field label="Email agenta">
+          <Field label="Email agenta" hint="Na ovu adresu agentu stižu zahtevi za razgledanje iz ture.">
             <input
               id="tour-agent-email"
               type="email"
@@ -912,6 +919,24 @@ export default function ToursAdminPage() {
               style={inputStyle}
             />
           </Field>
+
+          {/* Krug sa logom na mestu stativa (NadirLogo.tsx): logo agencije,
+              ili Kvadrat360 znak. Isključuje se kad klijent ne želi logo. */}
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
+            <input
+              id="tour-nadir-logo"
+              type="checkbox"
+              checked={form.nadir_logo}
+              onChange={(e) => setForm({ ...form, nadir_logo: e.target.checked })}
+              style={{ width: '18px', height: '18px', marginTop: '1px', accentColor: FORM.accent }}
+            />
+            <span>
+              <b>Logo na mestu stativa</b>
+              <span style={{ display: 'block', fontSize: '12.5px', color: FORM.textSecondary }}>
+                Krug sa logom agencije (bez njega Kvadrat360 znak) kad posetilac pogleda nadole. Isključite ako klijent ne želi logo.
+              </span>
+            </span>
+          </label>
 
           {/* Odgovori na pet pitanja (dugme "Pitanja" u turi). Samo pri izmeni:
               nova tura ih dobija iz upitnika. Pitanja zavise od tipa oglasa,

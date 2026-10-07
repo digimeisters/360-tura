@@ -27,7 +27,22 @@ export default function TourVideoLauncher({ slug, onClose }: { slug: string; onC
         setError('Tura nije mogla da se učita. Proverite da li ste prijavljeni i pokušajte ponovo.');
         return;
       }
-      setData({ tour: tourRes.data as unknown as Tour, rooms: (roomsRes.data ?? []) as unknown as Room[] });
+      const tour = tourRes.data as unknown as Tour;
+      const rooms = (roomsRes.data ?? []) as unknown as Room[];
+      // Logo agencije za uvodnu i završnu karticu videa (agency_branding, 027).
+      const agency = tour.agency_name;
+      if (!agency) {
+        setData({ tour, rooms });
+        return;
+      }
+      void supabase
+        .from('agency_branding')
+        .select('logo_url')
+        .eq('agency_name', agency)
+        .maybeSingle()
+        .then(({ data: branding }) => {
+          if (!cancelled) setData({ tour: { ...tour, agency_logo_url: branding?.logo_url ?? null }, rooms });
+        });
     });
     return () => {
       cancelled = true;

@@ -74,6 +74,8 @@ export type VideoRoomShot = {
 
 export type VideoPlan = {
   lang: Language;
+  /** Logo agencije (agency_branding, migracija 027) za uvodnu i završnu karticu; null = samo naziv. */
+  agencyLogoUrl: string | null;
   intro: {
     agency: string;
     eyebrow: string;
@@ -184,8 +186,9 @@ export function buildVideoPlan(tour: Tour, rooms: Room[], lang: Language): Video
   const elevator = fact('elevator');
   const heating = fact('heating');
   const perks = [
-    fact('terrace')?.value,
-    fact('parking')?.value,
+    // 'Nema' (bez terase / parkinga) nije prednost - na kartici je stajalo samo '✓ Nema'.
+    tour.terrace !== 'Nema' ? fact('terrace')?.value : undefined,
+    tour.parking !== 'Nema' ? fact('parking')?.value : undefined,
     elevator && tour.has_elevator === 'Da' ? elevator.label : undefined,
     heating ? `${heating.label}: ${heating.value.toLowerCase()}` : undefined
   ].filter((p): p is string => Boolean(p)).slice(0, 3);
@@ -234,6 +237,7 @@ export function buildVideoPlan(tour: Tour, rooms: Room[], lang: Language): Video
 
   return {
     lang,
+    agencyLogoUrl: tour.agency_logo_url || null,
     intro: {
       agency: tour.agency_name?.trim() || 'Kvadrat360',
       eyebrow: [category, place].filter(Boolean).join(' · ').toUpperCase(),

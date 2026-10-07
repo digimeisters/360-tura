@@ -103,6 +103,11 @@ export type Tour = {
   agent_phone?: string;
   agent_email?: string;
   agency_name?: string;
+  // Logo agencije iz agency_branding (migracija 027), dopisuje ga
+  // useTourData posle učitavanja; null = Kvadrat360 znak (NadirLogo.tsx).
+  agency_logo_url?: string | null;
+  // false = klijent ne želi krug sa logom na mestu stativa (migracija 027).
+  nadir_logo?: boolean;
   // Putanja automatskog vodiča: redni brojevi soba (order_index) odvojeni
   // zarezom, npr. "1,2,3,2,4,2,5" - vidi guidePath.ts. Prazno/undefined = tura
   // nema automatskog vodiča.

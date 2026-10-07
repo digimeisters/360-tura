@@ -24,6 +24,7 @@ import { useAdminSession } from './useAdminSession';
 import { useHotspotEditor, type RefreshHotspots } from './useHotspotEditor';
 import { useRoomNavigation } from './useRoomNavigation';
 import { runRoomSequence } from './roomSequence';
+import { NadirLogo } from './NadirLogo';
 import { AdminCrosshair, DragHint, RoomLoadingScreen, TourGlobalStyles, useFirstTimeDragHint, useImmersiveWhileDragging } from './TourOverlays';
 import { useNeighbourPreload, useTourAnalytics } from './useTourAnalytics';
 import { useScreenWakeLock } from './useScreenWakeLock';
@@ -830,6 +831,15 @@ export default function TourPage() {
     toolbarSlot: adminToolbarSlot
   };
 
+  // Tura je spremna: ekran dobrodošlice zamenjuje naslovnu sliku sa servera (TourSplash u layout.tsx).
+  useEffect(() => {
+    if (!hasMounted || loading) return;
+    document.documentElement.dataset.tourReady = '1';
+    return () => {
+      delete document.documentElement.dataset.tourReady;
+    };
+  }, [hasMounted, loading]);
+
   if (!hasMounted || loading) return <Centered>{t.loading}</Centered>;
 
   // Tura postoji ali nema nijednu sobu: admin dobija dugme da kreira prvu
@@ -1092,6 +1102,8 @@ export default function TourPage() {
       {/* Okvir za slojeve scena: pri prelazu su tu dve scene jedna preko
           druge dok se stara ne pretopi (vidi transition.ts). */}
       <div id="panorama" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }} />
+      {/* Logo agencije na mestu stativa - vidi NadirLogo.tsx; opcion po turi. */}
+      {tour?.nadir_logo !== false && <NadirLogo viewerRef={viewerRef} logoUrl={tour?.agency_logo_url ?? null} />}
 
       {slowRoomLoad && <style>{'@keyframes pulseDot{0%,80%,100%{transform:scale(0);opacity:.3}40%{transform:scale(1);opacity:1}}'}</style>}
       {slowRoomLoad && (
