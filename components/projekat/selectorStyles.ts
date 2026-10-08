@@ -324,16 +324,25 @@ export const SELECTOR_STYLES = `
   .inv-open:hover{background:#174A8C;}
   .inv-open span{font-size:1.1rem;}
 
-  /* Strana stana: kartice kao velika dugmad preko cele širine (kao Sokolis). */
-  .inv-um.is-large .inv-um-tabs{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; background:transparent; padding:0; margin-bottom:12px; overflow:visible;}
-  .inv-um.is-large .inv-um-tabs button{min-height:48px; border-radius:14px; background:#111113; color:#FFFFFF; font-size:.92rem; font-weight:700; box-shadow:none;}
-  .inv-um.is-large .inv-um-tabs button[aria-selected="true"]{background:#EEF2F8; color:#111113;}
-  .inv-um.is-large .inv-um-tabs button:hover{filter:brightness(1.15);}
-  .inv-um.is-large .inv-um-stage{border:0; border-radius:18px;}
+  /* Strana stana: isti prekidač kao u kartici stana, samo veći, sa ikonicama. */
+  .inv-um.is-large .inv-um-tabs{display:flex; gap:4px; background:#F3F6FB; border:1px solid #E3E8F1; border-radius:14px; padding:4px; margin-bottom:12px; overflow:visible;}
+  .inv-um.is-large .inv-um-tabs button{flex:1 1 0; display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:44px; border:1px solid transparent; border-radius:11px; background:transparent; color:#5B5D63; font-size:.9rem; font-weight:650; cursor:pointer; transition:background .15s, color .15s;}
+  .inv-um.is-large .inv-um-tabs button svg{width:17px; height:17px; flex:0 0 auto;}
+  .inv-um.is-large .inv-um-tabs button:hover{color:#1E5AA8;}
+  .inv-um.is-large .inv-um-tabs button[aria-selected="true"]{background:#FFFFFF; color:#1E5AA8; border-color:#C9D7EC; box-shadow:0 1px 4px rgba(15,23,42,.08);}
+  .inv-um.is-large .inv-um-tabs button:focus-visible{outline:2px solid #1E5AA8; outline-offset:2px;}
+  .inv-um.is-large .inv-um-stage{border:1px solid #E3E8F1; border-radius:16px;}
   .inv-um.is-large .inv-um-img{height:min(68vh,640px);}
   .inv-um.is-large .inv-um-stage iframe{height:min(70vh,660px);}
+  /* 3D osnova: renderi dolaze sa crnom pozadinom - okvir je iste boje, pa slika ispunjava ceo prostor. */
+  .inv-um-stage.is-dark{background:#000000; border-color:#000000;}
+  .inv-um-stage.is-dark .inv-um-img{background:#000000;}
+  .inv-um-zoom{position:absolute; right:10px; bottom:10px; display:inline-flex; align-items:center; gap:5px; background:rgba(255,255,255,.12); color:#FFFFFF; border:1px solid rgba(255,255,255,.28); font-size:.74rem; font-weight:700; border-radius:999px; padding:.3rem .7rem; pointer-events:none;}
+  .inv-um-stage:not(.is-dark) .inv-um-zoom{background:rgba(15,23,42,.62); border-color:transparent;}
+  .inv-um-zoom svg{width:13px; height:13px;}
   @media (max-width:700px){
-    .inv-um.is-large .inv-um-tabs{grid-template-columns:1fr 1fr;}
+    .inv-um.is-large .inv-um-tabs{display:grid; grid-template-columns:1fr 1fr;}
+    .inv-um.is-large .inv-um-tabs button{font-size:.84rem;}
     .inv-um.is-large .inv-um-img{height:52vh;}
     .inv-um.is-large .inv-um-stage iframe{height:60vh;}
   }

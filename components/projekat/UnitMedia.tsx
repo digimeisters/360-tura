@@ -23,6 +23,44 @@ import UnitPlanCrop from './UnitPlanCrop';
 
 type Tab = 'plan' | 'tour' | 'plan3d' | 'photos';
 
+const svgProps = { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true } as const;
+
+const TAB_ICONS: Record<Tab, React.ReactNode> = {
+  plan: (
+    <svg {...svgProps}>
+      <rect x="3.5" y="3.5" width="17" height="17" rx="1.5" />
+      <path d="M3.5 11h7M10.5 3.5v11M14 20.5V14h6.5" />
+    </svg>
+  ),
+  tour: (
+    <svg {...svgProps}>
+      <ellipse cx="12" cy="12" rx="8.5" ry="3.5" />
+      <path d="M12 3.5a8.5 8.5 0 1 1 0 17" />
+      <path d="M16.5 17.8l-1.6 1.9 2.3.9" />
+    </svg>
+  ),
+  plan3d: (
+    <svg {...svgProps}>
+      <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z" />
+      <path d="M4 7.5l8 4.5 8-4.5M12 12v9" />
+    </svg>
+  ),
+  photos: (
+    <svg {...svgProps}>
+      <rect x="3.5" y="5" width="17" height="14" rx="2" />
+      <circle cx="9" cy="10" r="1.6" />
+      <path d="M20.5 16l-5-5-8.5 8" />
+    </svg>
+  )
+};
+
+const ZOOM_ICON = (
+  <svg {...svgProps}>
+    <circle cx="10.5" cy="10.5" r="6" />
+    <path d="M15 15l5 5M10.5 8v5M8 10.5h5" />
+  </svg>
+);
+
 export default function UnitMedia({
   planUrl,
   plan3dUrl,
@@ -70,8 +108,15 @@ export default function UnitMedia({
     <a href={src} target="_blank" rel="noopener noreferrer" className="inv-um-img">
       {/* eslint-disable-next-line @next/next/no-img-element -- slika sa R2 CDN-a */}
       <img src={src} alt={alt} loading="lazy" />
+      {large && (
+        <span className="inv-um-zoom">
+          {ZOOM_ICON}
+          {t.zoom}
+        </span>
+      )}
     </a>
   );
+  const dark = tab === 'plan3d' && Boolean(plan3dUrl);
 
   return (
     <div className={large ? 'inv-um is-large' : 'inv-um'}>
@@ -79,12 +124,13 @@ export default function UnitMedia({
         <div className="inv-um-tabs" role="tablist">
           {tabs.map((x) => (
             <button key={x.id} type="button" role="tab" aria-selected={tab === x.id} onClick={() => setTab(x.id)}>
+              {large && TAB_ICONS[x.id]}
               {x.label}
             </button>
           ))}
         </div>
       )}
-      <div className="inv-um-stage">
+      <div className={dark ? 'inv-um-stage is-dark' : 'inv-um-stage'}>
         {tab === 'plan' && planUrl && image(planUrl, `${t.tabPlan} · ${code}`)}
         {tab === 'plan' && !planUrl && fallbackPlan && <UnitPlanCrop src={fallbackPlan.src} polygon={fallbackPlan.polygon} alt={`${t.tabPlan} · ${code}`} tall={large} />}
         {tab === 'plan' && !planUrl && !fallbackPlan && soon(t.tabPlan)}
