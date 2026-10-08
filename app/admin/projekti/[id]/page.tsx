@@ -7,6 +7,7 @@ import { supabase } from '../../../lib/supabaseClient';
 import { adminAuthHeader } from '../../../lib/authFetch';
 import { FormThemeStyle } from '../../../lib/formTheme';
 import { shrinkImage } from '../../../lib/shrinkImage';
+import { srPlural } from '../../../lib/projectI18n';
 import { PROJECT_ADMIN_STYLES } from '../../../../components/projekat/adminStyles';
 import PolygonCanvas, { type CanvasShape } from '../../../../components/projekat/PolygonCanvas';
 import SalesAccessPanel from '../../../../components/projekat/SalesAccessPanel';
@@ -484,7 +485,7 @@ export default function ProjectEditorPage() {
       }));
       const seen = Number(json.seen ?? items.length);
       const total = Number(json.floors ?? items.length);
-      const parts = [`AI je našao ${seen} ${seen === 1 ? 'etažu' : 'etaža'} (spratova u projektu: ${total}).`];
+      const parts = [`AI je našao ${seen} ${srPlural(seen, 'etažu', 'etaže', 'etaža')} (spratova u projektu: ${total}).`];
       if (seen !== total) parts.push(seen < total ? 'Nedostaju gornji spratovi - dodajte ih ručno posle čuvanja.' : 'Višak etaža je izostavljen odozgo.');
       if (has) parts.push('Čuvanje zamenjuje spratove već nacrtane na ovoj slici.');
       if (json.backup) parts.push('Čitao je rezervni model - proverite granice pažljivije.');
@@ -505,7 +506,7 @@ export default function ProjectEditorPage() {
         label: p.code,
         polygon: p.polygon
       }));
-      const parts = [`AI je podelio spratove na ${items.length} ${items.length === 1 ? 'stan' : 'stanova'} koji se vide na ovoj slici.`];
+      const parts = [`AI je podelio spratove na ${items.length} ${srPlural(items.length, 'stan', 'stana', 'stanova')} koji se vide na ovoj slici.`];
       if (!json.withPlan) parts.push('Bez osnove sprata sa iscrtanim stanovima AI teže pogađa koji je stan koji - proverite oznake.');
       if (has) parts.push('Čuvanje zamenjuje stanove već nacrtane na ovoj slici.');
       if (json.backup) parts.push('Čitao je rezervni model - proverite granice pažljivije.');
@@ -528,7 +529,7 @@ export default function ProjectEditorPage() {
       for (const it of items) await saveShape(viewId, kind, it.id, it.polygon);
       setAiFloors(null);
       setAiFloorSel(null);
-      return `Sačuvani oblici ${items.length} ${kind === 'floor' ? 'spratova' : 'stanova'}. Uglove i dalje možete da pomerate povlačenjem.`;
+      return `Sačuvani oblici ${items.length} ${kind === 'floor' ? srPlural(items.length, 'sprat', 'sprata', 'spratova') : srPlural(items.length, 'stan', 'stana', 'stanova')}. Uglove i dalje možete da pomerate povlačenjem.`;
     });
   };
 
@@ -562,7 +563,7 @@ export default function ProjectEditorPage() {
       }
       setAiPlanUnits(null);
       setAiPlanSel(null);
-      return `Sačuvani oblici ${items.length} stanova. Uglove i dalje možete da pomerate povlačenjem.`;
+      return `Sačuvani oblici ${items.length} ${srPlural(items.length, 'stan', 'stana', 'stanova')}. Uglove i dalje možete da pomerate povlačenjem.`;
     });
   };
 
@@ -1211,7 +1212,7 @@ export default function ProjectEditorPage() {
                       className="pa-btn is-danger"
                       onClick={() => {
                         const count = units.filter((u) => u.floor_id === floor.id).length;
-                        if (!window.confirm(`Obrisati ${floorName(floor.level).toLowerCase()}${count ? ` i ${count} stanova na njemu` : ''}?`)) return;
+                        if (!window.confirm(`Obrisati ${floorName(floor.level).toLowerCase()}${count ? ` i ${count} ${srPlural(count, 'stan', 'stana', 'stanova')} na njemu` : ''}?`)) return;
                         run('floor-del', async () => {
                           await api('floor-delete', { projectId: id, id: floor.id });
                           setData((d) => {

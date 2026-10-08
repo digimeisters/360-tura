@@ -172,6 +172,12 @@ export default function FacadeFullscreen({
   const [imgSize, setImgSize] = useState<Record<string, [number, number]>>({});
   const [win, setWin] = useState<[number, number]>([1600, 900]);
   const rootRef = useRef<HTMLDivElement>(null);
+  // Traka sa filterima dole (fs-bar) je preko slike, ne ispod nje - na niskom
+  // ekranu (npr. 13" laptop) bi prekrila donje spratove. Njena visina se meri
+  // (prelama se u više redova na uskom/niskom prozoru) i oduzima od prostora
+  // za sliku, da zgrada uvek stane cela iznad trake.
+  const barRef = useRef<HTMLDivElement>(null);
+  const [barH, setBarH] = useState(0);
 
   const floorById = useMemo(() => new Map(floors.map((f) => [f.id, f])), [floors]);
   const levels = useMemo(() => [...new Set(floors.map((f) => f.level))].sort((a, b) => a - b), [floors]);
@@ -189,7 +195,8 @@ export default function FacadeFullscreen({
   const [floorRange, setFloorRange] = useState<[number, number]>(fullLevels);
   const [areaRange, setAreaRange] = useState<[number, number]>([areaMin, areaMax]);
   const [rooms, setRooms] = useState<string[]>([]);
-  const [statuses, setStatuses] = useState<UnitStatus[]>(STATUSES);
+  // Prazno = bez filtera (prikazuju se svi); prvi klik na status ga izoluje (vidi handler dole).
+  const [statuses, setStatuses] = useState<UnitStatus[]>([]);
 
   const levelOf = (u: SelectorUnit) => floorById.get(u.floorId)?.level ?? 0;
   const areaFull = areaRange[0] <= areaMin && areaRange[1] >= areaMax;
@@ -198,14 +205,14 @@ export default function FacadeFullscreen({
     levelOf(u) <= floorRange[1] &&
     (areaFull || (u.areaSqm !== null && u.areaSqm >= areaRange[0] && u.areaSqm <= areaRange[1])) &&
     (!rooms.length || (u.structure !== null && rooms.includes(u.structure))) &&
-    statuses.includes(u.status);
+    (!statuses.length || statuses.includes(u.status));
   const anyFilter =
-    floorRange[0] !== fullLevels[0] || floorRange[1] !== fullLevels[1] || !areaFull || rooms.length > 0 || statuses.length !== STATUSES.length;
+    floorRange[0] !== fullLevels[0] || floorRange[1] !== fullLevels[1] || !areaFull || rooms.length > 0 || statuses.length > 0;
   const resetFilters = () => {
     setFloorRange(fullLevels);
     setAreaRange([areaMin, areaMax]);
     setRooms([]);
-    setStatuses(STATUSES);
+    setStatuses([]);
   };
 
   // Zaključan skrol strane, Esc zatvara (prvo karticu, pa ceo prikaz), veličina prozora za uklapanje slike.
@@ -220,6 +227,13 @@ export default function FacadeFullscreen({
       document.body.style.overflow = prev;
       window.removeEventListener('resize', size);
     };
+  }, []);
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setBarH(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
   const escRef = useRef<() => void>(() => {});
   useEffect(() => {
@@ -258,9 +272,11 @@ export default function FacadeFullscreen({
   const drawerOpen = Boolean(unitId || floorId);
   const drawerW = Math.min(440, Math.round(win[0] * 0.92));
   const viewW = Math.max(320, drawerOpen ? win[0] - drawerW : win[0]);
+  // Visina dostupna slici: ceo prozor minus traka sa filterima dole (kad je vidljiva).
+  const stageH = Math.max(1, win[1] - (drawerOpen ? 0 : barH));
   // Popuni ekran kad se odseca malo (do 18 %), inače cela slika sa zamućenom pozadinom.
   const arImg = W / H;
-  const arWin = viewW / win[1];
+  const arWin = viewW / stageH;
   const fit = Math.min(arImg / arWin, arWin / arImg) >= 0.82 ? 'xMidYMid slice' : 'xMidYMid meet';
 
   const unitsOfBuilding = (bid: string) => units.filter((u) => floorById.get(u.floorId)?.buildingId === bid);
@@ -382,8 +398,8 @@ export default function FacadeFullscreen({
   ];
   const toScreen = ([px, py]: [number, number]) => {
     // Ista računica kao preserveAspectRatio, da natpis stoji na obliku.
-    const scale = fit === 'xMidYMid slice' ? Math.max(viewW / W, win[1] / H) : Math.min(viewW / W, win[1] / H);
-    return [(viewW - W * scale) / 2 + px * W * scale, (win[1] - H * scale) / 2 + py * H * scale];
+    const scale = fit === 'xMidYMid slice' ? Math.max(viewW / W, stageH / H) : Math.min(viewW / W, stageH / H);
+    return [(viewW - W * scale) / 2 + px * W * scale, (stageH - H * scale) / 2 + py * H * scale];
   };
 
   // ---------- oblačić ----------
@@ -578,7 +594,7 @@ export default function FacadeFullscreen({
   return (
     <div className="inv-fs" ref={rootRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`${project.title} - ${x.building}`}>
       {view && <div className="fs-bg" style={{ backgroundImage: `url(${view.imageUrl})` }} aria-hidden="true" />}
-      <div className="fs-view" style={{ right: drawerOpen ? drawerW : 0 }}>
+      <div className="fs-view" style={{ right: drawerOpen ? drawerW : 0, bottom: drawerOpen ? 0 : barH }}>
         {view && (
           <svg className="fs-stage" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio={fit}>
             <image href={view.imageUrl} width={W} height={H} />
@@ -632,7 +648,7 @@ export default function FacadeFullscreen({
       </div>
 
       {/* Dok je kartica otvorena, filteri se sklanjaju (i dalje važe) - slika ostaje vidljiva. */}
-      <div className="fs-bar" role="group" aria-label={t.filters} hidden={drawerOpen}>
+      <div className="fs-bar" ref={barRef} role="group" aria-label={t.filters} hidden={drawerOpen}>
         {levels.length > 1 && (
           <div className="fs-grp">
             <label>{x.floorF}:</label>
@@ -678,7 +694,12 @@ export default function FacadeFullscreen({
                 key={st}
                 type="button"
                 aria-pressed={statuses.includes(st)}
-                onClick={() => setStatuses((all) => (all.includes(st) ? all.filter((y) => y !== st) : [...all, st]))}
+                onClick={() =>
+                  setStatuses((all) => {
+                    const next = all.includes(st) ? all.filter((y) => y !== st) : [...all, st];
+                    return next.length === STATUSES.length ? [] : next;
+                  })
+                }
               >
                 <i style={{ background: FS_COLORS[st] }} />
                 {x.st[st]}

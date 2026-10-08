@@ -7,6 +7,7 @@ import { adminAuthHeader } from '../../lib/authFetch';
 import { FormThemeStyle } from '../../lib/formTheme';
 import { PROJECT_ADMIN_STYLES } from '../../../components/projekat/adminStyles';
 import { projectNameAdvice, type UnitStatus } from '../../lib/projects';
+import { srPlural } from '../../lib/projectI18n';
 import { slugify } from '../../lib/slug';
 import NameAdvice from '../../../components/projekat/NameAdvice';
 
@@ -142,7 +143,7 @@ export default function ProjectsAdminPage() {
                         <small>
                           {[p.developer_name, p.city].filter(Boolean).join(' · ') || 'bez investitora'} ·{' '}
                           {total
-                            ? `${total} stanova: ${p.counts.available} slob., ${p.counts.reserved} rez., ${p.counts.sold} prod.`
+                            ? `${total} ${srPlural(total, 'stan', 'stana', 'stanova')}: ${p.counts.available} slob., ${p.counts.reserved} rez., ${p.counts.sold} prod.`
                             : 'nema stanova'}
                         </small>
                       </span>

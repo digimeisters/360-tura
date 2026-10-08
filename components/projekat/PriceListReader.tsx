@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { adminAuthHeader } from '../../app/lib/authFetch';
 import { shrinkImage } from '../../app/lib/shrinkImage';
+import { srPlural } from '../../app/lib/projectI18n';
 
 /**
  * Admin → „Uvoz iz Excela" → „📄 Pročitaj cenovnik": investitorov cenovnik
@@ -51,7 +52,7 @@ export default function PriceListReader({
       const count = Number(json.count ?? 0);
       onText(
         String(json.text ?? ''),
-        `AI je pročitao ${count} stanova iz cenovnika. Proverite tabelu ispod (oznake, spratove, cene i statuse), pa kliknite „Uvezi tabelu“.${
+        `AI je pročitao ${count} ${srPlural(count, 'stan', 'stana', 'stanova')} iz cenovnika. Proverite tabelu ispod (oznake, spratove, cene i statuse), pa kliknite „Uvezi tabelu“.${
           json.backup ? ' Glavni model je bio zauzet, čitao je rezervni - proverite posebno pažljivo.' : ''
         }`
       );

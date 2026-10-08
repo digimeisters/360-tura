@@ -10,6 +10,7 @@ import {
   type UnitRoom,
   type UnitRow
 } from '../../app/lib/projects';
+import { srPlural } from '../../app/lib/projectI18n';
 
 /**
  * Admin -> tabela stanova -> „Detalji": kartica stana kao kod velikih
@@ -83,7 +84,7 @@ export default function UnitMediaModal({
       // Pročitane mere uz svaku prostoriju - brza provera uz osnovu pre čuvanja.
       const lines = rooms.map((r, i) => `${r.name}${dims[i] ? `: ${dims[i]}` : ''} = ${String(r.m2).replace('.', ',')} m²`);
       return [
-        `AI je pročitao ${rooms.length} ${rooms.length === 1 ? 'prostoriju' : 'prostorija'} sa osnove. Uporedite mere sa osnovom pa kliknite „Sačuvaj“:`,
+        `AI je pročitao ${rooms.length} ${srPlural(rooms.length, 'prostoriju', 'prostorije', 'prostorija')} sa osnove. Uporedite mere sa osnovom pa kliknite „Sačuvaj“:`,
         ...lines,
         json.backup ? 'Glavni model je bio zauzet, pa je čitao rezervni - proverite mere posebno pažljivo.' : ''
       ]
@@ -109,7 +110,7 @@ export default function UnitMediaModal({
       onSaved(json.unit as UnitRow);
       const res = await api('unit-media-copy', { projectId, sourceId: unit.id, includeTour: withTour });
       await onCopied();
-      return `Preneto na ${res.count} stanova: ${(res.codes as string[]).join(', ')}.`;
+      return `Preneto na ${res.count} ${srPlural(res.count as number, 'stan', 'stana', 'stanova')}: ${(res.codes as string[]).join(', ')}.`;
     });
 
   const imageBlock = (title: string, hint: string, url: string | null, set: (v: string | null) => void, key: string) => (

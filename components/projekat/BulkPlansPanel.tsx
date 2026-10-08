@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cleanRooms, floorName, matchPlanToUnit, type FloorRow, type PlanMatch, type UnitRoom, type UnitRow } from '../../app/lib/projects';
+import { srPlural } from '../../app/lib/projectI18n';
 
 /**
  * Admin → „Osnove stanova odjednom": investitor pošalje folder sa osnovama,
@@ -181,7 +182,7 @@ export default function BulkPlansPanel({
       });
       setMsg({
         ok: true,
-        text: `Sačuvano osnova: ${ready.length}${copied ? `, prenete i na još ${copied} stanova istog tipa` : ''}.${
+        text: `Sačuvano osnova: ${ready.length}${copied ? `, prenete i na još ${copied} ${srPlural(copied, 'stan', 'stana', 'stanova')} istog tipa` : ''}.${
           withRooms ? ' Prostorije su popunjene gde ih je AI pročitao - proverite ih u „Detalji".' : ''
         }`
       });

@@ -175,8 +175,10 @@ export const SELECTOR_STYLES = `
 
   /* Telefon: red velikih dugmadi spratova uz sliku (na računaru skriven). */
   .inv-floorchips{display:none;}
+  .inv-floorchips-label{display:none;}
   @media (max-width:960px){
-    .inv-floorchips{display:flex; gap:6px; overflow-x:auto; padding:10px 2px 4px; margin:0 -2px; scrollbar-width:none; -webkit-overflow-scrolling:touch;}
+    .inv-floorchips-label{display:block; font-size:.74rem; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:var(--d-faint); margin:8px 2px 0;}
+    .inv-floorchips{display:flex; gap:6px; overflow-x:auto; padding:6px 2px 4px; margin:0 -2px; scrollbar-width:none; -webkit-overflow-scrolling:touch;}
     .inv-floorchips::-webkit-scrollbar{display:none;}
     .inv-fchip{flex:0 0 auto; min-width:58px; min-height:52px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; border:1.5px solid #D5DEEB; background:#FFFFFF; border-radius:14px; padding:6px 10px; color:#111113;}
     .inv-fchip b{font-family:var(--font-display); font-size:1.05rem; line-height:1.1;}

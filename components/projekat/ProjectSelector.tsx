@@ -9,6 +9,7 @@ import {
   formatPrice,
   orientationText,
   PROJECT_TEXT,
+  srPlural,
   statusLabel,
   structureText,
   trackKey,
@@ -120,9 +121,9 @@ const MOBILE_TXT = {
     close: 'Zatvori',
     remove: 'Ukloni filter',
     noStatus: 'nijedan status',
-    count: (n: number) => `${n} ${n === 1 ? 'stan' : 'stanova'}`,
+    count: (n: number) => `${n} ${srPlural(n, 'stan', 'stana', 'stanova')}`,
     of: (n: number, all: number) => `${n} od ${all}`,
-    show: (n: number) => `Prikaži ${n} ${n === 1 ? 'stan' : 'stanova'}`
+    show: (n: number) => `Prikaži ${n} ${srPlural(n, 'stan', 'stana', 'stanova')}`
   },
   en: {
     filters: 'Filters',
@@ -684,14 +685,16 @@ export default function ProjectSelector({
           <div className="inv-sheet-grp">
             <div className="inv-sheet-l">{t.statusCol}</div>
             <div className="inv-sheet-st">
+              {/* Ništa izabrano = bez filtera (prikazuju se svi). Prvi klik na status ga IZOLUJE
+                  (prikazuje samo njega), ne isključuje ga iz pretpostavljenog "svi uključeni". */}
               {allStatuses.map((s) => (
                 <button
                   key={s}
                   type="button"
-                  aria-pressed={(statuses ?? allStatuses).includes(s)}
+                  aria-pressed={(statuses ?? []).includes(s)}
                   onClick={() => {
-                    const next = toggle(statuses ?? allStatuses, s);
-                    setStatuses(next.length === allStatuses.length ? null : next);
+                    const next = toggle(statuses ?? [], s);
+                    setStatuses(next.length === 0 || next.length === allStatuses.length ? null : next);
                   }}
                 >
                   <i style={{ background: UNIT_STATUS_COLORS[s].stroke }} />
@@ -747,23 +750,26 @@ export default function ProjectSelector({
   // prstom, a spisak u panelu je ispod slike, van ekrana. Na računaru se ne
   // prikazuje (CSS .inv-floorchips) - tamo služe zgrada i spisak pored nje.
   const floorChips = bFloors.length > 0 && (
-    <div className="inv-floorchips" role="group" aria-label={t.floorList}>
-      {floorsDesc.map((f) => {
-        const free = freeOn(f.id);
-        return (
-          <button
-            key={f.id}
-            type="button"
-            className={free ? 'inv-fchip' : 'inv-fchip is-none'}
-            aria-pressed={f.id === floorId}
-            aria-label={`${fName(f)}, ${free ? t.freeLong(free) : t.none}`}
-            onClick={() => pickFloor(f.id)}
-          >
-            <b>{fShort(f.level)}</b>
-            <small>{free ? t.freeShort(free) : t.none}</small>
-          </button>
-        );
-      })}
+    <div className="inv-floorchips-wrap">
+      <span className="inv-floorchips-label">{t.floorsTitle}</span>
+      <div className="inv-floorchips" role="group" aria-label={t.floorList}>
+        {floorsDesc.map((f) => {
+          const free = freeOn(f.id);
+          return (
+            <button
+              key={f.id}
+              type="button"
+              className={free ? 'inv-fchip' : 'inv-fchip is-none'}
+              aria-pressed={f.id === floorId}
+              aria-label={`${fName(f)}, ${free ? t.freeLong(free) : t.none}`}
+              onClick={() => pickFloor(f.id)}
+            >
+              <b>{fShort(f.level)}</b>
+              <small>{free ? t.freeShort(free) : t.none}</small>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 
@@ -1072,6 +1078,7 @@ export default function ProjectSelector({
           </div>
         </div>
         {floorChips}
+        {floor.planUrl && <p className="inv-muted">{t.pickUnitHint}</p>}
         {floor.planUrl ? (
           <div className="inv-art">
             <div className="inv-imgbox" style={{ background: '#FFFFFF' }}>
@@ -1235,7 +1242,8 @@ export default function ProjectSelector({
       <>
         <span className="inv-eyebrow">{[isComplex ? buildingName(floor.buildingId) : null, fName(floor)].filter(Boolean).join(' · ')}</span>
         <div className="inv-title">{t.pickUnit}</div>
-        <p className="inv-muted">{floor.planUrl && !onFacade ? t.pickUnitHint : t.pickUnitList}</p>
+        {/* Kad je osnova vidljiva uz sliku (stage), isto uputstvo je već tamo - ne ponavljati ga ovde. */}
+        {!(floor.planUrl && !onFacade) && <p className="inv-muted">{t.pickUnitList}</p>}
         <div className="inv-list">
           {unitsOn(floor.id).map((u) => (
             <button
