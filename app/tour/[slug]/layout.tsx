@@ -3,6 +3,7 @@ import { getTourMeta } from './getTourMeta';
 import { TourSeoSummary, faqForTour } from './TourSeoSummary';
 import { SITE_NAME, SITE_URL } from '../../lib/site';
 import { tourJsonLd, serializeJsonLd } from '../../lib/structuredData';
+import { TourSplash } from './TourSplash';
 
 type Props = { params: Promise<{ slug: string }> };
 type LayoutProps = Props & { children: React.ReactNode };
@@ -100,6 +101,7 @@ export default async function TourLayout({ children, params }: LayoutProps) {
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       {active && <TourSeoSummary tour={tour} />}
+      {active && tour.previewUrl && <TourSplash coverUrl={tour.previewUrl} title={tour.title} />}
       {children}
     </>
   );

@@ -88,9 +88,10 @@ export default function HeroDevice({ tour, lang = 'sr' }: { tour: ShowcaseTour |
 
   return (
     <div className="device">
+      {/* Najveća slika na ekranu (LCP): visok prioritet, a strana je i unapred učita (lib/heroPreload). */}
       {/* eslint-disable-next-line @next/next/no-img-element -- sličice su već
           1200x630 JPG sa CDN-a, next/image ne bi imao šta da optimizuje */}
-      <img className="device-img" src={room.previewUrl} alt={`${tour.title}, ${room.title}`} decoding="async" />
+      <img className="device-img" src={room.previewUrl} alt={`${tour.title}, ${room.title}`} fetchPriority="high" />
 
       <div className="d-top">
         <div className="d-title d-glass">

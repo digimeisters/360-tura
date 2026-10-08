@@ -24,6 +24,7 @@ import ChatBubble from '../components/ChatBubble';
 import { IconPhone, IconPlay } from '../components/SiteIcons';
 import SiteStylesheets from '../components/SiteStylesheets';
 import HtmlLang from '../components/HtmlLang';
+import { preloadHeroImage } from './lib/heroPreload';
 
 /**
  * Početna strana, jedan raspored za obe jezičke verzije: app/page.tsx (/,
@@ -72,6 +73,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
 
   const [tours, openCount] = await Promise.all([getShowcaseTours(lang), getPublicOpenCount()]);
   const heroTour = pickHeroTour(tours, lang);
+  preloadHeroImage(heroTour);
   // Mini-pretraga nudi samo vrednosti koje postoje u objavljenim turama.
   const searchCities = [...new Set(tours.map((t) => t.city).filter((c): c is string => Boolean(c)))].sort((a, b) => a.localeCompare(b, 'sr'));
   const searchStructures = STRUCTURE_ORDER.filter((st) => tours.some((t) => t.structure === st));

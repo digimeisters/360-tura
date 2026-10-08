@@ -18,6 +18,7 @@ import { serializeJsonLd } from '../lib/structuredData';
 import { tourHref } from '../lib/tourHref';
 import { getShowcaseTours, pickHeroTour } from '../lib/showcaseTours';
 import SiteStylesheets from '../../components/SiteStylesheets';
+import { preloadHeroImage } from '../lib/heroPreload';
 
 /**
  * Prodajna strana za agencije (/za-agencije), ispričana kao jedna nedelja
@@ -216,6 +217,7 @@ export default async function AgencyPage() {
 
   const tours = await getShowcaseTours('sr');
   const heroTour = pickHeroTour(tours, 'sr');
+  preloadHeroImage(heroTour);
   // Za primer u kodu za ugradnju i za ekrane telefona - prava, otvorena
   // tura, ne izmišljen link ni tuđa fotografija.
   const exampleSlug = heroTour?.slug ?? tours[0]?.slug ?? 'naziv-ture';
