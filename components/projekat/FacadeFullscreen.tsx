@@ -649,69 +649,73 @@ export default function FacadeFullscreen({
 
       {/* Dok je kartica otvorena, filteri se sklanjaju (i dalje važe) - slika ostaje vidljiva. */}
       <div className="fs-bar" ref={barRef} role="group" aria-label={t.filters} hidden={drawerOpen}>
-        {levels.length > 1 && (
+        <div className="fs-row">
+          {levels.length > 1 && (
+            <div className="fs-grp">
+              <label>{x.floorF}:</label>
+              <RangeSlider min={fullLevels[0]} max={fullLevels[1]} value={floorRange} onChange={setFloorRange} label={x.floorF} format={fShort} />
+            </div>
+          )}
+          {areaMax > areaMin && (
+            <div className="fs-grp">
+              <label>{x.area}:</label>
+              <RangeSlider
+                min={areaMin}
+                max={areaMax}
+                value={areaRange}
+                onChange={setAreaRange}
+                label={x.area}
+                format={(v) => `${v} m²`}
+              />
+            </div>
+          )}
+          {structures.length > 1 && (
+            <div className="fs-grp">
+              <label>{x.rooms}:</label>
+              <div className="fs-chips">
+                {structures.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    title={structureText(s, lang) ?? s}
+                    aria-pressed={rooms.includes(s)}
+                    onClick={() => setRooms((r) => (r.includes(s) ? r.filter((y) => y !== s) : [...r, s]))}
+                  >
+                    {shortStructure(s)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="fs-row">
           <div className="fs-grp">
-            <label>{x.floorF}:</label>
-            <RangeSlider min={fullLevels[0]} max={fullLevels[1]} value={floorRange} onChange={setFloorRange} label={x.floorF} format={fShort} />
-          </div>
-        )}
-        {areaMax > areaMin && (
-          <div className="fs-grp">
-            <label>{x.area}:</label>
-            <RangeSlider
-              min={areaMin}
-              max={areaMax}
-              value={areaRange}
-              onChange={setAreaRange}
-              label={x.area}
-              format={(v) => `${v} m²`}
-            />
-          </div>
-        )}
-        {structures.length > 1 && (
-          <div className="fs-grp">
-            <label>{x.rooms}:</label>
-            <div className="fs-chips">
-              {structures.map((s) => (
+            <label>{x.status}:</label>
+            <div className="fs-sts">
+              {STATUSES.map((st) => (
                 <button
-                  key={s}
+                  key={st}
                   type="button"
-                  title={structureText(s, lang) ?? s}
-                  aria-pressed={rooms.includes(s)}
-                  onClick={() => setRooms((r) => (r.includes(s) ? r.filter((y) => y !== s) : [...r, s]))}
+                  aria-pressed={statuses.includes(st)}
+                  onClick={() =>
+                    setStatuses((all) => {
+                      const next = all.includes(st) ? all.filter((y) => y !== st) : [...all, st];
+                      return next.length === STATUSES.length ? [] : next;
+                    })
+                  }
                 >
-                  {shortStructure(s)}
+                  <i style={{ background: FS_COLORS[st] }} />
+                  {x.st[st]}
                 </button>
               ))}
             </div>
           </div>
-        )}
-        <div className="fs-grp">
-          <label>{x.status}:</label>
-          <div className="fs-sts">
-            {STATUSES.map((st) => (
-              <button
-                key={st}
-                type="button"
-                aria-pressed={statuses.includes(st)}
-                onClick={() =>
-                  setStatuses((all) => {
-                    const next = all.includes(st) ? all.filter((y) => y !== st) : [...all, st];
-                    return next.length === STATUSES.length ? [] : next;
-                  })
-                }
-              >
-                <i style={{ background: FS_COLORS[st] }} />
-                {x.st[st]}
-              </button>
-            ))}
+          <div className="fs-grp">
+            <label>{x.reset}:</label>
+            <button type="button" className="fs-reset" disabled={!anyFilter} onClick={resetFilters}>
+              {x.resetAll}
+            </button>
           </div>
-        </div>
-        <div className="fs-grp">
-          <label>{x.reset}:</label>
-          <button type="button" className="fs-reset" disabled={!anyFilter} onClick={resetFilters}>
-            {x.resetAll}
-          </button>
         </div>
       </div>
 
