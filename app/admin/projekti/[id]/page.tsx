@@ -139,6 +139,13 @@ export default function ProjectEditorPage() {
     note: string;
   } | null>(null);
   const [aiFloorSel, setAiFloorSel] = useState<string | null>(null);
+  // AI predlog stanova na osnovi sprata (plan_url) - isti princip, ali se čuva u project_units.polygon (unit-save), ne u project_view_shapes.
+  const [aiPlanUnits, setAiPlanUnits] = useState<{
+    floorId: string;
+    items: { id: string; label: string; polygon: Polygon }[];
+    note: string;
+  } | null>(null);
+  const [aiPlanSel, setAiPlanSel] = useState<string | null>(null);
   const [busy, setBusy] = useState('');
   const [msg, setMsg] = useState<Msg>(null);
 
@@ -525,6 +532,40 @@ export default function ProjectEditorPage() {
     });
   };
 
+  const suggestPlanUnits = () => {
+    if (!floor) return;
+    const has = floorUnits.some((u) => u.polygon);
+    run('ai-plan-units', async () => {
+      const json = await api('plan-units', { projectId: id, floorId: floor.id });
+      const items = ((json.proposals as { unitId: string; code: string; polygon: Polygon }[]) ?? []).map((p) => ({
+        id: p.unitId,
+        label: p.code,
+        polygon: p.polygon
+      }));
+      const parts = [`AI je prepoznao ${items.length} od ${floorUnits.length} stanova na ovoj osnovi.`];
+      if (has) parts.push('Čuvanje zamenjuje oblike stanova koji već imaju oblik na ovom spratu.');
+      if (json.backup) parts.push('Čitao je rezervni model - proverite granice pažljivije.');
+      parts.push('Kliknite stan i povucite ugao ako treba, pa „Sačuvaj predlog".');
+      setAiPlanUnits({ floorId: floor.id, items, note: parts.join(' ') });
+      setAiPlanSel(null);
+      setDraw(null);
+    });
+  };
+
+  const saveAiPlanUnits = () => {
+    if (!aiPlanUnits) return;
+    const { items } = aiPlanUnits;
+    run('ai-plan-units-save', async () => {
+      for (const it of items) {
+        const json = await api('unit-save', { projectId: id, id: it.id, fields: { polygon: it.polygon } });
+        patchUnit(json.unit);
+      }
+      setAiPlanUnits(null);
+      setAiPlanSel(null);
+      return `Sačuvani oblici ${items.length} stanova. Uglove i dalje možete da pomerate povlačenjem.`;
+    });
+  };
+
 
   const planShapes: CanvasShape[] = floorUnits
     .filter((u) => u.polygon)
@@ -536,6 +577,18 @@ export default function ProjectEditorPage() {
       stroke: UNIT_STATUS_COLORS[u.status].stroke,
       active: u.id === unitId
     }));
+
+  const planPreviewOn = Boolean(aiPlanUnits && floor && aiPlanUnits.floorId === floor.id);
+  const planPreviewShapes: CanvasShape[] = planPreviewOn
+    ? aiPlanUnits!.items.map((it) => ({
+        id: it.id,
+        label: it.label,
+        polygon: it.polygon,
+        fill: it.id === aiPlanSel ? 'rgba(124,58,237,.38)' : 'rgba(124,58,237,.12)',
+        stroke: '#7C3AED',
+        active: it.id === aiPlanSel
+      }))
+    : [];
 
   const unitsDirty = Object.keys(drafts).length;
 
@@ -1262,19 +1315,57 @@ export default function ProjectEditorPage() {
         {floor && (
           <section className="pa-card">
             <h2>Osnova: {floorName(floor.level, floor.label)}</h2>
-            <p className="pa-hint">Otpremite osnovu sprata (PDF od arhitekte sačuvajte kao sliku), pa za svaki stan kliknite „Iscrtaj“.</p>
+            <p className="pa-hint">Otpremite osnovu sprata (PDF od arhitekte sačuvajte kao sliku), pa za svaki stan kliknite „Iscrtaj“ - ili probajte AI predlog ako je svaki stan već obeležen natpisom na osnovi.</p>
             <div className="pa-split">
               <div>
+                {floor.plan_url && floorUnits.length > 0 && !planPreviewOn && (
+                  <div className="pa-row" style={{ marginBottom: 10 }}>
+                    <button
+                      type="button"
+                      className="pa-btn"
+                      disabled={Boolean(busy) || Boolean(draw)}
+                      title="AI pronađe obeležene stanove na ovoj osnovi i predloži njihove oblike - vi ih proverite pre čuvanja"
+                      onClick={suggestPlanUnits}
+                    >
+                      {busy === 'ai-plan-units' ? 'AI traži stanove…' : '✨ Predloži stanove (AI)'}
+                    </button>
+                  </div>
+                )}
+                {planPreviewOn && (
+                  <div className="pc-bar" style={{ background: 'color-mix(in srgb, #7C3AED 12%, transparent)', marginBottom: 10 }}>
+                    <span style={{ flex: '1 1 300px' }}>{aiPlanUnits!.note}</span>
+                    <span className="pc-actions">
+                      <button type="button" className="is-primary" disabled={busy === 'ai-plan-units-save'} onClick={saveAiPlanUnits}>
+                        {busy === 'ai-plan-units-save' ? 'Čuvam…' : `Sačuvaj predlog (${aiPlanUnits!.items.length})`}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy === 'ai-plan-units-save'}
+                        onClick={() => {
+                          setAiPlanUnits(null);
+                          setAiPlanSel(null);
+                        }}
+                      >
+                        Odbaci
+                      </button>
+                    </span>
+                  </div>
+                )}
                 {floor.plan_url ? (
                   <PolygonCanvas
                     imageUrl={floor.plan_url}
-                    shapes={planShapes}
-                    drawing={draw?.on === 'plan'}
+                    shapes={planPreviewOn ? planPreviewShapes : planShapes}
+                    drawing={!planPreviewOn && draw?.on === 'plan'}
                     drawLabel={draw?.on === 'plan' ? `stan ${units.find((u) => u.id === draw.id)?.code ?? ''}` : undefined}
                     onComplete={onPolygon}
                     onCancel={() => setDraw(null)}
-                    onShapeClick={setUnitId}
-                    onEdit={onPlanEdit}
+                    onShapeClick={planPreviewOn ? setAiPlanSel : setUnitId}
+                    onEdit={
+                      planPreviewOn
+                        ? (sid, poly) =>
+                            setAiPlanUnits((a) => (a ? { ...a, items: a.items.map((it) => (it.id === sid ? { ...it, polygon: poly } : it)) } : a))
+                        : onPlanEdit
+                    }
                   />
                 ) : (
                   <div className="pa-empty">Još nema osnove ovog sprata.</div>
@@ -1384,7 +1475,7 @@ export default function ProjectEditorPage() {
                     <button
                       type="button"
                       className="pa-btn"
-                      disabled={!floor.plan_url || Boolean(draw)}
+                      disabled={!floor.plan_url || Boolean(draw) || planPreviewOn}
                       onClick={(e) => {
                         e.stopPropagation();
                         setUnitId(u.id);

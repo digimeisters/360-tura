@@ -17,6 +17,9 @@ import {
   fetchDocForAi,
   fetchPlanImage,
   planReadSchema,
+  buildPlanUnitsPrompt,
+  planUnitBoxesToPolygons,
+  planUnitsSchema,
   PRICE_LIST_PROMPT,
   priceListSchema,
   priceRowToLine,
@@ -316,6 +319,57 @@ export async function POST(req: Request) {
         } catch (err) {
           console.error('[api/admin/projects] plan-read', err);
           return fail('Čitanje osnove nije uspelo - probajte ponovo za ovu sliku.', 502);
+        }
+      }
+
+      // Osnova sprata → predlog oblika stanova (okviri sa natpisom „STAN N"
+      // koje arhitekta već iscrta na osnovi). Ništa se ne upisuje: admin vidi
+      // predlog preko slike i čuva ga (unit-save, isto kao ručno crtanje).
+      case 'plan-units': {
+        const projectId = text(body.projectId, 40);
+        const floorId = text(body.floorId, 40);
+        if (!projectId || !floorId) return fail('Nedostaje sprat.');
+        const { data: floorRow, error: flErr } = await db
+          .from('project_floors')
+          .select('id, level, plan_url')
+          .eq('id', floorId)
+          .eq('project_id', projectId)
+          .maybeSingle();
+        if (flErr) return fail(flErr.message, 500);
+        const f = floorRow as { id: string; level: number; plan_url: string | null } | null;
+        if (!f || !f.plan_url) return fail('Ovaj sprat još nema osnovu (sliku).');
+        const { data: unitsRaw, error: uErr } = await db
+          .from('project_units')
+          .select('id, code')
+          .eq('project_id', projectId)
+          .eq('floor_id', floorId)
+          .order('sort');
+        if (uErr) return fail(uErr.message, 500);
+        const unitRows = (unitsRaw ?? []) as { id: string; code: string }[];
+        if (!unitRows.length) return fail('Ovaj sprat još nema dodatih stanova.');
+        try {
+          const image = await fetchPlanImage(f.plan_url);
+          const { data, usedModel } = await generateJsonWithRetry<{ units: { code: string; box_2d: number[] }[] }>({
+            contents: [{ inlineData: { mimeType: image.contentType, data: image.base64 } }, { text: buildPlanUnitsPrompt(unitRows.map((u) => u.code)) }],
+            config: { responseMimeType: 'application/json', responseSchema: planUnitsSchema(), temperature: TEMP_EXTRACT },
+            model: GEMINI_FALLBACK_MODEL,
+            fallbackModel: GEMINI_MODEL,
+            timeoutMs: 26_000,
+            attempts: 1,
+            label: 'plan-units'
+          });
+          const boxes = planUnitBoxesToPolygons(data.units ?? []);
+          const proposals = boxes
+            .map((b) => {
+              const u = unitRows.find((x) => x.code.trim() === b.code);
+              return u ? { unitId: u.id, code: u.code, polygon: b.polygon } : null;
+            })
+            .filter((x): x is { unitId: string; code: string; polygon: Polygon } => Boolean(x));
+          if (!proposals.length) return fail('AI nije prepoznao stanove na ovoj osnovi. Iscrtajte ih ručno.');
+          return NextResponse.json({ success: true, proposals, seen: proposals.length, units: unitRows.length, backup: usedModel !== GEMINI_FALLBACK_MODEL });
+        } catch (err) {
+          console.error('[api/admin/projects] plan-units', err);
+          return fail('Predlog stanova na osnovi trenutno nije uspeo. Pokušajte ponovo ili ih iscrtajte ručno.', 502);
         }
       }
 

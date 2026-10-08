@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent, type WheelEvent } from 'react';
 import { polygonCenter, type Point, type Polygon } from '../../app/lib/projects';
 
 /**
@@ -51,9 +51,75 @@ export default function PolygonCanvas({
   onEdit?: (id: string, poly: Polygon) => void;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const [points, setPoints] = useState<Point[]>([]);
   const [cursor, setCursor] = useState<Point | null>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
+
+  // ---------- zum ----------
+  // Tačka ispod kursora (ili centra) ostaje na mestu dok se menja zum -
+  // pamti se ovde pre setZoom, a primenjuje u layout efektu posle rendera.
+  const [zoom, setZoom] = useState(1);
+  const focalRef = useRef<{ fx: number; fy: number; clientX: number; clientY: number } | null>(null);
+  const clampZoom = (z: number) => Math.min(6, Math.max(1, z));
+
+  const zoomAt = (nextZoom: number, clientX: number, clientY: number) => {
+    const nz = clampZoom(nextZoom);
+    const box = boxRef.current;
+    if (!box) {
+      setZoom(nz);
+      return;
+    }
+    const rect = box.getBoundingClientRect();
+    if (nz === zoom || !rect.width || !rect.height) {
+      setZoom(nz);
+      return;
+    }
+    focalRef.current = {
+      fx: (clientX - rect.left) / rect.width,
+      fy: (clientY - rect.top) / rect.height,
+      clientX,
+      clientY
+    };
+    setZoom(nz);
+  };
+
+  useLayoutEffect(() => {
+    const pending = focalRef.current;
+    focalRef.current = null;
+    const viewport = viewportRef.current;
+    const box = boxRef.current;
+    if (!pending || !viewport || !box) return;
+    const vRect = viewport.getBoundingClientRect();
+    viewport.scrollLeft = pending.fx * box.offsetWidth - (pending.clientX - vRect.left);
+    viewport.scrollTop = pending.fy * box.offsetHeight - (pending.clientY - vRect.top);
+  }, [zoom]);
+
+  const viewportCenter = () => {
+    const r = viewportRef.current?.getBoundingClientRect();
+    return r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : { x: 0, y: 0 };
+  };
+  const zoomIn = () => {
+    const c = viewportCenter();
+    zoomAt(zoom * 1.5, c.x, c.y);
+  };
+  const zoomOut = () => {
+    const c = viewportCenter();
+    zoomAt(zoom / 1.5, c.x, c.y);
+  };
+  const zoomReset = () => {
+    setZoom(1);
+    const viewport = viewportRef.current;
+    if (viewport) {
+      viewport.scrollLeft = 0;
+      viewport.scrollTop = 0;
+    }
+  };
+  const onWheelZoom = (e: WheelEvent<HTMLDivElement>) => {
+    if (!(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    zoomAt(zoom * Math.exp(-e.deltaY * 0.0018), e.clientX, e.clientY);
+  };
 
   // Novo crtanje uvek kreće od nule (podešavanje stanja tokom crtanja
   // komponente, ne u efektu - vidi "storing information from previous renders").
@@ -169,6 +235,19 @@ export default function PolygonCanvas({
 
   return (
     <div>
+      <div className="pc-zoombar">
+        <span className="pc-zoom">
+          <button type="button" onClick={zoomOut} disabled={zoom <= 1} aria-label="Umanji">−</button>
+          <b>{Math.round(zoom * 100)}%</b>
+          <button type="button" onClick={zoomIn} disabled={zoom >= 6} aria-label="Uvećaj">+</button>
+        </span>
+        {zoom > 1 && (
+          <button type="button" onClick={zoomReset} className="pc-zoom-reset">
+            ⤢ Uklopi
+          </button>
+        )}
+        <span className="pc-zoom-hint">Ctrl/⌘ + točkić za zum · skrolujte da pomerite prikaz</span>
+      </div>
       {drawing && (
         <div className="pc-bar">
           <span>
@@ -195,19 +274,21 @@ export default function PolygonCanvas({
           </span>
         </div>
       )}
-      <div
-        ref={boxRef}
-        className={drawing ? 'pc-box is-drawing' : drag ? 'pc-box is-dragging' : 'pc-box'}
-        onClick={onClick}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={() => setDrag(null)}
-        onMouseLeave={() => setCursor(null)}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element -- slika sa R2 CDN-a, prirodne proporcije */}
-        <img src={imageUrl} alt="" draggable={false} />
-        <svg viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
-          {shapes.map((s) => (
+      <div ref={viewportRef} className={drawing ? 'pc-viewport is-drawing' : 'pc-viewport'} onWheel={onWheelZoom}>
+        <div
+          ref={boxRef}
+          className={drawing ? 'pc-box is-drawing' : drag ? 'pc-box is-dragging' : 'pc-box'}
+          style={{ width: `${zoom * 100}%` }}
+          onClick={onClick}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={() => setDrag(null)}
+          onMouseLeave={() => setCursor(null)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- slika sa R2 CDN-a, prirodne proporcije */}
+          <img src={imageUrl} alt="" draggable={false} />
+          <svg viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
+            {shapes.map((s) => (
             <polygon
               key={s.id}
               points={pts(polyOf(s))}
@@ -269,6 +350,7 @@ export default function PolygonCanvas({
           points.map(([x, y], i) => (
             <span key={i} className={i === 0 ? 'pc-dot is-first' : 'pc-dot'} style={{ left: `${x * 100}%`, top: `${y * 100}%` }} />
           ))}
+        </div>
       </div>
     </div>
   );

@@ -115,6 +115,87 @@ export async function fetchDocForAi(url: string): Promise<{ mimeType: string; da
   }
 }
 
+// ============================================================
+// Osnova sprata → stanovi (admin: „✨ Predloži stanove na osnovi")
+// ============================================================
+// Osnove koje arhitekta isporučuje već imaju svaki stan obeležen okvirom i
+// natpisom „STAN N" (žuta oznaka), pa model samo nalazi granice tog okvira -
+// isti box_2d princip kao facade-floors, samo na liniji umesto na fotografiji.
+// Flash je ovde glavni model (kao rooms-from-plan/plan-read): čita sitne
+// natpise i linije osnove tačnije od Lite-a, koji je samo rezerva.
+
+export type PlanUnitBox = { code: string; box_2d: number[] };
+
+export function planUnitsSchema(): Schema {
+  return {
+    type: Type.OBJECT,
+    properties: {
+      units: {
+        type: Type.ARRAY,
+        description: 'Jedan stan po stavci, prepoznat sa osnove sprata.',
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            code: { type: Type.STRING, description: 'Oznaka stana tačno iz spiska (samo broj/oznaka, bez reči "STAN").' },
+            box_2d: { type: Type.ARRAY, items: { type: Type.NUMBER }, description: '[ymin, xmin, ymax, xmax], 0-1000 cele slike.' }
+          },
+          required: ['code', 'box_2d']
+        }
+      }
+    },
+    required: ['units']
+  };
+}
+
+export function buildPlanUnitsPrompt(codes: string[]): string {
+  return `This image is an architectural floor plan (osnova sprata) showing one building storey with several apartments. Each apartment is already outlined with its own rectangle/polygon on the drawing and labeled with a tag reading "STAN <code>" (often a yellow or highlighted tag near the outline).
+
+For EVERY apartment code in the list below, find its "STAN <code>" label on the plan and return a bounding box that TIGHTLY encloses that apartment's own outline - all of its rooms and walls, including a terrace/balcony if it is part of the same outlined shape. Do NOT include neighbouring apartments, the shared corridor, staircase or elevator shaft.
+
+Apartment codes on this floor: ${codes.join(', ')}
+
+"box_2d": [ymin, xmin, ymax, xmax], normalized 0-1000 of the full image (not just the room area - the smallest box that still contains the whole outlined apartment).
+"code": exactly one of the codes above, exactly as given (no "STAN" prefix).
+
+Only skip a code if you genuinely cannot find its label and outline on this image - never invent a box for one you cannot see, and never output a code that is not in the list.
+
+Respond with JSON matching the schema.`;
+}
+
+/**
+ * Okviri stanova (0-1000) → oblik svakog stana u udelu slike (0..1).
+ * Nezavisni pravougaonici (bez spajanja granica kao kod spratova na fasadi) -
+ * stanovi na osnovi već imaju sopstvene zidove kao granicu.
+ */
+export function planUnitBoxesToPolygons(boxes: PlanUnitBox[]): { code: string; polygon: Pt[] }[] {
+  const c = (v: number) => Math.min(1, Math.max(0, Math.round((v / 1000) * 10000) / 10000));
+  const out: { code: string; polygon: Pt[] }[] = [];
+  const seen = new Set<string>();
+  for (const b of boxes) {
+    const code = typeof b.code === 'string' ? b.code.trim() : '';
+    if (!code || seen.has(code)) continue;
+    const arr = Array.isArray(b.box_2d) ? b.box_2d.map(Number) : [];
+    if (arr.length !== 4 || !arr.every((v) => Number.isFinite(v))) continue;
+    const [y1, x1, y2, x2] = arr;
+    const top = c(Math.min(y1, y2));
+    const bottom = c(Math.max(y1, y2));
+    const left = c(Math.min(x1, x2));
+    const right = c(Math.max(x1, x2));
+    if (bottom - top < 0.01 || right - left < 0.01) continue;
+    seen.add(code);
+    out.push({
+      code,
+      polygon: [
+        [left, top],
+        [right, top],
+        [right, bottom],
+        [left, bottom]
+      ]
+    });
+  }
+  return out;
+}
+
 export type PriceRow = {
   code: string;
   floor: string;

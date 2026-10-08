@@ -85,8 +85,17 @@ export const PROJECT_ADMIN_STYLES = `
   .pc-actions button{font:inherit; font-size:12.5px; font-weight:650; border-radius:999px; padding:5px 11px; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); cursor:pointer;}
   .pc-actions button.is-primary{background:var(--accent); border-color:var(--accent); color:var(--on-accent);}
   .pc-actions button:disabled{opacity:.45; cursor:default;}
-  .pc-box{position:relative; border-radius:12px; overflow:hidden; background:#E9E9E4; user-select:none;}
-  .pc-box.is-drawing{cursor:crosshair; outline:2px solid var(--accent);}
+  .pc-zoombar{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;}
+  .pc-zoom{display:inline-flex; align-items:center; gap:7px; background:var(--surface-2); border-radius:999px; padding:3px;}
+  .pc-zoom button{width:26px; height:26px; border-radius:50%; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); font-size:15px; font-weight:700; line-height:1; cursor:pointer; display:grid; place-items:center;}
+  .pc-zoom button:disabled{opacity:.4; cursor:default;}
+  .pc-zoom b{min-width:40px; text-align:center; font-size:12.5px; font-weight:700;}
+  .pc-zoom-reset{font:inherit; font-size:12.5px; font-weight:650; border-radius:999px; padding:5px 11px; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); cursor:pointer;}
+  .pc-zoom-hint{color:var(--ink-faint); font-size:11.5px;}
+  .pc-viewport{position:relative; max-height:min(74vh, 760px); overflow:auto; border-radius:12px; background:#E9E9E4; overscroll-behavior:contain;}
+  .pc-viewport.is-drawing{outline:2px solid var(--accent); outline-offset:-2px;}
+  .pc-box{position:relative; min-width:100%; user-select:none;}
+  .pc-box.is-drawing{cursor:crosshair;}
   .pc-box img{display:block; width:100%; height:auto; pointer-events:none;}
   .pc-box svg{position:absolute; inset:0; width:100%; height:100%;}
   .pc-label{position:absolute; transform:translate(-50%,-50%); background:rgba(255,255,255,.92); color:#111113; font-size:12px; font-weight:800; border-radius:999px; padding:2px 8px; pointer-events:none; white-space:nowrap; box-shadow:0 1px 4px rgba(0,0,0,.2);}
