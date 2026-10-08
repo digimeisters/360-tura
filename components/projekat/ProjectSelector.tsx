@@ -920,8 +920,9 @@ export default function ProjectSelector({
                 points={pts(s.polygon)}
                 fill={on || sel ? 'rgba(30,90,168,.45)' : c.fill}
                 fillOpacity={matches(u) ? 0.75 : 0.18}
-                stroke={sel || on ? '#1E5AA8' : c.stroke}
-                strokeWidth={sel ? 3 : on ? 2.5 : 1.5}
+                stroke={sel || on ? '#1E5AA8' : '#FFFFFF'}
+                strokeOpacity={sel || on ? 1 : 0.85}
+                strokeWidth={sel ? 3 : on ? 2.5 : 1.75}
                 vectorEffect="non-scaling-stroke"
                 role="button"
                 tabIndex={0}
@@ -1348,7 +1349,7 @@ export default function ProjectSelector({
         </div>
         {unitPage ? (
           <a className="inv-open" href={unitPage} data-track="cta:project_unit_page">
-            {t.openUnitPage} <span aria-hidden="true">→</span>
+            {t.openUnitPage(unit.code)} <span aria-hidden="true">→</span>
           </a>
         ) : (
           <>

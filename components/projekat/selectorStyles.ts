@@ -68,6 +68,8 @@ export const SELECTOR_STYLES = `
   .inv-mbtn em{position:absolute; top:8px; left:8px; font-style:normal; font-size:.66rem; font-weight:800; background:rgba(255,255,255,.92); color:var(--d-accent); padding:3px 7px; border-radius:999px;}
   .inv-note-box{margin:0 0 .8rem; padding:.7rem .85rem; border-radius:14px; background:#EEF4FC; color:#1E3A66; font-size:.84rem; line-height:1.5;}
   .inv-cta{display:flex; align-items:center; justify-content:center; width:100%; background:var(--d-accent); color:#FFFFFF; border:0; border-radius:999px; font-family:var(--font-display); font-weight:700; font-size:.95rem; padding:.85rem; min-height:46px;}
+  /* ".inv-demo button{font:inherit}" (gore) je jače od .inv-cta na <button> (ne i na .inv-open, koji je <a>) - ovde se vraća. */
+  .inv-demo .inv-cta{font-family:var(--font-display);}
   .inv-cta.is-out{background:#FFFFFF; color:var(--d-accent); border:1.5px solid var(--d-accent); margin-top:8px;}
   .inv-cta:disabled{background:#C9CED6; cursor:default;}
   .inv-small{font-size:.75rem; color:var(--d-faint); margin:.7rem 0 0; text-align:center;}
@@ -319,12 +321,13 @@ export const SELECTOR_STYLES = `
   .inv-crop-box svg{position:absolute; inset:0; width:100%; height:100%; pointer-events:none;}
   .inv-crop.is-tall{padding:clamp(10px,2vw,22px);}
 
-  /* Link „Otvori stranu stana" u kartici. */
-  .inv-open{display:flex; justify-content:space-between; align-items:center; gap:.6rem; margin:.7rem 0 0; padding:.7rem .95rem; border-radius:14px; background:#1E5AA8; color:#FFFFFF; font-weight:750; font-size:.9rem; text-decoration:none; transition:background .15s;}
+  /* Link „Pogledajte stan" u kartici - isti font kao dugme ispod (.inv-cta). */
+  .inv-open{display:flex; justify-content:space-between; align-items:center; gap:.6rem; margin:.7rem 0 0; padding:.85rem .95rem; border-radius:999px; background:#1E5AA8; color:#FFFFFF; font-family:var(--font-display); font-weight:700; font-size:.95rem; min-height:46px; box-sizing:border-box; text-decoration:none; transition:background .15s;}
   .inv-open:hover{background:#174A8C;}
   .inv-open + *{margin-top:.75rem;}
-  .inv-open{background:#E8F0FB; color:#1E5AA8; border:1px solid #C9D7EC;}
-  .inv-open:hover{background:#DCE8F8; border-color:#1E5AA8;}
+  /* Kartica na zgradi: glavno je „Pogledajte stan", upit je drugi korak (jača svetloplava da se ne izgubi na beloj podlozi). */
+  .inv-open ~ .inv-ask{background:#CFE1F7; color:#133E73; border:1px solid #9CC0E8;}
+  .inv-open ~ .inv-ask:hover{background:#BDD5F2; border-color:#1E5AA8;}
   .inv-thumb{display:flex; align-items:center; justify-content:center; margin:.8rem 0 .2rem; border:1px solid #E3E8F1; border-radius:14px; overflow:hidden; background:#FFFFFF; cursor:pointer; transition:border-color .15s;}
   .inv-thumb:hover{border-color:#1E5AA8;}
   .inv-thumb > img{display:block; max-width:100%; max-height:220px; object-fit:contain;}

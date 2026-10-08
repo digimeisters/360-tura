@@ -87,7 +87,7 @@ export default function UnitInquiry({
   return (
     <>
       {!asking && form.kind !== 'ok' && (
-        <button type="button" className="inv-cta" onClick={() => setAsking(true)}>
+        <button type="button" className="inv-cta inv-ask" onClick={() => setAsking(true)}>
           {status === 'reserved' ? t.notifyMe : t.ask}
         </button>
       )}

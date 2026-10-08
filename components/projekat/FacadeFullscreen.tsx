@@ -502,7 +502,7 @@ export default function FacadeFullscreen({
         {unitPage ? (
           <>
             <a className="inv-open" href={unitPage} data-track="cta:project_unit_page">
-              {t.openUnitPage} <span aria-hidden="true">→</span>
+              {t.openUnitPage(unit.code)} <span aria-hidden="true">→</span>
             </a>
             {unit.tourHref && (
               <a
