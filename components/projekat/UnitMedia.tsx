@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatArea, PROJECT_TEXT, type ProjectLang } from '../../app/lib/projectI18n';
 import type { Polygon } from '../../app/lib/projects';
 import type { DemoMedia } from '../../app/lib/projectData';
@@ -94,6 +94,20 @@ export default function UnitMedia({
   if (photos.length || all) tabs.push({ id: 'photos', label: t.tabPhotos });
   const [tab, setTab] = useState<Tab | null>(tabs[0]?.id ?? null);
   const [photo, setPhoto] = useState(0);
+  const [cropOpen, setCropOpen] = useState(false);
+
+  useEffect(() => {
+    if (!cropOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setCropOpen(false);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [cropOpen]);
+
   if (!tabs.length || !tab) return null;
 
   const tourUrl = tourHref ? (lang === 'en' ? `${tourHref}?lang=en` : tourHref) : null;
@@ -132,7 +146,18 @@ export default function UnitMedia({
       )}
       <div className={dark ? 'inv-um-stage is-dark' : 'inv-um-stage'}>
         {tab === 'plan' && planUrl && image(planUrl, `${t.tabPlan} · ${code}`)}
-        {tab === 'plan' && !planUrl && fallbackPlan && <UnitPlanCrop src={fallbackPlan.src} polygon={fallbackPlan.polygon} alt={`${t.tabPlan} · ${code}`} tall={large} />}
+        {tab === 'plan' && !planUrl && fallbackPlan && !large && (
+          <UnitPlanCrop src={fallbackPlan.src} polygon={fallbackPlan.polygon} alt={`${t.tabPlan} · ${code}`} />
+        )}
+        {tab === 'plan' && !planUrl && fallbackPlan && large && (
+          <button type="button" className="inv-um-cropbtn" onClick={() => setCropOpen(true)} aria-label={`${t.zoom}: ${t.tabPlan} · ${code}`}>
+            <UnitPlanCrop src={fallbackPlan.src} polygon={fallbackPlan.polygon} alt={`${t.tabPlan} · ${code}`} tall />
+            <span className="inv-um-zoom">
+              {ZOOM_ICON}
+              {t.zoom}
+            </span>
+          </button>
+        )}
         {tab === 'plan' && !planUrl && !fallbackPlan && soon(t.tabPlan)}
         {tab === 'plan3d' && plan3dUrl && image(plan3dUrl, `${t.tab3d} · ${code}`)}
         {tab === 'plan3d' && !plan3dUrl && soon(t.tab3d)}
@@ -164,6 +189,16 @@ export default function UnitMedia({
           </>
         )}
       </div>
+      {cropOpen && fallbackPlan && (
+        <div className="inv-um-lightbox" role="dialog" aria-modal="true" aria-label={`${t.tabPlan} · ${code}`} onClick={() => setCropOpen(false)}>
+          <button type="button" className="inv-um-lightbox-x" aria-label="×" onClick={() => setCropOpen(false)}>
+            ×
+          </button>
+          <div className="inv-um-lightbox-body" onClick={(e) => e.stopPropagation()}>
+            <UnitPlanCrop src={fallbackPlan.src} polygon={fallbackPlan.polygon} alt={`${t.tabPlan} · ${code}`} full />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

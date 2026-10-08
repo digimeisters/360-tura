@@ -13,6 +13,7 @@ import {
 } from '../../app/lib/projectI18n';
 import { SITE_URL } from '../../app/lib/site';
 import PrintButton from './PrintButton';
+import UnitPlanCrop from './UnitPlanCrop';
 
 /**
  * PDF letak stana (A4, jedna strana): /novogradnja/[slug]/stan/[oznaka]/letak
@@ -45,6 +46,10 @@ const STYLES = `
   .us-plan{border:1px solid #E3E8F1; border-radius:4mm; padding:3mm; text-align:center;}
   .us-plan img{max-width:100%; max-height:150mm; object-fit:contain;}
   .us-plan small{display:block; color:#8C8E93; font-size:8.5pt; margin-top:2mm;}
+  .us-plan .inv-crop{display:flex; justify-content:center; align-items:center;}
+  .us-plan .inv-crop-box{position:relative; overflow:hidden; max-width:100%;}
+  .us-plan .inv-crop-box img{position:absolute; max-width:none; max-height:none; height:auto; display:block;}
+  .us-plan .inv-crop-box svg{position:absolute; inset:0; width:100%; height:100%;}
   .us-facts{display:grid; grid-template-columns:1fr 1fr; gap:2.5mm;}
   .us-facts div{background:#F6F8FC; border-radius:2.5mm; padding:2.5mm 3mm;}
   .us-facts small{display:block; font-size:7.5pt; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#8C8E93;}
@@ -91,6 +96,8 @@ export default async function UnitSheet({
   const qr = await QRCode.toString(projectUrl, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#111113', light: '#FFFFFF' } });
   const sqm = unit.price && unit.areaSqm ? Math.round(unit.price / unit.areaSqm) : null;
   const total = Math.round(unit.rooms.reduce((s, r) => s + r.m2, 0) * 100) / 100;
+  // Bez sopstvene osnove stana: isečak osnove sprata oko stana (kao na strani stana), a cela osnova sprata samo ako stan nije iscrtan.
+  const crop = !unit.planUrl && floor?.planUrl && unit.polygon ? { src: floor.planUrl, polygon: unit.polygon } : null;
   const planSrc = unit.planUrl ?? floor?.planUrl ?? null;
   const badge = unit.status === 'available' ? '' : unit.status === 'reserved' ? ' is-r' : ' is-p';
 
@@ -124,7 +131,12 @@ export default async function UnitSheet({
 
         <section className="us-body">
           <div className="us-plan">
-            {planSrc ? (
+            {crop ? (
+              <>
+                <UnitPlanCrop src={crop.src} polygon={crop.polygon} alt={t.plan} maxHeight="140mm" />
+                <small>{t.plan}</small>
+              </>
+            ) : planSrc ? (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element -- osnova sa R2 CDN-a, štampa */}
                 <img src={planSrc} alt={unit.planUrl ? t.plan : t.floorPlan} />

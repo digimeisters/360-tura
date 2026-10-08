@@ -15,7 +15,23 @@ import type { Polygon } from '../../app/lib/projects';
 
 const PAD = 0.035;
 
-export default function UnitPlanCrop({ src, polygon, alt, tall = false }: { src: string; polygon: Polygon; alt: string; tall?: boolean }) {
+export default function UnitPlanCrop({
+  src,
+  polygon,
+  alt,
+  tall = false,
+  full = false,
+  maxHeight
+}: {
+  src: string;
+  polygon: Polygon;
+  alt: string;
+  tall?: boolean;
+  /** Najveća visina isečka (npr. „140mm" na PDF letku); inače 230px, odnosno 62vh za `tall`. */
+  maxHeight?: string;
+  /** Uvećan prikaz (lightbox): do 86vh, ali ne više od ~2,2× prirodne veličine isečka da linije ne postanu mutne. */
+  full?: boolean;
+}) {
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   useEffect(() => {
@@ -33,10 +49,13 @@ export default function UnitPlanCrop({ src, polygon, alt, tall = false }: { src:
   const ratio = size ? (bw * size.w) / (bh * size.h) : 4 / 3;
   // Oblik u koordinatama isečka (0..1).
   const local = polygon.map(([x, y]) => `${(x - x0) / bw},${(y - y0) / bh}`).join(' ');
+  const width = full
+    ? `min(calc(100vw - 80px), calc(80vh * ${ratio.toFixed(4)})${size ? `, ${Math.round(bw * size.w * 2.2)}px` : ''})`
+    : `min(100%, calc(${maxHeight ?? (tall ? '62vh' : '230px')} * ${ratio.toFixed(4)}))`;
 
   return (
-    <div className={tall ? 'inv-crop is-tall' : 'inv-crop'}>
-      <div className="inv-crop-box" style={{ aspectRatio: String(ratio), width: `min(100%, calc(${tall ? '62vh' : '230px'} * ${ratio.toFixed(4)}))` }}>
+    <div className={full ? 'inv-crop is-full' : tall ? 'inv-crop is-tall' : 'inv-crop'}>
+      <div className="inv-crop-box" style={{ aspectRatio: String(ratio), width }}>
         {/* eslint-disable-next-line @next/next/no-img-element -- osnova sprata sa R2 CDN-a */}
         <img
           ref={imgRef}

@@ -340,6 +340,13 @@ export const SELECTOR_STYLES = `
   .inv-um-zoom{position:absolute; right:10px; bottom:10px; display:inline-flex; align-items:center; gap:5px; background:rgba(255,255,255,.12); color:#FFFFFF; border:1px solid rgba(255,255,255,.28); font-size:.74rem; font-weight:700; border-radius:999px; padding:.3rem .7rem; pointer-events:none;}
   .inv-um-stage:not(.is-dark) .inv-um-zoom{background:rgba(15,23,42,.62); border-color:transparent;}
   .inv-um-zoom svg{width:13px; height:13px;}
+  .inv-um-cropbtn{position:relative; display:block; width:100%; padding:0; border:0; background:transparent; cursor:zoom-in; font:inherit;}
+  .inv-um-cropbtn:focus-visible{outline:2px solid #1E5AA8; outline-offset:-2px;}
+  .inv-um-lightbox{position:fixed; inset:0; z-index:80; background:rgba(10,12,16,.86); display:flex; align-items:center; justify-content:center; padding:56px 16px 16px; cursor:zoom-out;}
+  .inv-um-lightbox-body{background:#FFFFFF; border-radius:16px; max-width:min(1200px,100%); max-height:100%; overflow:auto; cursor:default;}
+  .inv-um-lightbox-x{position:absolute; top:10px; right:12px; width:40px; height:40px; border-radius:50%; border:0; background:rgba(255,255,255,.14); color:#FFFFFF; font-size:1.6rem; line-height:1; cursor:pointer;}
+  .inv-um-lightbox-x:hover{background:rgba(255,255,255,.26);}
+  .inv-crop.is-full{padding:clamp(10px,2vw,20px);}
   @media (max-width:700px){
     .inv-um.is-large .inv-um-tabs{display:grid; grid-template-columns:1fr 1fr;}
     .inv-um.is-large .inv-um-tabs button{font-size:.84rem;}
