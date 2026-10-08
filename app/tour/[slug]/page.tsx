@@ -1206,6 +1206,10 @@ export default function TourPage() {
           leaveLabel={t.leaveGo}
           onStay={backGuard.stay}
           onLeave={backGuard.leave}
+          captureSlug={!adminMode ? tour?.slug : undefined}
+          captureLang={lang}
+          captureLabels={t}
+          captureExitSubtitle={t.captureExitSubtitle}
         />
       )}
 

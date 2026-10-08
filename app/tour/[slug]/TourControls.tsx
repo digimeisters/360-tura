@@ -3,6 +3,7 @@ import { THEME, GLASS, GLASS_ACCENT, FILL_ACCENT, FILL_ACCENT_EDGE, FILL_ACTIVE_
 import { IconCheck, IconCompass, IconExpand, IconHand, IconHeadphones, IconMute, IconPause, IconPlay, IconShare, IconSound } from './icons';
 import type { Language } from './types';
 import { toSubtitleCues } from './subtitleCues';
+import { TourCaptureExitField, useTourCaptureOffer, useTourCaptureSend, type CaptureLabels } from './TourCapture';
 
 /**
  * Sitne komponente HUD-a preko panorame: izbor jezika, kartica sa nazivom i
@@ -801,14 +802,28 @@ export function LeaveTourDialog({
   stayLabel,
   leaveLabel,
   onStay,
-  onLeave
+  onLeave,
+  captureSlug,
+  captureLang,
+  captureLabels,
+  captureExitSubtitle
 }: {
   title: string;
   stayLabel: string;
   leaveLabel: string;
   onStay: () => void;
   onLeave: () => void;
+  /** "Pošaljite sebi link i tlocrt", ubačeno u ovaj dijalog kao treće (poslednje)
+      mesto ponude - vidi TourCapture.tsx. undefined/null slug = tura nema turu
+      (admin, nepoznata), dijalog ostaje kao pre. */
+  captureSlug?: string;
+  captureLang?: string;
+  captureLabels?: CaptureLabels;
+  captureExitSubtitle?: string;
 }) {
+  // Mount ovog dijaloga JESTE trenutak kandidata - traje tačno dok je ekran otvoren.
+  const captureOffer = useTourCaptureOffer(captureSlug, Boolean(captureSlug));
+  const { status: captureStatus, send: sendCapture } = useTourCaptureSend(captureSlug);
   const font = 'var(--font-urbanist), var(--font-jakarta), system-ui, sans-serif';
   const btn: React.CSSProperties = {
     flex: 1,
@@ -831,9 +846,17 @@ export function LeaveTourDialog({
         onClick={(e) => e.stopPropagation()}
         style={{ width: '100%', maxWidth: '340px', background: 'linear-gradient(180deg, #E6EEF9 0px, #F6F8FC 90px)', border: '1px solid ' + THEME.border, borderRadius: '24px', padding: '22px 18px 18px', boxShadow: THEME.shadowLg, textAlign: 'center' }}
       >
-        <h2 id="k360-leave-title" style={{ margin: '0 0 18px', fontFamily: font, fontSize: '20px', fontWeight: 800, letterSpacing: '-0.015em', lineHeight: 1.25, color: THEME.accent }}>
+        <h2 id="k360-leave-title" style={{ margin: captureOffer && captureLabels ? '0 0 6px' : '0 0 18px', fontFamily: font, fontSize: '20px', fontWeight: 800, letterSpacing: '-0.015em', lineHeight: 1.25, color: THEME.accent }}>
           {title}
         </h2>
+        {captureOffer && captureLabels && (
+          <TourCaptureExitField
+            t={captureLabels}
+            exitSubtitle={captureExitSubtitle ?? ''}
+            status={captureStatus}
+            onSend={(value) => sendCapture(value, 'exit', captureLang ?? 'sr')}
+          />
+        )}
         <div style={{ display: 'flex', gap: '10px' }}>
           <button type="button" onClick={onLeave} style={{ ...btn, background: '#FFFFFF', color: THEME.accent, border: '1.5px solid ' + THEME.accent }}>
             {leaveLabel}

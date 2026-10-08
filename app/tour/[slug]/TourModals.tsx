@@ -33,6 +33,7 @@ import { getLocalizedText, type FactKey, type FactRow } from './utils';
 import { translations } from './translations';
 import type { ActiveModal, Language, Room, Tour } from './types';
 import { VIEWING_TEXT } from './ViewingRequestModal';
+import { TourCaptureCard, useTourCaptureOffer, useTourCaptureSend } from './TourCapture';
 import { ViewCone, type ViewReader } from './ViewCone';
 import { formatListingPrice } from '../../lib/listingPrice';
 import { SITE_URL } from '../../lib/site';
@@ -227,6 +228,11 @@ export function TourModals({
   const [placing, setPlacing] = useState(false);
   // Pitanja: odgovor se otvara u istoj kartici; prvo je otvoreno odmah.
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  // "Pošaljite sebi link i tlocrt" - najviše jednom po poseti, vidi TourCapture.tsx.
+  const captureInPlan = useTourCaptureOffer(tour?.slug, !adminMode && activeModal === 'plan');
+  const captureInInfo = useTourCaptureOffer(tour?.slug, !adminMode && activeModal === 'about');
+  const { status: captureStatus, send: sendCapture } = useTourCaptureSend(tour?.slug);
+  const [captureDismissed, setCaptureDismissed] = useState(false);
   if (!activeModal) return null;
 
   const schematic = Boolean(tour?.floorplan_url?.includes('/floorplan-schematic.svg'));
@@ -369,7 +375,8 @@ export function TourModals({
 
         <div style={{ padding: '10px 16px 20px', overflowY: 'auto', flex: 1, color: THEME.textPrimary, fontSize: '16px' }}>
           {activeModal === 'plan' && (
-            tour?.floorplan_url ? (
+            <>
+            {tour?.floorplan_url ? (
               <div>
                 {/* Admin: šematski plan se uređuje u editoru; na pravom
                     tlocrtu oznaka se postavlja tek posle klika na dugme -
@@ -473,7 +480,18 @@ export function TourModals({
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><i style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'rgba(15,23,42,.55)', border: '2px solid #fff', boxShadow: '0 0 0 1px #D3D3CB' }} />{t.planNew}</span>
                 </div>
               </div>
-            ) : empty(t.noPlan)
+            ) : empty(t.noPlan)}
+            {captureInPlan && !captureDismissed && (
+              <div style={{ marginTop: '14px' }}>
+                <TourCaptureCard
+                  t={t}
+                  status={captureStatus}
+                  onSend={(value) => sendCapture(value, 'plan', lang)}
+                  onDismiss={() => setCaptureDismissed(true)}
+                />
+              </div>
+            )}
+            </>
           )}
 
           {activeModal === 'location' && (
@@ -504,7 +522,8 @@ export function TourModals({
           )}
 
           {activeModal === 'about' && (
-            factList.length > 0 || aboutText || price || city ? (
+            <>
+            {factList.length > 0 || aboutText || price || city ? (
               <div className="k360-about">
                 <style>{'.k360-about{display:grid;gap:12px;align-items:start}@media (min-width: 821px){.k360-about{grid-template-columns:1fr 1fr;grid-template-areas:"hero spec" "desc spec";gap:16px}.k360-about__hero{grid-area:hero}.k360-about__spec{grid-area:spec}.k360-about__desc{grid-area:desc}}'}</style>
                   {/* Glavna kartica: vrsta oglasa, gde je, cena i tri ključna broja. */}
@@ -566,7 +585,18 @@ export function TourModals({
                   </div>
                 )}
               </div>
-            ) : empty(t.noAbout)
+            ) : empty(t.noAbout)}
+            {captureInInfo && !captureDismissed && (
+              <div style={{ marginTop: '14px' }}>
+                <TourCaptureCard
+                  t={t}
+                  status={captureStatus}
+                  onSend={(value) => sendCapture(value, 'info', lang)}
+                  onDismiss={() => setCaptureDismissed(true)}
+                />
+              </div>
+            )}
+            </>
           )}
 
           {activeModal === 'faq' && (

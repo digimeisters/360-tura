@@ -262,6 +262,7 @@ Polja `*_i18n` su objekti po jezicima: `{ "sr": "...", "en": "...", "de": "...",
 |---|---|---|
 | `POST /api/contact` | 5 zahteva / 10 min po IP-u | Upit sa forme → `contact_requests` + Telegram (termin, oznaka EN strane) |
 | `POST /api/viewing-request` | 5 zahteva / 10 min po IP-u; samo objavljena aktivna tura | „Zakaži razgledanje" iz ture → `contact_requests` (`source = tour:<slug>`) + **email agentu** (`agent_email` ture, Resend, `app/lib/email.ts`; 7. 10. 2026) + Telegram kopija vlasniku sa redom da li je email otišao (ako nije - „prosledite mu zahtev") |
+| `POST /api/tour-capture` | 8 zahteva / 10 min po IP-u; samo objavljena aktivna tura | "Pošaljite sebi link i tlocrt" (TourCapture.tsx) - niži prag od razgledanja, samo kontakt bez termina. Isti put kao gore (contact_requests, email agentu, Telegram kopija) |
 | `POST /api/client-error` | 10 / 10 min po IP-u, botovi se odbacuju, ista greška najviše 1×/h | Greška iz pregledača (`lib/reportError.ts`) → Telegram vlasniku + Vercel log |
 | `GET/POST /api/admin/floorplan` | `requireAdmin` | Raspored šematskog plana (sačuvan ili nov nacrt) / čuvanje plana u turu |
 | `POST /api/track` | 120 / min, botovi se odbacuju | Događaji tura (`tour_events`) i, uz `scope: 'site'`, početne (`site_events`) |
