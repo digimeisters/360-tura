@@ -322,6 +322,14 @@ export const SELECTOR_STYLES = `
   /* Link „Otvori stranu stana" u kartici. */
   .inv-open{display:flex; justify-content:space-between; align-items:center; gap:.6rem; margin:.7rem 0 0; padding:.7rem .95rem; border-radius:14px; background:#1E5AA8; color:#FFFFFF; font-weight:750; font-size:.9rem; text-decoration:none; transition:background .15s;}
   .inv-open:hover{background:#174A8C;}
+  .inv-open + *{margin-top:.75rem;}
+  .inv-open{background:#E8F0FB; color:#1E5AA8; border:1px solid #C9D7EC;}
+  .inv-open:hover{background:#DCE8F8; border-color:#1E5AA8;}
+  .inv-thumb{display:flex; align-items:center; justify-content:center; margin:.8rem 0 .2rem; border:1px solid #E3E8F1; border-radius:14px; overflow:hidden; background:#FFFFFF; cursor:pointer; transition:border-color .15s;}
+  .inv-thumb:hover{border-color:#1E5AA8;}
+  .inv-thumb > img{display:block; max-width:100%; max-height:220px; object-fit:contain;}
+  .inv-thumb.is-dark{background:#000000; border-color:#000000;}
+  .inv-thumb .inv-crop{width:100%;}
   .inv-open span{font-size:1.1rem;}
 
   /* Strana stana: isti prekidač kao u kartici stana, samo veći, sa ikonicama. */

@@ -6,7 +6,7 @@ import { floorLabel, formatArea, formatPrice, orientationText, PROJECT_TEXT, sta
 import { trackSiteEvent } from '../../app/lib/track';
 import type { DemoMedia } from '../../app/lib/projectData';
 import PaymentCalculator from './PaymentCalculator';
-import UnitMedia, { UnitRooms } from './UnitMedia';
+import UnitMedia, { UnitRooms, UnitThumb } from './UnitMedia';
 import UnitInquiry from './UnitInquiry';
 import type { SelectorBuilding, SelectorFloor, SelectorProject, SelectorUnit, SelectorView } from './ProjectSelector';
 
@@ -452,23 +452,23 @@ export default function FacadeFullscreen({
           {t.unit} {unit.code}
         </div>
         {unit.structure && <p className="inv-muted">{structureText(unit.structure, lang)}</p>}
-        {hasMedia && (
-          <UnitMedia
-            key={`fs-media-${unit.id}`}
-            planUrl={unit.planUrl}
-            plan3dUrl={unit.plan3dUrl}
-            photos={unit.photos}
-            tourHref={unit.tourHref}
-            code={unit.code}
-            lang={lang}
-            fallbackPlan={fallbackPlan}
-            demo={demoMedia}
-          />
-        )}
-        {unitPage && (
-          <a className="inv-open" href={unitPage} data-track="cta:project_unit_page">
-            {t.openUnitPage} <span aria-hidden="true">→</span>
-          </a>
+        {/* Sa stranom stana fioka je kratak pregled; sve kartice, prostorije, PDF i plan plaćanja su na strani stana. */}
+        {unitPage ? (
+          <UnitThumb href={unitPage} planUrl={unit.planUrl} plan3dUrl={unit.plan3dUrl} fallbackPlan={fallbackPlan} code={unit.code} lang={lang} />
+        ) : (
+          hasMedia && (
+            <UnitMedia
+              key={`fs-media-${unit.id}`}
+              planUrl={unit.planUrl}
+              plan3dUrl={unit.plan3dUrl}
+              photos={unit.photos}
+              tourHref={unit.tourHref}
+              code={unit.code}
+              lang={lang}
+              fallbackPlan={fallbackPlan}
+              demo={demoMedia}
+            />
+          )
         )}
         <div className="inv-facts">
           <div>
@@ -499,13 +499,30 @@ export default function FacadeFullscreen({
           </span>
           <b>{unit.status === 'sold' ? '—' : unit.price ? formatPrice(unit.price, lang) : t.onRequest}</b>
         </div>
-        <UnitRooms rooms={unit.rooms} lang={lang} />
-        {letakBase && (
-          <a className="inv-pdf" href={`${letakBase}/${encodeURIComponent(unit.code)}/letak`} target="_blank" rel="noopener" data-track="cta:project_unit_pdf">
-            <span aria-hidden="true">PDF</span> {t.pdf}
-          </a>
+        {unitPage ? (
+          <>
+            <a className="inv-open" href={unitPage} data-track="cta:project_unit_page">
+              {t.openUnitPage} <span aria-hidden="true">→</span>
+            </a>
+            {unit.tourHref && (
+              <a
+                className="inv-cta is-out"
+                href={lang === 'en' ? `${unit.tourHref}?lang=en` : unit.tourHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ marginTop: 10, textDecoration: 'none' }}
+                data-track="cta:project_unit_tour"
+              >
+                360° {t.walk} ↗
+              </a>
+            )}
+          </>
+        ) : (
+          <>
+            <UnitRooms rooms={unit.rooms} lang={lang} />
+            {unit.status !== 'sold' && unit.price ? <PaymentCalculator key={`fs-pay-${unit.id}`} price={unit.price} lang={lang} /> : null}
+          </>
         )}
-        {unit.status !== 'sold' && unit.price ? <PaymentCalculator key={`fs-pay-${unit.id}`} price={unit.price} lang={lang} /> : null}
         <UnitInquiry
           key={`fs-inq-${unit.id}`}
           slug={project.slug}

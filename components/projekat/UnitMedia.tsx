@@ -203,6 +203,41 @@ export default function UnitMedia({
   );
 }
 
+/**
+ * Mala slika stana u kartici na zgradi: sopstvena osnova, pa isečak osnove
+ * sprata, pa 3D osnova. Klik vodi na stranu stana (tamo su sve kartice).
+ */
+export function UnitThumb({
+  href,
+  planUrl,
+  plan3dUrl,
+  fallbackPlan,
+  code,
+  lang = 'sr'
+}: {
+  href: string;
+  planUrl: string | null;
+  plan3dUrl: string | null;
+  fallbackPlan: { src: string; polygon: Polygon } | null;
+  code: string;
+  lang?: ProjectLang;
+}) {
+  const t = PROJECT_TEXT[lang];
+  if (!planUrl && !fallbackPlan && !plan3dUrl) return null;
+  const alt = `${planUrl || fallbackPlan ? t.tabPlan : t.tab3d} · ${code}`;
+  const imgSrc = planUrl ?? (fallbackPlan ? null : plan3dUrl);
+  return (
+    <a href={href} className={!planUrl && !fallbackPlan ? 'inv-thumb is-dark' : 'inv-thumb'} data-track="cta:project_unit_page">
+      {imgSrc ? (
+        // eslint-disable-next-line @next/next/no-img-element -- slika sa R2 CDN-a
+        <img src={imgSrc} alt={alt} loading="lazy" />
+      ) : (
+        <UnitPlanCrop src={fallbackPlan!.src} polygon={fallbackPlan!.polygon} alt={alt} />
+      )}
+    </a>
+  );
+}
+
 /** Tabela kvadrature po prostorijama, sa zbirom. */
 export function UnitRooms({ rooms, lang = 'sr' }: { rooms: { name: string; m2: number }[]; lang?: ProjectLang }) {
   if (!rooms.length) return null;

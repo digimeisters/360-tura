@@ -17,7 +17,7 @@ import {
 import { trackSiteEvent } from '../../app/lib/track';
 import { getImageProps } from 'next/image';
 import PaymentCalculator from './PaymentCalculator';
-import UnitMedia, { UnitRooms } from './UnitMedia';
+import UnitMedia, { UnitRooms, UnitThumb } from './UnitMedia';
 import UnitInquiry from './UnitInquiry';
 import FacadeFullscreen, { RangeSlider, shortStructure } from './FacadeFullscreen';
 import type { DemoMedia } from '../../app/lib/projectData';
@@ -1299,23 +1299,23 @@ export default function ProjectSelector({
           {t.unit} {unit.code}
         </div>
         {unit.structure && <p className="inv-muted">{structureText(unit.structure, lang)}</p>}
-        {hasExtraMedia && (
-          <UnitMedia
-            key={`media-${unit.id}`}
-            planUrl={unit.planUrl}
-            plan3dUrl={unit.plan3dUrl}
-            photos={unit.photos}
-            tourHref={unit.tourHref}
-            code={unit.code}
-            lang={lang}
-            fallbackPlan={fallbackPlan}
-            demo={demoMedia}
-          />
-        )}
-        {unitPage && (
-          <a className="inv-open" href={unitPage} data-track="cta:project_unit_page">
-            {t.openUnitPage} <span aria-hidden="true">→</span>
-          </a>
+        {/* Sa stranom stana kartica je kratak pregled; sve kartice, prostorije, PDF i plan plaćanja su na strani stana. */}
+        {unitPage ? (
+          <UnitThumb href={unitPage} planUrl={unit.planUrl} plan3dUrl={unit.plan3dUrl} fallbackPlan={fallbackPlan} code={unit.code} lang={lang} />
+        ) : (
+          hasExtraMedia && (
+            <UnitMedia
+              key={`media-${unit.id}`}
+              planUrl={unit.planUrl}
+              plan3dUrl={unit.plan3dUrl}
+              photos={unit.photos}
+              tourHref={unit.tourHref}
+              code={unit.code}
+              lang={lang}
+              fallbackPlan={fallbackPlan}
+              demo={demoMedia}
+            />
+          )
         )}
         <div className="inv-facts">
           <div>
@@ -1346,23 +1346,20 @@ export default function ProjectSelector({
           </span>
           <b>{unit.status === 'sold' ? '—' : unit.price ? formatPrice(unit.price, lang) : t.onRequest}</b>
         </div>
-        <UnitRooms rooms={unit.rooms} lang={lang} />
-        {letakBase && (
-          <a
-            className="inv-pdf"
-            href={`${letakBase}/${encodeURIComponent(unit.code)}/letak`}
-            target="_blank"
-            rel="noopener"
-            data-track="cta:project_unit_pdf"
-          >
-            <span aria-hidden="true">PDF</span> {t.pdf}
+        {unitPage ? (
+          <a className="inv-open" href={unitPage} data-track="cta:project_unit_page">
+            {t.openUnitPage} <span aria-hidden="true">→</span>
           </a>
+        ) : (
+          <>
+            <UnitRooms rooms={unit.rooms} lang={lang} />
+            {/* Plan plaćanja samo za stan koji se prodaje i ima cenu. */}
+            {unit.status !== 'sold' && unit.price ? <PaymentCalculator key={`pay-${unit.id}`} price={unit.price} lang={lang} /> : null}
+          </>
         )}
-        {/* Plan plaćanja samo za stan koji se prodaje i ima cenu. */}
-        {unit.status !== 'sold' && unit.price ? <PaymentCalculator key={`pay-${unit.id}`} price={unit.price} lang={lang} /> : null}
-        {((unit.tourHref && !hasExtraMedia) || floor.viewHref) && (
-          <div className="inv-media" style={!(unit.tourHref && !hasExtraMedia) || !floor.viewHref ? { gridTemplateColumns: '1fr' } : undefined}>
-            {unit.tourHref && !hasExtraMedia && (
+        {((unit.tourHref && (unitPage || !hasExtraMedia)) || floor.viewHref) && (
+          <div className="inv-media" style={!(unit.tourHref && (unitPage || !hasExtraMedia)) || !floor.viewHref ? { gridTemplateColumns: '1fr' } : undefined}>
+            {unit.tourHref && (unitPage || !hasExtraMedia) && (
               <a
                 className="inv-mbtn"
                 href={lang === 'en' ? `${unit.tourHref}?lang=en` : unit.tourHref}
