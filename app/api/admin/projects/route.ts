@@ -28,6 +28,7 @@ import {
 } from '@/app/lib/planAi';
 import { revalidateProject } from '@/app/lib/revalidateProject';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database, Json } from '@/types/supabase';
 import { requireAdmin } from '@/app/lib/adminAuth';
 import { slugify } from '@/app/lib/slug';
 import { projectPreviewToken } from '@/app/lib/projectPreview';
@@ -247,7 +248,12 @@ export async function POST(req: Request) {
           }
         }
 
-        const { data, error } = await db.from('projects').update(patch).eq('id', id).select('slug').single();
+        const { data, error } = await db
+          .from('projects')
+          .update(patch as Database['public']['Tables']['projects']['Update'])
+          .eq('id', id)
+          .select('slug')
+          .single();
         if (error) return fail(error.message, 500);
         refresh(data.slug);
         return NextResponse.json({ success: true, coords });
@@ -582,8 +588,12 @@ export async function POST(req: Request) {
         const floorId = text(body.id, 40);
         if (!floorId) row.building_id = text(body.buildingId, 40);
         const query = floorId
-          ? db.from('project_floors').update(row).eq('id', floorId).eq('project_id', projectId)
-          : db.from('project_floors').insert(row);
+          ? db
+              .from('project_floors')
+              .update(row as Database['public']['Tables']['project_floors']['Update'])
+              .eq('id', floorId)
+              .eq('project_id', projectId)
+          : db.from('project_floors').insert(row as Database['public']['Tables']['project_floors']['Insert']);
         const { data, error } = await query.select('*').single();
         if (error) {
           return fail(error.code === '23505' ? `Sprat ${level} već postoji u ovoj zgradi.` : error.message, error.code === '23505' ? 409 : 500);
@@ -645,7 +655,7 @@ export async function POST(req: Request) {
           area_sqm: number | null;
           terrace_sqm: number | null;
           orientation: string | null;
-          polygon: unknown;
+          polygon: Json;
           sort: number;
         };
         const allFloors = (floorsRaw ?? []) as F[];
@@ -766,7 +776,13 @@ export async function POST(req: Request) {
           const before = 'status' in row || 'price' in row
             ? ((await db.from('project_units').select('code, status, price').eq('id', unitId).maybeSingle()).data as OldUnit | null)
             : null;
-          result = await db.from('project_units').update(row).eq('id', unitId).eq('project_id', projectId).select('*').single();
+          result = await db
+            .from('project_units')
+            .update(row as Database['public']['Tables']['project_units']['Update'])
+            .eq('id', unitId)
+            .eq('project_id', projectId)
+            .select('*')
+            .single();
           if (!result.error && before) {
             const after = result.data as OldUnit;
             await logAdminChanges(db, projectId, [
@@ -782,7 +798,11 @@ export async function POST(req: Request) {
           }
         } else {
           if (!row.code || !row.floor_id) return fail('Za novi stan trebaju oznaka i sprat.');
-          result = await db.from('project_units').insert({ ...row, project_id: projectId }).select('*').single();
+          result = await db
+            .from('project_units')
+            .insert({ ...row, project_id: projectId } as Database['public']['Tables']['project_units']['Insert'])
+            .select('*')
+            .single();
         }
         if (result.error) {
           return fail(result.error.code === '23505' ? 'Stan sa tom oznakom već postoji.' : result.error.message, result.error.code === '23505' ? 409 : 500);
@@ -953,7 +973,11 @@ export async function POST(req: Request) {
           updated_at: new Date().toISOString()
         };
         if (body.includeTour === true) patch.tour_id = src.tour_id;
-        const { error } = await db.from('project_units').update(patch).in('id', targets.map((t) => t.id)).eq('project_id', projectId);
+        const { error } = await db
+          .from('project_units')
+          .update(patch as Database['public']['Tables']['project_units']['Update'])
+          .in('id', targets.map((t) => t.id))
+          .eq('project_id', projectId);
         if (error) return fail(error.message, 500);
         refresh(await projectSlug(db, projectId));
         return NextResponse.json({ success: true, count: targets.length, codes: targets.map((t) => t.code).sort((a, b) => a.localeCompare(b, 'sr', { numeric: true })) });
@@ -1057,7 +1081,13 @@ export async function POST(req: Request) {
           if (!url || !/^https:\/\//.test(url)) return fail('Nedostaje slika.');
           patch.image_url = url;
         }
-        const { data, error } = await db.from('project_views').update(patch).eq('id', id).eq('project_id', projectId).select('*').single();
+        const { data, error } = await db
+          .from('project_views')
+          .update(patch as Database['public']['Tables']['project_views']['Update'])
+          .eq('id', id)
+          .eq('project_id', projectId)
+          .select('*')
+          .single();
         if (error) return fail(error.message, 500);
         refresh(await projectSlug(db, projectId));
         return NextResponse.json({ success: true, view: data });
@@ -1126,7 +1156,12 @@ export async function POST(req: Request) {
           if (!polygon) return fail('Oblik nije ispravan - potrebne su bar 3 tačke.');
           const { data, error } = await db
             .from('project_view_shapes')
-            .insert({ view_id: viewId, project_id: projectId, [column]: targetId, polygon })
+            .insert({
+              view_id: viewId,
+              project_id: projectId,
+              [column]: targetId,
+              polygon
+            } as Database['public']['Tables']['project_view_shapes']['Insert'])
             .select('id, view_id, project_id, building_id, floor_id, unit_id, polygon')
             .single();
           if (error) return fail(error.message, 500);

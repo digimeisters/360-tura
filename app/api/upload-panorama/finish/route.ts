@@ -4,6 +4,7 @@ import { r2Client } from '@/app/lib/r2';
 import { refreshPublicPages } from '@/app/lib/revalidatePublic';
 import { generatePanoramaPreview, convertPanoramaToWebp, makeMobilePanorama, mobilePanoramaKey } from '@/app/lib/panoramaPreview';
 import { requireAdmin } from '@/app/lib/adminAuth';
+import type { Database } from '@/types/supabase';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -137,7 +138,10 @@ export async function POST(req: Request) {
       console.error('UPLOAD PANORAMA: kopija za telefone nije napravljena:', mobileError);
     }
 
-    const updates: Record<string, string | null> = { panorama_url_cf: r2Url, panorama_url_mobile: mobileUrl };
+    const updates: Partial<Database['public']['Tables']['rooms']['Update']> = {
+      panorama_url_cf: r2Url,
+      panorama_url_mobile: mobileUrl
+    };
     if (previewUrl) updates.preview_url = previewUrl;
 
     let { error: updateError } = await ctx.supabase.from('rooms').update(updates).eq('id', roomId);

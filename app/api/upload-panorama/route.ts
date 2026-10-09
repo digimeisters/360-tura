@@ -5,6 +5,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { r2Client } from '@/app/lib/r2';
 import { requireAdmin } from '@/app/lib/adminAuth';
 import { refreshPublicPages } from '@/app/lib/revalidatePublic';
+import type { Database } from '@/types/supabase';
 
 export const dynamic = 'force-dynamic';
 
@@ -171,7 +172,12 @@ export async function DELETE(req: Request) {
       }
     }
 
-    const cleared: Record<string, null> = { panorama_url_cf: null, panorama_url: null, preview_url: null, panorama_url_mobile: null };
+    const cleared: Partial<Database['public']['Tables']['rooms']['Update']> = {
+      panorama_url_cf: null,
+      panorama_url: null,
+      preview_url: null,
+      panorama_url_mobile: null
+    };
     let { error: updateError } = await ctx.supabase.from('rooms').update(cleared).eq('id', roomId);
     if (updateError && /panorama_url_mobile/.test(updateError.message)) {
       delete cleared.panorama_url_mobile;

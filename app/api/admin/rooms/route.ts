@@ -4,6 +4,9 @@ import { DeleteObjectsCommand } from '@aws-sdk/client-s3';
 import { requireAdmin } from '@/app/lib/adminAuth';
 import { r2Client } from '@/app/lib/r2';
 import { refreshPublicPages } from '@/app/lib/revalidatePublic';
+import type { Json } from '@/types/supabase';
+
+type Waypoint = { targetRoomId?: string | number | null; [key: string]: unknown };
 
 export const dynamic = 'force-dynamic';
 
@@ -47,22 +50,22 @@ export async function DELETE(req: Request) {
       .eq('id', roomId)
       .maybeSingle();
 
-    if (roomErr || !room) {
+    if (roomErr || !room || !room.tour_slug) {
       return NextResponse.json({ success: false, error: `Soba ${roomId} nije pronađena.` }, { status: 404 });
     }
-    const tourSlug = (room as any).tour_slug as string;
-    const orderIndex = (room as any).order_index as number | null;
+    const tourSlug = room.tour_slug;
+    const orderIndex = room.order_index;
 
     // 1) R2 - best effort, greška ovde ne sme da spreči brisanje sobe.
     const bucket = process.env.R2_BUCKET_NAME;
     const cdnUrl = process.env.NEXT_PUBLIC_CDN_URL;
     if (bucket && cdnUrl) {
-      const panoramaKey = r2KeyFromUrl((room as any).panorama_url_cf, cdnUrl);
+      const panoramaKey = r2KeyFromUrl(room.panorama_url_cf, cdnUrl);
       const keys = [
         panoramaKey,
         // Kopija za telefone (migracija 018) - ime je izvedeno iz glavne.
         panoramaKey ? mobilePanoramaKey(panoramaKey) : null,
-        r2KeyFromUrl((room as any).preview_url, cdnUrl)
+        r2KeyFromUrl(room.preview_url, cdnUrl)
       ].filter((k): k is string => Boolean(k));
       if (keys.length > 0) {
         try {
@@ -83,27 +86,26 @@ export async function DELETE(req: Request) {
       .neq('id', roomId);
 
     for (const sibling of siblings ?? []) {
-      let waypoints: any;
+      let waypoints: unknown;
       try {
         waypoints =
-          typeof (sibling as any).waypoints_i18n === 'string'
-            ? JSON.parse((sibling as any).waypoints_i18n)
-            : (sibling as any).waypoints_i18n;
+          typeof sibling.waypoints_i18n === 'string' ? JSON.parse(sibling.waypoints_i18n) : sibling.waypoints_i18n;
       } catch {
         waypoints = null;
       }
       if (!Array.isArray(waypoints)) continue;
 
-      const filtered = waypoints.filter((wp) => String(wp?.targetRoomId ?? '') !== String(roomId));
-      if (filtered.length !== waypoints.length) {
-        await ctx.supabase.from('rooms').update({ waypoints_i18n: filtered }).eq('id', (sibling as any).id);
+      const list = waypoints as Waypoint[];
+      const filtered = list.filter((wp) => String(wp?.targetRoomId ?? '') !== String(roomId));
+      if (filtered.length !== list.length) {
+        await ctx.supabase.from('rooms').update({ waypoints_i18n: filtered as unknown as Json }).eq('id', sibling.id);
       }
     }
 
     // 3) Redni broj ove sobe iz putanje vodiča.
     if (orderIndex !== null) {
       const { data: tour } = await ctx.supabase.from('tours').select('guide_path').eq('slug', tourSlug).maybeSingle();
-      const rawPath = (tour as any)?.guide_path as string | null | undefined;
+      const rawPath = tour?.guide_path;
       if (rawPath) {
         const steps = rawPath
           .split(',')
@@ -127,10 +129,10 @@ export async function DELETE(req: Request) {
 
     refreshPublicPages();
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error('DELETE ROOM ERROR:', error);
     return NextResponse.json(
-      { success: false, error: error?.message || 'Greška tokom brisanja sobe.' },
+      { success: false, error: error instanceof Error ? error.message : 'Greška tokom brisanja sobe.' },
       { status: 500 }
     );
   }

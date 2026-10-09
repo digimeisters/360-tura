@@ -1,5 +1,5 @@
 // GENERISANO skriptom scripts/gen-db-types.mjs (npm run db:types) - ne menjati ručno.
-// Izvor: živa baza sajta (tmnaguwmzlwirhjprdbh), 2026-10-06.
+// Izvor: živa baza sajta (tmnaguwmzlwirhjprdbh), 2026-10-09.
 
 export type Json =
   | string
@@ -30,6 +30,18 @@ export type Database = {
           agency_name?: string
           logo_url?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      app_admins: {
+        Row: {
+          email: string
+        }
+        Insert: {
+          email: string
+        }
+        Update: {
+          email?: string
         }
         Relationships: []
       }

@@ -240,8 +240,8 @@ export default function TourAdminTools({
       const saved = guidePathInput.trim() || null;
       setTour((prev) => (prev ? { ...prev, guide_path: saved } : prev));
       setShowGuidePathModal(false);
-    } catch (err: any) {
-      alert('Greška pri čuvanju putanje: ' + (err.message || 'Nepoznata greška'));
+    } catch (err) {
+      alert('Greška pri čuvanju putanje: ' + (err instanceof Error ? err.message : 'Nepoznata greška'));
     } finally {
       setSavingGuidePath(false);
     }
@@ -294,9 +294,9 @@ export default function TourAdminTools({
       setRooms((prev) => [...prev, newRoom]);
       setRoomIdx(rooms.length);
       onRoomCreated();
-    } catch (err: any) {
+    } catch (err) {
       console.error('[Kreiranje sobe] Greška:', err);
-      alert('Greška pri kreiranju sobe: ' + (err.message || 'Nepoznata greška'));
+      alert('Greška pri kreiranju sobe: ' + (err instanceof Error ? err.message : 'Nepoznata greška'));
     } finally {
       setCreatingRoom(false);
     }
@@ -355,9 +355,9 @@ export default function TourAdminTools({
           setTour((prev) => (prev ? { ...prev, guide_path: filteredSteps.length > 0 ? filteredSteps.join(',') : null } : prev));
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('[Brisanje sobe] Greška:', err);
-      alert('Greška pri brisanju sobe: ' + (err.message || 'Nepoznata greška'));
+      alert('Greška pri brisanju sobe: ' + (err instanceof Error ? err.message : 'Nepoznata greška'));
     } finally {
       setDeletingRoom(false);
     }
@@ -403,7 +403,7 @@ export default function TourAdminTools({
       const { error: dbErr } = await supabase
         .from('rooms')
         .update({ title: newTitle, title_i18n: newTitleI18n, order_index: newOrder })
-        .eq('id', currentRoom.id as any);
+        .eq('id', String(currentRoom.id));
 
       if (dbErr) throw dbErr;
 
@@ -411,8 +411,8 @@ export default function TourAdminTools({
         prev.map((r, idx) => (idx === roomIdx ? { ...r, title_i18n: newTitleI18n, order_index: newOrder } : r))
       );
       setShowRenameModal(false);
-    } catch (err: any) {
-      alert('Greška pri čuvanju naziva: ' + (err.message || 'Nepoznata greška'));
+    } catch (err) {
+      alert('Greška pri čuvanju naziva: ' + (err instanceof Error ? err.message : 'Nepoznata greška'));
     } finally {
       setSavingRename(false);
     }
@@ -446,7 +446,7 @@ export default function TourAdminTools({
       const { error: dbErr } = await supabase
         .from('rooms')
         .update({ establish_i18n: updatedEstablish })
-        .eq('id', currentRoom.id as any);
+        .eq('id', String(currentRoom.id));
 
       if (dbErr) throw dbErr;
 
@@ -454,8 +454,8 @@ export default function TourAdminTools({
         prev.map((r, idx) => (idx === roomIdx ? { ...r, establish_i18n: updatedEstablish } : r))
       );
       setShowNarrationModal(false);
-    } catch (err: any) {
-      alert('Greška pri čuvanju naracije: ' + (err.message || 'Nepoznata greška'));
+    } catch (err) {
+      alert('Greška pri čuvanju naracije: ' + (err instanceof Error ? err.message : 'Nepoznata greška'));
     } finally {
       setSavingNarration(false);
     }
@@ -621,9 +621,9 @@ export default function TourAdminTools({
       setRooms((prevRooms) =>
         prevRooms.map((r, idx) => (idx === roomIdx ? { ...r, panorama_url_cf: result.r2Url } : r))
       );
-    } catch (err: any) {
+    } catch (err) {
       console.error('[Upload panorame] Greška:', err);
-      alert('Greška pri upload-u panorame: ' + (err.message || 'Nepoznata greška'));
+      alert('Greška pri upload-u panorame: ' + (err instanceof Error ? err.message : 'Nepoznata greška'));
     } finally {
       setPanoramaUploadProgress(null);
     }
@@ -653,9 +653,9 @@ export default function TourAdminTools({
           idx === roomIdx ? { ...r, panorama_url_cf: undefined, panorama_url: undefined, preview_url: undefined } : r
         )
       );
-    } catch (err: any) {
+    } catch (err) {
       console.error('[Brisanje panorame] Greška:', err);
-      alert('Greška pri brisanju panorame: ' + (err.message || 'Nepoznata greška'));
+      alert('Greška pri brisanju panorame: ' + (err instanceof Error ? err.message : 'Nepoznata greška'));
     } finally {
       setPanoramaUploadProgress(null);
     }
@@ -721,7 +721,7 @@ export default function TourAdminTools({
 
       const establishCount = Object.keys(result.audio?.establish || {}).length;
       const waypointCount = (result.audio?.waypoints || []).reduce(
-        (acc: number, w: any) => acc + Object.keys(w.audio_url_i18n || {}).length,
+        (acc: number, w: { audio_url_i18n?: Record<string, string> }) => acc + Object.keys(w.audio_url_i18n || {}).length,
         0
       );
       const totalGenerated = establishCount + waypointCount;
@@ -754,7 +754,7 @@ export default function TourAdminTools({
       let updatedWaypoints = waypointsList;
       if (Array.isArray(result.audio?.waypoints)) {
         updatedWaypoints = waypointsList.map((wp, idx) => {
-          const wpAudio = result.audio.waypoints.find((a: any) => a.index === idx);
+          const wpAudio = result.audio.waypoints.find((a: { index: number }) => a.index === idx);
           if (!wpAudio) return wp;
           const existingWpAudio = typeof wp.audio_url_i18n === 'object' ? wp.audio_url_i18n : {};
           return { ...wp, audio_url_i18n: { ...existingWpAudio, ...wpAudio.audio_url_i18n } };
@@ -767,7 +767,7 @@ export default function TourAdminTools({
           establish_i18n: updatedEstablish,
           waypoints_i18n: updatedWaypoints
         })
-        .eq('id', currentRoom.id as any);
+        .eq('id', String(currentRoom.id));
 
       if (dbErr) throw dbErr;
 
@@ -783,9 +783,9 @@ export default function TourAdminTools({
         `Generisano ${totalGenerated} audio segmenata i sačuvano.` +
           (errorLines.length > 0 ? '\n\nDeo segmenata NIJE uspeo:\n' + errorLines.join('\n') : '')
       );
-    } catch (err: any) {
+    } catch (err) {
       console.error('[TTS] Greška pri generisanju glasa za sobu:', err);
-      alert('Greška pri generisanju glasa: ' + (err.message || 'Nepoznata greška'));
+      alert('Greška pri generisanju glasa: ' + (err instanceof Error ? err.message : 'Nepoznata greška'));
     } finally {
       setVoiceProgress(null);
     }
@@ -874,7 +874,7 @@ export default function TourAdminTools({
 
             if (Array.isArray(voiceResult.audio.waypoints)) {
               currentWaypoints = currentWaypoints.map((wp, idx) => {
-                const wpAudio = voiceResult.audio.waypoints.find((a: any) => a.index === idx);
+                const wpAudio = voiceResult.audio.waypoints.find((a: { index: number }) => a.index === idx);
                 if (!wpAudio) return wp;
                 const existingWpAudio = typeof wp.audio_url_i18n === 'object' ? wp.audio_url_i18n : {};
                 return {
@@ -886,7 +886,7 @@ export default function TourAdminTools({
 
             const establishCount = Object.keys(voiceResult.audio.establish || {}).length;
             const waypointCount = (voiceResult.audio.waypoints || []).reduce(
-              (acc: number, w: any) => acc + Object.keys(w.audio_url_i18n || {}).length,
+              (acc: number, w: { audio_url_i18n?: Record<string, string> }) => acc + Object.keys(w.audio_url_i18n || {}).length,
               0
             );
             const totalGenerated = establishCount + waypointCount;
@@ -916,7 +916,7 @@ export default function TourAdminTools({
             voiceSummaryMessage =
               '\n\n⚠️ Generisanje AI glasa nije uspelo (' + (voiceResult.error || 'nepoznata greška') + ').';
           }
-        } catch (voiceErr: any) {
+        } catch (voiceErr) {
           console.error('[TTS] Greška pri pozivu generate_voice:', voiceErr);
           voiceSummaryMessage = '\n\n⚠️ Generisanje AI glasa nije uspelo (mrežna greška).';
         }
@@ -931,13 +931,13 @@ export default function TourAdminTools({
           establish_i18n: currentEstablishI18n,
           waypoints_i18n: currentWaypoints
         })
-        .eq('id', currentRoom.id as any);
+        .eq('id', String(currentRoom.id));
 
       if (dbErr) {
         throw dbErr;
       }
 
-      setRooms((prevRooms: any[]) =>
+      setRooms((prevRooms) =>
         prevRooms.map((r, idx) =>
           idx === roomIdx
             ? {
@@ -953,9 +953,9 @@ export default function TourAdminTools({
       refreshViewerHotspots(currentWaypoints, langRef.current);
 
       alert('Soba je uspešno popunjena i prevedena!' + voiceSummaryMessage);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Translation & Saving Error:', err);
-      alert('Greška tokom prevođenja i upisa: ' + (err.message || 'Nepoznata greška'));
+      alert('Greška tokom prevođenja i upisa: ' + (err instanceof Error ? err.message : 'Nepoznata greška'));
     } finally {
       setTranslationProgress(null);
       setVoiceProgress(null);
@@ -1031,11 +1031,11 @@ export default function TourAdminTools({
           establish_i18n: currentEstablishI18n,
           waypoints_i18n: currentWaypoints
         })
-        .eq('id', currentRoom.id as any);
+        .eq('id', String(currentRoom.id));
 
       if (dbErr) throw dbErr;
 
-      setRooms((prevRooms: any[]) =>
+      setRooms((prevRooms) =>
         prevRooms.map((r, idx) =>
           idx === roomIdx
             ? { ...r, title_i18n: currentTitleI18n, establish_i18n: currentEstablishI18n, waypoints_i18n: currentWaypoints }
@@ -1047,9 +1047,9 @@ export default function TourAdminTools({
       setAddLanguageTargets([]);
 
       alert(`Soba je prevedena na: ${targets.map((l) => l.toUpperCase()).join(', ')}.`);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Greška pri dodavanju jezika:', err);
-      alert('Greška pri prevođenju: ' + (err.message || 'Nepoznata greška'));
+      alert('Greška pri prevođenju: ' + (err instanceof Error ? err.message : 'Nepoznata greška'));
     } finally {
       setTranslationProgress(null);
     }

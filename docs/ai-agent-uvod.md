@@ -166,6 +166,8 @@ Najvažnije u `app/lib/`:
 
 ## 5. Baza (Supabase)
 
+**Bezbednosna popravka (9. 10. 2026):** RLS politike na `rooms` (INSERT/UPDATE) i `contact_requests` (SELECT) su do migracije 028 dozvoljavale BILO KOM prijavljenom Supabase nalogu pristup (role `authenticated`, `qual: true`) - ne samo adminu. Pošto je registracija na Supabase projektu otvorena (`ADMIN_EMAILS` proverava samo `/api/admin/*` rute, RLS to ne vidi), svako ko napravi nalog mogao je direktno preko anon ključa da čita sve kontakt upite i piše u sobe bilo koje ture. Popravljeno: nove politike proveravaju `auth.jwt() ->> 'email'` protiv `app_admins`. Vlasnik treba i da isključi "Allow new users to sign up" u Supabase Authentication postavkama (dashboard, ne može preko MCP-a) - dodatni sloj odbrane.
+
 ### Tabele
 
 | Tabela | Šta | Važne kolone |
@@ -185,6 +187,7 @@ Najvažnije u `app/lib/`:
 | `project_notes` | kratka beleška prodaje (023) | `unit_id` ILI `inquiry_id` (jedinstveni), `text` (1–120), `important`, `author`, `updated_at`. RLS bez policy-ja - posebna tabela upravo zato što anon čita `project_units` |
 | `project_progress` | gradilište po mesecima (021) | `project_id`, `month` (1. u mesecu, jedinstven), `tour_id`, `note` |
 | `project_unit_changes` | istorija statusa i cena (020) | `unit_id`, `unit_code`, `link_id`, `actor` (ime iz linka ili `Admin`), `field` (`status`/`price`), `old_value`, `new_value` |
+| `app_admins` | dozvoljene admin email adrese za RLS (028) | `email` (ključ) - ista lista kao `ADMIN_EMAILS`, ručno se održava (baza ne čita Vercel env). Bez RLS policy-ja - samo service role čita/piše |
 | `agency_branding` | logo agencije (027) | `agency_name` (ključ, tačno kao `tours.agency_name`), `logo_url` (R2 `agencije/...`), `updated_at`. Anon čita; upis samo kroz `/api/admin/agency-logo` |
 | `tour_events` | analitika tura | `tour_slug`, `event_type` (`open`, `start`, `room_view`, `share`, `contact`), `session_id`, `room_id`, `duration_ms`, `lang` |
 | `site_events` | analitika početne (008) | `event_type` (`page_view`, `cta_click`, `contact_click`, `form_submit`), `target`, `session_id`, `device`, `source` |
@@ -212,7 +215,7 @@ Polja `*_i18n` su objekti po jezicima: `{ "sr": "...", "en": "...", "de": "...",
 
 ### Migracije
 
-`supabase/migrations/NNN_naziv.sql` se pišu tako da ih je **bezbedno pokrenuti više puta** (`if not exists`, `drop policy if exists`). Do 018 ih je vlasnik pokretao ručno u Supabase SQL editoru. **019–027 je pustio agent preko Supabase MCP alata** (`apply_migration`) — MCP vidi živu bazu sajta, za razliku od CLI-ja (§5 Tipovi). Posle svake migracije: `get_advisors` (security), `npm run db:types`. Migracija koja menja ili briše postojeće podatke ide tek uz izričitu potvrdu vlasnika; čisto dodavanje tabela/kolona je dogovoreno uz zadatak.
+`supabase/migrations/NNN_naziv.sql` se pišu tako da ih je **bezbedno pokrenuti više puta** (`if not exists`, `drop policy if exists`). Do 018 ih je vlasnik pokretao ručno u Supabase SQL editoru. **019–028 je pustio agent preko Supabase MCP alata** (`apply_migration`) — MCP vidi živu bazu sajta, za razliku od CLI-ja (§5 Tipovi). Posle svake migracije: `get_advisors` (security), `npm run db:types`. Migracija koja menja ili briše postojeće podatke ide tek uz izričitu potvrdu vlasnika; čisto dodavanje tabela/kolona je dogovoreno uz zadatak.
 
 ---
 

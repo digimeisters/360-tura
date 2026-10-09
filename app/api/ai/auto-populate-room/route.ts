@@ -503,20 +503,42 @@ async function fetchPanorama(panoramaUrl: string) {
 }
 
 /**
+ * Jedno polje teksta sačuvanog u draftu (i18n objekat/string) - vidi
+ * extractText. Prihvata oba imena polja (camelCase/snake_case) jer stari
+ * pozivi sa frontenda mešaju konvencije; novi kod šalje camelCase.
+ */
+type DraftWaypoint = { title_i18n?: unknown; text_i18n?: unknown };
+type DraftShape = {
+  title?: unknown;
+  narrationIntro?: unknown;
+  narrationDetail?: unknown;
+  waypoints?: DraftWaypoint[];
+};
+type GenerateDraftBody = {
+  roomId?: string | number;
+  room_id?: string | number;
+  id?: string | number;
+  panoramaUrl?: string;
+  panorama_url?: string;
+  listingType?: unknown;
+  listing_type?: unknown;
+};
+
+/**
  * ============================================================
  * KORAK 1: GENERATE_DRAFT
  * ============================================================
  */
-async function handleGenerateDraft(body: any) {
-  const roomId = body.roomId || body.room_id || body.id;
-  const panoramaUrl = body.panoramaUrl || body.panorama_url;
+async function handleGenerateDraft(body: GenerateDraftBody) {
+  const roomId = body.roomId ?? body.room_id ?? body.id;
+  const panoramaUrl = body.panoramaUrl ?? body.panorama_url;
 
   if (!roomId || !panoramaUrl) {
     return NextResponse.json({ success: false, error: 'Nedostaju roomId ili panoramaUrl.' }, { status: 400 });
   }
 
   const [ctx, image] = await Promise.all([
-    loadRoomContext(roomId, body.listingType || body.listing_type),
+    loadRoomContext(String(roomId), body.listingType ?? body.listing_type),
     fetchPanorama(panoramaUrl)
   ]);
   const safeListingType = ctx.listingType;
@@ -593,9 +615,17 @@ async function handleGenerateDraft(body: any) {
  * KORAK 2: TRANSLATE_STEP
  * ============================================================
  */
-async function handleTranslateStep(body: any) {
-  const roomId = body.roomId || body.room_id || body.id;
-  const targetLang: string | undefined = body.targetLang;
+type TranslateStepBody = {
+  roomId?: string | number;
+  room_id?: string | number;
+  id?: string | number;
+  targetLang?: string;
+  draft?: DraftShape;
+};
+
+async function handleTranslateStep(body: TranslateStepBody) {
+  const roomId = body.roomId ?? body.room_id ?? body.id;
+  const targetLang = body.targetLang;
   const draft = body.draft;
 
   if (!roomId || !targetLang || !draft) {
@@ -616,7 +646,7 @@ async function handleTranslateStep(body: any) {
   const sourceNarrationIntro = extractText(draft.narrationIntro, 'sr');
   const sourceNarrationDetail = extractText(draft.narrationDetail, 'sr');
   const sourceWaypoints: { title: string; text: string }[] = Array.isArray(draft.waypoints)
-    ? draft.waypoints.map((wp: any) => ({
+    ? draft.waypoints.map((wp) => ({
         title: extractText(wp.title_i18n, 'sr'),
         text: extractText(wp.text_i18n, 'sr'),
       }))
@@ -788,9 +818,19 @@ Output valid JSON matching the schema.
 `;
 }
 
-async function handleReviewDraft(body: any) {
-  const roomId = body.roomId || body.room_id || body.id;
-  const panoramaUrl = body.panoramaUrl || body.panorama_url;
+type ReviewDraftBody = {
+  roomId?: string | number;
+  room_id?: string | number;
+  id?: string | number;
+  panoramaUrl?: string;
+  panorama_url?: string;
+  draft?: DraftShape;
+  listingType?: unknown;
+};
+
+async function handleReviewDraft(body: ReviewDraftBody) {
+  const roomId = body.roomId ?? body.room_id ?? body.id;
+  const panoramaUrl = body.panoramaUrl ?? body.panorama_url;
   const draft = body.draft;
   if (!roomId || !panoramaUrl || !draft) {
     return NextResponse.json({ success: false, error: 'Nedostaju roomId, panoramaUrl ili draft.' }, { status: 400 });
@@ -801,11 +841,11 @@ async function handleReviewDraft(body: any) {
     intro: extractText(draft.narrationIntro, 'sr'),
     detail: extractText(draft.narrationDetail, 'sr'),
     waypoints: Array.isArray(draft.waypoints)
-      ? draft.waypoints.map((wp: any) => ({ title: extractText(wp.title_i18n, 'sr'), text: extractText(wp.text_i18n, 'sr') }))
+      ? draft.waypoints.map((wp) => ({ title: extractText(wp.title_i18n, 'sr'), text: extractText(wp.text_i18n, 'sr') }))
       : [],
   };
 
-  const [ctx, image] = await Promise.all([loadRoomContext(roomId, body.listingType), fetchPanorama(panoramaUrl)]);
+  const [ctx, image] = await Promise.all([loadRoomContext(String(roomId), body.listingType), fetchPanorama(panoramaUrl)]);
 
   const { data: raw, usedModel } = await generateJsonWithRetry<any>({
     contents: [{ inlineData: { mimeType: image.contentType, data: image.base64 } }, { text: buildReviewPrompt(input, ctx) }],
@@ -827,25 +867,30 @@ async function handleReviewDraft(body: any) {
     if (!wp) return null;
     return field === 'wpTitle' ? wp.title : wp.text;
   };
-  const target = (item: any) => {
-    const field = REVIEW_FIELDS.includes(item?.field) ? (item.field as ReviewField) : null;
-    const index = field === 'wpTitle' || field === 'wpText' ? Number(item?.index) : -1;
+  // Odgovor modela je nepoznatog oblika dok se ne proveri - čita se samo
+  // preko optional chaining-a, nikad kao da je već validan.
+  const target = (item: unknown) => {
+    const rec = item as Record<string, unknown> | null | undefined;
+    const field = REVIEW_FIELDS.includes(rec?.field as ReviewField) ? (rec!.field as ReviewField) : null;
+    const index = field === 'wpTitle' || field === 'wpText' ? Number(rec?.index) : -1;
     return field && current(field, index) !== null ? { field, index } : null;
   };
 
-  const suggestions = (Array.isArray(raw?.suggestions) ? raw.suggestions : [])
-    .map((s: any) => {
+  const suggestions = (Array.isArray(raw?.suggestions) ? (raw.suggestions as unknown[]) : [])
+    .map((s) => {
       const t = target(s);
-      const suggested = String(s?.suggested ?? '').trim();
+      const rec = s as Record<string, unknown> | null | undefined;
+      const suggested = String(rec?.suggested ?? '').trim();
       if (!t || !suggested || suggested === current(t.field, t.index)?.trim()) return null;
-      return { ...t, original: current(t.field, t.index), suggested, reason: String(s?.reason ?? '').trim() };
+      return { ...t, original: current(t.field, t.index), suggested, reason: String(rec?.reason ?? '').trim() };
     })
     .filter(Boolean);
 
-  const checks = (Array.isArray(raw?.checks) ? raw.checks : [])
-    .map((c: any) => {
+  const checks = (Array.isArray(raw?.checks) ? (raw.checks as unknown[]) : [])
+    .map((c) => {
       const t = target(c);
-      const message = String(c?.message ?? '').trim();
+      const rec = c as Record<string, unknown> | null | undefined;
+      const message = String(rec?.message ?? '').trim();
       return t && message ? { ...t, message } : null;
     })
     .filter(Boolean);
@@ -1083,10 +1128,10 @@ export async function POST(req: Request) {
     }
 
     return await handleGenerateDraft(body);
-  } catch (error: any) {
+  } catch (error) {
     console.error('REAL ESTATE AI ERROR:', error);
     return NextResponse.json(
-      { success: false, error: error?.message || 'Greška tokom AI obrade.' },
+      { success: false, error: error instanceof Error ? error.message : 'Greška tokom AI obrade.' },
       { status: 500 }
     );
   }

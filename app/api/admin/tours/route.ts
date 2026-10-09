@@ -208,6 +208,9 @@ export async function GET(req: Request) {
 
   const roomCount = new Map<string, { total: number; withPanorama: number }>();
   for (const room of rooms ?? []) {
+    // tour_slug je u koloni dozvoljen null (nije FK), ali soba bez ture nema
+    // šta da broji - stvarno se ne dešava, ovo je samo tsc zaštita.
+    if (!room.tour_slug) continue;
     const entry = roomCount.get(room.tour_slug) ?? { total: 0, withPanorama: 0 };
     entry.total++;
     if (room.panorama_url_cf || room.panorama_url) entry.withPanorama++;

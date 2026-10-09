@@ -1,7 +1,8 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/supabase';
 
 type AdminContext =
-  | { ok: true; supabase: SupabaseClient; userEmail: string | null }
+  | { ok: true; supabase: SupabaseClient<Database>; userEmail: string | null }
   | { ok: false; status: number; error: string };
 
 function allowedEmails(): string[] {
@@ -60,7 +61,7 @@ export async function requireAdmin(req: Request): Promise<AdminContext> {
 
   return {
     ok: true,
-    supabase: createClient(supabaseUrl, serviceKey),
+    supabase: createClient<Database>(supabaseUrl, serviceKey),
     userEmail: data.user.email ?? null
   };
 }
