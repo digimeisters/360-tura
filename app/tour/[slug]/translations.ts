@@ -101,6 +101,32 @@ export const categoryQuestions: Record<string, Record<Language, string[]>> = {
 };
 
 /**
+ * Kratak naziv teme za pločicu u mreži (modul Pitanja, Varijanta B -
+ * vlasnik odobrio 9. 10. 2026), isti redosled kao categoryQuestions. Ikonica
+ * ide uz ovo u TourModals.tsx (CATEGORY_TOPIC_ICONS) - ovde samo tekst.
+ */
+export const categoryTopicLabels: Record<string, Record<Language, string[]>> = {
+  rent: {
+    sr: ['Cena i troškovi', 'Depozit', 'Period zakupa', 'Ljubimci', 'Uslovi ugovora'],
+    en: ['Price & costs', 'Deposit', 'Lease period', 'Pets', 'Contract terms'],
+    de: ['Preis & Kosten', 'Kaution', 'Mietdauer', 'Haustiere', 'Vertrag'],
+    ru: ['Цена и расходы', 'Залог', 'Срок аренды', 'Животные', 'Условия договора']
+  },
+  sale: {
+    sr: ['Cena i kredit', 'Stanje objekta', 'Uknjižba', 'Porezi i provizija', 'Šta ide uz nekretninu'],
+    en: ['Price & mortgage', 'Condition', 'Ownership', 'Taxes & fees', "What's included"],
+    de: ['Preis & Kredit', 'Zustand', 'Grundbuch', 'Steuern & Provision', 'Was dazugehört'],
+    ru: ['Цена и ипотека', 'Состояние', 'Собственность', 'Налоги и комиссия', 'Что входит']
+  },
+  booking: {
+    sr: ['Cena i boravak', 'Kapacitet i pravila', 'Check-in / out', 'Čišćenje', 'Pogodnosti i otkazivanje'],
+    en: ['Price & stay', 'Guests & rules', 'Check-in / out', 'Cleaning fee', 'Amenities & cancellation'],
+    de: ['Preis & Aufenthalt', 'Gäste & Regeln', 'Check-in / out', 'Reinigung', 'Ausstattung & Storno'],
+    ru: ['Цена и срок', 'Гости и правила', 'Заезд / выезд', 'Уборка', 'Удобства и отмена']
+  }
+};
+
+/**
  * Nazivi redova u tabeli osnovnih podataka (Info modal, vidi TourModals.tsx)
  * i prevodi vrednosti sa zatvorenih lista (grejanje, da/ne). AI ovo ne
  * dodiruje - vrednost stiže iz upitnika na srpskom (propertyTaxonomy.ts) i
@@ -383,6 +409,7 @@ export const translations: Record<Language, Record<string, string>> = {
   sr: {
     secBasics: 'Osnovni podaci',
     secDescription: 'Opis',
+    faqTapHint: 'Dodirnite temu za ceo odgovor.',
     faqMoreTitle: 'Niste našli odgovor?',
     faqMoreText: 'Pitajte agenta direktno.',
     openInMaps: 'Otvori u Google mapama',
@@ -492,6 +519,7 @@ export const translations: Record<Language, Record<string, string>> = {
   en: {
     secBasics: 'Key facts',
     secDescription: 'Description',
+    faqTapHint: 'Tap a topic for the full answer.',
     faqMoreTitle: 'Didn’t find your answer?',
     faqMoreText: 'Ask the agent directly.',
     openInMaps: 'Open in Google Maps',
@@ -601,6 +629,7 @@ export const translations: Record<Language, Record<string, string>> = {
   de: {
     secBasics: 'Eckdaten',
     secDescription: 'Beschreibung',
+    faqTapHint: 'Thema antippen für die ganze Antwort.',
     faqMoreTitle: 'Keine Antwort gefunden?',
     faqMoreText: 'Fragen Sie den Makler direkt.',
     openInMaps: 'In Google Maps öffnen',
@@ -710,6 +739,7 @@ export const translations: Record<Language, Record<string, string>> = {
   ru: {
     secBasics: 'Основные данные',
     secDescription: 'Описание',
+    faqTapHint: 'Нажмите на тему, чтобы увидеть ответ.',
     faqMoreTitle: 'Не нашли ответ?',
     faqMoreText: 'Спросите агента напрямую.',
     openInMaps: 'Открыть в Google Картах',

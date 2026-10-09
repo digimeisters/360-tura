@@ -295,3 +295,13 @@ export const IconDocument = (p: IconProps) => (
     <path d="M14 3v5h5M9 13l2 2 4-4" />
   </Svg>
 );
+
+// Tema "Ljubimci" u modulu Pitanja (TourModals.tsx, 2026-10-09).
+export const IconPaw = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="7.3" cy="7.3" r="1.6" />
+    <circle cx="12" cy="5.6" r="1.6" />
+    <circle cx="16.7" cy="7.3" r="1.6" />
+    <path d="M8.3 13.2c0-1.9 1.6-2.9 3.7-2.9s3.7 1 3.7 2.9-1.6 3-3.7 3-3.7-1.1-3.7-3z" />
+  </Svg>
+);

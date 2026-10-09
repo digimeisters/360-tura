@@ -17,6 +17,7 @@ import {
   IconHome,
   IconInfo,
   IconMail,
+  IconPaw,
   IconPhone,
   IconPin,
   IconPlan,
@@ -30,7 +31,7 @@ import {
   IconDocument
 } from './icons';
 import { getLocalizedText, type FactKey, type FactRow } from './utils';
-import { translations } from './translations';
+import { translations, categoryTopicLabels } from './translations';
 import type { ActiveModal, Language, Room, Tour } from './types';
 import { VIEWING_TEXT } from './ViewingRequestModal';
 import { TourCaptureCard, useTourCaptureOffer, useTourCaptureSend } from './TourCapture';
@@ -54,6 +55,27 @@ export type FaqItem = { question: string; answer: string };
 
 // Plavi okviri kartica: svetliji za obična polja, pun plavi za glavno polje.
 const FRAME = '#9DBBE3';
+
+/**
+ * Pitanja: mreža pločica po temi umesto liste punih pitanja (Varijanta B,
+ * vlasnik odobrio 9. 10. 2026 - mockup public/mockup/FaqGridVariants.html).
+ * Ikonica po temi, isti redosled kao categoryQuestions/categoryTopicLabels.
+ * Samo šapa (Ljubimci) je nova ikonica - ostalo je već postojalo u setu.
+ */
+const CATEGORY_TOPIC_ICONS: Record<string, ((p: { size?: number; color?: string }) => React.ReactElement)[]> = {
+  rent: [IconWallet, IconBox, IconCalendar, IconPaw, IconDocument],
+  sale: [IconWallet, IconBrush, IconDocument, IconBox, IconParking],
+  booking: [IconWallet, IconRooms, IconCalendar, IconBrush, IconCheck]
+};
+
+// Kratka najava odgovora na pločici: prva rečenica, skraćena ako je duga.
+function makeTeaser(answer: string, fallback: string): string {
+  const clean = answer.replace(/\s+/g, ' ').trim();
+  if (!clean) return fallback;
+  const match = clean.match(/^.*?[.!?](\s|$)/);
+  const firstSentence = (match ? match[0] : clean).trim();
+  return firstSentence.length > 46 ? firstSentence.slice(0, 44).trimEnd() + '…' : firstSentence;
+}
 
 // Pozadina modula: isti potpis kao na sajtu ("reflektor i mreža", vidi
 // app/lib/siteStyles.ts) - svetlo levo gore, mreža kvadrata iza naslova koja
@@ -252,6 +274,9 @@ export function TourModals({
   const email = tour?.agent_email || '';
   const price = formatListingPrice(tour?.price, tour?.category, lang);
   const categoryLabel = tour?.category === 'rent' ? t.catRent : tour?.category === 'sale' ? t.catSale : tour?.category === 'booking' ? t.catBooking : '';
+  const category = tour?.category || 'rent';
+  const topicIcons = CATEGORY_TOPIC_ICONS[category] ?? CATEGORY_TOPIC_ICONS.rent;
+  const topicLabels = categoryTopicLabels[category]?.[lang] ?? categoryTopicLabels.rent.sr;
   const city = tour?.city?.trim() || '';
   const neighbourhood = tour?.district?.trim() || '';
   const neighbourhoodLabel = factList.find((f) => f.key === 'neighbourhood')?.label;
@@ -601,33 +626,58 @@ export function TourModals({
 
           {activeModal === 'faq' && (
             faqList.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {faqList.map((item, index) => {
-                  const open = openFaq === index;
-                  return (
-                    <div key={index} style={{ ...(open ? BOX_STRONG : BOX), padding: 0 }}>
+              <div>
+                <p style={{ margin: '0 0 12px', fontSize: '12.5px', color: THEME.textMuted }}>{t.faqTapHint}</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' }}>
+                  {faqList.map((item, index) => {
+                    const open = openFaq === index;
+                    const TopicIcon = topicIcons[index] ?? IconDocument;
+                    const label = topicLabels[index] ?? item.question;
+                    return (
                       <button
+                        key={index}
                         type="button"
                         aria-expanded={open}
                         onClick={() => setOpenFaq(open ? null : index)}
-                        style={{ width: '100%', background: 'none', border: 0, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left', font: 'inherit', color: THEME.textPrimary, cursor: 'pointer' }}
+                        style={{
+                          gridColumn: open ? '1 / -1' : 'auto',
+                          textAlign: 'left',
+                          ...(open ? BOX_STRONG : BOX),
+                          background: open ? THEME.accentSoft : '#FFFFFF',
+                          padding: '12px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                          minWidth: 0,
+                          font: 'inherit',
+                          color: THEME.textPrimary
+                        }}
                       >
-                        <span style={{ width: '30px', height: '30px', borderRadius: '10px', background: open ? THEME.accent : THEME.accentSoft, color: open ? '#FFFFFF' : THEME.accent, fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 800, fontSize: '12.5px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          {String(index + 1).padStart(2, '0')}
+                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                          <Chip solid={open}>
+                            <TopicIcon size={18} />
+                          </Chip>
+                          <span style={{ color: THEME.accent, fontSize: '11px', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s ease' }}>
+                            <IconChevronDown size={16} />
+                          </span>
                         </span>
-                        <span style={{ flex: 1, fontWeight: 650, fontSize: '15px', lineHeight: 1.35 }}>{item.question}</span>
-                        <span style={{ display: 'flex', color: THEME.accent, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s ease' }}>
-                          <IconChevronDown size={18} />
-                        </span>
+                        <span style={{ fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 700, fontSize: '14.5px', lineHeight: 1.3 }}>{label}</span>
+                        {!open && (
+                          <span style={{ fontSize: '12px', color: THEME.textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+                            {makeTeaser(item.answer, t.comingSoon)}
+                          </span>
+                        )}
+                        {open && (
+                          <span style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '2px' }}>
+                            <span style={{ fontSize: '13px', color: THEME.accent, fontWeight: 700, lineHeight: 1.4 }}>{item.question}</span>
+                            <span style={{ fontSize: '14px', color: '#3A3B40', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{item.answer || t.comingSoon}</span>
+                          </span>
+                        )}
                       </button>
-                      {open && (
-                        <p style={{ margin: '0 14px 14px 56px', paddingLeft: '12px', borderLeft: '2px solid ' + FRAME, fontSize: '14.5px', lineHeight: 1.6, color: '#3A3B40', whiteSpace: 'pre-wrap' }}>
-                          {item.answer || t.comingSoon}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             ) : empty(t.noFaq)
           )}
