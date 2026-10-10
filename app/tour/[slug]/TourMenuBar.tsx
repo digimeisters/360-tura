@@ -1,5 +1,5 @@
 import { THEME, GLASS, GLASS_ACCENT, overlayNavButtonStyle, SCREEN_BOTTOM } from './theme';
-import { IconShare, MODAL_ICONS, withoutEmoji } from './icons';
+import { IconShare, IconSparkle, MODAL_ICONS, withoutEmoji } from './icons';
 import type { ActiveModal } from './types';
 
 /**
@@ -125,7 +125,29 @@ export function TourMenuBar({
                 fontFamily: THEME.fontBody
               }}
             >
-              <Icon size={compact ? 27 : 22} color={active ? GLASS_ACCENT : '#fff'} />
+              <span style={{ position: 'relative', display: 'flex' }}>
+                <Icon size={compact ? 27 : 22} color={active ? GLASS_ACCENT : '#fff'} />
+                {/* Mali znak: u Pitanjima sada odgovara i asistent (10. 10. 2026). */}
+                {modal === 'faq' && (
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: 'absolute',
+                      top: '-6px',
+                      right: '-9px',
+                      width: '15px',
+                      height: '15px',
+                      borderRadius: '50%',
+                      display: 'grid',
+                      placeItems: 'center',
+                      background: 'linear-gradient(180deg, #7AA8E0 0%, #5B92D6 55%, #4A80C4 100%)',
+                      border: '1.5px solid rgba(255, 255, 255, 0.9)'
+                    }}
+                  >
+                    <IconSparkle size={8} color="#fff" />
+                  </span>
+                )}
+              </span>
               {!compact && <span style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {withoutEmoji(labels[modal])}
               </span>}

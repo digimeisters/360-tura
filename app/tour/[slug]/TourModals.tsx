@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { THEME, btnStyle, FILL_ACCENT, FILL_ACCENT_BG } from './theme';
 import {
   MODAL_ICONS,
@@ -35,6 +35,9 @@ import { translations, categoryTopicLabels } from './translations';
 import type { ActiveModal, Language, Room, Tour } from './types';
 import { VIEWING_TEXT } from './ViewingRequestModal';
 import { TourCaptureCard, useTourCaptureOffer, useTourCaptureSend } from './TourCapture';
+import { AssistantAskBar, AssistantChat, type AgentLink } from './TourAssistant';
+import { useTourAssistant } from './useTourAssistant';
+import { phoneToE164 } from './TourControls';
 import { ViewCone, type ViewReader } from './ViewCone';
 import { formatListingPrice } from '../../lib/listingPrice';
 import { SITE_URL } from '../../lib/site';
@@ -255,6 +258,15 @@ export function TourModals({
   const captureInInfo = useTourCaptureOffer(tour?.slug, !adminMode && activeModal === 'about');
   const { status: captureStatus, send: sendCapture } = useTourCaptureSend(tour?.slug);
   const [captureDismissed, setCaptureDismissed] = useState(false);
+  // Asistent u "Pitanja": razgovor živi dok je prozor otvoren.
+  const assistant = useTourAssistant(tour?.slug, lang, { error: t.askError, rateLimited: t.askRateLimited });
+  const [askInput, setAskInput] = useState('');
+  const [askView, setAskView] = useState<'topics' | 'chat'>('topics');
+  const askEndRef = useRef<HTMLDivElement>(null);
+  const chatLength = assistant.messages.length;
+  useEffect(() => {
+    if (askView === 'chat') askEndRef.current?.scrollIntoView({ block: 'end' });
+  }, [askView, chatLength, assistant.loading]);
   if (!activeModal) return null;
 
   const schematic = Boolean(tour?.floorplan_url?.includes('/floorplan-schematic.svg'));
@@ -277,6 +289,29 @@ export function TourModals({
   const category = tour?.category || 'rent';
   const topicIcons = CATEGORY_TOPIC_ICONS[category] ?? CATEGORY_TOPIC_ICONS.rent;
   const topicLabels = categoryTopicLabels[category]?.[lang] ?? categoryTopicLabels.rent.sr;
+
+  // Poruka agentu iz asistenta: isti kanal kao dugme u turi (Viber na srpskom,
+  // WhatsApp ostalo), sa pitanjem na koje asistent nije umeo da odgovori; bez
+  // broja ide mejl, bez ičega dugme se ne nudi.
+  const agentE164 = phone ? phoneToE164(phone) : null;
+  const agentLink = (question?: string): AgentLink => {
+    const base = `${t.chatGreeting} ${SITE_URL}/tour/${tour?.slug ?? ''}`;
+    const message = question ? `${base}\n\n${t.askQuestionPrefix} ${question}` : base;
+    if (agentE164) {
+      return lang === 'sr'
+        ? { href: `viber://chat?number=${encodeURIComponent(agentE164)}&draft=${encodeURIComponent(message)}`, external: false }
+        : { href: `https://wa.me/${agentE164.slice(1)}?text=${encodeURIComponent(message)}`, external: true };
+    }
+    if (email) return { href: `mailto:${email}?body=${encodeURIComponent(message)}`, external: false };
+    return null;
+  };
+  const submitAsk = () => {
+    const question = askInput.trim();
+    if (!question || assistant.loading) return;
+    setAskView('chat');
+    setAskInput('');
+    void assistant.send(question);
+  };
   const city = tour?.city?.trim() || '';
   const neighbourhood = tour?.district?.trim() || '';
   const neighbourhoodLabel = factList.find((f) => f.key === 'neighbourhood')?.label;
@@ -624,7 +659,18 @@ export function TourModals({
             </>
           )}
 
-          {activeModal === 'faq' && (
+          {activeModal === 'faq' && askView === 'chat' && (
+            <AssistantChat
+              t={t}
+              messages={assistant.messages}
+              loading={assistant.loading}
+              onBack={() => setAskView('topics')}
+              agentLink={agentLink}
+              endRef={askEndRef}
+            />
+          )}
+
+          {activeModal === 'faq' && askView === 'topics' && (
             faqList.length > 0 ? (
               <div>
                 <p style={{ margin: '0 0 12px', fontSize: '12.5px', color: THEME.textMuted }}>{t.faqTapHint}</p>
@@ -761,6 +807,17 @@ export function TourModals({
             <b style={{ fontFamily: 'var(--font-urbanist), ' + THEME.fontDisplay, fontWeight: 700 }}>Kvadrat360</b>
           </a>
         </div>
+
+        {activeModal === 'faq' && tour?.slug && (
+          <AssistantAskBar
+            t={t}
+            value={askInput}
+            onChange={setAskInput}
+            onSubmit={submitAsk}
+            disabled={assistant.loading}
+            chatting={askView === 'chat'}
+          />
+        )}
 
         {footer && (
           <div style={{ padding: '12px 16px calc(16px + env(safe-area-inset-bottom))', borderTop: '1px solid ' + THEME.border, background: '#F6F8FC' }}>

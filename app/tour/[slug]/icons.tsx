@@ -305,3 +305,17 @@ export const IconPaw = (p: IconProps) => (
     <path d="M8.3 13.2c0-1.9 1.6-2.9 3.7-2.9s3.7 1 3.7 2.9-1.6 3-3.7 3-3.7-1.1-3.7-3z" />
   </Svg>
 );
+
+// Asistent u modulu "Pitanja" (TourAssistant.tsx, 2026-10-10).
+export const IconSparkle = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+  </Svg>
+);
+
+export const IconSend = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M22 2 11 13" />
+    <path d="M22 2 15 22l-4-9-9-4 20-7z" />
+  </Svg>
+);
