@@ -1,17 +1,24 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import 'leaflet/dist/leaflet.css';
+import { useEffect, useRef, useState } from 'react';
+import type { Map as MlMap, Marker } from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { NEARBY_COLORS, NEARBY_ICONS, NEARBY_LABELS, walkMinutes, type NearbyPlace } from '../../app/lib/nearby';
+import { createMap, escapeHtml, htmlElement, loadMapLibre, setupMapControls } from '../maps/protomaps';
 
 /**
- * Leaflet mapa okoline projekta (isti pristup kao TourMap na /ture:
- * OpenStreetMap pločice, sopstvene ikone umesto Leaflet-ovih slika). Zgrada
- * je plavi pin, mesta su krugovi u boji kategorije. Učitava se samo u
- * pregledaču (ProjectNearby -> next/dynamic, ssr:false).
+ * Mapa okoline projekta (isti pristup kao TourMap na /ture: naša mapa Srbije
+ * sa R2-a, MapLibre, sopstvene oznake). Zgrada je plavi pin, mesta su krugovi
+ * u boji kategorije. Učitava se samo u pregledaču (ProjectNearby ->
+ * next/dynamic, ssr:false), i to tek kad posetilac priđe mapi - ona je pri
+ * dnu strane, a biblioteka je teška.
  */
 
-const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+const HOME = `
+  <svg width="40" height="40" viewBox="0 0 30 30" fill="none" style="display:block">
+    <path d="M15 29C15 29 4 19.2 4 12A11 11 0 0 1 26 12C26 19.2 15 29 15 29Z" fill="#1E5AA8" stroke="#fff" stroke-width="1.5"/>
+    <rect x="11" y="8" width="8" height="8" rx="2" transform="rotate(45 15 12)" fill="none" stroke="#fff" stroke-width="2"/>
+  </svg>`;
 
 export default function ProjectNearbyMap({
   lat,
@@ -30,55 +37,65 @@ export default function ProjectNearbyMap({
   active: number | null;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<import('leaflet').Map | null>(null);
-  const markersRef = useRef<import('leaflet').Marker[]>([]);
+  const mapRef = useRef<MlMap | null>(null);
+  const markersRef = useRef<Marker[]>([]);
+  const [visible, setVisible] = useState(false);
+
+  // Mapa se pravi tek kad je kutija blizu ekrana.
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el || visible) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          setVisible(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: '400px 0px' }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [visible]);
 
   useEffect(() => {
-    if (!boxRef.current) return;
+    if (!visible || !boxRef.current) return;
     let cancelled = false;
     let observer: ResizeObserver | null = null;
-    import('leaflet').then((L) => {
+    loadMapLibre().then(({ maplibregl, style }) => {
       if (cancelled || !boxRef.current) return;
-      const map = L.map(boxRef.current, { scrollWheelZoom: false }).setView([lat, lng], 15);
+      const map = createMap(maplibregl, boxRef.current, style, [lng, lat], 15, lang);
+      if (!map) return;
       mapRef.current = map;
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 19
-      }).addTo(map);
+      setupMapControls(maplibregl, map);
 
-      const home = L.divIcon({
-        className: '',
-        html: `<div style="width:40px;height:40px;transform:translate(-20px,-36px)">
-          <svg width="40" height="40" viewBox="0 0 30 30" fill="none">
-            <path d="M15 29C15 29 4 19.2 4 12A11 11 0 0 1 26 12C26 19.2 15 29 15 29Z" fill="#1E5AA8" stroke="#fff" stroke-width="1.5"/>
-            <rect x="11" y="8" width="8" height="8" rx="2" transform="rotate(45 15 12)" fill="none" stroke="#fff" stroke-width="2"/>
-          </svg></div>`,
-        iconSize: [40, 40],
-        iconAnchor: [20, 36],
-        popupAnchor: [0, -34]
-      });
-      const bounds = L.latLngBounds([[lat, lng]]);
-      // title = ime tačke za čitač ekrana (marker je fokusabilno dugme bez teksta).
-      L.marker([lat, lng], { icon: home, zIndexOffset: 1000, title }).addTo(map).bindPopup(`<b>${esc(title)}</b>`);
+      const bounds = new maplibregl.LngLatBounds([lng, lat], [lng, lat]);
+      // title = ime tačke za čitač ekrana (oznaka je fokusabilno dugme bez teksta).
+      new maplibregl.Marker({ element: htmlElement(HOME, title), anchor: 'bottom' })
+        .setLngLat([lng, lat])
+        .setPopup(new maplibregl.Popup({ offset: 34 }).setHTML(`<b>${escapeHtml(title)}</b>`))
+        .addTo(map);
 
       markersRef.current = places.map((p) => {
-        const icon = L.divIcon({
-          className: '',
-          html: `<div style="width:28px;height:28px;transform:translate(-14px,-14px);border-radius:50%;background:${NEARBY_COLORS[p.cat]};border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font-size:14px">${NEARBY_ICONS[p.cat]}</div>`,
-          iconSize: [28, 28],
-          iconAnchor: [14, 14],
-          popupAnchor: [0, -14]
-        });
-        bounds.extend([p.lat, p.lng]);
         const label = p.name || NEARBY_LABELS[lang][p.cat];
         const walk = lang === 'en' ? `${walkMinutes(p.m)} min walk` : `${walkMinutes(p.m)} min peške`;
-        return L.marker([p.lat, p.lng], { icon, title: `${label} · ${walk}` })
-          .addTo(map)
-          .bindPopup(`<b>${esc(label)}</b><br><span style="color:#5B5D63">${esc(NEARBY_LABELS[lang][p.cat])} · ${walk}</span>`);
+        const el = htmlElement(
+          `<div style="width:28px;height:28px;border-radius:50%;background:${NEARBY_COLORS[p.cat]};border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font-size:14px">${NEARBY_ICONS[p.cat]}</div>`,
+          `${label} · ${walk}`
+        );
+        bounds.extend([p.lng, p.lat]);
+        return new maplibregl.Marker({ element: el })
+          .setLngLat([p.lng, p.lat])
+          .setPopup(
+            new maplibregl.Popup({ offset: 16 }).setHTML(
+              `<b>${escapeHtml(label)}</b><br><span style="color:#5B5D63">${escapeHtml(NEARBY_LABELS[lang][p.cat])} · ${walk}</span>`
+            )
+          )
+          .addTo(map);
       });
-      if (places.length) map.fitBounds(bounds.pad(0.12), { maxZoom: 16 });
+      if (places.length) map.fitBounds(bounds, { padding: 40, maxZoom: 16, duration: 0 });
 
-      observer = new ResizeObserver(() => map.invalidateSize());
+      observer = new ResizeObserver(() => map.resize());
       observer.observe(boxRef.current);
     });
     return () => {
@@ -88,14 +105,15 @@ export default function ProjectNearbyMap({
       mapRef.current = null;
       markersRef.current = [];
     };
-  }, [lat, lng, title, places, lang]);
+  }, [visible, lat, lng, title, places, lang]);
 
   useEffect(() => {
     if (active === null) return;
     const marker = markersRef.current[active];
-    if (marker && mapRef.current) {
-      mapRef.current.panTo(marker.getLatLng());
-      marker.openPopup();
+    const map = mapRef.current;
+    if (marker && map) {
+      map.panTo(marker.getLngLat());
+      if (!marker.getPopup()?.isOpen()) marker.togglePopup();
     }
   }, [active]);
 

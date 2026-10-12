@@ -591,15 +591,19 @@ export default function TourList({
     </button>
   );
 
-  // Malo tura: samo kartice, sve odjednom. Stari link sa ?grad=... i dalje
-  // otvara stranu - filter se tada prosto ne primenjuje.
+  // Malo tura: bez filtera, mapa iznad kartica (vlasnik, 12. 10. 2026: mapa
+  // treba i za prezentacije, i kad tura ima malo), pa sve kartice odjednom.
+  // Stari link sa ?grad=... i dalje otvara stranu - filter se tada ne primenjuje.
   if (!filtersOn) {
     return (
-      <div className="tours-grid n-4">
-        {tours.map((tour) => (
-          <TourCard key={tour.slug} tour={tour} labels={CARD_LABELS} lang={lang} />
-        ))}
-      </div>
+      <>
+        {locatedCount > 0 && <TourMap tours={tours} lang={lang} />}
+        <div className="tours-grid n-4">
+          {tours.map((tour) => (
+            <TourCard key={tour.slug} tour={tour} labels={CARD_LABELS} lang={lang} />
+          ))}
+        </div>
+      </>
     );
   }
 

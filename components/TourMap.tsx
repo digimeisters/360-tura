@@ -1,42 +1,32 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import type { Map as MlMap } from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import type { ShowcaseTour } from '../app/lib/showcaseTours';
 import { tourHref } from '../app/lib/tourHref';
-import 'leaflet/dist/leaflet.css';
+import { createMap, escapeHtml, htmlElement, loadMapLibre, setupMapControls } from './maps/protomaps';
 
 /**
- * Mapa sa pinom po turi (/ture, dugme "Mapa"). Leaflet + OpenStreetMap -
- * besplatno, bez API ključa. Uvezen direktno (ne default marker ikone iz
- * leaflet/dist/images, koje se lome kod bundlera) - pin je sopstveni SVG u
- * boji brenda, isti dijamant kao logo.
+ * Mapa sa pinom po turi (/ture, dugme "Mapa"). Naša mapa Srbije sa R2-a
+ * (components/maps/protomaps.ts), crtana MapLibre-om. Pin je sopstveni SVG u
+ * boji brenda, prozor sa slikom i linkom kao ranije.
  *
- * Client-only (Leaflet dira window/document): stranica ovu komponentu
+ * Client-only (MapLibre dira window/document): stranica ovu komponentu
  * učitava kroz next/dynamic sa ssr:false.
  */
 
 const CATEGORY_LABELS: Record<string, string> = { sale: 'Prodaja', rent: 'Izdavanje', booking: 'Stan na dan' };
 
-function pinIcon(L: typeof import('leaflet')) {
-  return L.divIcon({
-    className: '',
-    html: `
-      <div style="width:30px;height:30px;transform:translate(-15px,-27px)">
-        <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
-          <path d="M15 29C15 29 4 19.2 4 12A11 11 0 0 1 26 12C26 19.2 15 29 15 29Z" fill="#1E5AA8" stroke="#fff" stroke-width="1.5"/>
-          <circle cx="15" cy="12" r="4" fill="#fff"/>
-        </svg>
-      </div>`,
-    iconSize: [30, 30],
-    iconAnchor: [15, 27],
-    popupAnchor: [0, -26]
-  });
-}
+const PIN = `
+  <svg width="30" height="30" viewBox="0 0 30 30" fill="none" style="display:block">
+    <path d="M15 29C15 29 4 19.2 4 12A11 11 0 0 1 26 12C26 19.2 15 29 15 29Z" fill="#1E5AA8" stroke="#fff" stroke-width="1.5"/>
+    <circle cx="15" cy="12" r="4" fill="#fff"/>
+  </svg>`;
 
 export default function TourMap({ tours, lang = 'sr' }: { tours: ShowcaseTour[]; lang?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<import('leaflet').Map | null>(null);
-  const resizeRef = useRef<ResizeObserver | null>(null);
+  const mapRef = useRef<MlMap | null>(null);
 
   const located = tours.filter(
     (t): t is ShowcaseTour & { lat: number; lng: number } => t.lat !== null && t.lng !== null
@@ -45,60 +35,44 @@ export default function TourMap({ tours, lang = 'sr' }: { tours: ShowcaseTour[];
   useEffect(() => {
     if (!containerRef.current) return;
     let cancelled = false;
+    let observer: ResizeObserver | null = null;
 
-    import('leaflet').then((L) => {
+    loadMapLibre().then(({ maplibregl, style }) => {
       if (cancelled || !containerRef.current) return;
-
-      const map = L.map(containerRef.current, { scrollWheelZoom: false }).setView([44.0165, 21.0059], 7);
+      const map = createMap(maplibregl, containerRef.current, style, [21.0059, 44.0165], 6, lang);
+      if (!map) return;
       mapRef.current = map;
+      setupMapControls(maplibregl, map);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 19
-      }).addTo(map);
-
-      const icon = pinIcon(L);
-      const markers: import('leaflet').Marker[] = [];
-
+      const bounds = new maplibregl.LngLatBounds();
       located.forEach((tour) => {
-        const marker = L.marker([tour.lat, tour.lng], { icon }).addTo(map);
         const category = tour.category ? CATEGORY_LABELS[tour.category] : null;
-        marker.bindPopup(
+        const popup = new maplibregl.Popup({ offset: 26, maxWidth: '240px' }).setHTML(
           `<div style="font-family:inherit;min-width:160px">
             ${tour.coverUrl ? `<img src="${tour.coverUrl}" alt="" style="width:100%;height:90px;object-fit:cover;border-radius:8px;margin-bottom:6px" />` : ''}
             <div style="font-weight:700;font-size:13px;color:#111113;line-height:1.3">${escapeHtml(tour.title)}</div>
-            ${category ? `<div style="font-size:11.5px;color:#797B81;margin-top:2px">${escapeHtml(category)}</div>` : ''}
+            ${category ? `<div style="font-size:11.5px;color:#686A70;margin-top:2px">${escapeHtml(category)}</div>` : ''}
             <a href="${tourHref(tour.slug, tour.languages, lang)}" style="display:inline-block;margin-top:6px;font-size:12.5px;font-weight:700;color:#1E5AA8;text-decoration:none">Otvori turu →</a>
           </div>`
         );
-        markers.push(marker);
+        const el = htmlElement(PIN, tour.title);
+        new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat([tour.lng, tour.lat]).setPopup(popup).addTo(map);
+        bounds.extend([tour.lng, tour.lat]);
       });
 
-      // Mapa pored filtera menja visinu kad se dodaju oznake izbora -
-      // bez ovoga bi Leaflet ostavio sive pločice na novom delu.
-      const container = containerRef.current;
-      const observer = new ResizeObserver(() => map.invalidateSize());
-      observer.observe(container);
-      resizeRef.current = observer;
+      if (located.length === 1) map.jumpTo({ center: bounds.getCenter(), zoom: 14 });
+      else if (located.length > 1) map.fitBounds(bounds, { padding: 48, maxZoom: 14, duration: 0 });
 
-      if (markers.length > 0) {
-        const group = L.featureGroup(markers);
-        if (markers.length === 1) {
-          map.setView(group.getBounds().getCenter(), 14);
-        } else {
-          map.fitBounds(group.getBounds().pad(0.2));
-        }
-      }
+      // Mapa pored filtera menja visinu kad se dodaju oznake izbora.
+      observer = new ResizeObserver(() => map.resize());
+      observer.observe(containerRef.current);
     });
 
     return () => {
       cancelled = true;
-      resizeRef.current?.disconnect();
-      resizeRef.current = null;
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
+      observer?.disconnect();
+      mapRef.current?.remove();
+      mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [located.map((t) => `${t.slug}:${t.lat}:${t.lng}`).join(',')]);
@@ -112,14 +86,4 @@ export default function TourMap({ tours, lang = 'sr' }: { tours: ShowcaseTour[];
   }
 
   return <div ref={containerRef} className="tour-map" />;
-}
-
-// Podaci idu u innerHTML (Leaflet popup ne prolazi kroz React) - naziv
-// nekretnine upisuje agent, pa mora da se očisti pre umetanja u HTML.
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }
