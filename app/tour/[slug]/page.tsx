@@ -456,8 +456,10 @@ export default function TourPage() {
   };
 
   // Dugme "nazad": zatvara ono što je otvoreno, a tek onda pita za izlazak
-  // (vidi useBackGuard). Admin ga nema - on se kreće po turi i adminu.
-  const backGuard = useBackGuard(tourStarted && !adminMode, () => {
+  // (vidi useBackGuard). Važi i za ulogovanog admina: sesija ostaje u
+  // pregledaču, pa bi inače vlasnik, kad pregleda turu na telefonu, video
+  // drugačije ponašanje nego posetilac (a ponuda za kontakt se admin-u ne prikazuje).
+  const backGuard = useBackGuard(tourStarted, () => {
     if (showViewing) {
       setShowViewing(false);
       return true;
