@@ -17,8 +17,9 @@ export const HERO_TOUR_SLUG = 'stan-gasse-1';
  * mini-pretraga na početnoj). Sa manje od toga filteri deluju prazno i
  * obećavaju "celu bazu" koje još nema - tada je /ture samo "Primeri tura".
  * Kad baza naraste, sve se samo uključi, bez izmene koda.
+ * Vlasnik, 12. 10. 2026: spušteno sa 10 na 4 - filteri i mapa trebaju za prezentacije.
  */
-export const TOUR_FILTERS_FROM = 10;
+export const TOUR_FILTERS_FROM = 4;
 
 const LANGUAGES = ['sr', 'en', 'de', 'ru'] as const;
 
