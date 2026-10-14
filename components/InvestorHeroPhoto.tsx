@@ -5,7 +5,7 @@ import type { Polygon, UnitStatus } from '../app/lib/projects';
 
 /**
  * Vrh strane /za-investitore: prava fotografija zgrade primera (projekat
- * „Lepenički cvet") u okviru .device, stanovi obojeni po statusu kao u
+ * DEMO_SLUG, kad postoji) u okviru .device, stanovi obojeni po statusu kao u
  * izboru stana preko celog ekrana. Slobodni stanovi se sami smenjuju, a
  * staklena kartica pokazuje sprat, strukturu, m² i cenu - kupčev pogled u
  * malom. Kadar je isečen oko zgrade (iz oblika stanova), da zgrada ispuni

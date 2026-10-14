@@ -39,9 +39,10 @@ import SiteStylesheets from '../../components/SiteStylesheets';
 
 const PATH = '/za-investitore';
 const copy = INVESTOR_COPY;
-// Primer na strani: pravi projekat sa izmišljenim cenama i statusima (vlasnik ga koristi za prezentacije).
-// Ako nije objavljen ili nema slike sa stanovima, strana pokazuje stari crtež.
-const DEMO_SLUG = 'lepenicki-cvet';
+// Primer na strani: projekat sa našeg sajta (slug) - samo izmišljen ili projekat
+// investitora koji je to dozvolio, nikad tuđi pravi projekat sa izmišljenim podacima.
+// Od 14. 10. 2026: projekat klijenta Garić Invest (vlasnik). null = neimenovan crtež.
+const DEMO_SLUG: string | null = 'jadranska-garic-invest';
 
 /** Slika fasade sa najviše iscrtanih stanova i ti stanovi, za fotografiju u vrhu strane. */
 function heroFromProject(data: ProjectPageData | null): { imageUrl: string; units: HeroUnit[] } | null {
@@ -241,7 +242,7 @@ export default async function InvestorPage() {
   const { nav, hero, compare, demo, buyer, sales, midCta, setup, offer, steps, faq, contact } = copy;
   const address = [CONTACT.street, CONTACT.city].filter(Boolean).join(', ');
 
-  const demoData = await getPublicProject(DEMO_SLUG);
+  const demoData = DEMO_SLUG ? await getPublicProject(DEMO_SLUG) : null;
   const heroPhoto = heroFromProject(demoData);
   const liveDemo = demoData && demoData.floors.length > 0 && demoData.units.length > 0 ? demoData : null;
   const statusLabels = Object.fromEntries((['available', 'reserved', 'sold'] as UnitStatus[]).map((s) => [s, statusLabel(s, 'sr')])) as Record<UnitStatus, string>;
@@ -291,13 +292,13 @@ export default async function InvestorPage() {
               <InvestorHeroPhoto
                 imageUrl={heroPhoto.imageUrl}
                 units={heroPhoto.units}
-                project={hero.device.project}
+                project={liveDemo ? liveDemo.project.title : hero.device.fallbackProject}
                 kicker={hero.device.kicker}
                 unitLabel={hero.device.unitLabel}
                 statusLabels={statusLabels}
               />
             ) : (
-              <InvestorHeroDevice project={hero.device.project} freeLabel={hero.device.floorCard} unitLabel={hero.device.unitLabel} />
+              <InvestorHeroDevice project={hero.device.fallbackProject} freeLabel={hero.device.floorCard} unitLabel={hero.device.unitLabel} />
             )}
           </div>
         </section>
@@ -340,8 +341,8 @@ export default async function InvestorPage() {
             <div className="section-head">
               <span className="eyebrow">{demo.eyebrow}</span>
               <h2>{accent(demo.title)}</h2>
-              <p className="note">{demo.note}</p>
-              <span className="inv-badge-note">{demo.badge}</span>
+              <p className="note">{liveDemo ? demo.note : demo.noteIllustration}</p>
+              <span className="inv-badge-note">{liveDemo ? `${demo.badgeLive} ${liveDemo.project.title}` : demo.badge}</span>
             </div>
             {liveDemo ? (
               <>

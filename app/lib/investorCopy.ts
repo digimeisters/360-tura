@@ -11,8 +11,11 @@
  * (tamno) -> plava traka -> postavljanje (AI čita materijal) -> paket ->
  * kako radimo -> pitanja -> kontakt.
  *
- * Opisuje samo ono što aplikacija danas radi. Primer je projekat
- * „Lepenički cvet" sa izmišljenim cenama i statusima i tako je označen.
+ * Opisuje samo ono što aplikacija danas radi. Primer je pravi projekat
+ * našeg klijenta (DEMO_SLUG u app/za-investitore/page.tsx, od 14. 10. 2026
+ * „Jadranska - Garić Invest"); bez njega strana pokazuje neimenovan crtež.
+ * Nikad tuđi pravi projekat sa izmišljenim podacima (14. 10. 2026:
+ * „Lepenički cvet" je bio pravi projekat druge firme - obrisan).
  * Cene usluge namerno ne stoje.
  *
  * Tekst između zvezdica u naslovima ide u kurziv (lib/accent.tsx).
@@ -30,7 +33,7 @@ export type InvestorCopy = {
     ctaContact: string;
     ctaDemo: string;
     trust: string[];
-    device: { project: string; kicker: string; floorCard: string; unitLabel: string };
+    device: { fallbackProject: string; kicker: string; floorCard: string; unitLabel: string };
   };
   compare: {
     eyebrow: string;
@@ -39,7 +42,7 @@ export type InvestorCopy = {
     without: { title: string; tag: string; rows: Row[] };
     with: { title: string; tag: string; rows: Row[] };
   };
-  demo: { eyebrow: string; title: string; note: string; badge: string; fullNote: string; open: string };
+  demo: { eyebrow: string; title: string; note: string; noteIllustration: string; badge: string; badgeLive: string; fullNote: string; open: string };
   buyer: {
     eyebrow: string;
     title: string;
@@ -100,7 +103,7 @@ export const INVESTOR_COPY: InvestorCopy = {
     ctaContact: 'Zakažite razgovor',
     ctaDemo: 'Isprobajte primer',
     trust: ['Stanovi na fotografiji zgrade', '360° ture i dron', 'Prodaja menja statuse sama'],
-    device: { project: 'Lepenički cvet · primer', kicker: 'Izbor stana', floorCard: 'slobodno', unitLabel: 'Stan' }
+    device: { fallbackProject: 'Primer projekta', kicker: 'Izbor stana', floorCard: 'slobodno', unitLabel: 'Stan' }
   },
   compare: {
     eyebrow: 'Prodaja danas',
@@ -130,8 +133,10 @@ export const INVESTOR_COPY: InvestorCopy = {
   demo: {
     eyebrow: 'Primer',
     title: 'Ovako kupac *bira stan*',
-    note: 'Pravi izbor stana, isti kakav dobija vaš projekat. Kliknite na stan na zgradi, okrenite zgradu strelicama, otvorite listu ili filtere.',
-    badge: 'Primer: cene, statusi i opisi su izmišljeni',
+    note: 'Pravi izbor stana, isti kakav dobija vaš projekat. Kliknite na stan na zgradi, otvorite listu ili filtere.',
+    noteIllustration: 'Kliknite na sprat, pa na stan. Zelen je slobodan, žut rezervisan, siv prodat.',
+    badge: 'Primer: crtež, cene i statusi nisu stvarni',
+    badgeLive: 'Pravi projekat:',
     fullNote: 'Na računaru probajte „Ceo ekran“ - ovako izgleda na sastanku sa kupcem.',
     open: 'Cela strana projekta'
   },
@@ -160,8 +165,8 @@ export const INVESTOR_COPY: InvestorCopy = {
       'Link se gasi jednim klikom kad neko ode iz firme'
     ],
     card: {
-      title: 'Lepenički cvet',
-      badge: 'primer',
+      title: 'Vaš projekat',
+      badge: 'primer prikaza',
       inquiry: 'Novi upit · Stan 4I',
       inquiryWho: 'Marko P. · 06x xxx xxxx',
       topTitle: 'Najgledaniji stanovi · 30 dana',

@@ -363,7 +363,7 @@ export function projectNameAdvice(title: string): { warnings: string[]; suggesti
 
   // Najčešći slučajevi bez kvačica u nazivima zgrada: -čki/-čka/-čko
   // (Lepenički, Šumarički), "dj" umesto "đ". Opšte upozorenje "nema kvačica"
-  // namerno ne postoji - smetalo bi ispravnim nazivima („Rezidencija Lipa").
+  // namerno ne postoji - smetalo bi ispravnim nazivima („Jadranska").
   const withHooks = fixed
     .replace(/(\p{L})cki\b/gu, '$1čki')
     .replace(/(\p{L})cka\b/gu, '$1čka')

@@ -30,10 +30,10 @@ Javna strana projekta je **`kvadrat360.com/novogradnja/<naziv-projekta>`**. Vidi
 
 ## 1. Novi projekat
 
-`/admin/projekti` → upiši naziv kako ga investitor prodaje (npr. „Lepenički cvet") → **+ Napravi projekat**.
+`/admin/projekti` → upiši naziv kako ga investitor prodaje (npr. „Jadranska") → **+ Napravi projekat**.
 
-- Adresa strane se pravi iz naziva prilikom pravljenja i **posle se ne menja**, pa piši naziv odmah kako treba — sa velikim slovom i kvačicama. Dok kucaš, ispod polja piše kakva će biti adresa (`/novogradnja/lepenicki-cvet`).
-- Ako naziv počinje malim slovom ili izgleda da fale kvačice (npr. „lepenicki" → „Lepenički", „dj" → „đ"), pojavi se žuto upozorenje sa dugmetom **Ispravi u „…"**. Ako ipak klikneš „Napravi projekat" bez ispravke, pita te još jednom.
+- Adresa strane se pravi iz naziva prilikom pravljenja i **posle se ne menja**, pa piši naziv odmah kako treba — sa velikim slovom i kvačicama. Dok kucaš, ispod polja piše kakva će biti adresa (`/novogradnja/jadranska`).
+- Ako naziv počinje malim slovom ili izgleda da fale kvačice (npr. „sumarice" → „Šumarice", „dj" → „đ"), pojavi se žuto upozorenje sa dugmetom **Ispravi u „…"**. Ako ipak klikneš „Napravi projekat" bez ispravke, pita te još jednom.
 - Naziv koji se prikazuje na strani možeš kasnije da ispraviš u „Podaci projekta" (isto upozorenje važi i tamo).
 
 ## 2. Podaci projekta
@@ -157,9 +157,9 @@ Stan bez oblika na osnovi se i dalje bira iz spiska pored osnove, samo se ne mo�
 
 **✨ Popuni iz osnove (AI):** u prozoru „Detalji“ stana, kad je otpremljena **Osnova stana** (tlocrt sa merama, kao od arhitekte), dugme pored „Prostorije i kvadratura“ pročita mere sa slike i samo popuni spisak prostorija sa kvadraturom. Ispod se pojave pročitane mere (npr. „Spavaća soba: 4,62 × 3,00 = 13,86 m²“) — uporedi ih sa osnovom, ispravi ako treba, pa klikni **Sačuvaj**. Ništa se ne čuva samo. Mere mogu biti u cm ili mm, AI prepozna sam. Ako piše da je čitao rezervni model, proveri mere posebno pažljivo.
 
-**Strana stana** (kao kod Sokolisa): svaki stan ima svoju adresu `kvadrat360.com/novogradnja/<projekat>/stan/<oznaka>` (npr. `.../lepenicki-cvet/stan/5I`), i na engleskom pod `/en/...`. Otvara se dugmetom **Otvori stranu stana →** u kartici stana. Na njoj su velike kartice Osnova / 360° tura / 3D osnova / Slike, cena, prostorije, PDF letak, plan plaćanja, upit, strelice na prethodni i sledeći stan i „Slični slobodni stanovi“. Ovaj link prodaja šalje kupcu na Viber.
+**Strana stana** (kao kod Sokolisa): svaki stan ima svoju adresu `kvadrat360.com/novogradnja/<projekat>/stan/<oznaka>` (npr. `.../jadranska/stan/5I`), i na engleskom pod `/en/...`. Otvara se dugmetom **Otvori stranu stana →** u kartici stana. Na njoj su velike kartice Osnova / 360° tura / 3D osnova / Slike, cena, prostorije, PDF letak, plan plaćanja, upit, strelice na prethodni i sledeći stan i „Slični slobodni stanovi“. Ovaj link prodaja šalje kupcu na Viber.
 
-**Prezentacija (prikaži sve kartice stana):** u „Podaci projekta“ je kvačica **Prezentacija: prikaži sve kartice stana**. Kad je uključena, svaki stan ima sve četiri kartice: stan bez ture dobija **demo turu** (biraš je ispod kvačice; na turi piše „Primer ture“), bez slika — rendere zgrade, a 3D osnova bez slike piše „Uskoro za ovaj stan“. Za pravi projekat kvačicu isključi — tada se vidi samo ono što stan stvarno ima. „Lepenički cvet“ je uključen (demo tura: Maglićka).
+**Prezentacija (prikaži sve kartice stana):** u „Podaci projekta“ je kvačica **Prezentacija: prikaži sve kartice stana**. Kad je uključena, svaki stan ima sve četiri kartice: stan bez ture dobija **demo turu** (biraš je ispod kvačice; na turi piše „Primer ture“), bez slika — rendere zgrade, a 3D osnova bez slike piše „Uskoro za ovaj stan“. Za pravi projekat kvačicu isključi — tada se vidi samo ono što stan stvarno ima.
 
 **Osnova bez posebne slike:** ako stan nema svoju osnovu, a iscrtan je na osnovi sprata, kao osnova stana se sama prikazuje uvećan isečak osnove sprata, sa obeleženim stanom. Posebna slika osnove (Detalji) uvek ima prednost.
 
@@ -302,7 +302,7 @@ U tvom adminu ista beleška stoji u koloni **„Beleška prodaje“** — u tabe
 
 ## 10. Strana za investitore — `kvadrat360.com/za-investitore`
 
-Prodajna strana za investitore sa klikabilnim primerom („Rezidencija Lipa", izmišljen projekat) i formom „Zakažite razgovor".
+Prodajna strana za investitore sa klikabilnim primerom (pravi projekat klijenta „Jadranska - Garić Invest", DEMO_SLUG) i formom „Zakažite razgovor".
 
 - **Za sada je skrivena:** nema je u meniju, Google je ne indeksira. Link šalješ investitorima direktno.
 - Upit sa nje stiže na Telegram sa oznakom „🏗️ Sa strane za investitore".

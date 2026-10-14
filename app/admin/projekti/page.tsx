@@ -101,7 +101,7 @@ export default function ProjectsAdminPage() {
             {error && <p className="pa-msg is-err">{error}</p>}
             <section className="pa-card">
               <h2>Novi projekat</h2>
-              <p className="pa-hint">Naziv kako ga investitor prodaje, npr. „Rezidencija Lipa“. Ostalo se popunjava posle.</p>
+              <p className="pa-hint">Naziv kako ga investitor prodaje, npr. „Jadranska“. Ostalo se popunjava posle.</p>
               <form
                 className="pa-row"
                 onSubmit={(e) => {

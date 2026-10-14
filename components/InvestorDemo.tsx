@@ -390,7 +390,7 @@ export default function InvestorDemo({ tourUrl, tourPreview }: { tourUrl: string
     panel = (
       <>
         <span className="inv-eyebrow">Novogradnja · Kragujevac</span>
-        <div className="inv-title">Rezidencija Lipa</div>
+        <div className="inv-title">Primer projekta</div>
         <p className="inv-muted">7 etaža · lift · garaža</p>
         <div className="inv-stats">
           <div>
