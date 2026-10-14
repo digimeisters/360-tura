@@ -150,6 +150,34 @@ export const SELECTOR_STYLES = `
   .inv-pay-sum .is-main b{color:#FFFFFF; font-size:1.3rem;}
   /* color:inherit - sajt boji svaki <em> akcentnom bojom, a ovde je pozadina plava. */
   .inv-pay-sum em{font-style:normal; font-family:var(--font-body); font-size:.78rem; font-weight:600; opacity:.85; color:inherit;}
+  .inv-pay-vat{margin-top:.85rem; border:1.5px solid #BFE3CC; background:#F2FBF5; border-radius:14px; padding:.65rem .75rem;}
+  .inv-pay-vat-row{display:flex; justify-content:space-between; align-items:center; gap:.5rem; font-size:.84rem; font-weight:700; color:#111113;}
+  .inv-pay-vat-row.is-sub{margin-top:.55rem; font-weight:600;}
+  .inv-pay-yn{display:flex; gap:3px; background:#FFFFFF; border:1px solid #D5DEEB; border-radius:999px; padding:2px; flex:none;}
+  .inv-pay-yn button{border:0; background:transparent; border-radius:999px; padding:.3rem .8rem; min-height:32px; font-size:.8rem; font-weight:700; color:#5B5D63;}
+  .inv-pay-yn button[aria-pressed="true"]{background:#17663A; color:#FFFFFF;}
+  .inv-pay-step{display:flex; align-items:center; gap:6px; flex:none;}
+  .inv-pay-step button{width:32px; height:32px; border-radius:50%; border:1.5px solid #BFE3CC; background:#FFFFFF; font-weight:800; color:#17663A; line-height:1;}
+  .inv-pay-step button:disabled{opacity:.4;}
+  .inv-pay-step b{min-width:1.2rem; text-align:center;}
+  .inv-pay-vat-sub{font-size:.76rem; color:#3F6B4E; margin:.45rem 0 0; line-height:1.4;}
+  .inv-pay-vat-sum{display:flex; justify-content:space-between; align-items:baseline; margin-top:.5rem; padding-top:.5rem; border-top:1px dashed #BFE3CC; font-size:.8rem; font-weight:700; color:#3F6B4E;}
+  .inv-pay-vat-sum b{font-family:var(--font-display); font-size:1.15rem; color:#17663A;}
+  .inv-pay-costs{margin-top:.75rem; border:1.5px solid #D5DEEB; border-radius:14px; background:#FFFFFF;}
+  .inv-pay-costs summary{list-style:none; display:flex; justify-content:space-between; align-items:center; gap:.5rem; padding:.6rem .75rem; min-height:44px; font-size:.84rem; font-weight:700; cursor:pointer;}
+  .inv-pay-costs summary::-webkit-details-marker{display:none;}
+  .inv-pay-costs summary b{font-family:var(--font-display);}
+  .inv-pay-chev{display:inline-block; color:#1E5AA8; font-size:.75rem; margin-left:4px; transition:transform .15s;}
+  .inv-pay-costs[open] .inv-pay-chev{transform:rotate(180deg);}
+  .inv-pay-costs ul{list-style:none; margin:0; padding:0 .75rem .5rem;}
+  .inv-pay-costs li{display:flex; justify-content:space-between; gap:.5rem; font-size:.8rem; padding:.32rem 0; border-top:1px solid #EEF2F8; color:#374151;}
+  .inv-pay-costs li small{display:block; color:#8A8C92; font-size:.7rem;}
+  .inv-pay-costs li b{white-space:nowrap;}
+  .inv-pay-sum .is-back{grid-column:1 / -1; background:#F2FBF5; border-color:#BFE3CC;}
+  .inv-pay-sum .is-back b{color:#17663A;}
+  .inv-pay-pdf{display:flex; align-items:center; justify-content:center; gap:.5rem; width:100%; margin-top:.75rem; min-height:44px; border-radius:12px; background:#111113; color:#FFFFFF; font-weight:700; font-size:.86rem; text-decoration:none;}
+  .inv-pay-pdf span{background:#FFFFFF; color:#111113; border-radius:4px; padding:1px 5px; font-size:.62rem; font-weight:800;}
+  .inv-pay-pdf:hover{background:#1E5AA8;}
   .inv-pay-note{margin:.6rem 0 0; font-size:.72rem; color:#686A70; line-height:1.45;}
 
   /* Šta je u blizini (ProjectNearby). */

@@ -536,7 +536,7 @@ export default function FacadeFullscreen({
         ) : (
           <>
             <UnitRooms rooms={unit.rooms} lang={lang} />
-            {unit.status !== 'sold' && unit.price ? <PaymentCalculator key={`fs-pay-${unit.id}`} price={unit.price} lang={lang} /> : null}
+            {unit.status !== 'sold' && unit.price ? <PaymentCalculator key={`fs-pay-${unit.id}`} price={unit.price} areaSqm={unit.areaSqm} sheetHref={unitPage ? `${unitPage}/letak` : null} lang={lang} /> : null}
           </>
         )}
         <UnitInquiry

@@ -1363,7 +1363,7 @@ export default function ProjectSelector({
           <>
             <UnitRooms rooms={unit.rooms} lang={lang} />
             {/* Plan plaćanja samo za stan koji se prodaje i ima cenu. */}
-            {unit.status !== 'sold' && unit.price ? <PaymentCalculator key={`pay-${unit.id}`} price={unit.price} lang={lang} /> : null}
+            {unit.status !== 'sold' && unit.price ? <PaymentCalculator key={`pay-${unit.id}`} price={unit.price} areaSqm={unit.areaSqm} sheetHref={unitPage ? `${unitPage}/letak` : null} lang={lang} /> : null}
           </>
         )}
         {((unit.tourHref && (unitPage || !hasExtraMedia)) || floor.viewHref) && (

@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import QRCode from 'qrcode';
 import type { ProjectPageData } from '../../app/lib/projectData';
 import type { SelectorFloor, SelectorUnit } from './ProjectSelector';
@@ -14,12 +15,14 @@ import {
 import { SITE_URL } from '../../app/lib/site';
 import PrintButton from './PrintButton';
 import UnitPlanCrop from './UnitPlanCrop';
+import UnitSheetPlan from './UnitSheetPlan';
 
 /**
  * PDF letak stana (A4, jedna strana): /novogradnja/[slug]/stan/[oznaka]/letak
  * i /en/... - prodaja ga šalje na Viber ili štampa za kancelariju. Pravi se
  * kao obična strana sa CSS-om za štampu; „Sačuvaj kao PDF" je pregledačeva
- * štampa (bez PDF biblioteke). QR vodi na stranu projekta.
+ * štampa (bez PDF biblioteke). QR vodi na stranu projekta. Iz kalkulatora u
+ * kartici stana letak dobija i obračun kupca (UnitSheetPlan, parametri u adresi).
  */
 
 const T = {
@@ -44,7 +47,17 @@ const STYLES = `
   .us-status.is-r{background:#FCEFD3; color:#9A6A0B;} .us-status.is-p{background:#ECECEC; color:#6B6B6B;}
   .us-body{display:grid; grid-template-columns:1.45fr 1fr; gap:8mm; align-items:start;}
   .us-plan{border:1px solid #E3E8F1; border-radius:4mm; padding:3mm; text-align:center;}
-  .us-plan img{max-width:100%; max-height:150mm; object-fit:contain;}
+  .us-plan img{max-width:100%; max-height:var(--us-plan-h, 150mm); object-fit:contain;}
+  /* Sa obračunom osnova je niža, da sve stane na jednu A4 stranu. */
+  .us:has(.us-calc){--us-plan-h:88mm; gap:5mm;}
+  .us-calc h2{margin:0 0 2mm; font-family:var(--font-display); font-size:13pt;}
+  .us-calc-grid{display:grid; grid-template-columns:1fr 1.25fr; gap:8mm; align-items:start;}
+  .us-calc table{width:100%; border-collapse:collapse; font-size:9.5pt;}
+  .us-calc td{padding:1.3mm 0; border-bottom:1px solid #EEF2F8;}
+  .us-calc td:last-child{text-align:right; font-weight:700; white-space:nowrap; padding-left:3mm;}
+  .us-calc tr.is-total td{font-weight:800; border-bottom:2px solid #111113;}
+  .us-calc tr.is-green td{color:#17663A;}
+  .us-calc p{margin:2.5mm 0 0; font-size:8pt; color:#8C8E93; line-height:1.4;}
   .us-plan small{display:block; color:#8C8E93; font-size:8.5pt; margin-top:2mm;}
   .us-plan .inv-crop{display:flex; justify-content:center; align-items:center;}
   .us-plan .inv-crop-box{position:relative; overflow:hidden; max-width:100%;}
@@ -66,7 +79,7 @@ const STYLES = `
   @media screen and (max-width:820px){
     .us{width:auto; min-height:auto; margin:10px; padding:16px;}
     .us-head{flex-direction:column; gap:10px;} .us-price{text-align:left;}
-    .us-body{grid-template-columns:1fr;}
+    .us-body{grid-template-columns:1fr;} .us-calc-grid{grid-template-columns:1fr; gap:4mm;}
     .us-foot{flex-direction:column; align-items:flex-start;} .us-qr{text-align:left;}
     .us-bar{flex-direction:column; align-items:flex-start; margin:10px;}
   }
@@ -133,7 +146,7 @@ export default async function UnitSheet({
           <div className="us-plan">
             {crop ? (
               <>
-                <UnitPlanCrop src={crop.src} polygon={crop.polygon} alt={t.plan} maxHeight="140mm" />
+                <UnitPlanCrop src={crop.src} polygon={crop.polygon} alt={t.plan} maxHeight="var(--us-plan-h, 140mm)" />
                 <small>{t.plan}</small>
               </>
             ) : planSrc ? (
@@ -183,6 +196,12 @@ export default async function UnitSheet({
             )}
           </div>
         </section>
+
+        {unit.status !== 'sold' && unit.price ? (
+          <Suspense fallback={null}>
+            <UnitSheetPlan price={unit.price} areaSqm={unit.areaSqm} lang={lang} />
+          </Suspense>
+        ) : null}
 
         <footer className="us-foot">
           <div>

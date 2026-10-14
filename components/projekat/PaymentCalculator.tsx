@@ -1,39 +1,53 @@
 'use client';
 
 import { useState } from 'react';
-import { formatPrice, PROJECT_TEXT, type ProjectLang } from '../../app/lib/projectI18n';
+import { formatArea, formatPrice, PROJECT_TEXT, type ProjectLang } from '../../app/lib/projectI18n';
+import {
+  computePlan,
+  DEFAULT_PLAN,
+  DEPOSITS,
+  EUR_RSD,
+  MONTHS,
+  planToQuery,
+  VAT_MAX_MEMBERS,
+  YEARS,
+  type PlanMode
+} from '../../app/lib/paymentPlan';
 
 /**
- * Kalkulator plana plaćanja u kartici stana (strana projekta, engleska i
- * ugradnja). Kupac novogradnje se prvo pita „koliko mi treba odmah i
- * koliko mesečno":
+ * Kalkulator plana plaćanja u kartici stana (strana projekta, ceo ekran,
+ * strana stana, engleska i ugradnja). Kupac novogradnje se prvo pita „koliko
+ * mi treba odmah i koliko mesečno":
  *   - učešće 10-50 %
  *   - ostatak u ratama investitoru (bez kamate) ili stambenim kreditom
- *     (anuitet, kamata koju kupac sam upiše).
- * Samo informativno - ništa se ne šalje i ne čuva; uslove daje prodaja/banka.
+ *     (anuitet, kamata koju kupac sam upiše)
+ *   - troškovi kupovine (notar, katastar, uz kredit i banka) - okvirno
+ *   - povrat PDV-a za prvi stan (40 m² + 15 m² po članu domaćinstva)
+ *   - PDF: letak stana sa istim obračunom (parametri u adresi).
+ * Obračun je u app/lib/paymentPlan.ts. Ništa se ne šalje i ne čuva.
  */
 
-const DEPOSITS = [10, 20, 30, 50];
-const MONTHS = [6, 12, 18, 24, 36];
-const YEARS = [15, 20, 25, 30];
-const DEFAULT_RATE = 4.5;
-
-/** Mesečna rata kredita (anuitet). */
-function annuity(principal: number, yearlyRatePct: number, years: number): number {
-  const n = years * 12;
-  const r = yearlyRatePct / 100 / 12;
-  if (r <= 0) return principal / n;
-  return (principal * r) / (1 - Math.pow(1 + r, -n));
-}
-
-export default function PaymentCalculator({ price, lang = 'sr' }: { price: number; lang?: ProjectLang }) {
+export default function PaymentCalculator({
+  price,
+  areaSqm = null,
+  sheetHref = null,
+  lang = 'sr'
+}: {
+  price: number;
+  areaSqm?: number | null;
+  /** Letak stana („…/stan/<oznaka>/letak") - null = bez dugmeta za PDF. */
+  sheetHref?: string | null;
+  lang?: ProjectLang;
+}) {
   const t = PROJECT_TEXT[lang];
   const [open, setOpen] = useState(false);
-  const [deposit, setDeposit] = useState(20);
-  const [mode, setMode] = useState<'installments' | 'loan'>('installments');
-  const [months, setMonths] = useState(18);
-  const [years, setYears] = useState(25);
-  const [rate, setRate] = useState(String(DEFAULT_RATE));
+  const [deposit, setDeposit] = useState<number>(DEFAULT_PLAN.deposit);
+  const [mode, setMode] = useState<PlanMode>(DEFAULT_PLAN.mode);
+  const [months, setMonths] = useState<number>(DEFAULT_PLAN.months);
+  const [years, setYears] = useState<number>(DEFAULT_PLAN.years);
+  const [rate, setRate] = useState(String(DEFAULT_PLAN.rate));
+  const [firstHome, setFirstHome] = useState<boolean | null>(null);
+  const [members, setMembers] = useState(0);
 
   if (!open) {
     return (
@@ -43,10 +57,10 @@ export default function PaymentCalculator({ price, lang = 'sr' }: { price: numbe
     );
   }
 
-  const now = Math.round((price * deposit) / 100);
-  const rest = price - now;
   const ratePct = Math.min(20, Math.max(0, Number(rate.replace(',', '.')) || 0));
-  const monthly = mode === 'installments' ? rest / months : annuity(rest, ratePct, years);
+  const plan = { deposit, mode, months, years, rate: ratePct, firstHome: firstHome === true, members };
+  const r = computePlan({ price, areaSqm, ...plan });
+  const rateText = ratePct.toLocaleString(lang === 'en' ? 'en-GB' : 'sr-RS');
 
   return (
     <div className="inv-pay" role="group" aria-label={t.payTitle}>
@@ -105,23 +119,98 @@ export default function PaymentCalculator({ price, lang = 'sr' }: { price: numbe
         </>
       )}
 
+      <div className="inv-pay-vat">
+        <div className="inv-pay-vat-row">
+          <span>{t.payFirstHome}</span>
+          <span className="inv-pay-yn">
+            <button type="button" aria-pressed={firstHome === true} onClick={() => setFirstHome(true)}>
+              {t.payYes}
+            </button>
+            <button type="button" aria-pressed={firstHome === false} onClick={() => setFirstHome(false)}>
+              {t.payNo}
+            </button>
+          </span>
+        </div>
+        {firstHome && (
+          <>
+            <div className="inv-pay-vat-row is-sub">
+              <span>{t.payMembers}</span>
+              <span className="inv-pay-step">
+                <button type="button" onClick={() => setMembers((m) => Math.max(0, m - 1))} disabled={members === 0} aria-label="−">
+                  −
+                </button>
+                <b aria-live="polite">{members}</b>
+                <button type="button" onClick={() => setMembers((m) => Math.min(VAT_MAX_MEMBERS, m + 1))} disabled={members === VAT_MAX_MEMBERS} aria-label="+">
+                  +
+                </button>
+              </span>
+            </div>
+            {r.vatSqm !== null ? (
+              <>
+                <p className="inv-pay-vat-sub">{t.payVatFor(formatArea(r.vatSqm, lang), formatArea(areaSqm, lang), members)}</p>
+                <div className="inv-pay-vat-sum">
+                  <span>{t.payVat}</span>
+                  <b>− {formatPrice(r.vatRefund, lang)}</b>
+                </div>
+              </>
+            ) : (
+              <p className="inv-pay-vat-sub">{t.payVatNoArea}</p>
+            )}
+          </>
+        )}
+      </div>
+
+      <details className="inv-pay-costs">
+        <summary>
+          <span>
+            {t.payCosts} <span className="inv-pay-chev" aria-hidden="true">▾</span>
+          </span>
+          <b>{formatPrice(r.costsTotal, lang)}</b>
+        </summary>
+        <ul>
+          {r.costs.map((c) => (
+            <li key={c.key}>
+              <span>
+                {t.payCost[c.key][0]}
+                <small>{t.payCost[c.key][1]}</small>
+              </span>
+              <b>{formatPrice(c.eur, lang)}</b>
+            </li>
+          ))}
+        </ul>
+      </details>
+
       <div className="inv-pay-sum">
         <div>
-          <small>{t.payNow}</small>
-          <b>{formatPrice(now, lang)}</b>
+          <small>{t.payUpfront}</small>
+          <b>{formatPrice(r.upfront, lang)}</b>
         </div>
         <div>
-          <small>{t.payRest}</small>
-          <b>{formatPrice(rest, lang)}</b>
+          <small>{mode === 'installments' ? t.payRestDeveloper : t.payLoanAmount}</small>
+          <b>{formatPrice(r.rest, lang)}</b>
         </div>
         <div className="is-main">
-          <small>{mode === 'installments' ? `${months} × ` : `${t.payYears(years)} · ${ratePct}%`}</small>
+          <small>{mode === 'installments' ? t.payInstallmentsN(months) : `${t.payYears(years)} · ${rateText}%`}</small>
           <b>
-            {formatPrice(monthly, lang)} <em>{t.payMonthly}</em>
+            {formatPrice(r.monthly, lang)} <em>{t.payMonthly}</em>
           </b>
         </div>
+        {r.vatRefund > 0 && (
+          <div className="is-back">
+            <small>{t.payVatBack}</small>
+            <b>{formatPrice(r.vatRefund, lang)}</b>
+          </div>
+        )}
       </div>
-      <p className="inv-pay-note">{t.payNote}</p>
+
+      {sheetHref && (
+        <a className="inv-pay-pdf" href={`${sheetHref}?${planToQuery(plan)}`} target="_blank" rel="noopener" data-track="cta:project_unit_calc_pdf">
+          <span aria-hidden="true">PDF</span> {t.payPdf}
+        </a>
+      )}
+      <p className="inv-pay-note">
+        {t.payNote} {t.payCostsNote(EUR_RSD.toLocaleString(lang === 'en' ? 'en-GB' : 'sr-RS'))}
+      </p>
     </div>
   );
 }

@@ -33,6 +33,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.8
     },
+    // Alati: ulaz i kalkulator kredita (kupci iz pretrage "kalkulator stambenog kredita").
+    {
+      url: `${SITE_URL}/alati`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.6
+    },
+    {
+      url: `${SITE_URL}/alati/kalkulator-kredita`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.7
+    },
     // Spisak svih objavljenih tura - ulaz ka pojedinačnim turama.
     {
       url: `${SITE_URL}/ture`,

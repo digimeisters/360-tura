@@ -215,7 +215,7 @@ export default function UnitPage({
               <a className="inv-pdf" href={`${unitHref(unit)}/letak`} target="_blank" rel="noopener" data-track="cta:project_unit_pdf">
                 <span aria-hidden="true">PDF</span> {t.pdf}
               </a>
-              {!sold && unit.price ? <PaymentCalculator price={unit.price} lang={lang} /> : null}
+              {!sold && unit.price ? <PaymentCalculator price={unit.price} areaSqm={unit.areaSqm} sheetHref={`${unitHref(unit)}/letak`} lang={lang} /> : null}
               {/* Prodat stan nema upit, ali se otvaranje strane i dalje broji. */}
               {sold && <UnitInquiry slug={project.slug} projectTitle={project.title} unitId={unit.id} code={unit.code} status={unit.status} where="" lang={lang} trackView />}
               {!sold && (

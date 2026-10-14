@@ -9,6 +9,9 @@ import type { UnitStatus } from './projects';
 
 export type ProjectLang = 'sr' | 'en';
 
+// Broj i jedinica u istom redu ("40 m²" se ne lomi).
+const nbsp = (s: string) => s.replace(/ /g, '\u00a0');
+
 export const PROJECT_TEXT = {
   sr: {
     newBuild: 'Novogradnja',
@@ -95,6 +98,37 @@ export const PROJECT_TEXT = {
     payRest: 'Ostatak',
     payMonthly: 'mesečno',
     payNote: 'Informativni obračun. Tačne uslove plaćanja dogovarate sa prodajom, a kredit sa bankom.',
+    payFirstHome: 'Kupujete prvi stan?',
+    payYes: 'Da',
+    payNo: 'Ne',
+    payMembers: 'Članova domaćinstva bez stana',
+    payVatFor: (sqm: string, area: string, members: number) =>
+      `Država vraća PDV za ${nbsp(sqm)} od ${nbsp(area)} (40\u00a0m² za vas${members ? ` + ${members * 15}\u00a0m² za ${members === 1 ? 'člana' : 'članove'} domaćinstva` : ''}).`,
+    payVatNoArea: 'Povrat PDV-a se računa po kvadraturi stana, a ona još nije uneta.',
+    payVat: 'Povrat PDV-a',
+    payVatBack: 'Vraća vam se posle isplate cele cene (Poreska uprava)',
+    payCosts: 'Troškovi kupovine',
+    payCost: {
+      notaryContract: ['Notar - overa kupoprodajnog ugovora', 'po vrednosti stana'],
+      cadastreOwnership: ['Katastar - upis vlasništva', 'taksa + zahtev'],
+      transferTax: ['Porez na prenos 2,5%', 'starogradnja; obično ga preuzima kupac'],
+      notaryPledge: ['Notar - založna izjava', 'po iznosu kredita'],
+      cadastreMortgage: ['Katastar - upis hipoteke', 'po iznosu kredita'],
+      bankAppraisal: ['Procena stana za banku', 'okvirno, zavisi od banke']
+    } as Record<string, [string, string]>,
+    payUpfront: 'Odmah: učešće + troškovi',
+    payLoanAmount: 'Iznos kredita',
+    payRestDeveloper: 'Ostatak investitoru',
+    payInstallmentsN: (n: number) => `${n} rata investitoru`,
+    payPdf: 'Preuzmite kalkulaciju',
+    payCostsNote: (rate: string) =>
+      `Takse po važećoj tarifi notara i katastra, okvirno (kurs ${rate} din/€). Povrat PDV-a odobrava Poreska uprava posle isplate cele cene; parking i garaža ne ulaze.`,
+    payCalcTitle: 'Kalkulacija',
+    payUpfrontTotal: 'Ukupno odmah (učešće + troškovi)',
+    payVatSqm: (sqm: string) => `PDV za ${nbsp(sqm)} (prvi stan)`,
+    payVatReturned: 'Vraća se kupcu',
+    paySheetNote:
+      'Informativni obračun, nije ponuda banke ni investitora. Takse: Javnobeležnička tarifa i Tarifa republičkih administrativnih taksi (okvirno). Povrat PDV-a: čl. 56a Zakona o PDV.',
     pickBuilding: 'Izaberite zgradu',
     pickBuildingHint: 'Kliknite na zgradu na slici ili u spisku.',
     pickBuildingList: 'Izaberite zgradu.',
@@ -221,6 +255,37 @@ export const PROJECT_TEXT = {
     payRest: 'Remaining',
     payMonthly: 'per month',
     payNote: 'For information only. Payment terms are agreed with the sales team, mortgage terms with your bank.',
+    payFirstHome: 'Buying your first home?',
+    payYes: 'Yes',
+    payNo: 'No',
+    payMembers: 'Household members without a home',
+    payVatFor: (sqm: string, area: string, members: number) =>
+      `The state refunds VAT on ${nbsp(sqm)} of ${nbsp(area)} (40\u00a0m² for you${members ? ` + ${members * 15}\u00a0m² for household member${members === 1 ? '' : 's'}` : ''}).`,
+    payVatNoArea: 'The VAT refund is based on the apartment size, which is not entered yet.',
+    payVat: 'VAT refund',
+    payVatBack: 'Refunded after the full price is paid (Tax Administration)',
+    payCosts: 'Purchase costs',
+    payCost: {
+      notaryContract: ['Notary - sale contract certification', 'based on the price'],
+      cadastreOwnership: ['Cadastre - ownership registration', 'fee + application'],
+      transferTax: ['Property transfer tax 2.5%', 'resale; usually taken over by the buyer'],
+      notaryPledge: ['Notary - pledge statement', 'based on the loan amount'],
+      cadastreMortgage: ['Cadastre - mortgage registration', 'based on the loan amount'],
+      bankAppraisal: ['Bank valuation of the apartment', 'approximate, depends on the bank']
+    } as Record<string, [string, string]>,
+    payUpfront: 'Now: down payment + costs',
+    payLoanAmount: 'Loan amount',
+    payRestDeveloper: 'Remaining to the developer',
+    payInstallmentsN: (n: number) => `${n} developer instalments`,
+    payPdf: 'Download the calculation',
+    payCostsNote: (rate: string) =>
+      `Fees per the current notary and cadastre tariffs, approximate (rate ${rate} RSD/€). The VAT refund is approved by the Tax Administration once the full price is paid; parking and garages are excluded.`,
+    payCalcTitle: 'Calculation',
+    payUpfrontTotal: 'Total now (down payment + costs)',
+    payVatSqm: (sqm: string) => `VAT on ${nbsp(sqm)} (first home)`,
+    payVatReturned: 'Refunded to the buyer',
+    paySheetNote:
+      'For information only, not an offer from a bank or the developer. Fees: Notary Tariff and Tariff of Republic Administrative Fees (approximate). VAT refund: Art. 56a of the VAT Act (first home buyers, Serbian citizens).',
     pickBuilding: 'Choose a building',
     pickBuildingHint: 'Click a building in the image or in the list.',
     pickBuildingList: 'Choose a building.',
