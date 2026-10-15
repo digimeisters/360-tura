@@ -23,6 +23,7 @@ import { VALUATION_HREF, VALUATION_LIVE } from './toolsNav';
 
 const PATH = '/alati';
 const CALC_HREF = '/alati/kalkulator-kredita';
+const PRICES_HREF = '/alati/cene-nekretnina-kragujevac';
 
 // Statična strana: VALUATION_LIVE (toolsNav) se proverava pri build-u.
 export const dynamic = 'force-static';
@@ -59,7 +60,7 @@ const COPY = {
   },
   tools: {
     eyebrow: 'Alati',
-    title: 'Jedan za kupce, *jedan za vlasnike.*',
+    title: 'Za kupce, vlasnike *i sve koji računaju.*',
     note: 'Svaki alat radi na telefonu, bez naloga i bez instalacije. Rezultat vidite odmah.'
   },
   calc: {
@@ -76,6 +77,13 @@ const COPY = {
     points: ['Raspon cene, ne izmišljena cifra', 'Prodaja i izdavanje', 'Bez ikakve obaveze'],
     go: 'Procenite',
     soon: 'Uskoro'
+  },
+  prices: {
+    who: 'Za sve',
+    title: 'Cene po naseljima Kragujevca',
+    text: 'Koliko košta kvadrat stana, kuće i lokala u svakom naselju, i kolika je kirija.',
+    points: ['Centar, Bubanj, Erdoglija, Aerodrom i druga', 'Cena cele nekretnine za vašu kvadraturu', 'Osveženo na svaka dva meseca'],
+    go: 'Pogledajte cene'
   },
   sources: {
     eyebrow: 'Odakle su brojevi',
@@ -145,7 +153,8 @@ export const metadata: Metadata = {
 export default function ToolsPage() {
   const tools = [
     { url: CALC_HREF, name: COPY.calc.title },
-    ...(VALUATION_LIVE ? [{ url: VALUATION_HREF, name: COPY.valuation.title }] : [])
+    ...(VALUATION_LIVE ? [{ url: VALUATION_HREF, name: COPY.valuation.title }] : []),
+    { url: PRICES_HREF, name: COPY.prices.title }
   ];
   const jsonLd = [
     {
@@ -314,6 +323,31 @@ export default function ToolsPage() {
               ) : (
                 <div className="tl-tool is-soon">{valuationBody}</div>
               )}
+
+              <Link className="tl-tool" href={PRICES_HREF} data-track="cta:tools_card_prices">
+                <span className="tl-who">{COPY.prices.who}</span>
+                <h3>{COPY.prices.title}</h3>
+                <p>{COPY.prices.text}</p>
+                {/* Ilustracija grafikona (trake po naseljima), bez brojeva. */}
+                <div className="tl-preview tl-pv-bars" aria-hidden="true">
+                  {[
+                    [52, 40],
+                    [44, 42],
+                    [36, 34],
+                    [20, 40]
+                  ].map(([left, width], i) => (
+                    <span key={i} style={{ marginLeft: `${left}%`, width: `${width}%` }} />
+                  ))}
+                </div>
+                <ul>
+                  {COPY.prices.points.map((p) => (
+                    <li key={p}>{p}</li>
+                  ))}
+                </ul>
+                <div className="tl-go">
+                  {COPY.prices.go} <span aria-hidden="true">→</span>
+                </div>
+              </Link>
             </div>
           </div>
         </section>

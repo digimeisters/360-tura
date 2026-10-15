@@ -7,8 +7,9 @@
 //
 // Skripta NIŠTA ne upisuje u bazu - samo pravi SQL fajl za pregled:
 //   supabase/seed/zone_price_baselines_4zida_<GGGG-MM-DD>.sql
-// Vlasnik ga pregleda, pa se pokrene u Supabase SQL editoru (upsert -
-// postojeći redovi se samo zamene, ništa se ne briše).
+// Vlasnik ga pregleda, pa se pokrene u Supabase SQL editoru (upsert, pa
+// brisanje redova iz ranijih osvežavanja koji sada ne prolaze pravilo;
+// ručno uneti redovi se ne diraju).
 //
 // Pokretanje:  npm run prices:refresh      (traje ~2 minuta)
 //
@@ -23,7 +24,14 @@
 //   izdavanje:  od = 25. percentil                  do = medijana
 //               (€/m² MESEČNO; oglasi su uglavnom namešteni stanovi)
 //   raspon je uvek bar 10% širi od donje granice; naselje dobija red samo
-//   uz bar MIN_LISTINGS oglasa, ostala kalkulator računa iz proseka grada.
+//   uz bar MIN_LISTINGS nezavisnih oglasa, ostala kalkulator računa iz
+//   proseka grada.
+//
+// Nezavisni oglasi (vlasnik, 15. 10. 2026 - lokali na Pivari su ispali
+// skuplji od Centra jer je isti prodavac oglasio dva lokala u istoj zgradi):
+// oglasi sa istom ulicom u istom naselju i kategoriji računaju se kao JEDAN
+// (uzima se njihova medijana). Oglas čiji je naziv samo naselje ("Centar",
+// "Pivara") nema ulicu, pa ostaje zaseban.
 
 import fs from 'fs';
 import path from 'path';
@@ -40,7 +48,8 @@ const CATEGORIES = [
 ];
 const MAX_PAGES = 80;
 const PAUSE_MS = 900;
-const MIN_LISTINGS = 5;
+// Lokala i kuća ima malo i jako se razlikuju, pa im treba više oglasa.
+const MIN_LISTINGS = { apartment: 5, house: 10, commercial: 10 };
 
 // Oglas van ovih granica (€/m²) je greška u oglasu: cena u dinarima,
 // kirija upisana kao prodaja, pogrešna kvadratura...
@@ -56,7 +65,9 @@ const RULE = {
 // ga ispiše na kraju, da se odluči da li se dodaje.
 const AREA_TO_NEIGHBOURHOOD = {
   'centar': 'Centar',
-  'bubanj-centar': 'Centar',
+  // 4zida vodi Bubanj kao "bubanj-centar"; vlasnik, 15. 10. 2026: Bubanj je
+  // svoje naselje, ne Centar.
+  'bubanj-centar': 'Bubanj',
   'centar-stari-grad': 'Centar',
   'stari-grad': 'Centar',
   'mala-vaga-centar': 'Mala Vaga',
@@ -125,7 +136,7 @@ function parseListings(html, category) {
         const m2 = (offer.itemOffered || {}).floorSize?.value;
         if (!url || !price || !m2) continue;
         const slug = url.split(`/${category}/`)[1]?.split('/')[0] || '';
-        out.push({ category, url, slug, price, m2 });
+        out.push({ category, url, slug, price, m2, name: String(offer.name || offer.itemOffered?.name || '') });
       }
     }
   }
@@ -154,6 +165,28 @@ async function scrape() {
   return all;
 }
 
+const plain = (s) =>
+  s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/đ/gi, 'dj')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+// Nazivi koji su samo deo grada, a ne ulica: sva naselja i početni delovi
+// oznaka sa 4zida ("veliki park", "stari grad"...).
+const AREA_WORDS = new Set([
+  ...Object.values(AREA_TO_NEIGHBOURHOOD).map(plain),
+  ...Object.keys(AREA_TO_NEIGHBOURHOOD).flatMap((k) => k.split('-').map((_, i, parts) => parts.slice(0, i + 1).join(' ')))
+]);
+
+/** Ulica iz naziva oglasa ("Kosovska 12" -> "kosovska"), ili null kad je naziv samo naselje. */
+function street(name) {
+  const p = plain(name).replace(/\s*\d.*$/, '').trim();
+  return !p || AREA_WORDS.has(p) ? null : p;
+}
+
 function toRows(listings) {
   const groups = new Map();
   const unmapped = new Map();
@@ -170,18 +203,24 @@ function toRows(listings) {
       continue;
     }
     const key = `${hood}|${type}|${kind}`;
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(ppm);
+    if (!groups.has(key)) groups.set(key, { total: 0, byStreet: new Map(), single: [] });
+    const g = groups.get(key);
+    g.total++;
+    const st = street(r.name);
+    if (st) g.byStreet.set(st, [...(g.byStreet.get(st) || []), ppm]);
+    else g.single.push(ppm);
   }
 
   const rows = [];
-  for (const [key, values] of groups) {
-    if (values.length < MIN_LISTINGS) continue;
+  for (const [key, g] of groups) {
     const [hood, type, kind] = key.split('|');
+    // Jedna ulica = jedan glas (medijana njenih oglasa).
+    const values = [...g.single, ...[...g.byStreet.values()].map((v) => quantile(v, 0.5))];
+    if (values.length < MIN_LISTINGS[type]) continue;
     const rule = RULE[kind];
     const low = roundTo(rule.low(quantile(values, 0.25)), rule.round);
     const high = Math.max(roundTo(low * 1.1, rule.round), roundTo(rule.high(quantile(values, 0.5)), rule.round));
-    rows.push({ hood, type, kind, n: values.length, low, high });
+    rows.push({ hood, type, kind, n: values.length, total: g.total, low, high });
   }
   const typeOrder = { apartment: 0, house: 1, commercial: 2 };
   rows.sort((a, b) => b.kind.localeCompare(a.kind) || typeOrder[a.type] - typeOrder[b.type] || b.n - a.n);
@@ -194,7 +233,7 @@ function toSql(rows, counts, date) {
   const values = rows
     .map(
       (r, i) =>
-        `  ('Kragujevac', '${esc(r.hood)}', '${r.type}', '${r.kind}', ${r.low}, ${r.high}, '${source}')${i < rows.length - 1 ? ',' : ''} -- ${r.n} oglasa`
+        `  ('Kragujevac', '${esc(r.hood)}', '${r.type}', '${r.kind}', ${r.low}, ${r.high}, ${r.total}, ${r.n}, '${source}')${i < rows.length - 1 ? ',' : ''}`
     )
     .join('\n');
   return `-- ============================================================
@@ -204,17 +243,25 @@ function toSql(rows, counts, date) {
 -- Izvor: oglasi za Kragujevac na 4zida.rs - ${counts}
 -- Pravilo i odbacivanje grešaka: vidi zaglavlje skripte.
 -- Pregledati, pa pokrenuti u Supabase SQL editoru. Bezbedno je pokrenuti
--- više puta (upsert); naselja kojih nema u ovom fajlu zadržavaju staru cenu.
+-- više puta (upsert). Na kraju se brišu redovi iz RANIJIH osvežavanja sa
+-- oglasa koji ovog puta ne prolaze pravilo (vlasnik, 15. 10. 2026) - za ta
+-- naselja procena računa iz proseka grada. Ručno uneti redovi ostaju.
+-- Kolone listing_count / independent_count: migracija 031.
 
 insert into public.zone_price_baselines
-  (city, neighborhood, property_type, listing_type, price_per_sqm_low, price_per_sqm_high, updated_by)
+  (city, neighborhood, property_type, listing_type, price_per_sqm_low, price_per_sqm_high, listing_count, independent_count, updated_by)
 values
 ${values}
 on conflict (lower(city), lower(neighborhood), property_type, listing_type) do update set
   price_per_sqm_low = excluded.price_per_sqm_low,
   price_per_sqm_high = excluded.price_per_sqm_high,
+  listing_count = excluded.listing_count,
+  independent_count = excluded.independent_count,
   updated_at = now(),
   updated_by = excluded.updated_by;
+
+delete from public.zone_price_baselines
+where updated_by like '4zida-oglasi-%' and updated_by <> '${source}';
 `;
 }
 
@@ -229,8 +276,8 @@ const out = path.join(root, 'supabase', 'seed', `zone_price_baselines_4zida_${da
 fs.writeFileSync(out, toSql(rows, perCategory, date));
 
 console.log(`\n${rows.length} redova -> ${path.relative(root, out)}`);
-for (const r of rows) console.log(`  ${r.kind}\t${r.type}\t${r.hood}\t${r.low} – ${r.high}\t(${r.n})`);
-const bigUnmapped = [...unmapped].filter(([, n]) => n >= MIN_LISTINGS).sort((a, b) => b[1] - a[1]);
+for (const r of rows) console.log(`  ${r.kind}\t${r.type}\t${r.hood}\t${r.low} – ${r.high}\t(${r.n} od ${r.total})`);
+const bigUnmapped = [...unmapped].filter(([, n]) => n >= MIN_LISTINGS.apartment).sort((a, b) => b[1] - a[1]);
 if (bigUnmapped.length) {
   console.log('\nDelovi grada sa dovoljno oglasa koji nisu povezani sa naseljem (AREA_TO_NEIGHBOURHOOD):');
   for (const [a, n] of bigUnmapped) console.log(`  ${a || '(bez naselja)'}: ${n}`);

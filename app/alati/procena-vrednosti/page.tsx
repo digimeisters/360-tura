@@ -11,7 +11,7 @@ import { SITE_NAME, SITE_URL } from '../../lib/site';
 import { serializeJsonLd } from '../../lib/structuredData';
 import { HERO_TOUR_SLUG } from '../../lib/showcaseTours';
 import { VALUATION_COPY as COPY } from '../../lib/valuation/valuationCopy';
-import type { ValuationListingType } from '../../lib/valuation/types';
+import type { ValuationListingType, ValuationPropertyType } from '../../lib/valuation/types';
 import { VALUATION_HREF } from '../toolsNav';
 
 /**
@@ -20,7 +20,8 @@ import { VALUATION_HREF } from '../toolsNav';
  * desno, pa delovi u jeziku sajta iz ToolSections: šta utiče, plava traka, pitanja). Kratka adresa /procena-vrednosti
  * (za oglase) preusmerava ovde - next.config.ts.
  *
- * Raspon računa /api/valuation/estimate iz zone_price_baselines (migracije
+ * ?naselje=Bubanj&vrsta=stan dolaze sa strane cena po naseljima (forma ih
+ * popuni unapred). Raspon računa /api/valuation/estimate iz zone_price_baselines (migracije
  * 029-030; cene: npm run prices:refresh). Strana nije statična kao ostali
  * alati jer čita ?tip=izdavanje, ali ne dira bazu - samo forma to radi.
  */
@@ -62,7 +63,16 @@ const PAGE_STYLES = `
   .vl-upsell{margin:6px 0 0; font-size:.86rem; color:var(--ink-soft); line-height:1.5;}
 `;
 
-type Props = { searchParams: Promise<{ tip?: string | string[] }> };
+type Param = string | string[] | undefined;
+type Props = { searchParams: Promise<{ tip?: Param; naselje?: Param; vrsta?: Param }> };
+
+const first = (v: Param) => (Array.isArray(v) ? v[0] : v) ?? '';
+
+/** ?vrsta=stan|kuca|lokal (sa strane cena po naseljima) bira vrstu nekretnine unapred. */
+function typeFromParam(vrsta: Param): ValuationPropertyType | '' {
+  const value = first(vrsta).toLowerCase();
+  return value === 'stan' ? 'apartment' : value === 'kuca' ? 'house' : value === 'lokal' ? 'commercial' : '';
+}
 
 /** ?tip=izdavanje (ili rent) bira izdavanje unapred - za kampanje vlasnicima koji izdaju. */
 function listingFromParam(tip: string | string[] | undefined): ValuationListingType {
@@ -71,7 +81,7 @@ function listingFromParam(tip: string | string[] | undefined): ValuationListingT
 }
 
 export default async function ValuationPage({ searchParams }: Props) {
-  const { tip } = await searchParams;
+  const { tip, naselje, vrsta } = await searchParams;
 
   const jsonLd = [
     {
@@ -127,7 +137,12 @@ export default async function ValuationPage({ searchParams }: Props) {
             <p className="lede">{COPY.hero.lede}</p>
           </section>
 
-          <ValuationForm demoTourHref={DEMO_TOUR_HREF} initialListingType={listingFromParam(tip)} />
+          <ValuationForm
+            demoTourHref={DEMO_TOUR_HREF}
+            initialListingType={listingFromParam(tip)}
+            initialNeighborhood={first(naselje)}
+            initialPropertyType={typeFromParam(vrsta)}
+          />
         </div>
 
         <ToolExplain

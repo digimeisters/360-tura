@@ -219,6 +219,50 @@ export const SITE_STYLES = `
     .nav-lang a{margin-left:0; background:var(--surface); border-color:var(--line-strong);}
     section{scroll-margin-top:124px;}
   }
+
+  /* ---------- GLAVNI MENI (components/MainMenu) ---------- */
+  /* Isti na svim srpskim stranama: Ture · Usluge ▾ · Alati ▾ · Cenovnik · Blog.
+     Ovde nema strelice "druga strana" - sve stavke vode na druge strane. */
+  .navlinks.mm{overflow:visible;}
+  .navlinks.mm li:not(.nav-lang) > a::after{content:none;}
+  .navlinks.mm a[aria-current="page"], .mm-btn.is-here{color:var(--accent);}
+  .mm-group{position:relative;}
+  .mm-btn{display:flex; align-items:center; gap:.35rem; border:0; background:transparent; font:inherit; font-size:.88rem; font-weight:600; color:var(--ink-soft); padding:.45rem .85rem; border-radius:999px; cursor:pointer; white-space:nowrap; transition:background .15s ease, color .15s ease;}
+  @media (hover:hover){ .mm-btn:hover{background:var(--surface-2); color:var(--ink);} }
+  .mm-btn[aria-expanded="true"]{background:var(--surface-2); color:var(--ink);}
+  .mm-chev{font-size:.7em; transition:transform .15s ease;}
+  .mm-btn[aria-expanded="true"] .mm-chev{transform:rotate(180deg);}
+  .mm-drop{position:absolute; top:calc(100% + .6rem); left:50%; transform:translateX(-50%); width:22rem; background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:.5rem; box-shadow:0 20px 50px -18px rgba(17,17,19,.35); z-index:50;}
+  .mm-drop[hidden]{display:none;}
+  .mm-entry, .navlinks .mm-drop a.mm-entry{display:flex; gap:.75rem; align-items:flex-start; padding:.7rem .75rem; border-radius:12px; text-decoration:none; color:var(--ink); white-space:normal; font-size:inherit; font-weight:inherit;}
+  @media (hover:hover){ .mm-entry:hover, .navlinks .mm-drop a.mm-entry:hover{background:var(--accent-soft); color:var(--ink);} }
+  .mm-entry[aria-current="page"]{background:var(--accent-soft);}
+  .mm-ico{flex:none; width:2.2rem; height:2.2rem; border-radius:10px; background:var(--accent-soft); color:var(--accent); display:grid; place-items:center;}
+  .mm-ico svg{width:1.15rem; height:1.15rem;}
+  .mm-entry b{display:block; font-family:var(--font-display); font-size:.92rem; font-weight:700;}
+  .mm-entry small{display:block; color:var(--ink-faint); font-size:.78rem; line-height:1.4; margin-top:.1rem; font-weight:500;}
+  .mm-new{font-family:var(--font-body); font-size:.6rem; font-weight:800; letter-spacing:.04em; text-transform:uppercase; background:#F59E0B; color:#FFFFFF; border-radius:5px; padding:.1rem .35rem; margin-left:.45rem; vertical-align:.15em;}
+  .mm-end{display:flex; align-items:center; gap:.5rem; flex:none;}
+  .mm-burger{display:none; align-items:center; gap:.45rem; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); border-radius:999px; padding:.45rem .9rem; font:inherit; font-weight:700; font-size:.86rem; min-height:40px; cursor:pointer;}
+  .mm-lines{display:grid; gap:3px;}
+  .mm-lines i{display:block; width:14px; height:2px; background:currentColor; border-radius:2px;}
+  /* Telefon i tablet: umesto reda pilula jedno dugme "Meni". */
+  @media (max-width:980px){
+    .navlinks.mm{display:none;}
+    .mm-burger{display:inline-flex;}
+    .nav-bar:has(.mm-end){flex-wrap:nowrap;}
+    section{scroll-margin-top:76px;}
+  }
+  /* Uzan telefon: dugme za kontakt je u meniju i na strani, ovde bi gurnulo "Meni" van ekrana. */
+  @media (max-width:520px){ .mm-end .btn-primary{display:none;} }
+  .mm-sheet{position:fixed; inset:0; z-index:100; background:var(--bg); overflow-y:auto; padding:1rem 1rem 2rem;}
+  .mm-sheet-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:.8rem;}
+  .mm-sheet-title{font-family:var(--font-display); font-weight:800; font-size:1.1rem;}
+  .mm-x{width:44px; height:44px; border-radius:50%; border:1px solid var(--line); background:var(--surface); font-size:1.5rem; line-height:1; color:var(--ink); cursor:pointer;}
+  .mm-sheet .mm-entry{background:var(--surface); border:1px solid var(--line); margin-bottom:.4rem; align-items:center;}
+  .mm-sheet-grp{font-size:.72rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); margin:1rem .3rem .4rem;}
+  .mm-sheet-end{display:flex; gap:.5rem; margin-top:1.2rem;}
+  .mm-sheet-end .btn{flex:1; justify-content:center;}
   .band{background:var(--surface-2);}
   main{counter-reset:chapter;}
   .section-head{display:flex; flex-direction:column; align-items:flex-start; text-align:left; gap:1rem; margin-bottom:clamp(2.4rem,5vw,3.8rem);}

@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 import ContactForm from '../../components/ContactForm';
 import HeroDevice from '../../components/HeroDevice';
@@ -241,16 +240,8 @@ export default async function AgencyPage() {
         brandHref="/"
         brandAria={nav.brandAria}
         cta={{ href: '#kontakt', label: nav.cta, track: 'cta:agency_nav' }}
-      >
-        {/* Redosled mora da prati redosled sekcija - vidi NavScrollSpy. */}
-        <li><a href="#nedelja">{nav.week}</a></li>
-        <li><a href="#kupac">{nav.buyer}</a></li>
-        <li><a href="#vlasnik">{nav.owner}</a></li>
-        <li><a href="#paketi">{nav.packages}</a></li>
-        <li><a href="#pitanja">{nav.faq}</a></li>
-        <li><Link href="/blog">Blog</Link></li>
-        <li className="nav-lang"><Link href="/">{nav.home}</Link></li>
-      </SiteNav>
+        mainMenu={{}}
+      />
 
       <main>
         {/* Vrh: obećanje i prava tura jedno pored drugog. */}

@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 import ContactForm from '../../components/ContactForm';
 import InvestorDemo, { Building } from '../../components/InvestorDemo';
@@ -33,8 +32,9 @@ import SiteStylesheets from '../../components/SiteStylesheets';
  * Bez projekta primera (nije objavljen) vrh i primer padaju na stari crtež
  * izmišljenog projekta (InvestorHeroDevice, InvestorDemo).
  *
- * Za sada SKRIVENA: noindex, nema je u meniju, podnožju ni sitemap-u.
- * Vlasnik link šalje investitorima direktno.
+ * Javna od 15. 10. 2026 (vlasnik): u glavnom meniju (Usluge), podnožju i
+ * sitemap-u, i Google je indeksira. Strane samih projekata (/novogradnja/...)
+ * i dalje imaju svoja pravila.
  */
 
 const PATH = '/za-investitore';
@@ -80,7 +80,6 @@ export const metadata: Metadata = {
   title: { absolute: copy.meta.title },
   description: copy.meta.description,
   alternates: { canonical: PATH },
-  robots: { index: false, follow: false },
   openGraph: {
     type: 'website',
     siteName: SITE_NAME,
@@ -259,16 +258,7 @@ export default async function InvestorPage() {
       <SiteTracker />
       <NavScrollSpy />
 
-      <SiteNav brandHref="/" brandAria={nav.brandAria} cta={{ href: '#kontakt', label: nav.cta, track: 'cta:investor_nav' }}>
-        {/* Redosled mora da prati redosled sekcija - vidi NavScrollSpy. */}
-        <li><a href="#danas">{nav.compare}</a></li>
-        <li><a href="#primer">{nav.demo}</a></li>
-        <li><a href="#kupac">{nav.buyer}</a></li>
-        <li><a href="#prodaja">{nav.sales}</a></li>
-        <li><a href="#paket">{nav.offer}</a></li>
-        <li><a href="#pitanja">{nav.faq}</a></li>
-        <li className="nav-lang"><Link href="/">{nav.home}</Link></li>
-      </SiteNav>
+      <SiteNav brandHref="/" brandAria={nav.brandAria} cta={{ href: '#kontakt', label: nav.cta, track: 'cta:investor_nav' }} mainMenu={{}} />
 
       <main>
         {/* Vrh: obećanje i živa zgrada jedno pored drugog. */}

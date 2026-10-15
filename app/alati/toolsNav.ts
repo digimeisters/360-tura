@@ -5,15 +5,10 @@ import { join } from 'node:path';
  * Zajedničko za strane „Alati" (/alati, /alati/kalkulator-kredita).
  */
 
+// Meni je glavni meni sajta (components/MainMenu); ovde samo zaglavlje.
 export const TOOLS_NAV = {
   brandAria: 'Kvadrat360, početna strana',
-  cta: 'Zakažite snimanje',
-  links: [
-    { href: '/ture', label: 'Ture' },
-    { href: '/za-agencije', label: 'Za agencije' },
-    { href: '/alati', label: 'Alati' },
-    { href: '/blog', label: 'Blog' }
-  ]
+  cta: 'Zakažite snimanje'
 } as const;
 
 /** Novogradnja na koju kalkulator šalje kupca (projekat klijenta, isti kao primer na /za-investitore). */

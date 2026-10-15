@@ -105,8 +105,6 @@ export type HomeCopy = {
     // samo u srpskom meniju (vidi HomePage.tsx).
     agencies?: string;
     blog?: string;
-    // Strane „Alati" (kalkulator kredita, procena) - za sada samo srpski.
-    tools?: string;
     contact: string;
     cta: string;
     // Link ka drugoj jezičkoj verziji strane.
@@ -213,7 +211,6 @@ const sr: HomeCopy = {
     packages: 'Cenovnik',
     agencies: 'Za agencije',
     blog: 'Blog',
-    tools: 'Alati',
     contact: 'Kontakt',
     cta: 'Zakažite snimanje',
     switchLabel: 'EN',

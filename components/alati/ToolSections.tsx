@@ -13,18 +13,9 @@ import { TOOLS_NAV } from '../../app/alati/toolsNav';
 
 type LinkAction = { href: string; label: string; track: string };
 
+/** Zaglavlje sa glavnim menijem sajta (components/MainMenu). */
 export function ToolsNav() {
-  return (
-    <SiteNav brandHref="/" brandAria={TOOLS_NAV.brandAria} cta={{ href: '/#kontakt', label: TOOLS_NAV.cta, track: 'cta:tools_nav' }}>
-      {TOOLS_NAV.links.map((l) => (
-        <li key={l.href}>
-          <Link href={l.href} aria-current={l.href === '/alati' ? 'page' : undefined}>
-            {l.label}
-          </Link>
-        </li>
-      ))}
-    </SiteNav>
-  );
+  return <SiteNav brandHref="/" brandAria={TOOLS_NAV.brandAria} cta={{ href: '/#kontakt', label: TOOLS_NAV.cta, track: 'cta:tools_nav' }} mainMenu={{}} />;
 }
 
 export function ToolExplain({

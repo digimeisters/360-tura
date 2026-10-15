@@ -76,6 +76,7 @@ export const NEIGHBOURHOODS: Record<string, string[]> = {
     'Bagremar',
     'Beloševac',
     'Bresnica',
+    'Bubanj',
     'Centar',
     'Centar preko Lepenice',
     'Centralna radionica',

@@ -150,13 +150,23 @@ function YesNo({ label, value, onChange }: { label: string; value: boolean | nul
 
 export default function ValuationForm({
   demoTourHref,
-  initialListingType
+  initialListingType,
+  initialNeighborhood = '',
+  initialPropertyType = ''
 }: {
   demoTourHref: string;
   initialListingType: ValuationListingType;
+  /** Naselje izabrano unapred (?naselje= - dolazi sa strane cena po naseljima); mora biti sa liste. */
+  initialNeighborhood?: string;
+  initialPropertyType?: ValuationPropertyType | '';
 }) {
   const [step, setStep] = useState<1 | 2>(1);
-  const [form, setForm] = useState<FormState>({ ...INITIAL, listingType: initialListingType });
+  const [form, setForm] = useState<FormState>({
+    ...INITIAL,
+    listingType: initialListingType,
+    neighborhoodChoice: neighbourhoodsFor(INITIAL.city).includes(initialNeighborhood) ? initialNeighborhood : '',
+    propertyType: initialPropertyType
+  });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ estimate: EstimateResult | null; listingType: ValuationListingType } | null>(null);

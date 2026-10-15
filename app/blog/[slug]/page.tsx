@@ -83,11 +83,8 @@ export default async function BlogPostPage({ params }: Props) {
         brandHref="/"
         brandAria={NAV.brandAria}
         cta={{ href: '/#kontakt', label: NAV.cta, track: 'cta:blog_post_nav' }}
-      >
-        <li><Link href="/">{NAV.home}</Link></li>
-        <li><Link href="/blog">Blog</Link></li>
-        <li><Link href="/za-agencije">{NAV.agencies}</Link></li>
-      </SiteNav>
+        mainMenu={{}}
+      />
 
       <main>
         <section className="hero hero-solo" id="pocetna">

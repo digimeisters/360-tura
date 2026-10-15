@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { Logo } from '../app/tour/[slug]/Logo';
 import { CONTACT, CONTACT_LINKS } from '../app/lib/site';
+import MainMenu, { type MenuLang } from './MainMenu';
 
 /**
  * Zaglavlje i podnožje zajednički za sve javne strane sajta (/, /en, /ture,
@@ -9,8 +10,9 @@ import { CONTACT, CONTACT_LINKS } from '../app/lib/site';
  * da se pamti na tri mesta - odatle su nastale razlike (npr. jedna strana
  * ostane bez veze ka drugoj).
  *
- * Same veze se razlikuju od strane do strane, pa ih svaka daje kao sadržaj
- * (`<li>` stavke); zajedničko je samo ono što mora svuda isto da izgleda.
+ * Srpske strane koriste glavni meni sajta (`mainMenu`, components/MainMenu:
+ * Ture · Usluge · Alati · Cenovnik · Blog). Engleska početna i strane
+ * projekata daju svoje veze kao sadržaj (`<li>` stavke).
  */
 
 export function SiteNav({
@@ -18,13 +20,16 @@ export function SiteNav({
   brandAria,
   cta,
   children,
+  mainMenu,
   logoSpin
 }: {
   /** Početna strana vodi na svoj vrh (#pocetna), ostale na "/". */
   brandHref: string;
   brandAria: string;
   cta: { href: string; label: string; track: string };
-  children: ReactNode;
+  children?: ReactNode;
+  /** Glavni meni sajta umesto `children`; `lang` = čip druge jezičke verzije. */
+  mainMenu?: { lang?: MenuLang };
   /** Jedan obrtaj znaka pri učitavanju - samo početna strana ovo prosleđuje. */
   logoSpin?: boolean;
 }) {
@@ -45,10 +50,16 @@ export function SiteNav({
               <Logo spin={logoSpin} />
             </Link>
           )}
-          <ul className="navlinks">{children}</ul>
-          <Cta className="btn btn-primary btn-sm" href={cta.href} data-track={cta.track}>
-            {cta.label}
-          </Cta>
+          {mainMenu ? (
+            <MainMenu lang={mainMenu.lang} cta={cta} />
+          ) : (
+            <>
+              <ul className="navlinks">{children}</ul>
+              <Cta className="btn btn-primary btn-sm" href={cta.href} data-track={cta.track}>
+                {cta.label}
+              </Cta>
+            </>
+          )}
         </div>
       </div>
     </header>
@@ -70,6 +81,7 @@ export function SiteFooter({ note, lang = 'sr' }: { note: string; lang?: 'sr' | 
             <nav className="foot-links" aria-label="Strane sajta">
               <Link href="/ture">Ture</Link>
               <Link href="/za-agencije">Za agencije</Link>
+              <Link href="/za-investitore">Za investitore</Link>
               <Link href="/alati">Alati</Link>
               <Link href="/blog">Blog</Link>
             </nav>

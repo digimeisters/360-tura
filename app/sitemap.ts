@@ -33,6 +33,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.8
     },
+    // Za investitore (novogradnja) - javna od 15. 10. 2026.
+    {
+      url: `${SITE_URL}/za-investitore`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8
+    },
     // Alati: ulaz, kalkulator kredita (kupci iz pretrage "kalkulator
     // stambenog kredita") i procena vrednosti (vlasnici koji prodaju/izdaju).
     {
@@ -46,6 +53,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.7
+    },
+    // Cene po naseljima - pretraga "cene stanova Kragujevac"; menja se na dva meseca.
+    {
+      url: `${SITE_URL}/alati/cene-nekretnina-kragujevac`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8
     },
     {
       url: `${SITE_URL}/alati/procena-vrednosti`,

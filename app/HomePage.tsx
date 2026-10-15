@@ -95,6 +95,17 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
       <NavScrollSpy />
       <PromoTopBar lang={lang} href="#cenovnik" />
 
+      {/* Srpska početna: glavni meni sajta (isti na svim stranama). Engleska
+          zadržava meni sa sekcijama ove strane - druge strane su samo na srpskom. */}
+      {lang === 'sr' ? (
+        <SiteNav
+          brandHref="#pocetna"
+          brandAria={nav.brandAria}
+          cta={{ href: '#kontakt', label: nav.cta, track: 'cta:nav_book' }}
+          logoSpin
+          mainMenu={{ lang: { href: nav.switchHref, label: nav.switchLabel, hrefLang: nav.switchLang, aria: nav.switchAria } }}
+        />
+      ) : (
       <SiteNav
         brandHref="#pocetna"
         brandAria={nav.brandAria}
@@ -131,11 +142,6 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
             <Link href="/blog" data-track="cta:nav_blog">{nav.blog}</Link>
           </li>
         )}
-        {nav.tools && (
-          <li>
-            <Link href="/alati" data-track="cta:nav_tools">{nav.tools}</Link>
-          </li>
-        )}
         <li><a href="#kontakt">{nav.contact}</a></li>
         <li className="nav-lang">
           <a href={nav.switchHref} hrefLang={nav.switchLang} lang={nav.switchLang} aria-label={nav.switchAria}>
@@ -143,6 +149,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
           </a>
         </li>
       </SiteNav>
+      )}
 
       <main>
         <section className="hero" id="pocetna">
