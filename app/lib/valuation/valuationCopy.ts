@@ -47,7 +47,7 @@ export const VALUATION_COPY = {
       },
       {
         title: 'Sprat (samo stan)',
-        value: `${pct(FLOOR_MULTIPLIER.highNoElevator)} do ${pct(FLOOR_MULTIPLIER.mid)}`,
+        value: `${pct(Math.min(FLOOR_MULTIPLIER.ground, FLOOR_MULTIPLIER.highNoElevator))} do ${pct(FLOOR_MULTIPLIER.mid)}`,
         text: `Prizemlje${NB}${pct(FLOOR_MULTIPLIER.ground)}, 4–6.${NB}sprat${NB}${pct(FLOOR_MULTIPLIER.mid)}, 7.${NB}sprat i${NB}više bez${NB}lifta${NB}${pct(FLOOR_MULTIPLIER.highNoElevator)}.`
       },
       {

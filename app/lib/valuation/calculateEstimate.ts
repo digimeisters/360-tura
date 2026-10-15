@@ -28,7 +28,9 @@ export const CONDITION_MULTIPLIER: Record<ValuationCondition, number> = {
 
 /** Množioci sprata (samo stan); izvezeni da ih strana prikaže bez prepisivanja. */
 export const FLOOR_MULTIPLIER = {
-  ground: 0.95,
+  // Prizemlje: oglasi u KG ~13% jeftiniji od 1-3. sprata za slične stanove
+  // (696 oglasa, 4zida, 15. 10. 2026) - vlasnik odobrio −10%.
+  ground: 0.9,
   low: 1.0,
   mid: 1.02,
   highWithElevator: 1.02,
@@ -41,13 +43,14 @@ export const TERRACE_BONUS = 0.02;
 /**
  * Nameštenost (samo izdavanje). Cene za izdavanje u zone_price_baselines se
  * upisuju za NAMEŠTENU nekretninu, pa je namešten 1.00, a ostalo umanjenje.
- * PRETPOSTAVKA (11. 10. 2026) - vrednosti nisu iz specifikacije; vlasnik ih
- * potvrđuje ili menja ovde, strana ih čita odavde.
+ * Izmereno na 222 oglasa za izdavanje stanova u KG (4zida, 15. 10. 2026),
+ * poređenjem sličnih stanova (isto naselje, sobe, stanje): polunamešteno
+ * −10%, prazno −18%. Strana čita vrednosti odavde.
  */
 export const FURNISHING_MULTIPLIER: Record<ValuationFurnishing, number> = {
   furnished: 1.0,
-  semi_furnished: 0.93,
-  unfurnished: 0.85
+  semi_furnished: 0.9,
+  unfurnished: 0.82
 };
 
 /**
