@@ -90,6 +90,16 @@ export type PricingLabels = {
   overBasic: string;
 };
 
+export type HomeService = {
+  icon: 'home' | 'agency' | 'building';
+  label: string;
+  text: string;
+  points: string[];
+  cta: string;
+  href: string;
+  isNew?: boolean;
+};
+
 export type HomeCopy = {
   locale: string;
   meta: { title: string; description: string };
@@ -176,12 +186,14 @@ export type HomeCopy = {
   // Putokaz ka strani za agencije (/za-agencije), odmah ispod paketa. Ta
   // strana postoji za sada samo na srpskom, pa se i sekcija pojavljuje samo
   // tamo - isto pravilo kao nav.agencies.
-  agencyBridge?: {
+  /** Sve usluge na jednom mestu - samo srpska početna (te strane su samo na srpskom). */
+  services?: {
     eyebrow: string;
     title: string;
-    text: string;
-    points: string[];
-    cta: string;
+    note: string;
+    items: HomeService[];
+    toolsLabel: string;
+    tools: { href: string; label: string }[];
   };
   faq: { eyebrow: string; title: string; note: string };
   contact: {
@@ -379,13 +391,43 @@ const sr: HomeCopy = {
     },
     fine: '* Cene su prosečne, za prostor od oko 50 m². Za manje i veće prostore cenu formiramo prema broju prostorija — javite kvadraturu i broj soba, pa šaljemo tačnu ponudu. Za gradove van Kragujevca dogovaramo posebno.'
   },
-  agencyBridge: {
-    eyebrow: 'Za agencije',
-    title: 'Vodite više oglasa *odjednom?*',
-    text:
-      'Niža cena za više oglasa mesečno, upitnik za agente, kontakt agenta u svakoj turi i mesečni izveštaj o posetama — sve na jednom mestu.',
-    points: ['Upitnik — sami ili zajedno sa nama', 'Kontakt agenta u svakoj turi', 'Praćenje poseta po oglasu'],
-    cta: 'Pogledajte stranu za agencije →'
+  services: {
+    eyebrow: 'Usluge',
+    title: 'Za vlasnike, agencije *i investitore*',
+    note: 'Isto snimanje i ista tura, prilagođeni onome ko prodaje: jednu nekretninu, više oglasa mesečno ili celu zgradu.',
+    items: [
+      {
+        icon: 'home',
+        label: 'Za vlasnike',
+        text: 'Prodajete ili izdajete nekretninu? Tura i HDR fotografije za vaš oglas, gotovi za 24–48h.',
+        points: ['Link za svaki portal', 'Vaš telefon u turi', 'Jedna cena po nekretnini'],
+        cta: 'Kako radimo →',
+        href: '#kako-radimo'
+      },
+      {
+        icon: 'agency',
+        label: 'Za agencije',
+        text: 'Niža cena za više oglasa mesečno, kontakt agenta u svakoj turi i mesečni izveštaj o posetama.',
+        points: ['Upitnik — sami ili zajedno sa nama', 'Kontakt agenta u svakoj turi', 'Praćenje poseta po oglasu'],
+        cta: 'Strana za agencije →',
+        href: '/za-agencije'
+      },
+      {
+        icon: 'building',
+        label: 'Za investitore',
+        isNew: true,
+        text: 'Novogradnja: kupac na fotografiji zgrade klikne na stan i odmah vidi kvadraturu, raspored, cenu i status.',
+        points: ['Stanovi obojeni po statusu', 'Osnova i 360° tura stana', 'Prodaja sama menja cene i statuse'],
+        cta: 'Strana za investitore →',
+        href: '/za-investitore'
+      }
+    ],
+    toolsLabel: 'Besplatni alati:',
+    tools: [
+      { href: '/alati/kalkulator-kredita', label: 'Kalkulator kredita' },
+      { href: '/alati/procena-vrednosti', label: 'Procena vrednosti' },
+      { href: '/alati/cene-nekretnina-kragujevac', label: 'Cene po naseljima' }
+    ]
   },
   faq: {
     eyebrow: 'Česta pitanja',

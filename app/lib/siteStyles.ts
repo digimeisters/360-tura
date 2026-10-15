@@ -727,6 +727,23 @@ export const SITE_STYLES = `
   .agency-bridge .btn{white-space:nowrap; background:#1E5AA8; color:#FFFFFF; box-shadow:none;}
   .agency-bridge .btn:hover{background:#17447E;}
   .agency-bridge .bridge-points li{font-size:1rem;}
+  /* "Usluge" na početnoj: isti tamni blok, tri kartice i red besplatnih alata. */
+  .agency-bridge.services .wrap{display:block;}
+  .svc-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem; margin-top:clamp(1.6rem,3vw,2.4rem);}
+  @media (max-width:900px){ .svc-grid{grid-template-columns:1fr;} }
+  .svc{padding:1.7rem 1.6rem; display:flex; flex-direction:column; gap:.75rem; box-shadow:none;}
+  .svc-ico{width:44px; height:44px; border-radius:14px; display:grid; place-items:center; background:var(--accent-soft); color:var(--accent);}
+  .svc-ico svg{width:22px; height:22px;}
+  .svc h3{display:flex; align-items:center; gap:.55rem; font-size:1.25rem; font-weight:700; line-height:1.25; letter-spacing:-0.015em;}
+  .svc-new{padding:.18rem .55rem; border-radius:999px; background:var(--accent); color:var(--on-accent); font-size:.68rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase;}
+  .svc p{color:var(--ink-soft); font-size:.95rem; line-height:1.6;}
+  .agency-bridge .svc .bridge-points{flex-direction:column; gap:.4rem; margin:0;}
+  .agency-bridge .svc .bridge-points li{font-size:.92rem;}
+  .svc-link{margin-top:auto; padding-top:.5rem; color:var(--accent); font-weight:700; text-decoration:none;}
+  .svc-link:hover{color:var(--accent-strong);}
+  .svc-tools{display:flex; flex-wrap:wrap; align-items:center; gap:.6rem .8rem; margin-top:1.5rem; color:var(--ink-soft); font-size:.95rem;}
+  .svc-tools a{padding:.55rem 1rem; border:1px solid var(--line-strong); border-radius:999px; color:var(--ink); font-weight:600; text-decoration:none; transition:border-color .2s, color .2s;}
+  .svc-tools a:hover{border-color:var(--accent); color:var(--accent-strong);}
 
   .integration{background:var(--dark-bg); color:var(--dark-ink);}
   .integration .wrap{display:grid; grid-template-columns:1fr 1.1fr; gap:clamp(2rem,5vw,3.5rem); align-items:center;}

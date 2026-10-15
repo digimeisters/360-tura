@@ -8,7 +8,7 @@ import CardSpotlight from '../components/CardSpotlight';
 import PromoBanner from '../components/PromoBanner';
 import Pricing from '../components/Pricing';
 import NavScrollSpy from '../components/NavScrollSpy';
-import { getShowcaseTours, pickHeroTour, TOUR_FILTERS_FROM } from './lib/showcaseTours';
+import { getShowcaseTours, HOME_CITY, localToursFirst, pickHeroTour, TOUR_FILTERS_FROM } from './lib/showcaseTours';
 import { SITE_NAME, CONTACT, CONTACT_LINKS, whatsappLink } from './lib/site';
 import { HOME_COPY, type HomeLang } from './lib/homeCopy';
 import { HOME_FAQ } from './lib/homeFaq';
@@ -56,6 +56,13 @@ export function homeMetadata(lang: HomeLang): Metadata {
   };
 }
 
+// Ikone kartica u sekciji "Usluge" - iste linije kao u glavnom meniju.
+const SERVICE_ICONS = {
+  home: <path d="M4 11 12 4l8 7v9h-5v-6H9v6H4v-9Z" />,
+  agency: <path d="M4 20V8l8-4 8 4v12M9 20v-5h6v5M8 10h.01M12 10h.01M16 10h.01" />,
+  building: <path d="M6 20V4h9v16M15 9h3v11M9 8h3M9 12h3M9 16h3M4 20h16" />
+};
+
 // Broj kolona prati broj tura, da nijedna kartica ne ostane sama u redu.
 function gridClass(count: number): string {
   if (count === 1) return 'n-1';
@@ -71,8 +78,10 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
   const faq = HOME_FAQ[lang];
   const { nav, hero, contact } = copy;
 
-  const [tours, openCount] = await Promise.all([getShowcaseTours(lang), getPublicOpenCount()]);
-  const heroTour = pickHeroTour(tours, lang);
+  const [allTours, openCount] = await Promise.all([getShowcaseTours(lang), getPublicOpenCount()]);
+  // Strana kaže "Vaš kvadrat u Kragujevcu" - primeri i kadar u vrhu kreću od tog grada.
+  const tours = localToursFirst(allTours);
+  const heroTour = pickHeroTour(tours, lang, HOME_CITY);
   preloadHeroImage(heroTour);
   // Mini-pretraga nudi samo vrednosti koje postoje u objavljenim turama.
   const searchCities = [...new Set(tours.map((t) => t.city).filter((c): c is string => Boolean(c)))].sort((a, b) => a.localeCompare(b, 'sr'));
@@ -333,22 +342,49 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
           </div>
         </section>
 
-        {copy.agencyBridge && (
-          <section className="agency-bridge" id="agencije">
+        {/* Sve usluge na jednom mestu (vlasnik, 15. 10. 2026): početna je
+            ranije vodila samo na agencije, a investitori i alati su se videli
+            tek u meniju - na telefonu skrivenom iza dugmeta "Meni". */}
+        {copy.services && (
+          <section className="agency-bridge services" id="usluge">
             <div className="wrap">
               <div className="section-head left">
-                <span className="eyebrow">{copy.agencyBridge.eyebrow}</span>
-                <h2>{accent(copy.agencyBridge.title)}</h2>
-                <p className="note">{copy.agencyBridge.text}</p>
-                <ul className="bridge-points">
-                  {copy.agencyBridge.points.map((point) => (
-                    <li key={point}>{point}</li>
-                  ))}
-                </ul>
+                <span className="eyebrow">{copy.services.eyebrow}</span>
+                <h2>{accent(copy.services.title)}</h2>
+                <p className="note">{copy.services.note}</p>
               </div>
-              <Link className="btn btn-primary" href="/za-agencije" data-track="cta:agency_bridge">
-                {copy.agencyBridge.cta}
-              </Link>
+              <div className="svc-grid">
+                {copy.services.items.map((item) => (
+                  <div key={item.href} className="card svc">
+                    <span className="svc-ico" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        {SERVICE_ICONS[item.icon]}
+                      </svg>
+                    </span>
+                    <h3>
+                      {item.label}
+                      {item.isNew && <span className="svc-new">Novo</span>}
+                    </h3>
+                    <p>{item.text}</p>
+                    <ul className="bridge-points">
+                      {item.points.map((point) => (
+                        <li key={point}>{point}</li>
+                      ))}
+                    </ul>
+                    <Link className="svc-link" href={item.href} data-track={`cta:services_${item.icon}`}>
+                      {item.cta}
+                    </Link>
+                  </div>
+                ))}
+              </div>
+              <div className="svc-tools">
+                <span>{copy.services.toolsLabel}</span>
+                {copy.services.tools.map((tool) => (
+                  <Link key={tool.href} href={tool.href} data-track="cta:services_tool">
+                    {tool.label}
+                  </Link>
+                ))}
+              </div>
             </div>
           </section>
         )}

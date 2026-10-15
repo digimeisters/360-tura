@@ -21,6 +21,14 @@ export const HERO_TOUR_SLUG = 'stan-gasse-1';
  */
 export const TOUR_FILTERS_FROM = 4;
 
+/** Grad kome se početna obraća: njegove ture idu prve (vlasnik, 15. 10. 2026). */
+export const HOME_CITY = 'Kragujevac';
+
+/** Ture iz `city` napred, ostale iza njih, svaka grupa u postojećem redosledu. */
+export function localToursFirst(tours: ShowcaseTour[], city = HOME_CITY): ShowcaseTour[] {
+  return [...tours.filter((t) => t.city === city), ...tours.filter((t) => t.city !== city)];
+}
+
 const LANGUAGES = ['sr', 'en', 'de', 'ru'] as const;
 
 // Koliko teksta naracije stane u info-karticu kadra u vrhu strane.
@@ -251,12 +259,15 @@ export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
  * strane (/en) prednost imaju ture koje imaju taj jezik, da engleski
  * posetilac u kadru ne čita srpski tekst.
  */
-export function pickHeroTour(tours: ShowcaseTour[], lang = 'sr'): ShowcaseTour | null {
+export function pickHeroTour(tours: ShowcaseTour[], lang = 'sr', preferCity?: string): ShowcaseTour | null {
   const usable = tours.filter((t) => t.rooms.length > 0);
   if (!usable.length) return null;
 
   const inLang = usable.filter((t) => t.languages.includes(lang));
-  const pool = lang !== 'sr' && inLang.length ? inLang : usable;
+  const langPool = lang !== 'sr' && inLang.length ? inLang : usable;
+  // Početna se obraća Kragujevcu - kadar u vrhu je tura iz tog grada kad je ima.
+  const local = preferCity ? langPool.filter((t) => t.city === preferCity) : [];
+  const pool = local.length ? local : langPool;
 
   return (
     pool.find((t) => t.slug === HERO_TOUR_SLUG) ??
