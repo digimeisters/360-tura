@@ -33,7 +33,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.8
     },
-    // Alati: ulaz i kalkulator kredita (kupci iz pretrage "kalkulator stambenog kredita").
+    // Alati: ulaz, kalkulator kredita (kupci iz pretrage "kalkulator
+    // stambenog kredita") i procena vrednosti (vlasnici koji prodaju/izdaju).
     {
       url: `${SITE_URL}/alati`,
       lastModified: new Date(),
@@ -42,6 +43,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${SITE_URL}/alati/kalkulator-kredita`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.7
+    },
+    {
+      url: `${SITE_URL}/alati/procena-vrednosti`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.7

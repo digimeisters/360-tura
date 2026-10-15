@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
     remotePatterns: [{ protocol: 'https', hostname: 'cdn.kvadrat360.com', pathname: '/projekti/**', search: '' }],
     qualities: [75],
   },
+  // Kratka adresa procene za oglase i štampu; strana živi među alatima.
+  // ?tip=izdavanje i UTM parametri prelaze uz preusmerenje.
+  async redirects() {
+    return [{ source: '/procena-vrednosti', destination: '/alati/procena-vrednosti', permanent: true }];
+  },
 };
 
 export default nextConfig;

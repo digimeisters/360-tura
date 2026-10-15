@@ -96,7 +96,7 @@ export const NEIGHBOURHOODS: Record<string, string[]> = {
     'Maršić',
     'Metino brdo',
     'Ozon',
-    'Paliluje',
+    'Palilule',
     'Petrovac',
     'Pivara',
     'Potok',
@@ -105,8 +105,9 @@ export const NEIGHBOURHOODS: Record<string, string[]> = {
     'Šest Topola',
     'Šumarice',
     'Šumski Raj',
-    'Vašnjak',
+    'Vašarište',
     'Vinogradi',
+    'Višnjak',
     'Zvezda',
     'Ždraljica'
   ]

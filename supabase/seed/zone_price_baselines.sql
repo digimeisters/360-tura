@@ -1,0 +1,39 @@
+-- ============================================================
+-- Referentne cene po m² za kalkulator procene (/procena-vrednosti)
+-- ============================================================
+-- TODO (agencija): ovde se upisuju STVARNE cene. Kalkulator ne sme da
+-- koristi izmišljene brojeve, zato su svi redovi ispod pod komentarom -
+-- dok ne upišete bar jedan red za grad, forma lead snima, ali procenu ne
+-- prikazuje ("javljamo vam se sa procenom").
+--
+-- Kako se popunjava:
+--   1. Odkomentarišite red i zamenite NULL_LOW / NULL_HIGH brojevima.
+--   2. listing_type:
+--        'sale' = PRODAJNA cena u €/m²
+--        'rent' = KIRIJA u €/m² MESEČNO, za NAMEŠTENU nekretninu
+--                 (polunamešteno/prazno kalkulator sam umanjuje)
+--   3. price_per_sqm_low  = realna donja granica za to naselje (stanje
+--                           "održavano" se množi sa 1.00).
+--      price_per_sqm_high = gornja granica za isto stanje.
+--   4. Naselja neka budu ista kao na /unos (app/lib/propertyTaxonomy.ts).
+--   5. Za naselje bez reda kalkulator koristi PROSEK svih redova tog grada,
+--      tipa i iste vrste oglasa - dovoljno je krenuti sa glavnim naseljima.
+--   6. Ponovno pokretanje je bezbedno (upsert).
+--
+-- Tipovi: 'apartment' | 'house' | 'commercial'
+--
+-- insert into public.zone_price_baselines
+--   (city, neighborhood, property_type, listing_type, price_per_sqm_low, price_per_sqm_high, updated_by)
+-- values
+--   -- Prodaja (€/m²)
+--   -- ('Kragujevac', 'Centar',   'apartment', 'sale', NULL_LOW, NULL_HIGH, 'ime.prezime'),
+--   -- ('Kragujevac', 'Aerodrom', 'apartment', 'sale', NULL_LOW, NULL_HIGH, 'ime.prezime'),
+--   -- ('Kragujevac', 'Bresnica', 'house',     'sale', NULL_LOW, NULL_HIGH, 'ime.prezime'),
+--   -- Izdavanje (€/m² mesečno, namešteno)
+--   -- ('Kragujevac', 'Centar',   'apartment', 'rent', NULL_LOW, NULL_HIGH, 'ime.prezime'),
+--   -- ('Kragujevac', 'Aerodrom', 'apartment', 'rent', NULL_LOW, NULL_HIGH, 'ime.prezime')
+-- on conflict (lower(city), lower(neighborhood), property_type, listing_type) do update set
+--   price_per_sqm_low = excluded.price_per_sqm_low,
+--   price_per_sqm_high = excluded.price_per_sqm_high,
+--   updated_at = now(),
+--   updated_by = excluded.updated_by;

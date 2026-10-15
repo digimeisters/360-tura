@@ -70,6 +70,7 @@ export function SiteFooter({ note, lang = 'sr' }: { note: string; lang?: 'sr' | 
             <nav className="foot-links" aria-label="Strane sajta">
               <Link href="/ture">Ture</Link>
               <Link href="/za-agencije">Za agencije</Link>
+              <Link href="/alati">Alati</Link>
               <Link href="/blog">Blog</Link>
             </nav>
           )}
