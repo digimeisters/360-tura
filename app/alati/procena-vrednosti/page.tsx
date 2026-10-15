@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import SiteTracker from '../../../components/SiteTracker';
 import SiteStylesheets from '../../../components/SiteStylesheets';
-import { SiteNav, SiteFooter } from '../../../components/SiteChrome';
+import { SiteFooter } from '../../../components/SiteChrome';
+import { ToolCrossLink, ToolCta, ToolExplain, ToolFaq, ToolsNav } from '../../../components/alati/ToolSections';
 import ValuationForm from '../../../components/alati/ValuationForm';
 import { TOOLS_STYLES } from '../../../components/alati/toolsStyles';
 import { HOME_COPY } from '../../lib/homeCopy';
@@ -11,12 +12,12 @@ import { serializeJsonLd } from '../../lib/structuredData';
 import { HERO_TOUR_SLUG } from '../../lib/showcaseTours';
 import { VALUATION_COPY as COPY } from '../../lib/valuation/valuationCopy';
 import type { ValuationListingType } from '../../lib/valuation/types';
-import { TOOLS_NAV, VALUATION_HREF } from '../toolsNav';
+import { VALUATION_HREF } from '../toolsNav';
 
 /**
  * Procena vrednosti (/alati/procena-vrednosti): lead za vlasnike koji
  * prodaju ili izdaju. Raspored kao kalkulator kredita (forma levo, rezultat
- * desno, objašnjenja, tamni blok, pitanja). Kratka adresa /procena-vrednosti
+ * desno, pa delovi u jeziku sajta iz ToolSections: šta utiče, plava traka, pitanja). Kratka adresa /procena-vrednosti
  * (za oglase) preusmerava ovde - next.config.ts.
  *
  * Raspon računa /api/valuation/estimate iz zone_price_baselines (migracije
@@ -59,14 +60,6 @@ const PAGE_STYLES = `
   .vl-cta b{font-size:1rem; white-space:normal;}
   .vl-cta small{font-weight:500; line-height:1.5;}
   .vl-upsell{margin:6px 0 0; font-size:.86rem; color:var(--ink-soft); line-height:1.5;}
-  .vl-factors-head{margin:0 0 14px;}
-  .vl-factors-head h2{font-family:var(--font-display); font-size:1.5rem; margin:0 0 6px;}
-  .vl-factors-head p{margin:0; color:var(--ink-soft); max-width:70ch;}
-  .tl-explain.vl-factors{grid-template-columns:repeat(4,1fr); margin-bottom:10px;}
-  .vl-factors b{display:block; font-family:var(--font-display); font-size:1.5rem; color:var(--accent); margin:0 0 6px; white-space:nowrap; font-variant-numeric:tabular-nums;}
-  .vl-factors-fine{margin:0 0 28px; font-size:.86rem; color:var(--ink-faint);}
-  @media (max-width:1100px){ .tl-explain.vl-factors{grid-template-columns:repeat(2,1fr);} }
-  @media (max-width:560px){ .tl-explain.vl-factors{grid-template-columns:1fr;} }
 `;
 
 type Props = { searchParams: Promise<{ tip?: string | string[] }> };
@@ -115,15 +108,7 @@ export default async function ValuationPage({ searchParams }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <SiteTracker />
 
-      <SiteNav brandHref="/" brandAria={TOOLS_NAV.brandAria} cta={{ href: '/#kontakt', label: TOOLS_NAV.cta, track: 'cta:tools_nav' }}>
-        {TOOLS_NAV.links.map((l) => (
-          <li key={l.href}>
-            <Link href={l.href} aria-current={l.href === '/alati' ? 'page' : undefined}>
-              {l.label}
-            </Link>
-          </li>
-        ))}
-      </SiteNav>
+      <ToolsNav />
 
       <main>
         <div className="wrap">
@@ -143,51 +128,32 @@ export default async function ValuationPage({ searchParams }: Props) {
           </section>
 
           <ValuationForm demoTourHref={DEMO_TOUR_HREF} initialListingType={listingFromParam(tip)} />
-
-          <div className="vl-factors-head">
-            <h2>{COPY.factors.title}</h2>
-            <p>{COPY.factors.note}</p>
-          </div>
-          <section className="tl-explain vl-factors">
-            {COPY.factors.items.map((f) => (
-              <div key={f.title} className="tl-card">
-                <h2>{f.title}</h2>
-                <b>{f.value}</b>
-                <p>{f.text}</p>
-              </div>
-            ))}
-          </section>
-          <p className="vl-factors-fine">{COPY.factors.fine}</p>
-
-          <section className="tl-next">
-            <div>
-              <h2>{COPY.next.title}</h2>
-              <p>{COPY.next.text}</p>
-            </div>
-            <Link href={DEMO_TOUR_HREF} data-track="cta:valuation_next_tour">
-              {COPY.next.cta}
-            </Link>
-          </section>
-
-          <section className="tl-faq">
-            <h2>Česta pitanja</h2>
-            {COPY.faq.map((f) => (
-              <details key={f.q}>
-                <summary>{f.q}</summary>
-                <p>{f.a}</p>
-              </details>
-            ))}
-          </section>
-
-          <div className="tl-strip">
-            <span>
-              <b>{COPY.other.title}</b> {COPY.other.text}
-            </span>
-            <Link href="/alati/kalkulator-kredita" data-track="cta:valuation_loan_calc">
-              {COPY.other.link}
-            </Link>
-          </div>
         </div>
+
+        <ToolExplain
+          id="sta-utice"
+          eyebrow={COPY.factors.eyebrow}
+          title={COPY.factors.title}
+          note={COPY.factors.note}
+          items={COPY.factors.items}
+          fine={COPY.factors.fine}
+          columns={4}
+        />
+
+        <ToolCta
+          id="tura"
+          title={COPY.next.title}
+          text={COPY.next.text}
+          primary={{ href: DEMO_TOUR_HREF, label: COPY.next.cta, track: 'cta:valuation_next_tour' }}
+        />
+
+        <ToolFaq eyebrow={COPY.faqHead.eyebrow} title={COPY.faqHead.title} note={COPY.faqHead.note} items={COPY.faq} />
+
+        <ToolCrossLink
+          title={COPY.other.title}
+          text={COPY.other.text}
+          link={{ href: '/alati/kalkulator-kredita', label: COPY.other.link, track: 'cta:valuation_loan_calc' }}
+        />
       </main>
 
       <SiteFooter note={HOME_COPY.sr.footer} />

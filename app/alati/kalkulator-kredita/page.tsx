@@ -2,13 +2,14 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import SiteTracker from '../../../components/SiteTracker';
 import SiteStylesheets from '../../../components/SiteStylesheets';
-import { SiteNav, SiteFooter } from '../../../components/SiteChrome';
+import { SiteFooter } from '../../../components/SiteChrome';
+import { ToolCrossLink, ToolCta, ToolExplain, ToolFaq, ToolsNav } from '../../../components/alati/ToolSections';
 import LoanCalculator from '../../../components/alati/LoanCalculator';
 import { TOOLS_STYLES } from '../../../components/alati/toolsStyles';
 import { HOME_COPY } from '../../lib/homeCopy';
 import { SITE_NAME, SITE_URL } from '../../lib/site';
 import { serializeJsonLd } from '../../lib/structuredData';
-import { NEW_BUILD_HREF, TOOLS_NAV, VALUATION_HREF, VALUATION_LIVE } from '../toolsNav';
+import { NEW_BUILD_HREF, VALUATION_HREF, VALUATION_LIVE } from '../toolsNav';
 
 /**
  * Kalkulator kredita i troškova kupovine (/alati/kalkulator-kredita): rata,
@@ -34,6 +35,11 @@ const COPY = {
     titleEm: 'zaista košta?',
     lede: 'Mesečna rata, troškovi notara i katastra i povrat PDV-a za prvi stan, na jednom mestu.'
   },
+  explainHead: {
+    eyebrow: 'Kako se računa',
+    title: 'Tri stvari koje kupci *najčešće propuste.*',
+    note: 'Rata nije jedini trošak - a država vam deo novca vraća samo ako znate da ga tražite.'
+  },
   explain: [
     {
       title: 'Povrat PDV-a za prvi stan',
@@ -49,9 +55,14 @@ const COPY = {
     }
   ],
   next: {
-    title: 'Pogledajte stan pre nego što ga obiđete',
-    text: 'Izbor stana na zgradi, osnove i 360° ture za novogradnju u Kragujevcu.',
-    cta: 'Pogledajte novogradnju →'
+    title: 'Pogledajte stan *pre nego što ga obiđete.*',
+    points: ['Izbor stana na zgradi', 'Osnove i cene', '360° ture'],
+    cta: 'Pogledajte novogradnju'
+  },
+  faqHead: {
+    eyebrow: 'Pitanja kupaca',
+    title: 'Povrat PDV-a, takse *i kredit.*',
+    note: 'Ono što kupci pitaju pre potpisivanja ugovora.'
   },
   faq: [
     {
@@ -129,15 +140,7 @@ export default function LoanCalculatorPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <SiteTracker />
 
-      <SiteNav brandHref="/" brandAria={TOOLS_NAV.brandAria} cta={{ href: '/#kontakt', label: TOOLS_NAV.cta, track: 'cta:tools_nav' }}>
-        {TOOLS_NAV.links.map((l) => (
-          <li key={l.href}>
-            <Link href={l.href} aria-current={l.href === '/alati' ? 'page' : undefined}>
-              {l.label}
-            </Link>
-          </li>
-        ))}
-      </SiteNav>
+      <ToolsNav />
 
       <main>
         <div className="wrap">
@@ -157,46 +160,29 @@ export default function LoanCalculatorPage() {
           </section>
 
           <LoanCalculator newBuildHref={NEW_BUILD_HREF} />
+        </div>
 
-          <section className="tl-explain tl-noprint">
-            {COPY.explain.map((e) => (
-              <div key={e.title} className="tl-card">
-                <h2>{e.title}</h2>
-                <p>{e.text}</p>
-              </div>
-            ))}
-          </section>
+        <div className="tl-noprint">
+          <ToolExplain id="kako-se-racuna" eyebrow={COPY.explainHead.eyebrow} title={COPY.explainHead.title} note={COPY.explainHead.note} items={COPY.explain} />
 
-          <section className="tl-next tl-noprint">
-            <div>
-              <h2>{COPY.next.title}</h2>
-              <p>{COPY.next.text}</p>
-            </div>
-            <Link href={NEW_BUILD_HREF} data-track="cta:tools_calc_next">
-              {COPY.next.cta}
-            </Link>
-          </section>
+          <ToolCta
+            id="novogradnja"
+            title={COPY.next.title}
+            points={COPY.next.points}
+            primary={{ href: NEW_BUILD_HREF, label: COPY.next.cta, track: 'cta:tools_calc_next' }}
+          />
 
-          <section className="tl-faq tl-noprint">
-            <h2>Česta pitanja</h2>
-            {COPY.faq.map((f) => (
-              <details key={f.q}>
-                <summary>{f.q}</summary>
-                <p>{f.a}</p>
-              </details>
-            ))}
-          </section>
+          <ToolFaq eyebrow={COPY.faqHead.eyebrow} title={COPY.faqHead.title} note={COPY.faqHead.note} items={COPY.faq} />
 
-          <div className="tl-strip tl-noprint">
-            <span>
-              <b>{COPY.other.title}</b> {VALUATION_LIVE ? COPY.other.valuation : COPY.other.tools}
-            </span>
-            {VALUATION_LIVE ? (
-              <Link href={VALUATION_HREF} data-track="cta:tools_calc_valuation">{COPY.other.valuationLink}</Link>
-            ) : (
-              <Link href="/alati">{COPY.other.toolsLink}</Link>
-            )}
-          </div>
+          {VALUATION_LIVE ? (
+            <ToolCrossLink
+              title={COPY.other.title}
+              text={COPY.other.valuation}
+              link={{ href: VALUATION_HREF, label: COPY.other.valuationLink, track: 'cta:tools_calc_valuation' }}
+            />
+          ) : (
+            <ToolCrossLink title={COPY.other.title} text={COPY.other.tools} link={{ href: '/alati', label: COPY.other.toolsLink, track: 'cta:tools_calc_tools' }} />
+          )}
         </div>
       </main>
 

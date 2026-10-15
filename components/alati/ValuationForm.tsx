@@ -281,7 +281,7 @@ export default function ValuationForm({
           <form onSubmit={goNext} noValidate>
             <div className="tl-sec">
               <h2>
-                <i>1</i>Nekretnina
+                <i aria-hidden="true">1</i> Nekretnina
               </h2>
               <div className="tl-tabs" role="tablist" aria-label="Šta procenjujete">
                 <button type="button" role="tab" aria-selected={!isRent} onClick={() => set('listingType', 'sale')}>
@@ -399,7 +399,7 @@ export default function ValuationForm({
 
             <div className="tl-sec">
               <h2>
-                <i>2</i>Stanje i dodaci
+                <i aria-hidden="true">2</i> Stanje i dodaci
               </h2>
               <div className="tl-field">
                 <span>Stanje nekretnine</span>
@@ -450,7 +450,7 @@ export default function ValuationForm({
 
             <div className="tl-sec">
               <h2>
-                <i>3</i>Kontakt
+                <i aria-hidden="true">3</i> Kontakt
               </h2>
               <div className="tl-row2">
                 <label className="tl-field">

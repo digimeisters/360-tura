@@ -37,7 +37,8 @@ export const VALUATION_COPY = {
     lede: 'Prodajna cena ili mesečna kirija za stan, kuću ili lokal — raspon po naselju, za 90 sekundi. Bez obaveze, bez spama.'
   },
   factors: {
-    title: 'Šta utiče na procenu',
+    eyebrow: 'Kako se računa',
+    title: 'Šta utiče *na procenu.*',
     note: 'Osnova je cena po m² za vaše naselje, posebno za prodaju i za izdavanje. Na nju se primenjuju samo ove korekcije.',
     items: [
       {
@@ -64,9 +65,14 @@ export const VALUATION_COPY = {
     fine: 'Pogled, orijentacija, uknjiženost i raspored ne ulaze u automatsku procenu — zato je rezultat raspon, a ne jedna cifra.'
   },
   next: {
-    title: 'Prodajete ili izdajete? Pokažite nekretninu kao da je posetilac već unutra.',
+    title: 'Prodajete ili izdajete? *Pokažite je 360° turom.*',
     text: 'Sa 360° turom kupci i zakupci pregledaju nekretninu pre poziva — na razgledanje dolaze oni koji su već zainteresovani.',
-    cta: 'Pogledajte primer ture →'
+    cta: 'Pogledajte primer ture'
+  },
+  faqHead: {
+    eyebrow: 'Pitanja vlasnika',
+    title: 'Koliko je procena *tačna?*',
+    note: 'Šta procena vidi, šta ne vidi i šta radimo sa vašim podacima.'
   },
   faq: [
     {

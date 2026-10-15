@@ -72,7 +72,7 @@ export default function LoanCalculator({ newBuildHref }: { newBuildHref: string 
       <div className="tl-card">
         <div className="tl-sec">
           <h2>
-            <i>1</i>Stan
+            <i aria-hidden="true">1</i> Stan
           </h2>
           <div className="tl-row2">
             <label className="tl-field">
@@ -124,7 +124,7 @@ export default function LoanCalculator({ newBuildHref }: { newBuildHref: string 
 
         <div className="tl-sec">
           <h2>
-            <i>2</i>Plaćanje
+            <i aria-hidden="true">2</i> Plaćanje
           </h2>
           <div className="tl-field">
             <span>{t.payDeposit}</span>
@@ -182,7 +182,7 @@ export default function LoanCalculator({ newBuildHref }: { newBuildHref: string 
 
         <div className="tl-sec">
           <h2>
-            <i>3</i>
+            <i aria-hidden="true">3</i>{' '}
             {newBuild ? 'Povrat PDV-a' : 'Prvi stan'}
           </h2>
           <div className="tl-q">

@@ -1,10 +1,10 @@
 /**
- * Stil strana „Alati" (/alati i /alati/kalkulator-kredita). Ide posle
+ * Stil strana „Alati" (/alati, kalkulator kredita, procena vrednosti). Ide posle
  * zajedničkog CSS-a sajta (SiteStylesheets), u <style> strane.
  */
 export const TOOLS_STYLES = `
   /* Sekcije alata nose svoj razmak (sajt daje svakoj <section> veliki padding). */
-  .tl-hero, .tl-tools, .tl-calc, .tl-explain, .tl-next, .tl-faq{padding-block:0;}
+  .tl-hero, .tl-calc{padding-block:0;}
   .tl-hero{padding:clamp(28px,5vw,48px) 0 28px;}
   .tl-hero h1{margin:1rem 0 0; max-width:20ch; font-size:clamp(2.2rem,4.6vw,3.8rem); line-height:1.05; letter-spacing:-0.035em;}
   .tl-hero .lede{margin:1rem 0 0; max-width:52ch; color:var(--ink-soft); font-size:clamp(1rem,1.3vw,1.18rem); line-height:1.6;}
@@ -17,7 +17,7 @@ export const TOOLS_STYLES = `
   .tl-tool{background:var(--surface); border:1px solid var(--line); border-radius:24px; padding:24px; display:flex; flex-direction:column; gap:14px; text-decoration:none; color:inherit; transition:box-shadow .15s, border-color .15s;}
   a.tl-tool:hover{border-color:color-mix(in srgb, var(--accent) 45%, transparent); box-shadow:0 16px 40px -24px rgba(30,90,168,.45);}
   .tl-who{font-size:.74rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-faint);}
-  .tl-tool h2{font-family:var(--font-display); font-size:1.5rem; letter-spacing:-.02em; margin:0; line-height:1.2;}
+  .tl-tool h3{font-family:var(--font-display); font-size:1.5rem; letter-spacing:-.02em; margin:0; line-height:1.2;}
   .tl-tool p{margin:0; color:var(--ink-soft); line-height:1.5;}
   .tl-tool ul{margin:0; padding:0; list-style:none; display:grid; gap:7px; font-size:.9rem; color:var(--ink-soft);}
   .tl-tool li::before{content:'✓'; color:var(--ok); font-weight:800; margin-right:8px;}
@@ -103,25 +103,49 @@ export const TOOLS_STYLES = `
   .tl-btn.is-line{border:1.5px solid color-mix(in srgb, var(--accent) 45%, transparent); color:var(--accent); background:var(--surface);}
   .tl-fine{font-size:.76rem; color:var(--ink-faint); line-height:1.5; margin:12px 0 0;}
 
-  .tl-explain{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:28px;}
-  .tl-explain h2{font-family:var(--font-display); font-size:1.08rem; margin:0 0 8px;}
-  .tl-explain p{margin:0; color:var(--ink-soft); font-size:.92rem; line-height:1.55;}
-  .tl-next{background:var(--dark-bg); color:var(--dark-ink); border:1px solid var(--dark-line); border-radius:28px; padding:28px; display:grid; grid-template-columns:1fr auto; gap:20px; align-items:center; margin-bottom:28px;}
-  .tl-next h2{font-family:var(--font-display); font-size:1.6rem; margin:0 0 6px; letter-spacing:-.02em; color:var(--dark-ink);}
-  .tl-next p{margin:0; color:var(--dark-ink-soft);}
-  .tl-next a{background:#FFFFFF; color:#111113; border-radius:999px; padding:13px 20px; font-weight:800; text-decoration:none; white-space:nowrap;}
-  .tl-faq{margin-bottom:28px;}
-  .tl-faq > h2{font-family:var(--font-display); font-size:1.5rem; margin:0 0 12px;}
-  .tl-faq details{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:14px 16px; margin-bottom:8px;}
-  .tl-faq summary{font-weight:700; cursor:pointer;}
-  .tl-faq p{margin:8px 0 0; color:var(--ink-soft); line-height:1.55; font-size:.92rem;}
+  /* ---------- delovi u jeziku sajta (ToolSections) ---------- */
+  .tl-explain{display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(12px,1.6vw,20px);}
+  .tl-explain.is-4{grid-template-columns:repeat(4,1fr);}
+  .tl-explain-card{padding:clamp(18px,2vw,24px);}
+  .tl-explain-card h3{font-family:var(--font-display); font-size:1.12rem; line-height:1.25; margin:0 0 8px;}
+  .tl-explain-card b{display:block; font-family:var(--font-display); font-size:1.5rem; color:var(--accent); margin:0 0 6px; white-space:nowrap; font-variant-numeric:tabular-nums;}
+  .tl-explain-card p{margin:0; color:var(--ink-soft); font-size:.94rem; line-height:1.6;}
+  .tl-explain-fine{margin:16px 0 0; font-size:.88rem; color:var(--ink-faint); max-width:70ch;}
+  .tl-strip{margin-top:clamp(8px,2vw,16px);}
+  .mid-cta-text{max-width:62ch;}
+  .mid-cta-text p{margin:.6rem 0 0; color:rgba(255,255,255,.88); font-size:.95rem; line-height:1.55;}
 
+  /* ---------- /alati: slika u vrhu (dve kartice rezultata, kao „uređaj“ na početnoj) ---------- */
+  .tl-visual{position:relative; min-height:420px; border-radius:28px; padding:clamp(20px,3vw,32px); overflow:hidden; color:#FFFFFF;
+    background:
+      radial-gradient(60% 80% at 15% 0%, rgba(165,200,242,.45) 0%, transparent 70%),
+      linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px) -1px -1px / 28px 28px,
+      linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px) -1px -1px / 28px 28px,
+      linear-gradient(135deg, #1E5AA8 0%, #17447E 100%);
+    box-shadow:0 30px 70px rgba(17,17,19,.25);}
+  .tl-vcard{position:relative; background:#FFFFFF; color:#111113; border-radius:20px; padding:18px; box-shadow:0 18px 40px -18px rgba(5,20,50,.55);}
+  .tl-vcard > small{display:block; font-size:.72rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:#686A70;}
+  .tl-vcard.is-calc{width:min(100%, 400px); margin-left:auto;}
+  .tl-vcard.is-calc .tl-pv-big{margin-top:10px;}
+  .tl-vcard.is-calc .tl-pv-row{margin-top:10px; color:#5B5D63;}
+  .tl-vcard.is-calc .tl-pv-row b{color:#111113;}
+  .tl-vcard.is-calc .tl-pv-green{margin-top:8px; background:#F2FBF5; border-color:#BFE3CC; color:#17663A;}
+  .tl-vcard.is-value{width:min(88%, 340px); margin-top:-24px;}
+  .tl-vcard.is-value .tl-pv-row{color:#5B5D63; margin-top:8px;}
+  .tl-vcard.is-value .tl-pv-row b{color:#111113;}
+  .tl-vcard.is-value .tl-pv-range{background:linear-gradient(90deg,#DCE8F7,#1E5AA8 50%,#DCE8F7);}
+  .tl-vcard.is-value .tl-pv-range::after{background:#111113;}
+  .tl-visual-tag{position:absolute; right:clamp(20px,3vw,32px); bottom:clamp(18px,2.6vw,28px); font-size:.8rem; font-weight:700; opacity:.85;}
+  .tl-tool{box-shadow:var(--shadow);}
+
+  @media (max-width:1100px){ .tl-explain.is-4{grid-template-columns:repeat(2,1fr);} }
   @media (max-width:900px){
     .tl-tools{grid-template-columns:1fr;}
     .tl-calc{grid-template-columns:1fr;}
     .tl-res{position:static;}
-    .tl-explain{grid-template-columns:1fr;}
-    .tl-next{grid-template-columns:1fr;}
+    .tl-explain, .tl-explain.is-4{grid-template-columns:1fr;}
+    .tl-visual{min-height:0;}
+    .tl-visual-tag{display:none;}
   }
   @media (max-width:520px){
     .tl-row2{grid-template-columns:1fr;}
@@ -130,7 +154,7 @@ export const TOOLS_STYLES = `
 
   /* „Sačuvajte kalkulaciju": pregledačeva štampa, samo unos i računica. */
   @media print{
-    .nav, .foot, .tl-noprint, .tl-btns{display:none !important;}
+    .nav, footer, .tl-noprint, .tl-btns, .band, .mid-cta-sec, #pitanja{display:none !important;}
     body{background:#FFFFFF;}
     .tl-calc{grid-template-columns:1fr 1fr; gap:16px;}
     .tl-res{position:static;}
