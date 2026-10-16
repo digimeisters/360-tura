@@ -26,20 +26,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const url = `${SITE_URL}/blog/${post.slug}`;
+  const title = post.seoTitle ?? post.title;
   return {
-    title: post.title,
+    title,
     description: post.description,
     alternates: { canonical: url },
     openGraph: {
       type: 'article',
       url,
       siteName: SITE_NAME,
-      title: post.title,
+      title,
       description: post.description,
       locale: 'sr_RS',
       publishedTime: post.publishedAt
     },
-    twitter: { card: 'summary_large_image', title: post.title, description: post.description }
+    twitter: { card: 'summary_large_image', title, description: post.description }
   };
 }
 
