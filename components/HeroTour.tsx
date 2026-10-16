@@ -8,13 +8,14 @@ import { IconPlay } from './SiteIcons';
 
 const LABELS: Record<
   HomeLang,
-  { empty: string; sample: string; open: string; drag: string; plan: string; view: string; prev: string; next: string; position: string }
+  { empty: string; sample: string; open: string; drag: string; pick: string; plan: string; view: string; prev: string; next: string; position: string }
 > = {
   sr: {
     empty: 'Primer ture stiže uskoro.',
     sample: 'Primer · {city}',
     open: 'Otvori celu turu',
     drag: 'Prevucite da pogledate okolo',
+    pick: 'Izaberite tačku na tlocrtu',
     plan: 'Tlocrt - izaberite prostoriju',
     view: '360° pogled: {room}. Strelice levo i desno okreću pogled.',
     prev: 'Prethodna prostorija',
@@ -26,6 +27,7 @@ const LABELS: Record<
     sample: 'Sample · {city}',
     open: 'Open the full tour',
     drag: 'Drag to look around',
+    pick: 'Pick a dot on the floor plan',
     plan: 'Floor plan - pick a room',
     view: '360° view: {room}. Left and right arrows turn the view.',
     prev: 'Previous room',
@@ -56,6 +58,8 @@ export default function HeroTour({ tour, lang = 'sr' }: { tour: ShowcaseTour | n
   // Soba čija je panorama učitana i prikazana (null = još se vidi sličica).
   const [panoId, setPanoId] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
+  // Poruka "izaberite tačku" stoji dok posetilac prvi put ne promeni sobu.
+  const [picked, setPicked] = useState(false);
   const panoRef = useRef<HTMLDivElement>(null);
   const offset = useRef(0);
   const drag = useRef<{ x: number; start: number } | null>(null);
@@ -124,6 +128,7 @@ export default function HeroTour({ tour, lang = 'sr' }: { tour: ShowcaseTour | n
     const target = rooms.find((r) => r.id === id);
     if (!target || target.id === room.id) return;
     setTouched(true);
+    setPicked(true);
     setActiveId(target.id);
     setPanoId(null);
     loadPanorama(target);
@@ -182,6 +187,12 @@ export default function HeroTour({ tour, lang = 'sr' }: { tour: ShowcaseTour | n
           <strong>{room.title}</strong>
         </div>
 
+        {hasPlan && !picked && (
+          <p className="ht-pick" aria-hidden="true">
+            <i />
+            {t.pick}
+          </p>
+        )}
         {hasPlan ? (
           <div className="ht-plan" role="group" aria-label={t.plan}>
             {/* eslint-disable-next-line @next/next/no-img-element -- SVG tlocrt sa CDN-a */}

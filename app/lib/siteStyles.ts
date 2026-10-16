@@ -322,6 +322,12 @@ export const SITE_STYLES = `
   .ht-card-head{display:flex; flex-direction:column; gap:.1rem; padding:0 .2rem .6rem;}
   .ht-card-head strong{font-family:var(--font-display); font-size:1.02rem; font-weight:800; letter-spacing:-0.01em;}
   .ht-card-head .ht-sample{font-size:.8rem; font-weight:700; color:#1E5AA8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  /* Poruka nad tlocrtom: tačka iz poruke liči na tačke na planu, i blago pulsira. */
+  .ht-pick{display:flex; align-items:center; gap:.45rem; margin:0 .2rem .5rem; font-size:.8rem; font-weight:600; color:#5B5D63;}
+  .ht-pick i{position:relative; width:10px; height:10px; flex:none; border-radius:50%; background:rgba(15,23,42,.55); border:2px solid #FFFFFF; box-shadow:0 0 0 1px rgba(15,23,42,.35);}
+  .ht-pick i::after{content:""; position:absolute; inset:-5px; border-radius:50%; border:2px solid #1E5AA8; animation:htPick 1.8s ease-out infinite;}
+  @keyframes htPick{from{transform:scale(.5); opacity:1;} to{transform:scale(1.4); opacity:0;}}
+  @media (prefers-reduced-motion: reduce){ .ht-pick i::after{animation:none; opacity:0;} }
   .ht-plan{position:relative; line-height:0; border-radius:10px; overflow:hidden; background:#FFFFFF;}
   .ht-plan img{display:block; width:100%; height:auto;}
   /* Dugme je 28px (lako se pogodi), a vidi se tačka od 12px u sredini - kao u turi. */
@@ -357,7 +363,8 @@ export const SITE_STYLES = `
     .ht-copy{position:static; max-width:none; border-radius:0; box-shadow:none; padding:1.8rem clamp(1rem,4vw,2.5rem) 0;}
   }
   @media (max-width:640px){
-    .ht-card{width:190px; padding:.6rem .6rem .7rem; right:12px; bottom:12px; border-radius:16px;}
+    .ht-card{width:212px; padding:.6rem .6rem .7rem; right:12px; bottom:12px; border-radius:16px;}
+    .ht-pick{font-size:.72rem; white-space:nowrap; margin-bottom:.4rem;}
     .ht-card-head{padding-bottom:.4rem;}
     .ht-card-head strong{font-size:.9rem;}
     .ht-card-head .ht-sample{font-size:.72rem;}
