@@ -262,7 +262,7 @@ export const BLOG_POSTS: BlogPost[] = [
         paragraphs: [],
         bullets: [
           'Crtež pokazuje dimenzije, render idealizovan izgled - nijedno ne daje stvaran osećaj prostora.',
-          'Tura po modelu ili reprezentativnom stanu pušta kupca da sam prošeta kroz raspored.',
+          'Tura snimljena u oglednom stanu pušta kupca da sam prošeta kroz raspored.',
           'Kupac iz inostranstva otvara turu u browseru, uz naraciju na svom jeziku.',
           'Manje poziva "samo da proverim", više razgovora o roku useljenja i ugovoru.'
         ]
@@ -282,7 +282,7 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         heading: '360° tura rešava problem koji render ne može',
         paragraphs: [
-          'Virtuelna tura ne mora da čeka da zgrada bude gotova - može se napraviti na osnovu gotovog modela ili na reprezentativnom stanu istog tipa, pa kupac hoda kroz prostor baš onim redom koji mu je prirodan: iz hodnika u dnevnu sobu, do terase, nazad u spavaću sobu. Vidi stvarne proporcije, ne ono što render sugeriše.',
+          'Virtuelna tura ne mora da čeka da cela zgrada bude gotova - dovoljno je snimiti ogledni stan ili prvi završeni stan istog tipa, pa kupac hoda kroz prostor baš onim redom koji mu je prirodan: iz hodnika u dnevnu sobu, do terase, nazad u spavaću sobu. Vidi stvarne proporcije, ne ono što render sugeriše.',
           'Za kupca koji donosi odluku na daljinu, to je razlika između "verujem na reč" i "video sam sam".'
         ]
       },
@@ -310,7 +310,7 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         heading: 'Kako to radi Kvadrat360',
         paragraphs: [
-          'Kvadrat360 pravi "ključ u ruke" 360° ture i za stanove u izgradnji - na osnovu modela ili reprezentativne jedinice, sa optimizacijom za brzo učitavanje i ugradnjom na sajt investitora za manje od 5 minuta. Javite nam se da vidite primer gotove ture i proverite da li paket odgovara vašem projektu.'
+          'Kvadrat360 pravi "ključ u ruke" 360° ture i za stanove u izgradnji - na oglednom ili prvom završenom stanu istog tipa, sa optimizacijom za brzo učitavanje i ugradnjom na sajt investitora za manje od 5 minuta. Javite nam se da vidite primer gotove ture i proverite da li paket odgovara vašem projektu.'
         ]
       }
     ],
