@@ -40,6 +40,10 @@ const LABELS: Record<
 // horizonta, gde je slika 2:1 najmanje izobličena (bez pravog 3D prikaza -
 // on je u turi, a ovde bi doneo ceo preglednik na početnu).
 const ZOOM = 2.6;
+// Pogled blago naniže, kao u samoj turi (ROTATE_PITCH u app/tour/[slug]/transition.ts).
+const PITCH = -15;
+// Panorama pokriva 180° visine na ZOOM visina kadra; pomera se za ZOOM - 1.
+const PANO_Y = `${50 + ((-PITCH / 180) * ZOOM * 100) / (ZOOM - 1)}%`;
 // Lagano okretanje dok posetilac ne dirne kadar (px po sličici).
 const DRIFT = 0.22;
 const KEY_STEP = 80;
@@ -168,7 +172,7 @@ export default function HeroTour({ tour, lang = 'sr' }: { tour: ShowcaseTour | n
       <div
         ref={panoRef}
         className={`ht-pano${showPano ? ' is-ready' : ''}`}
-        style={showPano ? { backgroundImage: `url(${room.panoramaUrl})`, backgroundSize: `auto ${ZOOM * 100}%` } : undefined}
+        style={showPano ? { backgroundImage: `url(${room.panoramaUrl})`, backgroundSize: `auto ${ZOOM * 100}%`, backgroundPositionY: PANO_Y } : undefined}
         role="img"
         aria-label={t.view.replace('{room}', room.title)}
         tabIndex={showPano ? 0 : -1}
