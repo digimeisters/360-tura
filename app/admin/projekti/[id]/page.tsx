@@ -8,6 +8,7 @@ import { adminAuthHeader } from '../../../lib/authFetch';
 import { FormThemeStyle } from '../../../lib/formTheme';
 import { shrinkImage } from '../../../lib/shrinkImage';
 import { srPlural } from '../../../lib/projectI18n';
+import { neighbourhoodsFor } from '../../../lib/propertyTaxonomy';
 import { PROJECT_ADMIN_STYLES } from '../../../../components/projekat/adminStyles';
 import PolygonCanvas, { type CanvasShape } from '../../../../components/projekat/PolygonCanvas';
 import SalesAccessPanel from '../../../../components/projekat/SalesAccessPanel';
@@ -62,7 +63,17 @@ type Msg = { ok: boolean; text: string } | null;
 
 type InfoForm = Pick<
   ProjectRow,
-  'title' | 'developer_name' | 'address' | 'city' | 'move_in' | 'description' | 'contact_phone' | 'contact_email' | 'title_en' | 'description_en'
+  | 'title'
+  | 'developer_name'
+  | 'address'
+  | 'city'
+  | 'neighborhood'
+  | 'move_in'
+  | 'description'
+  | 'contact_phone'
+  | 'contact_email'
+  | 'title_en'
+  | 'description_en'
 >;
 
 const INFO_FIELDS: { key: keyof InfoForm; label: string; wide?: boolean; area?: boolean; placeholder?: string }[] = [
@@ -70,6 +81,8 @@ const INFO_FIELDS: { key: keyof InfoForm; label: string; wide?: boolean; area?: 
   { key: 'developer_name', label: 'Investitor', placeholder: 'npr. Gradnja d.o.o.' },
   { key: 'address', label: 'Adresa' },
   { key: 'city', label: 'Grad' },
+  // Lista naselja grada (propertyTaxonomy) - za cene novogradnje po naseljima (migracija 033).
+  { key: 'neighborhood', label: 'Naselje' },
   { key: 'move_in', label: 'Useljenje', placeholder: 'npr. jun 2027' },
   { key: 'contact_phone', label: 'Telefon prodaje' },
   { key: 'contact_email', label: 'Email prodaje' },
@@ -678,6 +691,19 @@ export default function ProjectEditorPage() {
                 {f.label}
                 {f.area ? (
                   <textarea value={info[f.key] ?? ''} onChange={(e) => setInfo({ ...info, [f.key]: e.target.value })} />
+                ) : f.key === 'neighborhood' && neighbourhoodsFor(info.city).length ? (
+                  <select value={info.neighborhood ?? ''} onChange={(e) => setInfo({ ...info, neighborhood: e.target.value || null })}>
+                    <option value="">Izaberite naselje</option>
+                    {/* Zatečena vrednost van liste (npr. promenjen grad) ostaje vidljiva. */}
+                    {info.neighborhood && !neighbourhoodsFor(info.city).includes(info.neighborhood) && (
+                      <option value={info.neighborhood}>{info.neighborhood}</option>
+                    )}
+                    {neighbourhoodsFor(info.city).map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
                 ) : (
                   <input type="text" value={info[f.key] ?? ''} placeholder={f.placeholder} onChange={(e) => setInfo({ ...info, [f.key]: e.target.value })} />
                 )}
@@ -723,6 +749,34 @@ export default function ProjectEditorPage() {
                 Engleska strana ↗
               </a>
             )}
+          </div>
+
+          {/* Statistika cena (migracija 033): cenovnik ulazi u cene novogradnje za naselje. */}
+          <div className="pa-card" style={{ marginTop: 14, marginBottom: 0, padding: 14, background: 'var(--surface-2)' }}>
+            <label className="pa-row" style={{ fontSize: 14, fontWeight: 650 }}>
+              <input
+                type="checkbox"
+                checked={project.include_in_price_stats}
+                disabled={busy === 'stats'}
+                onChange={(e) => {
+                  const include_in_price_stats = e.target.checked;
+                  run('stats', async () => {
+                    await api('update', { id, fields: { include_in_price_stats } });
+                    setData((d) => (d ? { ...d, project: { ...d.project, include_in_price_stats } } : d));
+                    return include_in_price_stats
+                      ? 'Cenovnik projekta ulazi u statistiku cena novogradnje.'
+                      : 'Cenovnik projekta je isključen iz statistike cena.';
+                  });
+                }}
+              />
+              Uključi u statistiku cena novogradnje
+            </label>
+            <p className="pa-hint" style={{ margin: '4px 0 0' }}>
+              Cene slobodnih i rezervisanih stanova ulaze u cene novogradnje za izabrano naselje (procena vrednosti i strana „Cene po
+              naseljima“) - samo zbirno, bez imena projekta i pojedinačnih stanova. Računa se tek kad projekat ima naselje, objavljen je, i
+              u naselju postoje bar 2 takva projekta.
+              {!project.neighborhood && ' Izaberite naselje iznad i sačuvajte podatke.'}
+            </p>
           </div>
 
           {/* Prezentacija (migracija 026): sve kartice stana, i kad stan nema sadržaj. */}
@@ -1761,6 +1815,7 @@ function pickInfo(p: ProjectRow): InfoForm {
     developer_name: p.developer_name,
     address: p.address,
     city: p.city,
+    neighborhood: p.neighborhood,
     move_in: p.move_in,
     description: p.description,
     contact_phone: p.contact_phone,

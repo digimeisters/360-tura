@@ -173,7 +173,8 @@ export default function AreaPriceChart({ rows, valuationHref }: { rows: AreaPric
               <span className="ap-city" style={{ left: `${pct(view.mid)}%` }} />
             </div>
             {view.list.map((r) => {
-              const few = r.independent !== null && r.independent < FEW;
+              // Cenovnik projekta je stvarna cena, ne tražena - nije "okvirno".
+              const few = r.source === 'ads' && r.independent !== null && r.independent < FEW;
               return (
                 <Link
                   key={r.neighborhood}
@@ -187,7 +188,7 @@ export default function AreaPriceChart({ rows, valuationHref }: { rows: AreaPric
                     <b>{r.neighborhood}</b>
                     {r.listings !== null && (
                       <small className={few ? 'is-few' : undefined}>
-                        {fmt(r.listings)} oglasa{few ? ' · okvirno' : ''}
+                        {r.source === 'projects' ? `cenovnici ${fmt(r.independent ?? 0)} projekta` : `${fmt(r.listings)} oglasa${few ? ' · okvirno' : ''}`}
                       </small>
                     )}
                   </span>
@@ -223,7 +224,9 @@ export default function AreaPriceChart({ rows, valuationHref }: { rows: AreaPric
               )}
               {tip.row.listings !== null && (
                 <span className="ap-tip-n">
-                  {fmt(tip.row.listings)} oglasa{tip.row.independent !== null && tip.row.independent < tip.row.listings ? `, ${fmt(tip.row.independent)} nezavisnih` : ''}
+                  {tip.row.source === 'projects'
+                    ? `Cenovnici investitora: ${fmt(tip.row.listings)} stanova iz ${fmt(tip.row.independent ?? 0)} projekta`
+                    : `${fmt(tip.row.listings)} oglasa${tip.row.independent !== null && tip.row.independent < tip.row.listings ? `, ${fmt(tip.row.independent)} nezavisnih` : ''}`}
                 </span>
               )}
               <span className="ap-tip-go">Procenite svoju nekretninu ovde →</span>
@@ -250,7 +253,7 @@ export default function AreaPriceChart({ rows, valuationHref }: { rows: AreaPric
         {rent
           ? 'Kirija po m² mesečno, za namešten prostor. Za izdavanje ima manje oglasa, pa je prikazano manje naselja.'
           : isSplit(type, kind)
-            ? `Procenjena prodajna cena po m², samo ${build === 'new' ? 'novogradnja (Novo, U izgradnji, novija od 2018.)' : 'starogradnja'}, ispod traženih cena iz oglasa. Naselje bez dovoljno oglasa ima prosek grada.`
+            ? `Procenjena prodajna cena po m², samo ${build === 'new' ? 'novogradnja (Novo, U izgradnji, novija od 2018.)' : 'starogradnja'}, ispod traženih cena iz oglasa. Naselje bez dovoljno oglasa ima prosek grada.${build === 'new' && view?.list.some((r) => r.source === 'projects') ? ' Naselja sa oznakom „cenovnici“ su iz cenovnika investitora - to su stvarne cene, ne oglasi.' : ''}`
             : 'Procenjena prodajna cena po m², novogradnja i starogradnja zajedno, ispod traženih cena iz oglasa. Naselja bez dovoljno oglasa nisu prikazana.'}
       </p>
     </div>

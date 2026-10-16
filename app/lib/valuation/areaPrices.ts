@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { BuildType, ValuationListingType, ValuationPropertyType } from './types';
 import { CITY_ROW } from './calculateEstimate';
+import { getProjectAreaPrices } from './projectPrices';
 
 export { CITY_ROW };
 
@@ -20,7 +21,10 @@ export type AreaPrice = {
   /** €/m² (izdavanje: €/m² mesečno). */
   low: number;
   high: number;
-  /** Svi oglasi i nezavisni (ista ulica = jedan) - migracija 031; null za ručno unete redove. */
+  /** Odakle je raspon: javni oglasi ili cenovnici naših projekata (novogradnja, projectPrices). */
+  source: 'ads' | 'projects';
+  /** Svi oglasi i nezavisni (ista ulica = jedan) - migracija 031; null za ručno unete redove.
+   *  Za cenovnike: broj stanova i broj projekata. */
   listings: number | null;
   independent: number | null;
   updatedAt: string;
@@ -58,7 +62,8 @@ export async function getAreaPrices(city = 'Kragujevac'): Promise<AreaPrice[]> {
     console.error('[areaPrices]', error.message);
     return [];
   }
-  return (data ?? []).map((r) => ({
+  const fromAds: AreaPrice[] = (data ?? []).map((r) => ({
+    source: 'ads' as const,
     neighborhood: r.neighborhood,
     type: r.property_type,
     kind: r.listing_type ?? 'sale',
@@ -69,6 +74,26 @@ export async function getAreaPrices(city = 'Kragujevac'): Promise<AreaPrice[]> {
     independent: r.independent_count,
     updatedAt: r.updated_at
   }));
+
+  // Cenovnici naših projekata (bar 2 u naselju) zamenjuju oglase za novogradnju stanova.
+  const fromProjects = await getProjectAreaPrices(db, city);
+  if (!fromProjects.length) return fromAds;
+  const own = new Set(fromProjects.map((p) => p.neighborhood));
+  return [
+    ...fromAds.filter((r) => !(r.type === 'apartment' && r.kind === 'sale' && r.build === 'new' && own.has(r.neighborhood))),
+    ...fromProjects.map((p) => ({
+      source: 'projects' as const,
+      neighborhood: p.neighborhood,
+      type: 'apartment' as const,
+      kind: 'sale' as const,
+      build: 'new' as const,
+      low: p.low,
+      high: p.high,
+      listings: p.units,
+      independent: p.projects,
+      updatedAt: p.updatedAt
+    }))
+  ];
 }
 
 /** Prosek grada: raspon ponderisan brojem oglasa (redovi bez broja se računaju kao jedan). */

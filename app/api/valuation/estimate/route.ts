@@ -9,6 +9,7 @@ import {
   resolveBaseline,
   buildTypeFor
 } from '@/app/lib/valuation/calculateEstimate';
+import { getProjectAreaPrices } from '@/app/lib/valuation/projectPrices';
 import {
   VALUATION_CONDITIONS,
   VALUATION_FURNISHING,
@@ -192,9 +193,32 @@ export async function POST(req: Request) {
       console.error('[api/valuation] baseline lookup failed:', baselineError.message);
     }
 
+    // Stan na prodaju: cenovnici naših projekata (bar 2 u naselju) imaju
+    // prednost nad oglasima za novogradnju - app/lib/valuation/projectPrices.ts.
+    let rows = (baselineRows ?? []) as (PriceBaseline & { updated_at?: string | null })[];
+    if (propertyType === 'apartment' && listingType === 'sale') {
+      const fromProjects = await getProjectAreaPrices(supabase, city);
+      if (fromProjects.length) {
+        const own = new Set(fromProjects.map((p) => p.neighborhood.toLowerCase()));
+        rows = [
+          ...rows.filter((r) => !((r.build_type ?? 'any') === 'new' && own.has(r.neighborhood.toLowerCase()))),
+          ...fromProjects.map((p) => ({
+            city,
+            neighborhood: p.neighborhood,
+            property_type: 'apartment' as const,
+            listing_type: 'sale' as const,
+            build_type: 'new' as const,
+            price_per_sqm_low: p.low,
+            price_per_sqm_high: p.high,
+            updated_at: p.updatedAt
+          }))
+        ];
+      }
+    }
+
     // --- 3. Raspon (stan na prodaju: cena novogradnje ili starogradnje) ---
     const baseline = resolveBaseline(
-      (baselineRows ?? []) as PriceBaseline[],
+      rows,
       city,
       neighborhood,
       propertyType,

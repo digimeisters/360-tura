@@ -139,7 +139,7 @@ export default async function AreaPricesPage() {
   const low = aptSale.length ? extreme(aptSale, (r) => r.low, -1) : null;
   const centerRent = aptRent.find((r) => r.neighborhood === 'Centar') ?? null;
   // Red "Ceo grad" ponavlja oglase naselja, pa se ne broji.
-  const listings = hoods.reduce((s, r) => s + (r.listings ?? 0), 0);
+  const listings = hoods.filter((r) => r.source === 'ads').reduce((s, r) => s + (r.listings ?? 0), 0);
   const latest = rows.reduce((d, r) => (r.updatedAt > d ? r.updatedAt : d), '');
   const updated = latest ? new Date(latest).toLocaleDateString('sr-Latn-RS', { day: 'numeric', month: 'long', year: 'numeric' }) : null;
   const month = latest ? new Date(latest).toLocaleDateString('sr-Latn-RS', { month: 'long', year: 'numeric' }) : null;
@@ -328,8 +328,8 @@ export default async function AreaPricesPage() {
                           <td>{g.k === 'rent' ? fmt(r.low, 1) : fmt(r.low)}</td>
                           <td>{g.k === 'rent' ? fmt(r.high, 1) : fmt(r.high)}</td>
                           <td>
-                            {r.listings ?? '—'}
-                            {r.independent !== null && r.independent < FEW_LISTINGS ? ' (okvirno)' : ''}
+                            {r.source === 'projects' ? `${r.listings} stanova, cenovnici` : (r.listings ?? '—')}
+                            {r.source === 'ads' && r.independent !== null && r.independent < FEW_LISTINGS ? ' (okvirno)' : ''}
                           </td>
                         </tr>
                       ))}

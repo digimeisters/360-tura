@@ -1,5 +1,5 @@
 // GENERISANO skriptom scripts/gen-db-types.mjs (npm run db:types) - ne menjati ručno.
-// Izvor: živa baza sajta (tmnaguwmzlwirhjprdbh), 2026-10-09.
+// Izvor: živa baza sajta (tmnaguwmzlwirhjprdbh), 2026-10-16.
 
 export type Json =
   | string
@@ -648,11 +648,13 @@ export type Database = {
           developer_name: string | null
           facade_url: string | null
           id: string
+          include_in_price_stats: boolean
           lat: number | null
           lng: number | null
           move_in: string | null
           nearby: Json | null
           nearby_updated_at: string | null
+          neighborhood: string | null
           notify_sales: boolean
           published: boolean
           show_all_tabs: boolean
@@ -673,11 +675,13 @@ export type Database = {
           developer_name?: string | null
           facade_url?: string | null
           id?: string
+          include_in_price_stats?: boolean
           lat?: number | null
           lng?: number | null
           move_in?: string | null
           nearby?: Json | null
           nearby_updated_at?: string | null
+          neighborhood?: string | null
           notify_sales?: boolean
           published?: boolean
           show_all_tabs?: boolean
@@ -698,11 +702,13 @@ export type Database = {
           developer_name?: string | null
           facade_url?: string | null
           id?: string
+          include_in_price_stats?: boolean
           lat?: number | null
           lng?: number | null
           move_in?: string | null
           nearby?: Json | null
           nearby_updated_at?: string | null
+          neighborhood?: string | null
           notify_sales?: boolean
           published?: boolean
           show_all_tabs?: boolean
@@ -720,6 +726,96 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      property_valuation_leads: {
+        Row: {
+          agent_note: string | null
+          baseline_source: string | null
+          build_year: number | null
+          city: string
+          condition: string
+          contact_email: string | null
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          estimated_high: number | null
+          estimated_low: number | null
+          floor_number: number | null
+          furnishing: string | null
+          has_elevator: boolean | null
+          has_parking: boolean
+          has_terrace: boolean
+          id: string
+          listing_type: string
+          neighborhood: string
+          price_per_sqm_used_high: number | null
+          price_per_sqm_used_low: number | null
+          property_type: string
+          rooms: number | null
+          source: string
+          sqm: number
+          status: string
+          utm_campaign: string | null
+        }
+        Insert: {
+          agent_note?: string | null
+          baseline_source?: string | null
+          build_year?: number | null
+          city: string
+          condition: string
+          contact_email?: string | null
+          contact_name: string
+          contact_phone: string
+          created_at?: string
+          estimated_high?: number | null
+          estimated_low?: number | null
+          floor_number?: number | null
+          furnishing?: string | null
+          has_elevator?: boolean | null
+          has_parking?: boolean
+          has_terrace?: boolean
+          id?: string
+          listing_type?: string
+          neighborhood: string
+          price_per_sqm_used_high?: number | null
+          price_per_sqm_used_low?: number | null
+          property_type: string
+          rooms?: number | null
+          source?: string
+          sqm: number
+          status?: string
+          utm_campaign?: string | null
+        }
+        Update: {
+          agent_note?: string | null
+          baseline_source?: string | null
+          build_year?: number | null
+          city?: string
+          condition?: string
+          contact_email?: string | null
+          contact_name?: string
+          contact_phone?: string
+          created_at?: string
+          estimated_high?: number | null
+          estimated_low?: number | null
+          floor_number?: number | null
+          furnishing?: string | null
+          has_elevator?: boolean | null
+          has_parking?: boolean
+          has_terrace?: boolean
+          id?: string
+          listing_type?: string
+          neighborhood?: string
+          price_per_sqm_used_high?: number | null
+          price_per_sqm_used_low?: number | null
+          property_type?: string
+          rooms?: number | null
+          source?: string
+          sqm?: number
+          status?: string
+          utm_campaign?: string | null
+        }
+        Relationships: []
       }
       rooms: {
         Row: {
@@ -1009,6 +1105,51 @@ export type Database = {
           terrace?: string | null
           title?: string | null
           title_i18n?: Json | null
+        }
+        Relationships: []
+      }
+      zone_price_baselines: {
+        Row: {
+          build_type: string
+          city: string
+          id: string
+          independent_count: number | null
+          listing_count: number | null
+          listing_type: string
+          neighborhood: string
+          price_per_sqm_high: number
+          price_per_sqm_low: number
+          property_type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          build_type?: string
+          city: string
+          id?: string
+          independent_count?: number | null
+          listing_count?: number | null
+          listing_type?: string
+          neighborhood: string
+          price_per_sqm_high: number
+          price_per_sqm_low: number
+          property_type: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          build_type?: string
+          city?: string
+          id?: string
+          independent_count?: number | null
+          listing_count?: number | null
+          listing_type?: string
+          neighborhood?: string
+          price_per_sqm_high?: number
+          price_per_sqm_low?: number
+          property_type?: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }

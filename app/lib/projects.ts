@@ -52,6 +52,9 @@ export type ProjectRow = {
   /** Prezentacija (migracija 026): sve kartice stana, prazne popunjene demo sadržajem. */
   show_all_tabs: boolean;
   demo_tour_id: string | null;
+  /** Naselje i učešće u statistici cena novogradnje (migracija 033). */
+  neighborhood: string | null;
+  include_in_price_stats: boolean;
   published: boolean;
   created_at: string;
   updated_at: string;
