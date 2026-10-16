@@ -27,7 +27,7 @@ import SiteStylesheets from '../../components/SiteStylesheets';
  *   danas / sa nama -> 02 pravi izbor stana (ProjectSelector projekta
  *   DEMO_SLUG, sa dugmetom za ceo ekran) -> 03 kupac (četiri ekrana
  *   telefona) -> 04 vaša prodaja (tamna sekcija + kartica) -> plava traka ->
- *   05 postavljanje (AI čita cenovnik, osnove, fasadu) -> 06 paket ->
+ *   05 postavljanje (mi unosimo cenovnik, osnove, fasadu) -> 06 paket ->
  *   07 kako radimo -> 08 pitanja -> kontakt.
  * Bez projekta primera (nije objavljen) vrh i primer padaju na stari crtež
  * izmišljenog projekta (InvestorHeroDevice, InvestorDemo).
@@ -231,7 +231,7 @@ const INVESTOR_STYLES = `
   .ph-tabs i{flex:1; font-style:normal; text-align:center; font-size:.56rem; font-weight:700; color:#5B5D63; padding:3px 0; border-radius:6px;}
   .ph-tabs i.on{background:#FFFFFF; color:#1E5AA8;}
 
-  /* 05 Postavljanje: ulaz -> šta sistem napravi. */
+  /* 05 Postavljanje: ulaz -> šta mi složimo. */
   .setup-grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1.2rem;}
   @media (max-width:900px){ .setup-grid{grid-template-columns:1fr;} }
   /* Bez kartica, kao prednosti (.feat): red sa linijom iznad. */
@@ -534,7 +534,7 @@ export default async function InvestorPage() {
           </div>
         </section>
 
-        {/* 05 Postavljanje: AI čita materijal investitora - odgovor na „koliko posla je na nama". */}
+        {/* 05 Postavljanje: mi unosimo i proveravamo materijal investitora - odgovor na „koliko posla je na nama". */}
         <section id="postavljanje">
           <div className="wrap">
             <div className="section-head">

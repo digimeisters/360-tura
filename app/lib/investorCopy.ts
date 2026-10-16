@@ -8,7 +8,7 @@
  * Raspored prati /za-agencije (vlasnik, 2. 10. 2026: „uskladi se sa stilom
  * celog sajta"): vrh sa pravom fotografijom zgrade -> prodaja danas / sa
  * nama -> pravi izbor stana (primer) -> kupac (četiri ekrana) -> vaša prodaja
- * (tamno) -> plava traka -> postavljanje (AI čita materijal) -> paket ->
+ * (tamno) -> plava traka -> postavljanje (mi unosimo materijal) -> paket ->
  * kako radimo -> pitanja -> kontakt.
  *
  * Opisuje samo ono što aplikacija danas radi. Primer je pravi projekat
@@ -185,26 +185,26 @@ export const INVESTOR_COPY: InvestorCopy = {
   },
   setup: {
     eyebrow: 'Postavljanje',
-    title: 'Vi pošaljete, *sistem pročita*',
-    note: 'Cenovnik, osnove i fotografiju zgrade ne prekucavamo ručno. Sistem ih pročita, a mi proverimo svaki broj pre objave.',
+    title: 'Vi pošaljete, *mi složimo*',
+    note: 'Cenovnik, osnove i fotografiju zgrade šaljete u obliku u kom ih već imate. Unos i proveru radimo mi - svaki stan i svaki broj, pre nego što ga kupac vidi.',
     items: [
       {
         from: 'cenovnik.pdf',
         to: '56 stanova u tabeli',
         title: 'Cenovnik postaje tabela',
-        text: 'PDF, Excel ili slika cenovnika: oznake, spratovi, strukture, m², cene i statusi upišu se sami.'
+        text: 'PDF, Excel ili slika cenovnika: mi prenesemo oznake, spratove, strukture, m², cene i statuse i proverimo svaki red.'
       },
       {
         from: '23 osnove odjednom',
         to: 'prostorije i m²',
-        title: 'Sve osnove odjednom',
-        text: 'Osnove se same spoje sa stanovima, po oznaci ili tipu stana, a sa svake se pročitaju prostorije i kvadrature.'
+        title: 'Svaka osnova uz svoj stan',
+        text: 'Svaku osnovu povežemo sa njenim stanom i upišemo prostorije i kvadrature, tačno kao na vašem crtežu.'
       },
       {
         from: 'render zgrade',
         to: '7 spratova, 20 stanova',
         title: 'Stanovi na fotografiji',
-        text: 'Sistem sam obeleži spratove i stanove na renderu ili fotografiji zgrade, na svakoj slici posebno.'
+        text: 'Na renderu ili fotografiji zgrade obeležimo svaki sprat i stan, na svakoj slici posebno.'
       }
     ],
     foot: 'Posle objave, promena cene ili statusa je jedan dodir na telefonu vaše prodaje.'
@@ -255,7 +255,7 @@ export const INVESTOR_COPY: InvestorCopy = {
       {
         question: 'Koliko posla je na nama?',
         answer:
-          'Malo. Pošaljete cenovnik, osnove i rendere kakve već imate - sistem ih pročita, a mi proverimo i složimo. Posle objave vaša prodaja samo menja statuse i cene sa telefona.'
+          'Malo. Pošaljete cenovnik, osnove i rendere kakve već imate - unos, proveru i slaganje radimo mi. Posle objave vaša prodaja samo menja statuse i cene sa telefona.'
       },
       {
         question: 'Šta ako nemamo 3D model enterijera?',
