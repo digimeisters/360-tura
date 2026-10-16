@@ -8,10 +8,10 @@ import { pickLang, realValue } from '../tour/[slug]/getTourMeta';
  * samo objavljene - tura "u pripremi" se na sajtu ne pojavljuje.
  */
 
-// Tura čiji se kadar prikazuje u vrhu strane: Apartman Belgrade Four-Dorćol
-// (vlasnik, 16. 10. 2026 - ima prednost i nad turama iz Kragujevca). Ako nije
+// Tura čiji se kadar prikazuje u vrhu strane: primer iz Kragujevca, Maglićka
+// (vlasnik, 16. 10. 2026 - naslov kaže "Vaš kvadrat u Kragujevcu"). Ako nije
 // objavljena ili nema nijednu sličicu, uzima se objavljena tura sa najviše soba.
-export const HERO_TOUR_SLUG = 'stan-gasse-1';
+export const HERO_TOUR_SLUG = 'stan-kragujevac-maglicka1';
 
 /**
  * Od koliko objavljenih tura sajt nudi pretragu (filteri i mapa na /ture,

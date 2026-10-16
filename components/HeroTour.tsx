@@ -8,10 +8,11 @@ import { IconPlay } from './SiteIcons';
 
 const LABELS: Record<
   HomeLang,
-  { empty: string; open: string; drag: string; plan: string; view: string; prev: string; next: string; position: string }
+  { empty: string; sample: string; open: string; drag: string; plan: string; view: string; prev: string; next: string; position: string }
 > = {
   sr: {
     empty: 'Primer ture stiže uskoro.',
+    sample: 'Primer · {city}',
     open: 'Otvori celu turu',
     drag: 'Prevucite da pogledate okolo',
     plan: 'Tlocrt - izaberite prostoriju',
@@ -22,6 +23,7 @@ const LABELS: Record<
   },
   en: {
     empty: 'A sample tour is coming soon.',
+    sample: 'Sample · {city}',
     open: 'Open the full tour',
     drag: 'Drag to look around',
     plan: 'Floor plan - pick a room',
@@ -175,8 +177,9 @@ export default function HeroTour({ tour, lang = 'sr' }: { tour: ShowcaseTour | n
 
       <div className="ht-card">
         <div className="ht-card-head">
+          {/* Jasno da je ovo primer i odakle je - ne nečiji aktuelni oglas. */}
+          <span className="ht-sample">{tour.city ? t.sample.replace('{city}', tour.city) : tour.title}</span>
           <strong>{room.title}</strong>
-          <span>{tour.title}</span>
         </div>
 
         {hasPlan ? (

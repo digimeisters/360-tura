@@ -321,7 +321,7 @@ export const SITE_STYLES = `
     background:#FFFFFF; color:#111113; box-shadow:0 18px 44px rgba(0,0,0,.32);}
   .ht-card-head{display:flex; flex-direction:column; gap:.1rem; padding:0 .2rem .6rem;}
   .ht-card-head strong{font-family:var(--font-display); font-size:1.02rem; font-weight:800; letter-spacing:-0.01em;}
-  .ht-card-head span{font-size:.8rem; color:#5B5D63; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .ht-card-head .ht-sample{font-size:.8rem; font-weight:700; color:#1E5AA8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .ht-plan{position:relative; line-height:0; border-radius:10px; overflow:hidden; background:#FFFFFF;}
   .ht-plan img{display:block; width:100%; height:auto;}
   /* Dugme je 28px (lako se pogodi), a vidi se tačka od 12px u sredini - kao u turi. */
@@ -360,7 +360,7 @@ export const SITE_STYLES = `
     .ht-card{width:190px; padding:.6rem .6rem .7rem; right:12px; bottom:12px; border-radius:16px;}
     .ht-card-head{padding-bottom:.4rem;}
     .ht-card-head strong{font-size:.9rem;}
-    .ht-card-head span{display:none;}
+    .ht-card-head .ht-sample{font-size:.72rem;}
     .ht-open{min-height:38px; font-size:.82rem; margin-top:.55rem;}
     .ht-hint{font-size:.8rem; top:.9rem;}
   }
