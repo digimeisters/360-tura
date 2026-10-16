@@ -269,12 +269,15 @@ export const SITE_STYLES = `
   .section-head h2{font-size:clamp(2.1rem,4.2vw,3.5rem); line-height:1.06; max-width:24ch;}
   .section-head .note{max-width:60ch; color:var(--ink-soft); font-size:clamp(1rem,1.3vw,1.18rem); line-height:1.6;}
   .section-head.left{margin-bottom:0;}
-  .section-head .eyebrow{color:var(--ink-soft); display:flex; align-items:center; gap:.8rem;}
-  /* Broj poglavlja u kvadratu - isti znak kao u imenu Kvadrat360. */
-  .section-head .eyebrow::before{counter-increment:chapter; content:counter(chapter, decimal-leading-zero); color:var(--accent); font-weight:800; letter-spacing:0;
-    display:inline-grid; place-items:center; width:2.3em; height:2.3em; flex:none; font-size:.82em; line-height:1;
-    border:1.5px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius:7px;
-    background:color-mix(in srgb, var(--accent) 9%, transparent);}
+  /* Novi izgled (16. 10. 2026): sekcije se ne numerišu i nemaju natpis
+     velikim slovima iznad naslova - naslov sam kaže o čemu je reč, a isti
+     natpis već stoji u meniju. */
+  .section-head .eyebrow{display:none;}
+  /* Naslov levo, objašnjenje desno, poravnati dole - kad je u glavi samo to dvoje. */
+  @media (min-width:900px){
+    .section-head:not(.left):has(> h2 + .note:last-child){display:grid; grid-template-columns:1fr 1fr; align-items:end; column-gap:clamp(2rem,6vw,5rem);}
+    .section-head:not(.left):has(> h2 + .note:last-child) .note{max-width:46ch; padding-bottom:.35rem;}
+  }
 
   /* ---------- HERO ---------- */
   .hero{padding-block:clamp(2rem,6vw,5rem) clamp(3rem,7vw,6rem);}
@@ -293,6 +296,75 @@ export const SITE_STYLES = `
      desna polovina ekrana ostala prazna. */
   .hero.hero-solo .wrap{grid-template-columns:1fr;}
   .hero.hero-solo h1{max-width:20ch;}
+  /* Podatak iznad naslova alata (npr. "takse proverene oktobra 2026."):
+     običan red teksta, ne pilula sa tačkom (novi izgled, 16. 10. 2026). */
+  :is(.hero, .tl-hero) .chip:has(> .dot){background:none; border:0; box-shadow:none; padding:0; border-radius:0; font-size:.92rem; font-weight:600; color:var(--ink-soft); white-space:normal;}
+  :is(.hero, .tl-hero) .chip:has(> .dot) .dot{display:none;}
+
+  /* ---------- VRH POČETNE: TURA PREKO CELE ŠIRINE ---------- */
+  /* components/HeroTour. Kadar se vuče, tlocrt je dole desno, tekst na svojoj
+     pločici dole levo. Delovi preko slike su uvek svetli, kao u samoj turi. */
+  .hero-tour{position:relative; padding:0; height:min(calc(100svh - 7rem), 800px); min-height:600px; overflow:hidden; background:#1A1A1E;}
+  .ht-media{position:absolute; inset:0; overflow:hidden;}
+  .ht-still{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
+  .ht-pano{position:absolute; inset:0; background-repeat:repeat-x; background-position:0 50%; opacity:0; transition:opacity .5s ease; touch-action:pan-y; cursor:grab; user-select:none;}
+  .ht-pano.is-ready{opacity:1;}
+  .ht-pano:active{cursor:grabbing;}
+  .ht-pano:focus-visible{outline:3px solid #FFFFFF; outline-offset:-6px; border-radius:0;}
+  .ht-hint{position:absolute; top:1.4rem; left:50%; transform:translateX(-50%); padding:.5rem 1rem; border-radius:999px; background:rgba(17,17,19,.6); color:#FFFFFF;
+    font-family:var(--font-display); font-weight:600; font-size:.88rem; white-space:nowrap; pointer-events:none; transition:opacity .4s ease;
+    -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);}
+  .ht-media.is-touched .ht-hint{opacity:0;}
+  .ht-empty{display:grid; place-items:center; color:#FFFFFF;}
+
+  .ht-card{position:absolute; right:clamp(16px,3vw,40px); bottom:clamp(16px,3vw,40px); width:300px; padding:.9rem .9rem 1rem; border-radius:20px;
+    background:#FFFFFF; color:#111113; box-shadow:0 18px 44px rgba(0,0,0,.32);}
+  .ht-card-head{display:flex; flex-direction:column; gap:.1rem; padding:0 .2rem .6rem;}
+  .ht-card-head strong{font-family:var(--font-display); font-size:1.02rem; font-weight:800; letter-spacing:-0.01em;}
+  .ht-card-head span{font-size:.8rem; color:#5B5D63; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .ht-plan{position:relative; line-height:0; border-radius:10px; overflow:hidden; background:#FFFFFF;}
+  .ht-plan img{display:block; width:100%; height:auto;}
+  /* Dugme je 28px (lako se pogodi), a vidi se tačka od 12px u sredini - kao u turi. */
+  .ht-dot{position:absolute; width:28px; height:28px; transform:translate(-50%,-50%); padding:0; border:0; background:none; cursor:pointer; border-radius:50%;}
+  .ht-dot::after{content:""; position:absolute; inset:8px; border-radius:50%; background:rgba(15,23,42,.55); border:2px solid #FFFFFF; box-shadow:0 1px 4px rgba(0,0,0,.35); transition:transform .15s ease;}
+  .ht-dot:hover::after{transform:scale(1.3);}
+  .ht-dot[data-on]::after{inset:6px; background:#1E5AA8;}
+  .ht-dot:focus-visible{outline:2px solid #1E5AA8; outline-offset:0;}
+  .ht-steps{display:flex; align-items:center; justify-content:space-between; gap:.5rem; font-weight:700; font-size:.9rem;}
+  .ht-steps button{width:40px; height:40px; border-radius:50%; border:1px solid #D3D3CB; background:#FFFFFF; color:#111113; font-size:1.3rem; cursor:pointer;}
+  .ht-steps button:disabled{opacity:.35; cursor:default;}
+  .ht-open{display:flex; align-items:center; justify-content:center; gap:.45rem; margin-top:.8rem; min-height:44px; border-radius:999px;
+    background:#1E5AA8; color:#FFFFFF; font-family:var(--font-display); font-weight:700; font-size:.92rem; text-decoration:none;}
+  .ht-open:hover{background:#17447E;}
+
+  .ht-copy{position:absolute; left:clamp(16px,3vw,40px); bottom:clamp(16px,3vw,40px); max-width:min(720px, calc(100% - 400px)); padding:clamp(1.5rem,3vw,2.4rem);
+    border-radius:26px; background:var(--bg); color:var(--ink); box-shadow:0 18px 44px rgba(0,0,0,.22);}
+  .ht-copy h1{font-size:clamp(2.2rem,4.4vw,3.9rem); line-height:1.04; letter-spacing:-0.035em;}
+  /* Slogan "bez skrivenih ćoškova." uvek u svom redu, nikad prelomljen (vlasnik, 1. 10. 2026). */
+  .ht-copy h1 em{display:block; white-space:nowrap;}
+  .ht-copy .lede{margin-top:1rem; max-width:46ch; color:var(--ink-soft); font-size:clamp(1rem,1.2vw,1.1rem); line-height:1.6;}
+  .ht-copy .hero-ctas{margin-top:1.4rem;}
+  .ht-facts{display:flex; flex-wrap:wrap; gap:.3rem 1.2rem; margin:1.2rem 0 0; padding:0; list-style:none; font-size:.9rem; font-weight:600; color:var(--ink-soft);}
+  .ht-facts li{display:flex; align-items:center; gap:.5rem;}
+  .ht-facts li + li::before{content:""; width:4px; height:4px; border-radius:50%; background:var(--line-strong); margin-left:-.7rem;}
+  /* Na telefonu jedno ispod drugog - tačka-razdvajač bi inače ostala na početku reda. */
+  @media (max-width:640px){ .ht-facts{flex-direction:column; gap:.25rem;} .ht-facts li + li::before{display:none;} }
+
+  /* Ispod 1100px nema mesta za tekst i tlocrt jedno pored drugog: kadar gore, tekst ispod. */
+  @media (max-width:1100px){
+    .hero-tour{height:auto; min-height:0; overflow:visible; background:var(--bg);}
+    .ht-media{position:relative; height:min(62svh, 560px); min-height:380px;}
+    .ht-copy{position:static; max-width:none; border-radius:0; box-shadow:none; padding:1.8rem clamp(1rem,4vw,2.5rem) 0;}
+  }
+  @media (max-width:640px){
+    .ht-card{width:190px; padding:.6rem .6rem .7rem; right:12px; bottom:12px; border-radius:16px;}
+    .ht-card-head{padding-bottom:.4rem;}
+    .ht-card-head strong{font-size:.9rem;}
+    .ht-card-head span{display:none;}
+    .ht-open{min-height:38px; font-size:.82rem; margin-top:.55rem;}
+    .ht-hint{font-size:.8rem; top:.9rem;}
+  }
+  @media (max-width:480px){ .ht-copy h1{font-size:min(2.4rem, calc(10.6vw - 4.5px));} }
 
   /* ---------- KADAR IZ TURE ---------- */
   /* Delovi aplikacije preko fotografije su uvek svetli, kao u samoj turi. */
@@ -341,7 +413,7 @@ export const SITE_STYLES = `
   .filter-menu{position:relative; width:min(100%, 22rem);}
   .filter-toggle{display:flex; width:100%; align-items:center; gap:.5rem; cursor:pointer; font:inherit; color:var(--ink); background:var(--surface); border:1px solid var(--line-strong); border-radius:999px; padding:.5rem .9rem; line-height:1.2;}
   .filter-toggle:hover{border-color:var(--accent);}
-  .filter-toggle-label{font-family:var(--font-display); font-size:.72rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint);}
+  .filter-toggle-label{font-family:var(--font-display); font-size:.84rem; font-weight:700; color:var(--ink-soft);}
   .filter-toggle-value{margin-left:auto; font-size:.88rem; font-weight:650; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right;}
   .filter-toggle.on{background:var(--accent); color:var(--on-accent); border-color:var(--accent);}
   .filter-toggle.on .filter-toggle-label{color:var(--on-accent); opacity:.75;}
@@ -365,7 +437,7 @@ export const SITE_STYLES = `
   .filter-ranges{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem 1.6rem; margin-bottom:1.1rem;}
   .range-filter{min-width:0;}
   .range-head{display:flex; align-items:baseline; justify-content:space-between; gap:.6rem; margin-bottom:.5rem;}
-  .range-label{font-family:var(--font-display); font-size:.72rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint);}
+  .range-label{font-family:var(--font-display); font-size:.84rem; font-weight:700; color:var(--ink-soft);}
   .range-value{font-size:.88rem; font-weight:650; color:var(--ink-soft);}
   .range-filter.on .range-value{color:var(--accent);}
   .range-track{position:relative; height:1.4rem;}
@@ -490,17 +562,17 @@ export const SITE_STYLES = `
     .filter-menu{width:100%;}
   }
 
-  .feat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:1.2rem; counter-reset:feat;}
-  /* Šest kartica: 3+3, da poslednji red ne ostane napola prazan. */
+  /* Prednosti: redovi odvojeni linijom, ne red istih kartica (novi izgled,
+     16. 10. 2026). Bez brojeva - to nije redosled, nego spisak. */
+  .feat-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:0 clamp(2rem,5vw,4.5rem);}
   .feat-grid.n-3{grid-template-columns:repeat(3,1fr);}
-  .feat{padding:1.8rem 1.7rem; display:flex; flex-direction:column; gap:.65rem; box-shadow:none;}
-  .feat::before{counter-increment:feat; content:counter(feat, decimal-leading-zero); font-family:var(--font-display); font-weight:800; font-size:.95rem; color:var(--accent);}
-  .feat h3{font-size:1.18rem; font-weight:700; line-height:1.25; letter-spacing:-0.015em;}
-  .feat p{color:var(--ink-soft); font-size:.95rem; line-height:1.6;}
-  /* I .n-3 mora da se navede: ima veću specifičnost od samog .feat-grid, pa
-     bi inače ostao u tri kolone i na telefonu (strana za agencije). */
-  @media (max-width:1000px){ .feat-grid, .feat-grid.n-3{grid-template-columns:1fr 1fr;} }
-  @media (max-width:560px){ .feat-grid, .feat-grid.n-3{grid-template-columns:1fr;} }
+  .feat-grid .feat{background:none; border:0; border-top:1px solid var(--line-strong); border-radius:0; box-shadow:none;
+    padding:1.6rem 0 2rem; display:flex; flex-direction:column; gap:.55rem;}
+  .feat h3{font-size:clamp(1.2rem,1.6vw,1.4rem); font-weight:700; line-height:1.25; letter-spacing:-0.015em;}
+  .feat p{color:var(--ink-soft); font-size:1rem; line-height:1.65; max-width:52ch;}
+  /* I .n-3 mora da se navede: ima veću specifičnost od samog .feat-grid. */
+  @media (max-width:1000px){ .feat-grid.n-3{grid-template-columns:1fr 1fr;} }
+  @media (max-width:640px){ .feat-grid, .feat-grid.n-3{grid-template-columns:1fr;} }
 
   /* ---------- KORACI ---------- */
   .steps-row{display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:1.3rem;}
@@ -511,11 +583,17 @@ export const SITE_STYLES = `
   @media (max-width:900px){ .steps-split{grid-template-columns:1fr;} }
   .steps-side .deliver-card{margin-top:2.2rem;}
   .steps-side .deliver-list{grid-template-columns:1fr;}
-  .steps-split .steps-row{grid-template-columns:1fr; gap:.9rem; margin:0;}
-  .steps-split .step{display:grid; grid-template-columns:4.6rem 1fr; column-gap:1.1rem; align-items:center; padding:1.6rem 1.8rem; border:0; box-shadow:none;}
-  .steps-split .step .num{grid-row:span 2; background:none; padding:0; height:auto; font-size:2.6rem; letter-spacing:-0.02em;}
-  .steps-split .step h3{margin:0; font-size:1.25rem;}
-  .steps-split .step p{margin-top:.35rem; font-size:1rem;}
+  /* Koraci su pravi redosled, pa imaju brojeve - na vertikalnoj liniji,
+     bez kartica (novi izgled, 16. 10. 2026). */
+  .steps-split .steps-row{grid-template-columns:1fr; gap:0; margin:0;}
+  .steps-split .step{position:relative; display:grid; grid-template-columns:2.4rem 1fr; column-gap:1.2rem; align-items:start;
+    padding:0 0 2rem; background:none; border:0; border-radius:0; box-shadow:none;}
+  .steps-split .step:last-child{padding-bottom:0;}
+  .steps-split .step::before{content:""; position:absolute; left:calc(1.2rem - 1px); top:2.6rem; bottom:.2rem; width:2px; background:var(--line-strong);}
+  .steps-split .step:last-child::before{display:none;}
+  .steps-split .step .num{grid-row:span 2; width:2.4rem; height:2.4rem; padding:0; border-radius:50%; background:var(--accent); color:var(--on-accent); font-size:.95rem;}
+  .steps-split .step h3{margin:.3rem 0 0; font-size:1.25rem;}
+  .steps-split .step p{margin-top:.35rem; font-size:1rem; max-width:54ch;}
   .step .num{display:inline-flex; align-items:center; justify-content:center; height:1.75rem; padding-inline:.7rem; border-radius:999px; background:var(--accent-soft); color:var(--accent); font-family:var(--font-display); font-weight:800; font-size:.82rem; font-variant-numeric:tabular-nums;}
   .step h3{font-size:1.02rem; font-weight:700; margin-top:.85rem;}
   .step p{margin-top:.45rem; font-size:.9rem; color:var(--ink-soft);}
@@ -576,7 +654,7 @@ export const SITE_STYLES = `
   /* Sva CTA dugmad su plava (boja sajta), i u običnoj i u istaknutoj (tamnoj) kartici. */
   .price-card .price-cta{background:#1E5AA8; color:#FFFFFF; border:0; box-shadow:none;}
   .price-card .price-cta:hover{background:#17447E; color:#FFFFFF;}
-  .price-badge{position:absolute; top:-.8rem; left:1.5rem; background:var(--accent); color:var(--on-accent); font-family:var(--font-display); font-size:.66rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; padding:.35rem .75rem; border-radius:999px; box-shadow:0 4px 12px var(--accent-glow);}
+  .price-badge{position:absolute; top:-.8rem; left:1.5rem; background:var(--accent); color:var(--on-accent); font-family:var(--font-display); font-size:.78rem; font-weight:700; padding:.35rem .75rem; border-radius:999px; box-shadow:0 4px 12px var(--accent-glow);}
   /* Nalepnica sa popustom, u uglu kartice - kao pečat u prospektu. Crvena, da
      se ne stopi sa plavim čipom u suprotnom uglu (components/PromoPrice.tsx). */
   .price-sale{position:absolute; top:-.85rem; right:1.1rem; z-index:2; width:3.5rem; height:3.5rem; border-radius:50%; display:grid; place-items:center; background:var(--danger); color:#fff; border:2px solid var(--surface); font-family:var(--font-display); font-weight:800; font-size:.95rem; font-variant-numeric:tabular-nums; transform:rotate(9deg); box-shadow:0 6px 16px color-mix(in srgb, var(--danger) 35%, transparent);}
@@ -593,13 +671,15 @@ export const SITE_STYLES = `
   .fine-print{margin-top:1.4rem; font-size:.88rem; color:var(--ink-soft); max-width:90ch;}
 
   /* Blog (/blog, /blog/[slug]) */
-  .blog-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:1.4rem;}
-  @media (max-width:720px){ .blog-grid{grid-template-columns:1fr;} }
-  .blog-card{padding:2.2rem 2.1rem; display:block; text-decoration:none; color:inherit; box-shadow:none; transition:transform .18s ease, box-shadow .18s ease;}
-  @media (hover:hover){ .blog-card:hover{transform:translateY(-3px); box-shadow:var(--shadow-lg);} }
-  .blog-card:nth-child(2n){background:var(--surface);}
-  .blog-card h3{font-family:var(--font-display); font-size:clamp(1.4rem,2vw,1.8rem); line-height:1.2; letter-spacing:-0.02em; font-weight:800; margin:0 0 .8rem;}
-  .blog-card .note{margin:0; color:var(--ink-soft); font-size:1rem; line-height:1.6;}
+  /* Spisak tekstova: redovi sa linijom, naslov levo i uvod desno - ne
+     naizmenično svetle i tamne kartice (novi izgled, 16. 10. 2026). */
+  .blog-grid{display:flex; flex-direction:column; border-bottom:1px solid var(--line-strong);}
+  .blog-grid .blog-card{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:.6rem clamp(2rem,6vw,5rem); align-items:baseline;
+    padding:2rem 0; background:none; border:0; border-top:1px solid var(--line-strong); border-radius:0; box-shadow:none; text-decoration:none; color:inherit;}
+  @media (max-width:720px){ .blog-grid .blog-card{grid-template-columns:1fr;} }
+  .blog-card h3{font-family:var(--font-display); font-size:clamp(1.35rem,2vw,1.75rem); line-height:1.2; letter-spacing:-0.02em; font-weight:800; margin:0; transition:color .15s ease;}
+  .blog-card:hover h3{color:var(--accent);}
+  .blog-card .note{margin:0; color:var(--ink-soft); font-size:1rem; line-height:1.6; max-width:52ch;}
   .blog-article{max-width:760px;}
   .blog-section{margin-bottom:2.6rem;}
   .blog-section h2{font-size:clamp(1.6rem,2.8vw,2.1rem); line-height:1.2; margin:0 0 1rem;}
@@ -729,13 +809,23 @@ export const SITE_STYLES = `
   .agency-bridge .bridge-points li{font-size:1rem;}
   /* "Usluge" na početnoj: isti tamni blok, tri kartice i red besplatnih alata. */
   .agency-bridge.services .wrap{display:block;}
-  .svc-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem; margin-top:clamp(1.6rem,3vw,2.4rem);}
-  @media (max-width:900px){ .svc-grid{grid-template-columns:1fr;} }
-  .svc{padding:1.7rem 1.6rem; display:flex; flex-direction:column; gap:.75rem; box-shadow:none;}
+  /* Tri reda, ne tri kartice: naziv levo, opis u sredini, veza desno. */
+  .svc-grid{display:flex; flex-direction:column; margin-top:clamp(1.6rem,3vw,2.4rem); border-bottom:1px solid rgba(255,255,255,.16);}
+  .svc-grid .svc{display:grid; grid-template-columns:3rem minmax(11rem,.8fr) 1.6fr auto; grid-template-areas:"ico title text link" "ico title points link";
+    column-gap:clamp(1rem,3vw,2.4rem); row-gap:.6rem; align-items:start; padding:1.8rem 0; background:none; border:0; border-top:1px solid rgba(255,255,255,.16); border-radius:0; box-shadow:none;}
+  .svc-grid .svc .svc-ico{grid-area:ico;}
+  .svc-grid .svc h3{grid-area:title; margin-top:.55rem;}
+  .svc-grid .svc p{grid-area:text;}
+  .svc-grid .svc .bridge-points{grid-area:points;}
+  .svc-grid .svc .svc-link{grid-area:link; align-self:center; margin:0; padding:0;}
+  @media (max-width:900px){
+    .svc-grid .svc{grid-template-columns:3rem 1fr; grid-template-areas:"ico title" "text text" "points points" "link link";}
+    .svc-grid .svc h3{margin-top:.5rem;}
+  }
   .svc-ico{width:44px; height:44px; border-radius:14px; display:grid; place-items:center; background:var(--accent-soft); color:var(--accent);}
   .svc-ico svg{width:22px; height:22px;}
   .svc h3{display:flex; align-items:center; gap:.55rem; font-size:1.25rem; font-weight:700; line-height:1.25; letter-spacing:-0.015em;}
-  .svc-new{padding:.18rem .55rem; border-radius:999px; background:var(--accent); color:var(--on-accent); font-size:.68rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase;}
+  .svc-new{padding:.18rem .6rem; border-radius:999px; background:var(--accent); color:var(--on-accent); font-size:.75rem; font-weight:700;}
   .svc p{color:var(--ink-soft); font-size:.95rem; line-height:1.6;}
   .agency-bridge .svc .bridge-points{flex-direction:column; gap:.4rem; margin:0;}
   .agency-bridge .svc .bridge-points li{font-size:.92rem;}
@@ -850,7 +940,7 @@ export const SITE_STYLES = `
 
   /* ---------- TAMNI DELOVI ---------- */
   /* Iste komponente, tamne boje: menjaju se samo promenljive. */
-  .agency-bridge, .steps-side .deliver-card, .price-card.featured, .blog-callout, .blog-card:nth-child(2n), .is-dark{
+  .agency-bridge, .steps-side .deliver-card, .price-card.featured, .blog-callout, .is-dark{
     --surface:#111113; --surface-2:#1A1A1E; --ink:#F5F5F3; --ink-soft:#A8A9AE; --ink-faint:#8C8E93; --line:#2C2C30; --line-strong:#38383D;
     --accent:#7FB0EC; --accent-strong:#A5C8F2; --accent-soft:rgba(127,176,236,.14); --on-accent:#0B0E1A; --shadow:none;
     background:var(--surface); color:var(--ink); border-color:var(--line);
@@ -870,7 +960,7 @@ export const SITE_STYLES = `
                   da na dugačkoj sekciji ne pokrije ceo spisak)
        --k-base   donji sloj (plavi blokovi: prelaz iz svetlije u tamniju plavu)
      Redosled slojeva: svetlo, bleđenje, mreža, podloga. */
-  .agency-bridge, .steps-side .deliver-card, .price-card.featured, .blog-callout, .blog-card:nth-child(2n), .is-dark, .integration, .band, .contact .wrap, .cta-band, .hero, footer{
+  .agency-bridge, .steps-side .deliver-card, .price-card.featured, .blog-callout, .is-dark, .integration, .band, .contact .wrap, .cta-band, .hero, footer{
     --k-cell:22px; --k-line:rgba(255,255,255,.07);
     --k-glow:rgba(91,146,214,.45); --k-size:85% 60%; --k-at:50% -14%;
     --k-fade:#111113; --k-fade-end:88%;
@@ -971,12 +1061,12 @@ export const SITE_STYLES = `
     background:linear-gradient(180deg, var(--surface) 0%, color-mix(in srgb, var(--surface-2) 55%, var(--surface)) 100%);
   }
   /* Na tamnim i plavim blokovima sporedno dugme je staklo: vidi se mreža kroz njega. */
-  :is(.agency-bridge, .steps-side .deliver-card, .price-card.featured, .blog-callout, .blog-card:nth-child(2n), .is-dark, .integration, .contact .wrap, .cta-band) .btn-secondary:not(.contact-form .btn-secondary){
+  :is(.agency-bridge, .steps-side .deliver-card, .price-card.featured, .blog-callout, .is-dark, .integration, .contact .wrap, .cta-band) .btn-secondary:not(.contact-form .btn-secondary){
     background:rgba(255,255,255,.08); color:#FFFFFF; border-color:rgba(255,255,255,.22);
     -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.18);
   }
-  :is(.agency-bridge, .steps-side .deliver-card, .price-card.featured, .blog-callout, .blog-card:nth-child(2n), .is-dark, .integration, .contact .wrap, .cta-band) .btn-secondary:not(.contact-form .btn-secondary):hover{
+  :is(.agency-bridge, .steps-side .deliver-card, .price-card.featured, .blog-callout, .is-dark, .integration, .contact .wrap, .cta-band) .btn-secondary:not(.contact-form .btn-secondary):hover{
     background:rgba(255,255,255,.16); color:#FFFFFF; border-color:rgba(255,255,255,.4);
   }
 

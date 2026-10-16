@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SiteNav, SiteFooter } from '../components/SiteChrome';
-import HeroDevice from '../components/HeroDevice';
+import HeroTour from '../components/HeroTour';
 import ContactForm from '../components/ContactForm';
 import SiteTracker from '../components/SiteTracker';
 import CardSpotlight from '../components/CardSpotlight';
@@ -15,13 +15,12 @@ import { HOME_FAQ } from './lib/homeFaq';
 import { homeJsonLd, serializeJsonLd } from './lib/structuredData';
 import TourCard, { tourCardLabels } from '../components/TourCard';
 import { getPublicOpenCount } from './lib/tourStats';
-import { tourHref } from './lib/tourHref';
 import { accent } from './lib/accent';
 import { STRUCTURE_ORDER, structureLabel } from './lib/propertyTaxonomy';
 import PromoTopBar from '../components/PromoTopBar';
 import TourModulesShowcase from '../components/TourModulesShowcase';
 import ChatBubble from '../components/ChatBubble';
-import { IconPhone, IconPlay } from '../components/SiteIcons';
+import { IconPhone } from '../components/SiteIcons';
 import SiteStylesheets from '../components/SiteStylesheets';
 import HtmlLang from '../components/HtmlLang';
 import { preloadHeroImage } from './lib/heroPreload';
@@ -161,33 +160,23 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
       )}
 
       <main>
-        <section className="hero" id="pocetna">
-          <div className="wrap">
-            <div>
-              <span className="chip"><span className="dot" />{hero.chip}</span>
-              <h1>{hero.titleStart}<em>{hero.titleEm}</em></h1>
-              <p className="lede">{hero.lede}</p>
-              <div className="hero-ctas">
-                <a
-                  className="btn btn-primary"
-                  href={heroTour ? tourHref(heroTour.slug, heroTour.languages, lang) : '#primeri'}
-                  data-track="cta:hero_tour"
-                >
-                  <IconPlay /> {hero.ctaTour}
-                </a>
-                <a className="btn btn-secondary" href="#cenovnik" data-track="cta:hero_packages">{hero.ctaPackages}</a>
-              </div>
-              <div className="trust">
-                {hero.trust.map((item) => (
-                  <span key={item} className="chip">{item}</span>
-                ))}
-                {openCount !== null && (
-                  <span className="chip">{hero.opens(new Intl.NumberFormat(copy.locale).format(openCount))}</span>
-                )}
-              </div>
+        {/* Vrh je sama tura preko cele širine (vlasnik, 16. 10. 2026): kadar se
+            vuče, tačke na tlocrtu menjaju sobu. Tekst stoji na svojoj pločici. */}
+        <section className="hero-tour" id="pocetna">
+          <HeroTour tour={heroTour} lang={lang} />
+          <div className="ht-copy">
+            <h1>{hero.titleStart}<em>{hero.titleEm}</em></h1>
+            <p className="lede">{hero.lede}</p>
+            <div className="hero-ctas">
+              <a className="btn btn-primary" href="#kontakt" data-track="cta:hero_book">{nav.cta}</a>
+              <a className="btn btn-secondary" href="#cenovnik" data-track="cta:hero_packages">{hero.ctaPackages}</a>
             </div>
-
-            <HeroDevice tour={heroTour} lang={lang} />
+            <ul className="ht-facts">
+              {hero.trust.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+              {openCount !== null && <li>{hero.opens(new Intl.NumberFormat(copy.locale).format(openCount))}</li>}
+            </ul>
           </div>
         </section>
 

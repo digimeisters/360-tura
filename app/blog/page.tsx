@@ -88,7 +88,6 @@ export default function BlogIndexPage() {
         <section className="hero hero-solo" id="pocetna">
           <div className="wrap">
             <div>
-              <span className="chip"><span className="dot" />{COPY.hero.chip}</span>
               <h1>{COPY.hero.titleStart}<em>{COPY.hero.titleEm}</em></h1>
               <p className="lede">{COPY.hero.lede}</p>
             </div>

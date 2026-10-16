@@ -207,6 +207,17 @@ const INVESTOR_STYLES = `
   .inv-hp-legend i{width:9px; height:9px; border-radius:50%; flex:none;}
   .inv-hp-meta{margin:.15rem 0 0; font-size:.74rem; color:rgba(255,255,255,.82);}
   @media (max-width:480px){ .inv-hp-legend{display:none;} }
+  /* Novi vrh (16. 10. 2026), isti okvir kao tura na početnoj (.hero-tour).
+     Zgrada je uspravna, pa preko cele širine bude previše uvećana: na
+     računaru zauzima desnih 58 % do ivice ekrana, a tekst stoji levo. */
+  .inv-hero-full .ht-media{background:#0B0F17;}
+  .inv-hero-full .device{position:absolute; inset:0; width:auto; height:auto; aspect-ratio:auto; border-radius:0; box-shadow:none;}
+  @media (min-width:1101px){
+    .inv-hero-full .ht-media{background:var(--bg);}
+    .inv-hero-full .device{left:46%;}
+    .inv-hero-full .ht-copy{top:50%; bottom:auto; transform:translateY(-50%); max-width:min(600px, 42%); padding:0; background:none; box-shadow:none; border-radius:0;}
+    .inv-hero-full .ht-copy h1{font-size:clamp(2.2rem,3.4vw,3.4rem);}
+  }
 
   /* 02 Primer: pravi izbor stana + traka sa dugmetom za ceo ekran. */
   .inv-demo-bar{display:flex; flex-wrap:wrap; align-items:center; gap:.6rem 1rem; margin:0 0 1rem;}
@@ -223,7 +234,9 @@ const INVESTOR_STYLES = `
   /* 05 Postavljanje: ulaz -> šta sistem napravi. */
   .setup-grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1.2rem;}
   @media (max-width:900px){ .setup-grid{grid-template-columns:1fr;} }
-  .setup-card{padding:1.5rem 1.5rem 1.7rem; display:flex; flex-direction:column; gap:.6rem; box-shadow:none;}
+  /* Bez kartica, kao prednosti (.feat): red sa linijom iznad. */
+  .setup-grid .setup-card{padding:1.5rem 0 1.7rem; display:flex; flex-direction:column; gap:.6rem; background:none; border:0; border-top:1px solid var(--line-strong); border-radius:0; box-shadow:none;}
+  .setup-grid{column-gap:clamp(1.5rem,4vw,3.5rem);}
   .setup-flow{display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.5rem;}
   .setup-in{font-size:.8rem; font-weight:700; color:var(--ink-soft); background:var(--surface-2); border:1px dashed var(--line-strong); border-radius:10px; padding:.4rem .65rem;}
   .setup-arrow{color:var(--accent); font-weight:800;}
@@ -261,23 +274,10 @@ export default async function InvestorPage() {
       <SiteNav brandHref="/" brandAria={nav.brandAria} cta={{ href: '#kontakt', label: nav.cta, track: 'cta:investor_nav' }} mainMenu={{}} />
 
       <main>
-        {/* Vrh: obećanje i živa zgrada jedno pored drugog. */}
-        <section className="hero" id="pocetna">
-          <div className="wrap">
-            <div>
-              <span className="eyebrow">{hero.eyebrow}</span>
-              <h1>{accent(hero.title)}</h1>
-              <p className="lede">{hero.lede}</p>
-              <div className="hero-ctas">
-                <a className="btn btn-primary" href="#kontakt" data-track="cta:investor_hero_contact">{hero.ctaContact}</a>
-                <a className="btn btn-secondary" href="#primer" data-track="cta:investor_hero_demo">{hero.ctaDemo}</a>
-              </div>
-              <div className="trust">
-                {hero.trust.map((item) => (
-                  <span key={item} className="chip">{item}</span>
-                ))}
-              </div>
-            </div>
+        {/* Vrh: živa zgrada preko cele širine (isti raspored kao tura na
+            početnoj), obećanje na pločici preko nje. */}
+        <section className="hero-tour inv-hero-full" id="pocetna">
+          <div className="ht-media">
             {heroPhoto ? (
               <InvestorHeroPhoto
                 imageUrl={heroPhoto.imageUrl}
@@ -290,6 +290,19 @@ export default async function InvestorPage() {
             ) : (
               <InvestorHeroDevice project={hero.device.fallbackProject} freeLabel={hero.device.floorCard} unitLabel={hero.device.unitLabel} />
             )}
+          </div>
+          <div className="ht-copy">
+            <h1>{accent(hero.title)}</h1>
+            <p className="lede">{hero.lede}</p>
+            <div className="hero-ctas">
+              <a className="btn btn-primary" href="#kontakt" data-track="cta:investor_hero_contact">{hero.ctaContact}</a>
+              <a className="btn btn-secondary" href="#primer" data-track="cta:investor_hero_demo">{hero.ctaDemo}</a>
+            </div>
+            <ul className="ht-facts">
+              {hero.trust.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
           </div>
         </section>
 
@@ -575,7 +588,7 @@ export default async function InvestorPage() {
             </div>
             <div className="steps-row">
               {steps.items.map((item, i) => (
-                <div key={item.title} className={i === steps.items.length - 1 ? 'card step is-dark' : 'card step'}>
+                <div key={item.title} className="card step">
                   <span className="num">{String(i + 1).padStart(2, '0')}</span>
                   <h3>{item.title}</h3>
                   <p>{item.text}</p>

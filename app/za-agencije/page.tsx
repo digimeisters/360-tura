@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
 import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 import ContactForm from '../../components/ContactForm';
-import HeroDevice from '../../components/HeroDevice';
+import HeroTour from '../../components/HeroTour';
 import PromoBanner from '../../components/PromoBanner';
 import PromoTopBar from '../../components/PromoTopBar';
 import FromPrice from '../../components/FromPrice';
-import { IconPhone, IconPlay } from '../../components/SiteIcons';
+import { IconPhone } from '../../components/SiteIcons';
 import Pricing from '../../components/Pricing';
 import SiteTracker from '../../components/SiteTracker';
 import NavScrollSpy from '../../components/NavScrollSpy';
@@ -14,7 +14,6 @@ import { HOME_COPY } from '../lib/homeCopy';
 import { accent, plainAccent } from '../lib/accent';
 import { CONTACT, CONTACT_LINKS, SITE_NAME, SITE_URL, whatsappLink } from '../lib/site';
 import { serializeJsonLd } from '../lib/structuredData';
-import { tourHref } from '../lib/tourHref';
 import { getShowcaseTours, pickHeroTour } from '../lib/showcaseTours';
 import SiteStylesheets from '../../components/SiteStylesheets';
 import { preloadHeroImage } from '../lib/heroPreload';
@@ -26,7 +25,7 @@ import { preloadHeroImage } from '../lib/heroPreload';
  *   telefona) -> 03 vlasnik i izveštaj -> 04 šest koristi -> 05 brojke iz
  *   sveta -> 06 kako radimo -> cene -> pitanja -> kontakt.
  *
- * Deli CSS i komponente sa početnom stranom (SITE_STYLES, HeroDevice,
+ * Deli CSS i komponente sa početnom stranom (SITE_STYLES, HeroTour,
  * ContactForm, Pricing), a cene čita iz istih paketa kao početna -
  * da se brojevi ne razdvoje. Stilovi koji postoje samo ovde su u
  * AGENCY_STYLES ispod.
@@ -244,30 +243,22 @@ export default async function AgencyPage() {
       />
 
       <main>
-        {/* Vrh: obećanje i prava tura jedno pored drugog. */}
-        <section className="hero" id="pocetna">
-          <div className="wrap">
-            <div>
-              <span className="eyebrow">{hero.eyebrow}</span>
-              <h1>{accent(hero.title)}</h1>
-              <p className="lede">{hero.lede}</p>
-              <div className="hero-ctas">
-                <a className="btn btn-primary" href="#kontakt" data-track="cta:agency_hero_contact">{hero.ctaContact}</a>
-                <a
-                  className="btn btn-secondary"
-                  href={heroTour ? tourHref(heroTour.slug, heroTour.languages, 'sr') : '#nedelja'}
-                  data-track="cta:agency_hero_tour"
-                >
-                  <IconPlay /> {hero.ctaTour}
-                </a>
-              </div>
-              <div className="trust">
-                {hero.trust.map((item) => (
-                  <span key={item} className="chip">{item}</span>
-                ))}
-              </div>
+        {/* Vrh: prava tura preko cele širine, kao na početnoj (HeroTour) -
+            agent prvo vidi proizvod, a obećanje stoji na pločici preko njega. */}
+        <section className="hero-tour" id="pocetna">
+          <HeroTour tour={heroTour} lang="sr" />
+          <div className="ht-copy">
+            <h1>{accent(hero.title)}</h1>
+            <p className="lede">{hero.lede}</p>
+            <div className="hero-ctas">
+              <a className="btn btn-primary" href="#kontakt" data-track="cta:agency_hero_contact">{hero.ctaContact}</a>
+              <a className="btn btn-secondary" href="#paketi" data-track="cta:agency_hero_prices">{hero.ctaPrices}</a>
             </div>
-            <HeroDevice tour={heroTour} lang="sr" />
+            <ul className="ht-facts">
+              {hero.trust.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
           </div>
         </section>
 
@@ -485,7 +476,7 @@ export default async function AgencyPage() {
             </div>
             <div className="steps-row">
               {steps.items.map((item, i) => (
-                <div key={item.title} className={i === steps.items.length - 1 ? 'card step is-dark' : 'card step'}>
+                <div key={item.title} className="card step">
                   <span className="num">{String(i + 1).padStart(2, '0')}</span>
                   <h3>{item.title}</h3>
                   <p>{item.text}</p>

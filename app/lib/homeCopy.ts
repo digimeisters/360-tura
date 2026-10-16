@@ -238,8 +238,8 @@ const sr: HomeCopy = {
       '360° tura i HDR fotografije vaše nekretnine — kupac prošeta kroz svaki ugao pre prvog dolaska. Za agencije i vlasnike u Kragujevcu.',
     ctaTour: 'Pogledajte primer ture',
     ctaPackages: 'Pogledajte cenovnik',
-    trust: ['🎧 Audio vodič SR · EN · DE · RU', '⏱ Isporuka za 24–48h'],
-    opens: (count) => `👁 ${count}+ otvaranja tura`
+    trust: ['Tura gotova za 24–48h', 'Audio vodič na 4 jezika'],
+    opens: (count) => `${count}+ otvaranja tura`
   },
   categories: { sale: 'Prodaja', rent: 'Izdavanje', booking: 'Smeštaj' },
   tourCard: {
@@ -474,8 +474,8 @@ const en: HomeCopy = {
       'A 360° tour and HDR photos of your property — buyers walk through every corner before the first visit. For agencies and owners in Kragujevac.',
     ctaTour: 'View a sample tour',
     ctaPackages: 'See the price list',
-    trust: ['🎧 Audio guide SR · EN · DE · RU', '⏱ Delivery within 24–48h'],
-    opens: (count) => `👁 ${count}+ tour views`
+    trust: ['Tour ready in 24–48h', 'Audio guide in 4 languages'],
+    opens: (count) => `${count}+ tour views`
   },
   categories: { sale: 'For sale', rent: 'For rent', booking: 'Short stay' },
   tourCard: {

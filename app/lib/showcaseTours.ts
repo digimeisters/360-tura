@@ -8,8 +8,9 @@ import { pickLang, realValue } from '../tour/[slug]/getTourMeta';
  * samo objavljene - tura "u pripremi" se na sajtu ne pojavljuje.
  */
 
-// Tura čiji se kadar prikazuje u vrhu strane. Ako nije objavljena ili nema
-// nijednu sličicu, uzima se objavljena tura sa najviše soba sa sličicom.
+// Tura čiji se kadar prikazuje u vrhu strane: Apartman Belgrade Four-Dorćol
+// (vlasnik, 16. 10. 2026 - ima prednost i nad turama iz Kragujevca). Ako nije
+// objavljena ili nema nijednu sličicu, uzima se objavljena tura sa najviše soba.
 export const HERO_TOUR_SLUG = 'stan-gasse-1';
 
 /**
@@ -40,6 +41,11 @@ export type ShowcaseRoom = {
   id: string;
   title: string;
   previewUrl: string;
+  /** Panorama za telefon (webp) - vrh početne je vuče levo-desno. Null dok se ne napravi. */
+  panoramaUrl: string | null;
+  /** Tačka sobe na tlocrtu, u % širine i visine slike tlocrta (null = nije postavljena). */
+  planX: number | null;
+  planY: number | null;
   narration: string;
 };
 
@@ -54,6 +60,8 @@ export type ShowcaseTour = {
   languages: string[];
   coverUrl: string | null;
   coverRoomId: string | null;
+  /** Tlocrt ture (šematski SVG ili crtež) - null ako ga nema. */
+  floorplanUrl: string | null;
   /** Adresa nekretnine i grad izveden iz nje - filter na /ture. */
   address: string | null;
   city: string | null;
@@ -95,6 +103,7 @@ type TourRow = {
   created_at: string | null;
   /** Postoji tek posle migracije 010; ture bez nje se čitaju kao 'active'. */
   status?: string | null;
+  floorplan_url?: string | null;
 };
 
 /**
@@ -119,6 +128,9 @@ type RoomRow = {
   preview_url: string | null;
   establish_i18n: unknown;
   order_index: number | null;
+  panorama_url_mobile: string | null;
+  floorplan_x: number | null;
+  floorplan_y: number | null;
 };
 
 function asObject(value: unknown): Record<string, unknown> {
@@ -196,7 +208,7 @@ export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
 
   const { data: rooms, error: roomsErr } = await supabase
     .from('rooms')
-    .select('id, tour_slug, title, title_i18n, preview_url, establish_i18n, order_index')
+    .select('id, tour_slug, title, title_i18n, preview_url, establish_i18n, order_index, panorama_url_mobile, floorplan_x, floorplan_y')
     .in(
       'tour_slug',
       tours.map((t) => t.slug)
@@ -234,6 +246,7 @@ export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
       languages: languages.length ? [...languages] : ['sr'],
       coverUrl: cover?.preview_url ?? null,
       coverRoomId: cover ? String(cover.id) : null,
+      floorplanUrl: realValue(tour.floorplan_url ?? null),
       address: realValue(tour.address),
       city: realValue(tour.city ?? null) || cityFromAddress(realValue(tour.address)),
       lat: asNumber(tour.lat),
@@ -248,6 +261,9 @@ export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
           id: String(r.id),
           title: realValue(pickLang(r.title_i18n, lang)) || realValue(r.title) || fallback.room(i + 1),
           previewUrl: r.preview_url as string,
+          panoramaUrl: r.panorama_url_mobile || null,
+          planX: asNumber(r.floorplan_x),
+          planY: asNumber(r.floorplan_y),
           narration: preview(establishNarration(r.establish_i18n, lang), NARRATION_PREVIEW_CHARS)
         }))
     };
@@ -269,8 +285,9 @@ export function pickHeroTour(tours: ShowcaseTour[], lang = 'sr', preferCity?: st
   const local = preferCity ? langPool.filter((t) => t.city === preferCity) : [];
   const pool = local.length ? local : langPool;
 
+  // Vlasnikov izbor (HERO_TOUR_SLUG) ima prednost i nad gradom strane.
   return (
-    pool.find((t) => t.slug === HERO_TOUR_SLUG) ??
+    langPool.find((t) => t.slug === HERO_TOUR_SLUG) ??
     [...pool].sort((a, b) => b.rooms.length - a.rooms.length)[0]
   );
 }

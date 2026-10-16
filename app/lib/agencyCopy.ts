@@ -25,8 +25,8 @@ export type AgencyCopy = {
     title: string;
     lede: string;
     ctaContact: string;
-    /** Drugo dugme u vrhu: otvara primer ture (agent prvo želi da vidi proizvod). */
-    ctaTour: string;
+    /** Drugo dugme u vrhu: cene. Tura je već u samom vrhu (HeroTour), sa svojim dugmetom. */
+    ctaPrices: string;
     trust: string[];
   };
   week: {
@@ -117,7 +117,7 @@ export const AGENCY_COPY: AgencyCopy = {
     lede:
       'Kad je vaš oglas jedini u kome kupac može da prošeta kroz nekretninu, zove vas. Mi snimamo — vi za 48h dobijate turu za oglas.',
     ctaContact: 'Zatražite ponudu',
-    ctaTour: 'Pogledajte primer ture',
+    ctaPrices: 'Pogledajte cene',
     trust: ['Snimanje 30–60 min', 'Tura za 24–48h', 'Radi na svakom telefonu']
   },
   week: {
@@ -220,7 +220,8 @@ export const AGENCY_COPY: AgencyCopy = {
   },
   steps: {
     eyebrow: 'Kako radimo',
-    title: 'Vaš tim ne uči *ništa novo.*',
+    // Nevidljiv razmak drži "ne uči" zajedno u istom redu.
+    title: 'Vaš tim ne uči *ništa novo.*',
     note:
       'Mi smo iz Kragujevca. Dolazimo, snimamo i javljamo se na telefon — nema pretplate na softver koji niko u agenciji ne stigne da nauči.',
     items: [

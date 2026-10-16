@@ -19,7 +19,7 @@ export const TOOLS_STYLES = `
   .tl-pv-bars span:nth-child(4){background:repeating-linear-gradient(135deg,#1E5AA8 0 4px,#7FA6D8 4px 7px);}
   .tl-tool{background:var(--surface); border:1px solid var(--line); border-radius:24px; padding:24px; display:flex; flex-direction:column; gap:14px; text-decoration:none; color:inherit; transition:box-shadow .15s, border-color .15s;}
   a.tl-tool:hover{border-color:color-mix(in srgb, var(--accent) 45%, transparent); box-shadow:0 16px 40px -24px rgba(30,90,168,.45);}
-  .tl-who{font-size:.74rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-faint);}
+  .tl-who{font-size:.88rem; font-weight:700; color:var(--accent);}
   .tl-tool h3{font-family:var(--font-display); font-size:1.5rem; letter-spacing:-.02em; margin:0; line-height:1.2;}
   .tl-tool p{margin:0; color:var(--ink-soft); line-height:1.5;}
   .tl-tool ul{margin:0; padding:0; list-style:none; display:grid; gap:7px; font-size:.9rem; color:var(--ink-soft);}
@@ -107,9 +107,10 @@ export const TOOLS_STYLES = `
   .tl-fine{font-size:.76rem; color:var(--ink-faint); line-height:1.5; margin:12px 0 0;}
 
   /* ---------- delovi u jeziku sajta (ToolSections) ---------- */
-  .tl-explain{display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(12px,1.6vw,20px);}
+  /* Redovi sa linijom iznad, bez kartica (novi izgled, 16. 10. 2026). */
+  .tl-explain{display:grid; grid-template-columns:repeat(3,1fr); gap:0 clamp(24px,4vw,56px);}
   .tl-explain.is-4{grid-template-columns:repeat(4,1fr);}
-  .tl-explain-card{padding:clamp(18px,2vw,24px);}
+  .tl-explain .tl-explain-card{padding:22px 0 26px; background:none; border:0; border-top:1px solid var(--line-strong); border-radius:0; box-shadow:none;}
   .tl-explain-card h3{font-family:var(--font-display); font-size:1.12rem; line-height:1.25; margin:0 0 8px;}
   .tl-explain-card b{display:block; font-family:var(--font-display); font-size:1.5rem; color:var(--accent); margin:0 0 6px; white-space:nowrap; font-variant-numeric:tabular-nums;}
   .tl-explain-card p{margin:0; color:var(--ink-soft); font-size:.94rem; line-height:1.6;}
@@ -127,7 +128,7 @@ export const TOOLS_STYLES = `
       linear-gradient(135deg, #1E5AA8 0%, #17447E 100%);
     box-shadow:0 30px 70px rgba(17,17,19,.25);}
   .tl-vcard{position:relative; background:#FFFFFF; color:#111113; border-radius:20px; padding:18px; box-shadow:0 18px 40px -18px rgba(5,20,50,.55);}
-  .tl-vcard > small{display:block; font-size:.72rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:#686A70;}
+  .tl-vcard > small{display:block; font-size:.82rem; font-weight:700; color:#686A70;}
   .tl-vcard.is-calc{width:min(100%, 400px); margin-left:auto;}
   .tl-vcard.is-calc .tl-pv-big{margin-top:10px;}
   .tl-vcard.is-calc .tl-pv-row{margin-top:10px; color:#5B5D63;}

@@ -117,7 +117,6 @@ export default async function ToursPage() {
         <section className="hero hero-solo" id="pocetna">
           <div className="wrap">
             <div>
-              <span className="chip"><span className="dot" />{hero.chip}</span>
               <h1>{hero.titleStart}<em>{hero.titleEm}</em></h1>
               <p className="lede">{hero.lede}</p>
             </div>

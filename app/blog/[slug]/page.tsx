@@ -90,7 +90,6 @@ export default async function BlogPostPage({ params }: Props) {
         <section className="hero hero-solo" id="pocetna">
           <div className="wrap">
             <div>
-              <span className="chip"><span className="dot" />Blog</span>
               <h1>{post.title}</h1>
               <p className="lede">{post.excerpt}</p>
             </div>

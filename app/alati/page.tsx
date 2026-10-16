@@ -217,10 +217,6 @@ export default function ToolsPage() {
         <section className="hero" id="pocetna">
           <div className="wrap">
             <div>
-              <span className="chip">
-                <span className="dot" />
-                {COPY.hero.chip}
-              </span>
               <h1>
                 {COPY.hero.titleStart}
                 <em>{COPY.hero.titleEm}</em>
@@ -236,13 +232,11 @@ export default function ToolsPage() {
                   </Link>
                 )}
               </div>
-              <div className="trust">
+              <ul className="ht-facts">
                 {COPY.hero.trust.map((t) => (
-                  <span key={t} className="chip">
-                    {t}
-                  </span>
+                  <li key={t}>{t}</li>
                 ))}
-              </div>
+              </ul>
             </div>
 
             {/* Slika u vrhu: rezultat kalkulatora (pravi obračun primera) i oblik procene. */}
