@@ -64,7 +64,7 @@ const PAGE_STYLES = `
 `;
 
 type Param = string | string[] | undefined;
-type Props = { searchParams: Promise<{ tip?: Param; naselje?: Param; vrsta?: Param }> };
+type Props = { searchParams: Promise<{ tip?: Param; naselje?: Param; vrsta?: Param; stanje?: Param }> };
 
 const first = (v: Param) => (Array.isArray(v) ? v[0] : v) ?? '';
 
@@ -81,7 +81,7 @@ function listingFromParam(tip: string | string[] | undefined): ValuationListingT
 }
 
 export default async function ValuationPage({ searchParams }: Props) {
-  const { tip, naselje, vrsta } = await searchParams;
+  const { tip, naselje, vrsta, stanje } = await searchParams;
 
   const jsonLd = [
     {
@@ -142,6 +142,7 @@ export default async function ValuationPage({ searchParams }: Props) {
             initialListingType={listingFromParam(tip)}
             initialNeighborhood={first(naselje)}
             initialPropertyType={typeFromParam(vrsta)}
+            initialCondition={first(stanje).toLowerCase() === 'novogradnja' ? 'new_build' : ''}
           />
         </div>
 

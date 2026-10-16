@@ -18,6 +18,9 @@ export type ValuationCondition = (typeof VALUATION_CONDITIONS)[number];
 export const VALUATION_SOURCES = ['organic', 'google_ads', 'facebook', 'referral'] as const;
 export type ValuationSource = (typeof VALUATION_SOURCES)[number];
 
+/** Vrsta gradnje uz cenu: novogradnja, starogradnja ili zajedno (migracija 032). */
+export type BuildType = 'new' | 'old' | 'any';
+
 /** Red iz zone_price_baselines (samo kolone koje model koristi). */
 export type PriceBaseline = {
   city: string;
@@ -27,14 +30,18 @@ export type PriceBaseline = {
   listing_type: ValuationListingType;
   price_per_sqm_low: number;
   price_per_sqm_high: number;
+  /** Migracija 032; red bez nje se čita kao 'any'. */
+  build_type?: BuildType | null;
 };
 
 /** Cena po m² koja je stvarno upotrebljena i odakle je došla. */
 export type ResolvedBaseline = {
   pricePerSqmLow: number;
   pricePerSqmHigh: number;
-  /** exact = red za to naselje; city_average = prosek redova grada za tip. */
+  /** exact = red za to naselje; city_average = red "Ceo grad" ili prosek redova grada za tip. */
   source: 'exact' | 'city_average';
+  /** Vrsta gradnje upotrebljene cene - od nje zavisi množilac stanja. */
+  build: BuildType;
 };
 
 export type EstimateInput = {

@@ -3,18 +3,23 @@
 import Link from 'next/link';
 import { useMemo, useRef, useState } from 'react';
 import type { AreaPrice } from '../../app/lib/valuation/areaPrices';
+import type { BuildType } from '../../app/lib/valuation/types';
 import type { ValuationListingType, ValuationPropertyType } from '../../app/lib/valuation/types';
 
 /**
  * Grafikon cena po naseljima (/alati/cene-nekretnina-kragujevac): jedna traka
  * po naselju = raspon €/m², poređano od najskupljeg, isprekidana linija =
  * prosek grada. Prekidači vrsta (stan/kuća/lokal) i prodaja/izdavanje;
- * kombinacija sa manje od 2 naselja se ne nudi. Klik na naselje vodi na
+ * kombinacija sa manje od 2 naselja se ne nudi. Stanovi na prodaju imaju i
+ * prekidač Starogradnja / Novogradnja (migracija 032); red "Ceo grad" nije
+ * traka nego isprekidana linija proseka. Klik na naselje vodi na
  * procenu sa tim naseljem (?naselje=). Tabela svih cena je na serveru
  * (strana), ovo je samo prikaz.
  */
 
 const MIN_ROWS = 2;
+// Isti naziv kao CITY_ROW u app/lib/valuation/calculateEstimate.ts (ovde bez uvoza serverskog modula).
+const CITY_ROW = 'Ceo grad';
 const FEW = 10;
 
 const TYPES: { v: ValuationPropertyType; label: string; noun: string; slug: string; size: number }[] = [
@@ -34,7 +39,14 @@ const total = (n: number, rent: boolean) => fmt(rent ? Math.round(n) : Math.roun
 type Tip = { row: AreaPrice; x: number; y: number };
 
 export default function AreaPriceChart({ rows, valuationHref }: { rows: AreaPrice[]; valuationHref: string }) {
-  const available = (t: ValuationPropertyType, k: ValuationListingType) => rows.filter((r) => r.type === t && r.kind === k).length >= MIN_ROWS;
+  // Prodaja stanova je podeljena na novo/staro tek kad baza ima oba (migracija 032 + nove cene).
+  const split = rows.some((r) => r.build === 'new') && rows.some((r) => r.build === 'old');
+  const isSplit = (t: ValuationPropertyType, k: ValuationListingType) => split && t === 'apartment' && k === 'sale';
+  const matches = (r: AreaPrice, t: ValuationPropertyType, k: ValuationListingType, b: BuildType) =>
+    r.type === t && r.kind === k && (isSplit(t, k) ? r.build === b : r.build === 'any');
+  const [build, setBuild] = useState<'old' | 'new'>('old');
+  const available = (t: ValuationPropertyType, k: ValuationListingType) =>
+    rows.filter((r) => r.neighborhood !== CITY_ROW && matches(r, t, k, isSplit(t, k) ? build : 'any')).length >= MIN_ROWS;
   const [type, setType] = useState<ValuationPropertyType>('apartment');
   const [kind, setKind] = useState<ValuationListingType>('sale');
   const [sizes, setSizes] = useState<Record<ValuationPropertyType, string>>({ apartment: '55', house: '120', commercial: '50' });
@@ -46,7 +58,10 @@ export default function AreaPriceChart({ rows, valuationHref }: { rows: AreaPric
   const sqm = Math.min(5000, Math.max(0, Number(sizes[type].replace(',', '.')) || 0));
 
   const view = useMemo(() => {
-    const list = rows.filter((r) => r.type === type && r.kind === kind).sort((a, b) => b.low + b.high - (a.low + a.high));
+    const b: BuildType = isSplit(type, kind) ? build : 'any';
+    const combo = rows.filter((r) => matches(r, type, kind, b));
+    const list = combo.filter((r) => r.neighborhood !== CITY_ROW).sort((a, b) => b.low + b.high - (a.low + a.high));
+    const cityRow = combo.find((r) => r.neighborhood === CITY_ROW) ?? null;
     if (!list.length) return null;
     const unit = rent ? 0.5 : 50;
     const step = rent ? 1 : type === 'house' ? 100 : 200;
@@ -56,9 +71,10 @@ export default function AreaPriceChart({ rows, valuationHref }: { rows: AreaPric
     for (let v = Math.ceil(min / step) * step; v <= max + 1e-9; v += step) ticks.push(Number(v.toFixed(1)));
     const w = (r: AreaPrice) => r.listings ?? 1;
     const weight = list.reduce((s, r) => s + w(r), 0);
-    const mid = list.reduce((s, r) => s + ((r.low + r.high) / 2) * w(r), 0) / weight;
+    const mid = cityRow ? (cityRow.low + cityRow.high) / 2 : list.reduce((s, r) => s + ((r.low + r.high) / 2) * w(r), 0) / weight;
     return { list, min, max, ticks, mid };
-  }, [rows, type, kind, rent]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- matches/isSplit zavise samo od rows i split
+  }, [rows, type, kind, rent, build, split]);
 
   const pct = (v: number) => (view ? ((v - view.min) / (view.max - view.min)) * 100 : 0);
 
@@ -70,6 +86,7 @@ export default function AreaPriceChart({ rows, valuationHref }: { rows: AreaPric
 
   const href = (r: AreaPrice) => {
     const q = new URLSearchParams({ naselje: r.neighborhood, vrsta: meta.slug });
+    if (isSplit(type, kind) && build === 'new') q.set('stanje', 'novogradnja');
     if (rent) q.set('tip', 'izdavanje');
     return `${valuationHref}?${q.toString()}`;
   };
@@ -108,6 +125,23 @@ export default function AreaPriceChart({ rows, valuationHref }: { rows: AreaPric
               </button>
             ))}
           </div>
+          {isSplit(type, kind) && (
+            <div className="ap-seg" role="group" aria-label="Starogradnja ili novogradnja">
+              {(['old', 'new'] as const).map((b) => (
+                <button
+                  key={b}
+                  type="button"
+                  aria-pressed={build === b}
+                  onClick={() => {
+                    setBuild(b);
+                    setTip(null);
+                  }}
+                >
+                  {b === 'old' ? 'Starogradnja' : 'Novogradnja'}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <label className="ap-size">
           Veličina
@@ -175,6 +209,7 @@ export default function AreaPriceChart({ rows, valuationHref }: { rows: AreaPric
           {tip && (
             <div className="ap-tip" style={{ left: tip.x, top: tip.y }} aria-hidden="true">
               <b>{tip.row.neighborhood}</b> · {meta.noun} {rent ? 'za izdavanje' : 'na prodaju'}
+              {tip.row.build === 'new' ? ', novogradnja' : tip.row.build === 'old' ? ', starogradnja' : ''}
               <br />
               {perSqm(tip.row.low, rent)}–{perSqm(tip.row.high, rent)} € po m²{rent ? ' mesečno' : ''}
               {sqm > 0 && (
@@ -214,7 +249,9 @@ export default function AreaPriceChart({ rows, valuationHref }: { rows: AreaPric
       <p className="ap-note">
         {rent
           ? 'Kirija po m² mesečno, za namešten prostor. Za izdavanje ima manje oglasa, pa je prikazano manje naselja.'
-          : 'Procenjena prodajna cena po m², novogradnja i starogradnja zajedno, ispod traženih cena iz oglasa. Naselja bez dovoljno oglasa nisu prikazana.'}
+          : isSplit(type, kind)
+            ? `Procenjena prodajna cena po m², samo ${build === 'new' ? 'novogradnja (Novo, U izgradnji, novija od 2018.)' : 'starogradnja'}, ispod traženih cena iz oglasa. Naselje bez dovoljno oglasa ima prosek grada.`
+            : 'Procenjena prodajna cena po m², novogradnja i starogradnja zajedno, ispod traženih cena iz oglasa. Naselja bez dovoljno oglasa nisu prikazana.'}
       </p>
     </div>
   );

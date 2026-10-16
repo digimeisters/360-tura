@@ -1,4 +1,5 @@
 import type {
+  BuildType,
   EstimateInput,
   EstimateResult,
   PriceBaseline,
@@ -73,19 +74,33 @@ export function priceAgeDays(updatedAt: readonly (string | null | undefined)[], 
  */
 const ROUND_TO: Record<ValuationListingType, number> = { sale: 1000, rent: 10 };
 
+/** Red cena za ceo grad (scripts/refresh-valuation-prices.mjs) - nije naselje. */
+export const CITY_ROW = 'Ceo grad';
+
 /**
- * Cena za naselje. Redosled: tačan red (grad+naselje+tip+prodaja/izdavanje,
- * bez obzira na velika/mala slova) -> prosek svih redova grada za taj tip
- * i istu vrstu oglasa -> null. Kad nema ni jednog reda, procena se NE
- * računa (nema izmišljanja cena). Prodajne cene se nikad ne mešaju sa
- * kirijama.
+ * Koja cena po m² važi za ovu nekretninu: stan na prodaju se deli na
+ * novogradnju (stanje 'new_build') i starogradnju (vlasnik, 16. 10. 2026);
+ * kuće, lokali i kirije imaju zajedničku cenu ('any').
+ */
+export function buildTypeFor(propertyType: ValuationPropertyType, listingType: ValuationListingType, condition: ValuationCondition): BuildType {
+  if (propertyType !== 'apartment' || listingType !== 'sale') return 'any';
+  return condition === 'new_build' ? 'new' : 'old';
+}
+
+/**
+ * Cena za naselje. Za traženu vrstu gradnje (pa za 'any' ako za nju nema
+ * nijednog reda): tačan red za naselje -> red "Ceo grad" -> prosek redova
+ * naselja -> null. Poređenje je bez obzira na velika/mala slova. Kad nema
+ * ni jednog reda, procena se NE računa (nema izmišljanja cena). Prodajne
+ * cene se nikad ne mešaju sa kirijama.
  */
 export function resolveBaseline(
   rows: readonly PriceBaseline[],
   city: string,
   neighborhood: string,
   propertyType: ValuationPropertyType,
-  listingType: ValuationListingType
+  listingType: ValuationListingType,
+  buildType: BuildType = 'any'
 ): ResolvedBaseline | null {
   const norm = (value: string) => value.trim().toLowerCase();
   const cityRows = rows.filter(
@@ -94,29 +109,37 @@ export function resolveBaseline(
       row.property_type === propertyType &&
       (row.listing_type ?? 'sale') === listingType
   );
-  if (cityRows.length === 0) return null;
 
-  const exact = cityRows.find((row) => norm(row.neighborhood) === norm(neighborhood));
-  if (exact) {
-    return {
-      pricePerSqmLow: Number(exact.price_per_sqm_low),
-      pricePerSqmHigh: Number(exact.price_per_sqm_high),
-      source: 'exact'
-    };
-  }
-
-  const sum = cityRows.reduce(
-    (acc, row) => ({
-      low: acc.low + Number(row.price_per_sqm_low),
-      high: acc.high + Number(row.price_per_sqm_high)
-    }),
-    { low: 0, high: 0 }
-  );
-  return {
-    pricePerSqmLow: sum.low / cityRows.length,
-    pricePerSqmHigh: sum.high / cityRows.length,
-    source: 'city_average'
+  const pick = (build: BuildType): ResolvedBaseline | null => {
+    const pool = cityRows.filter((row) => (row.build_type ?? 'any') === build);
+    if (pool.length === 0) return null;
+    const of = (row: PriceBaseline, source: ResolvedBaseline['source']): ResolvedBaseline => ({
+      pricePerSqmLow: Number(row.price_per_sqm_low),
+      pricePerSqmHigh: Number(row.price_per_sqm_high),
+      source,
+      build
+    });
+    const exact = pool.find((row) => norm(row.neighborhood) === norm(neighborhood) && norm(row.neighborhood) !== norm(CITY_ROW));
+    if (exact) return of(exact, 'exact');
+    const wholeCity = pool.find((row) => norm(row.neighborhood) === norm(CITY_ROW));
+    if (wholeCity) return of(wholeCity, 'city_average');
+    const sum = pool.reduce(
+      (acc, row) => ({ low: acc.low + Number(row.price_per_sqm_low), high: acc.high + Number(row.price_per_sqm_high) }),
+      { low: 0, high: 0 }
+    );
+    return { pricePerSqmLow: sum.low / pool.length, pricePerSqmHigh: sum.high / pool.length, source: 'city_average', build };
   };
+
+  return pick(buildType) ?? (buildType === 'any' ? null : pick('any'));
+}
+
+/**
+ * Množilac stanja. Uz cenu novogradnje je 1 (cena je već za novu zgradu);
+ * uz cenu starogradnje ili zajedničku važi tabela iznad (novogradnja +15%
+ * ostaje samo za kuće, lokale i kirije).
+ */
+export function conditionMultiplier(condition: ValuationCondition, baselineBuild: BuildType): number {
+  return baselineBuild === 'new' ? 1 : CONDITION_MULTIPLIER[condition];
 }
 
 /**
@@ -147,12 +170,12 @@ export function furnishingMultiplier(
 }
 
 export function calculateEstimate(
-  baseline: Pick<ResolvedBaseline, 'pricePerSqmLow' | 'pricePerSqmHigh'>,
+  baseline: Pick<ResolvedBaseline, 'pricePerSqmLow' | 'pricePerSqmHigh' | 'build'>,
   input: EstimateInput
 ): EstimateResult {
   const extras = 1 + (input.hasParking ? PARKING_BONUS : 0) + (input.hasTerrace ? TERRACE_BONUS : 0);
   const factor =
-    CONDITION_MULTIPLIER[input.condition] *
+    conditionMultiplier(input.condition, baseline.build) *
     floorMultiplier(input.propertyType, input.floorNumber, input.hasElevator) *
     furnishingMultiplier(input.listingType, input.furnishing) *
     extras *

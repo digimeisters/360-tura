@@ -11,7 +11,7 @@
 // brisanje redova iz ranijih osvežavanja koji sada ne prolaze pravilo;
 // ručno uneti redovi se ne diraju).
 //
-// Pokretanje:  npm run prices:refresh      (traje ~2 minuta)
+// Pokretanje:  npm run prices:refresh      (traje ~12 minuta)
 //
 // Kako radi: strane sa listom oglasa na 4zida sadrže JSON-LD (cena,
 // kvadratura, adresa sa naseljem). Strane se čitaju jedna po jedna, sa
@@ -32,6 +32,18 @@
 // oglasi sa istom ulicom u istom naselju i kategoriji računaju se kao JEDAN
 // (uzima se njihova medijana). Oglas čiji je naziv samo naselje ("Centar",
 // "Pivara") nema ulicu, pa ostaje zaseban.
+//
+// Novogradnja i starogradnja (vlasnik, 16. 10. 2026) - samo stanovi na prodaju:
+//   - oglasi investitora (/novogradnja/... na 4zida) su novogradnja; ceo
+//     projekat je jedan glas, kao jedna ulica
+//   - ostalim oglasima skripta otvori stranu i pročita "Stanje" i godinu
+//     izgradnje: Novo / U izgradnji ili godina >= NEW_FROM_YEAR -> novogradnja;
+//     Uobičajeno / Renovirano / Za renoviranje ili starija godina ->
+//     starogradnja; bez toga (npr. samo "Luksuzno") oglas ne ulazi ni u jednu
+//   - zato traje ~12 minuta umesto 2
+// Kuće, lokali i kirije ostaju zajedno (build_type 'any') - novih ima premalo.
+// Uz naselja ide i red "Ceo grad" za svaku kombinaciju: procena ga koristi za
+// naselje bez sopstvenog reda (umesto proseka redova naselja).
 
 import fs from 'fs';
 import path from 'path';
@@ -50,6 +62,16 @@ const MAX_PAGES = 80;
 const PAUSE_MS = 900;
 // Lokala i kuća ima malo i jako se razlikuju, pa im treba više oglasa.
 const MIN_LISTINGS = { apartment: 5, house: 10, commercial: 10 };
+// Red "Ceo grad" traži bar ovoliko nezavisnih glasova.
+const MIN_CITY = 8;
+// Naselje sa posebnim rasponom za novogradnju ili starogradnju traži više
+// glasova (vlasnik, 16. 10. 2026): na Vašarištu je 7 "novih" bilo skoro sve
+// iz jednog projekta "na papiru" (jeftinije), a 5 "starih" renovirani/lux.
+const MIN_SPLIT = 8;
+// Zgrada od ove godine pa naovamo je novogradnja.
+const NEW_FROM_YEAR = 2018;
+// Naziv reda za ceo grad (nije naselje; strana cena i procena ga prepoznaju).
+const CITY_ROW = 'Ceo grad';
 
 // Oglas van ovih granica (€/m²) je greška u oglasu: cena u dinarima,
 // kirija upisana kao prodaja, pogrešna kvadratura...
@@ -135,8 +157,15 @@ function parseListings(html, category) {
         const price = offer.price ?? offer.offers?.price;
         const m2 = (offer.itemOffered || {}).floorSize?.value;
         if (!url || !price || !m2) continue;
+        const name = String(offer.name || offer.itemOffered?.name || '');
+        // Stan iz projekta investitora: /novogradnja/<deo-grada>/<investitor>/<projekat>/...
+        if (url.includes('/novogradnja/')) {
+          const parts = url.split('/novogradnja/')[1].split('/');
+          out.push({ category, url, slug: parts[0] || '', price, m2, name, build: 'new', project: `${parts[1]}/${parts[2]}` });
+          continue;
+        }
         const slug = url.split(`/${category}/`)[1]?.split('/')[0] || '';
-        out.push({ category, url, slug, price, m2, name: String(offer.name || offer.itemOffered?.name || '') });
+        out.push({ category, url, slug, price, m2, name, build: null, project: null });
       }
     }
   }
@@ -163,6 +192,37 @@ async function scrape() {
     console.log(`  ${category}: ${seen.size} oglasa`);
   }
   return all;
+}
+
+/**
+ * Novogradnja ili starogradnja iz strane oglasa ("Stanje - Novo, ..." i
+ * "Godina izgradnje"). null = oglas ne kaže dovoljno.
+ */
+function buildFromDetail(html) {
+  const state = (html.match(/Stanje - ([^,.\\"<]+)/) || [])[1]?.trim().toLowerCase() || '';
+  const year = Number((html.match(/[Gg]odina izgradnje[^0-9]{0,40}(\d{4})/) || [])[1]) || null;
+  if (state === 'novo' || state === 'u izgradnji') return 'new';
+  if (year) return year >= NEW_FROM_YEAR ? 'new' : 'old';
+  if (['uobičajeno', 'renovirano', 'za renoviranje', 'potrebno renoviranje'].includes(state)) return 'old';
+  return null;
+}
+
+/** Otvara svaki oglas stana na prodaju (osim investitorskih) i upisuje build. */
+async function classifyApartments(listings) {
+  const todo = listings.filter((l) => l.category === 'prodaja-stanova' && !l.build);
+  let done = 0;
+  for (const l of todo) {
+    try {
+      const res = await fetch(l.url, { headers: { 'User-Agent': 'Mozilla/5.0 (Kvadrat360 price refresh)' } });
+      if (res.ok) l.build = buildFromDetail(await res.text());
+    } catch {
+      // Oglas koji se ne otvori ostaje nesvrstan.
+    }
+    if (++done % 100 === 0) console.log(`  stanje oglasa: ${done}/${todo.length}`);
+    await sleep(PAUSE_MS);
+  }
+  const count = (b) => listings.filter((l) => l.category === 'prodaja-stanova' && l.build === b).length;
+  console.log(`  stanovi na prodaju: novogradnja ${count('new')}, starogradnja ${count('old')}, nesvrstano ${count(null)}`);
 }
 
 const plain = (s) =>
@@ -196,34 +256,45 @@ function toRows(listings) {
     if (r.m2 < 15 || r.m2 > 2000) continue;
     const ppm = r.price / r.m2;
     if (ppm < SANE[kind][0] || ppm > SANE[kind][1]) continue;
+    // Samo stanovi na prodaju se dele na novo/staro; nesvrstan stan ne ulazi.
+    const build = type === 'apartment' && kind === 'sale' ? r.build : 'any';
+    if (!build) continue;
     const a = area(r.slug);
     const hood = AREA_TO_NEIGHBOURHOOD[a];
-    if (!hood) {
-      unmapped.set(a, (unmapped.get(a) || 0) + 1);
-      continue;
+    // Glas: projekat investitora, ulica, ili oglas sam (naziv je samo naselje).
+    const voter = r.project ? `projekat:${r.project}` : street(r.name);
+    for (const place of hood ? [hood, CITY_ROW] : [CITY_ROW]) {
+      const key = `${place}|${type}|${kind}|${build}`;
+      if (!groups.has(key)) groups.set(key, { total: 0, byVoter: new Map(), single: [] });
+      const g = groups.get(key);
+      g.total++;
+      if (voter) g.byVoter.set(voter, [...(g.byVoter.get(voter) || []), ppm]);
+      else g.single.push(ppm);
     }
-    const key = `${hood}|${type}|${kind}`;
-    if (!groups.has(key)) groups.set(key, { total: 0, byStreet: new Map(), single: [] });
-    const g = groups.get(key);
-    g.total++;
-    const st = street(r.name);
-    if (st) g.byStreet.set(st, [...(g.byStreet.get(st) || []), ppm]);
-    else g.single.push(ppm);
+    if (!hood) unmapped.set(a, (unmapped.get(a) || 0) + 1);
   }
 
   const rows = [];
   for (const [key, g] of groups) {
-    const [hood, type, kind] = key.split('|');
-    // Jedna ulica = jedan glas (medijana njenih oglasa).
-    const values = [...g.single, ...[...g.byStreet.values()].map((v) => quantile(v, 0.5))];
-    if (values.length < MIN_LISTINGS[type]) continue;
+    const [hood, type, kind, build] = key.split('|');
+    // Jedna ulica (ili jedan projekat) = jedan glas (medijana njenih oglasa).
+    const values = [...g.single, ...[...g.byVoter.values()].map((v) => quantile(v, 0.5))];
+    const min = hood === CITY_ROW ? MIN_CITY : build === 'any' ? MIN_LISTINGS[type] : Math.max(MIN_LISTINGS[type], MIN_SPLIT);
+    if (values.length < min) continue;
     const rule = RULE[kind];
     const low = roundTo(rule.low(quantile(values, 0.25)), rule.round);
     const high = Math.max(roundTo(low * 1.1, rule.round), roundTo(rule.high(quantile(values, 0.5)), rule.round));
-    rows.push({ hood, type, kind, n: values.length, total: g.total, low, high });
+    rows.push({ hood, type, kind, build, n: values.length, total: g.total, low, high });
   }
   const typeOrder = { apartment: 0, house: 1, commercial: 2 };
-  rows.sort((a, b) => b.kind.localeCompare(a.kind) || typeOrder[a.type] - typeOrder[b.type] || b.n - a.n);
+  rows.sort(
+    (a, b) =>
+      b.kind.localeCompare(a.kind) ||
+      typeOrder[a.type] - typeOrder[b.type] ||
+      a.build.localeCompare(b.build) ||
+      Number(b.hood === CITY_ROW) - Number(a.hood === CITY_ROW) ||
+      b.n - a.n
+  );
   return { rows, unmapped };
 }
 
@@ -233,7 +304,7 @@ function toSql(rows, counts, date) {
   const values = rows
     .map(
       (r, i) =>
-        `  ('Kragujevac', '${esc(r.hood)}', '${r.type}', '${r.kind}', ${r.low}, ${r.high}, ${r.total}, ${r.n}, '${source}')${i < rows.length - 1 ? ',' : ''}`
+        `  ('Kragujevac', '${esc(r.hood)}', '${r.type}', '${r.kind}', '${r.build}', ${r.low}, ${r.high}, ${r.total}, ${r.n}, '${source}')${i < rows.length - 1 ? ',' : ''}`
     )
     .join('\n');
   return `-- ============================================================
@@ -246,13 +317,14 @@ function toSql(rows, counts, date) {
 -- više puta (upsert). Na kraju se brišu redovi iz RANIJIH osvežavanja sa
 -- oglasa koji ovog puta ne prolaze pravilo (vlasnik, 15. 10. 2026) - za ta
 -- naselja procena računa iz proseka grada. Ručno uneti redovi ostaju.
--- Kolone listing_count / independent_count: migracija 031.
+-- Kolone listing_count / independent_count: migracija 031; build_type
+-- (new = novogradnja, old = starogradnja, any = zajedno): migracija 032.
 
 insert into public.zone_price_baselines
-  (city, neighborhood, property_type, listing_type, price_per_sqm_low, price_per_sqm_high, listing_count, independent_count, updated_by)
+  (city, neighborhood, property_type, listing_type, build_type, price_per_sqm_low, price_per_sqm_high, listing_count, independent_count, updated_by)
 values
 ${values}
-on conflict (lower(city), lower(neighborhood), property_type, listing_type) do update set
+on conflict (lower(city), lower(neighborhood), property_type, listing_type, build_type) do update set
   price_per_sqm_low = excluded.price_per_sqm_low,
   price_per_sqm_high = excluded.price_per_sqm_high,
   listing_count = excluded.listing_count,
@@ -269,6 +341,8 @@ where updated_by like '4zida-oglasi-%' and updated_by <> '${source}';
 const date = new Date().toLocaleDateString('sv-SE');
 console.log('Preuzimam oglase sa 4zida.rs...');
 const listings = await scrape();
+console.log('Čitam stanje svakog oglasa stana na prodaju (novogradnja / starogradnja)...');
+await classifyApartments(listings);
 const { rows, unmapped } = toRows(listings);
 
 const perCategory = CATEGORIES.map((c) => `${c} ${listings.filter((l) => l.category === c).length}`).join(', ');
@@ -276,7 +350,7 @@ const out = path.join(root, 'supabase', 'seed', `zone_price_baselines_4zida_${da
 fs.writeFileSync(out, toSql(rows, perCategory, date));
 
 console.log(`\n${rows.length} redova -> ${path.relative(root, out)}`);
-for (const r of rows) console.log(`  ${r.kind}\t${r.type}\t${r.hood}\t${r.low} – ${r.high}\t(${r.n} od ${r.total})`);
+for (const r of rows) console.log(`  ${r.kind}\t${r.type}\t${r.build}\t${r.hood}\t${r.low} – ${r.high}\t(${r.n} od ${r.total})`);
 const bigUnmapped = [...unmapped].filter(([, n]) => n >= MIN_LISTINGS.apartment).sort((a, b) => b[1] - a[1]);
 if (bigUnmapped.length) {
   console.log('\nDelovi grada sa dovoljno oglasa koji nisu povezani sa naseljem (AREA_TO_NEIGHBOURHOOD):');

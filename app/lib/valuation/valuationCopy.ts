@@ -39,12 +39,12 @@ export const VALUATION_COPY = {
   factors: {
     eyebrow: 'Kako se računa',
     title: 'Šta utiče *na procenu.*',
-    note: 'Osnova je cena po m² za vaše naselje, posebno za prodaju i za izdavanje. Na nju se primenjuju samo ove korekcije.',
+    note: 'Osnova je cena po m² za vaše naselje, posebno za prodaju i za izdavanje, a za stan na prodaju i posebno za novogradnju i starogradnju. Na nju se primenjuju samo ove korekcije.',
     items: [
       {
         title: 'Stanje',
-        value: `${pct(CONDITION_MULTIPLIER.needs_renovation)} do ${pct(CONDITION_MULTIPLIER.new_build)}`,
-        text: `Za renoviranje${NB}${pct(CONDITION_MULTIPLIER.needs_renovation)}, održavano${NB}${pct(CONDITION_MULTIPLIER.maintained)}, renovirano${NB}${pct(CONDITION_MULTIPLIER.renovated)}, novogradnja${NB}${pct(CONDITION_MULTIPLIER.new_build)}.`
+        value: `${pct(CONDITION_MULTIPLIER.needs_renovation)} do ${pct(CONDITION_MULTIPLIER.renovated)}`,
+        text: `Za renoviranje${NB}${pct(CONDITION_MULTIPLIER.needs_renovation)}, održavano${NB}${pct(CONDITION_MULTIPLIER.maintained)}, renovirano${NB}${pct(CONDITION_MULTIPLIER.renovated)}. Novogradnja: stan na prodaju po cenama novogradnje, kuće, lokali i kirije${NB}${pct(CONDITION_MULTIPLIER.new_build)}.`
       },
       {
         title: 'Sprat (samo stan)',

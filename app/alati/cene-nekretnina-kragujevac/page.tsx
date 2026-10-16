@@ -10,7 +10,7 @@ import { accent } from '../../lib/accent';
 import { HOME_COPY } from '../../lib/homeCopy';
 import { SITE_NAME, SITE_URL } from '../../lib/site';
 import { serializeJsonLd } from '../../lib/structuredData';
-import { cityAverage, FEW_LISTINGS, getAreaPrices, type AreaPrice } from '../../lib/valuation/areaPrices';
+import { cityAverage, CITY_ROW, FEW_LISTINGS, getAreaPrices, type AreaPrice } from '../../lib/valuation/areaPrices';
 import { VALUATION_HREF } from '../toolsNav';
 
 /**
@@ -49,7 +49,11 @@ const COPY = {
     lede: 'Koliko košta kvadrat stana, kuće i lokala u svakom naselju, i kolika je kirija. Raspon procenjenih prodajnih cena, osvežen na svaka dva meseca.',
     mixTitle: 'Novogradnja i starogradnja zajedno.',
     mixText:
-      'Cene su iz svih oglasa u naselju, bez obzira na godinu gradnje. Stan u novogradnji je obično pri vrhu raspona ili iznad njega, a stariji stan za renoviranje pri dnu.'
+      'Cene su iz svih oglasa u naselju, bez obzira na godinu gradnje. Stan u novogradnji je obično pri vrhu raspona ili iznad njega, a stariji stan za renoviranje pri dnu.',
+    // Kad baza ima posebne cene (migracija 032 + osvežavanje od 16. 10. 2026).
+    splitTitle: 'Stanovi: novogradnja i starogradnja posebno.',
+    splitText:
+      'Stan je novogradnja ako oglas kaže „Novo“ ili „U izgradnji“, ako je zgrada iz 2018. ili novija, ili ako ga prodaje investitor iz projekta. Kuće, lokali i kirije su zajedno, jer novih ima premalo za poseban raspon.'
   },
   chart: {
     eyebrow: 'Po naseljima',
@@ -77,7 +81,12 @@ const COPY = {
         title: 'Novogradnja i starogradnja zajedno',
         text: 'Oglasi ne odvajaju pouzdano novogradnju od starijih zgrada, a novogradnje po naselju ima premalo za poseban raspon. U proceni vrednosti novogradnja dobija +15%, a nekretnina za renoviranje −15%.'
       }
-    ]
+    ],
+    // Četvrta kartica kad su cene stanova razdvojene.
+    splitItem: {
+      title: 'Novogradnja posebno',
+      text: 'Za stanove na prodaju čitamo „Stanje“ i godinu gradnje iz svakog oglasa; projekat investitora je jedan glas. Naselje dobija poseban raspon tek uz bar 8 takvih oglasa, inače važi prosek grada. Oglas bez tih podataka ne ulazi ni u jednu grupu.'
+    }
   },
   cta: {
     title: 'Koliko vredi *baš vaš stan?*',
@@ -112,15 +121,25 @@ const joinNames = (names: string[]) => (names.length > 1 ? `${names.slice(0, -1)
 
 export default async function AreaPricesPage() {
   const rows = await getAreaPrices();
-  const of = (t: AreaPrice['type'], k: AreaPrice['kind']) => rows.filter((r) => r.type === t && r.kind === k);
+  // Prodaja stanova je podeljena na novo/staro kad baza ima oba (migracija 032).
+  const split = rows.some((r) => r.build === 'new') && rows.some((r) => r.build === 'old');
+  const hoods = rows.filter((r) => r.neighborhood !== CITY_ROW);
+  const of = (t: AreaPrice['type'], k: AreaPrice['kind'], b: AreaPrice['build'] = 'any') =>
+    hoods.filter((r) => r.type === t && r.kind === k && r.build === b);
+  const wholeCity = (t: AreaPrice['type'], k: AreaPrice['kind'], b: AreaPrice['build']) => {
+    const row = rows.find((r) => r.neighborhood === CITY_ROW && r.type === t && r.kind === k && r.build === b);
+    return row ? { low: row.low, high: row.high, listings: row.listings ?? 0 } : cityAverage(of(t, k, b));
+  };
 
-  const aptSale = of('apartment', 'sale');
+  const aptSale = of('apartment', 'sale', split ? 'old' : 'any');
   const aptRent = of('apartment', 'rent');
-  const avg = cityAverage(aptSale);
+  const avg = wholeCity('apartment', 'sale', split ? 'old' : 'any');
+  const avgNew = split ? wholeCity('apartment', 'sale', 'new') : null;
   const top = aptSale.length ? extreme(aptSale, (r) => r.high, 1) : null;
   const low = aptSale.length ? extreme(aptSale, (r) => r.low, -1) : null;
   const centerRent = aptRent.find((r) => r.neighborhood === 'Centar') ?? null;
-  const listings = rows.reduce((s, r) => s + (r.listings ?? 0), 0);
+  // Red "Ceo grad" ponavlja oglase naselja, pa se ne broji.
+  const listings = hoods.reduce((s, r) => s + (r.listings ?? 0), 0);
   const latest = rows.reduce((d, r) => (r.updatedAt > d ? r.updatedAt : d), '');
   const updated = latest ? new Date(latest).toLocaleDateString('sr-Latn-RS', { day: 'numeric', month: 'long', year: 'numeric' }) : null;
   const month = latest ? new Date(latest).toLocaleDateString('sr-Latn-RS', { month: 'long', year: 'numeric' }) : null;
@@ -131,7 +150,9 @@ export default async function AreaPricesPage() {
       ? [
           {
             q: 'Koliko košta kvadrat stana u Kragujevcu?',
-            a: `Prosek grada je oko ${r10(avg.low)}–${r10(avg.high)} € po m². Najskuplje je ${joinNames(top.names)} (do ${fmt(top.value)}${NB}€/m²), a najpovoljnije ${joinNames(low.names)} (od ${fmt(low.value)}${NB}€/m²). To su procenjene prodajne cene, malo ispod traženih u oglasima.`
+            a: avgNew
+              ? `Stan u starogradnji u proseku oko ${r10(avg.low)}–${r10(avg.high)} € po m², u novogradnji oko ${r10(avgNew.low)}–${r10(avgNew.high)} €. Najskuplja starogradnja je ${joinNames(top.names)} (do ${fmt(top.value)}${NB}€/m²), a najpovoljnija ${joinNames(low.names)} (od ${fmt(low.value)}${NB}€/m²). To su procenjene prodajne cene, malo ispod traženih u oglasima.`
+              : `Prosek grada je oko ${r10(avg.low)}–${r10(avg.high)} € po m². Najskuplje je ${joinNames(top.names)} (do ${fmt(top.value)}${NB}€/m²), a najpovoljnije ${joinNames(low.names)} (od ${fmt(low.value)}${NB}€/m²). To su procenjene prodajne cene, malo ispod traženih u oglasima.`
           }
         ]
       : []),
@@ -145,7 +166,9 @@ export default async function AreaPricesPage() {
       : []),
     {
       q: 'Da li su ovo cene novogradnje ili starogradnje?',
-      a: 'Obe zajedno. Cene su iz svih oglasa u naselju, bez obzira na godinu gradnje. Stan u novogradnji je obično pri vrhu raspona ili iznad njega, a stariji stan za renoviranje pri dnu.'
+      a: split
+        ? `Za stanove na prodaju posebno: prekidač Starogradnja / Novogradnja iznad grafikona. ${COPY.hero.splitText}`
+        : 'Obe zajedno. Cene su iz svih oglasa u naselju, bez obzira na godinu gradnje. Stan u novogradnji je obično pri vrhu raspona ili iznad njega, a stariji stan za renoviranje pri dnu.'
     },
     {
       q: 'Zašto mog naselja nema?',
@@ -186,8 +209,13 @@ export default async function AreaPricesPage() {
     }
   ];
 
+  const BUILD_LABEL = { new: ', novogradnja', old: ', starogradnja', any: '' } as const;
   const groups = (['apartment', 'house', 'commercial'] as const).flatMap((t) =>
-    (['sale', 'rent'] as const).map((k) => ({ t, k, list: of(t, k).sort((a, b) => b.low + b.high - (a.low + a.high)) })).filter((g) => g.list.length)
+    (['sale', 'rent'] as const).flatMap((k) =>
+      (split && t === 'apartment' && k === 'sale' ? (['old', 'new'] as const) : (['any'] as const))
+        .map((b) => ({ t, k, b, list: of(t, k, b).sort((x, y) => y.low + y.high - (x.low + x.high)) }))
+        .filter((g) => g.list.length)
+    )
   );
 
   return (
@@ -215,29 +243,40 @@ export default async function AreaPricesPage() {
             </h1>
             <p className="lede">{COPY.hero.lede}</p>
             <p className="ap-mix">
-              <b>{COPY.hero.mixTitle}</b> {COPY.hero.mixText}
+              <b>{split ? COPY.hero.splitTitle : COPY.hero.mixTitle}</b> {split ? COPY.hero.splitText : COPY.hero.mixText}
             </p>
           </section>
 
           {avg && top && low && (
             <div className="ap-tiles">
               <div className="ap-tile">
-                <small>Stan, prosek grada</small>
+                <small>{avgNew ? 'Starogradnja, prosek grada' : 'Stan, prosek grada'}</small>
                 <b>
                   {r10(avg.low)}–{r10(avg.high)} €
                 </b>
                 <span>po m², iz {fmt(avg.listings)} oglasa</span>
               </div>
+              {avgNew && (
+                <div className="ap-tile">
+                  <small>Novogradnja, prosek grada</small>
+                  <b>
+                    {r10(avgNew.low)}–{r10(avgNew.high)} €
+                  </b>
+                  <span>po m², iz {fmt(avgNew.listings)} oglasa</span>
+                </div>
+              )}
               <div className="ap-tile">
-                <small>Najskuplje naselje</small>
+                <small>{avgNew ? 'Najskuplja starogradnja' : 'Najskuplje naselje'}</small>
                 <b>{joinNames(top.names)}</b>
                 <span>do {fmt(top.value)} € po m²</span>
               </div>
-              <div className="ap-tile">
-                <small>Najpovoljnije naselje</small>
-                <b>{joinNames(low.names)}</b>
-                <span>od {fmt(low.value)} € po m²</span>
-              </div>
+              {!avgNew && (
+                <div className="ap-tile">
+                  <small>Najpovoljnije naselje</small>
+                  <b>{joinNames(low.names)}</b>
+                  <span>od {fmt(low.value)} € po m²</span>
+                </div>
+              )}
               {centerRent && (
                 <div className="ap-tile">
                   <small>Kirija, stan u Centru</small>
@@ -268,9 +307,10 @@ export default async function AreaPricesPage() {
               <details className="card ap-table">
                 <summary>Sve cene u tabeli</summary>
                 {groups.map((g) => (
-                  <table key={`${g.t}-${g.k}`}>
+                  <table key={`${g.t}-${g.k}-${g.b}`}>
                     <caption>
                       {TYPE_LABEL[g.t]}, {KIND_LABEL[g.k]}
+                      {BUILD_LABEL[g.b]}
                       {g.k === 'rent' ? ' (€ po m² mesečno)' : ' (€ po m²)'}
                     </caption>
                     <thead>
@@ -301,7 +341,7 @@ export default async function AreaPricesPage() {
           </div>
         </section>
 
-        <ToolExplain id="kako-racunamo" eyebrow={COPY.method.eyebrow} title={COPY.method.title} note={COPY.method.note} items={COPY.method.items} columns={4} band={false} />
+        <ToolExplain id="kako-racunamo" eyebrow={COPY.method.eyebrow} title={COPY.method.title} note={COPY.method.note} items={split ? [...COPY.method.items.slice(0, 3), COPY.method.splitItem] : COPY.method.items} columns={4} band={false} />
 
         <ToolCta
           id="procena"

@@ -6,7 +6,8 @@ import {
   PRICE_MAX_AGE_DAYS,
   calculateEstimate,
   priceAgeDays,
-  resolveBaseline
+  resolveBaseline,
+  buildTypeFor
 } from '@/app/lib/valuation/calculateEstimate';
 import {
   VALUATION_CONDITIONS,
@@ -182,7 +183,7 @@ export async function POST(req: Request) {
     //        da poređenje bude neosetljivo na velika/mala slova) ---
     const { data: baselineRows, error: baselineError } = await supabase
       .from('zone_price_baselines')
-      .select('city, neighborhood, property_type, listing_type, price_per_sqm_low, price_per_sqm_high, updated_at')
+      .select('city, neighborhood, property_type, listing_type, build_type, price_per_sqm_low, price_per_sqm_high, updated_at')
       .eq('property_type', propertyType)
       .eq('listing_type', listingType)
       .ilike('city', city.replace(/[\\%_]/g, (ch) => `\\${ch}`));
@@ -191,13 +192,14 @@ export async function POST(req: Request) {
       console.error('[api/valuation] baseline lookup failed:', baselineError.message);
     }
 
-    // --- 3. Raspon ---
+    // --- 3. Raspon (stan na prodaju: cena novogradnje ili starogradnje) ---
     const baseline = resolveBaseline(
       (baselineRows ?? []) as PriceBaseline[],
       city,
       neighborhood,
       propertyType,
-      listingType
+      listingType,
+      buildTypeFor(propertyType, listingType, condition)
     );
     const estimate: EstimateResult | null = baseline
       ? calculateEstimate(baseline, {
@@ -269,7 +271,7 @@ export async function POST(req: Request) {
       `🚗 Parking: ${hasParking ? 'da' : 'ne'} · 🌿 Terasa: ${hasTerrace ? 'da' : 'ne'}`,
       '',
       estimate
-        ? `💶 ${isRent ? 'Kirija' : 'Procena'}: ${formatEur(estimate.low)} – ${formatEur(estimate.high)}${isRent ? ' mesečno' : ''}${baseline?.source === 'city_average' ? ' (prosek grada)' : ''}`
+        ? `💶 ${isRent ? 'Kirija' : 'Procena'}: ${formatEur(estimate.low)} – ${formatEur(estimate.high)}${isRent ? ' mesečno' : ''}${baseline?.build === 'new' ? ' · cene novogradnje' : baseline?.build === 'old' ? ' · cene starogradnje' : ''}${baseline?.source === 'city_average' ? ' (prosek grada)' : ''}`
         : '⚠️ Nema cena za ovu lokaciju — procenu poslati ručno'
     );
     // Podsetnik za osvežavanje cena stiže tamo gde se i vidi - uz zahtev.

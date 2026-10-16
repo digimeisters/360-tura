@@ -152,20 +152,24 @@ export default function ValuationForm({
   demoTourHref,
   initialListingType,
   initialNeighborhood = '',
-  initialPropertyType = ''
+  initialPropertyType = '',
+  initialCondition = ''
 }: {
   demoTourHref: string;
   initialListingType: ValuationListingType;
   /** Naselje izabrano unapred (?naselje= - dolazi sa strane cena po naseljima); mora biti sa liste. */
   initialNeighborhood?: string;
   initialPropertyType?: ValuationPropertyType | '';
+  /** ?stanje=novogradnja sa strane cena (prekidač Novogradnja). */
+  initialCondition?: ValuationCondition | '';
 }) {
   const [step, setStep] = useState<1 | 2>(1);
   const [form, setForm] = useState<FormState>({
     ...INITIAL,
     listingType: initialListingType,
     neighborhoodChoice: neighbourhoodsFor(INITIAL.city).includes(initialNeighborhood) ? initialNeighborhood : '',
-    propertyType: initialPropertyType
+    propertyType: initialPropertyType,
+    condition: initialCondition
   });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);

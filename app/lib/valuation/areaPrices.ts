@@ -1,5 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
-import type { ValuationListingType, ValuationPropertyType } from './types';
+import type { BuildType, ValuationListingType, ValuationPropertyType } from './types';
+import { CITY_ROW } from './calculateEstimate';
+
+export { CITY_ROW };
 
 /**
  * Cene po naseljima za stranu /alati/cene-nekretnina-kragujevac - isti
@@ -12,6 +15,8 @@ export type AreaPrice = {
   neighborhood: string;
   type: ValuationPropertyType;
   kind: ValuationListingType;
+  /** Novogradnja / starogradnja / zajedno (migracija 032). */
+  build: BuildType;
   /** €/m² (izdavanje: €/m² mesečno). */
   low: number;
   high: number;
@@ -28,6 +33,7 @@ type Row = {
   neighborhood: string;
   property_type: ValuationPropertyType;
   listing_type: ValuationListingType | null;
+  build_type?: BuildType | null;
   price_per_sqm_low: number | string;
   price_per_sqm_high: number | string;
   listing_count: number | null;
@@ -45,7 +51,7 @@ export async function getAreaPrices(city = 'Kragujevac'): Promise<AreaPrice[]> {
   const db = createClient(url, key, { auth: { persistSession: false } });
   const { data, error } = await db
     .from('zone_price_baselines')
-    .select('neighborhood, property_type, listing_type, price_per_sqm_low, price_per_sqm_high, listing_count, independent_count, updated_at')
+    .select('neighborhood, property_type, listing_type, build_type, price_per_sqm_low, price_per_sqm_high, listing_count, independent_count, updated_at')
     .ilike('city', city)
     .returns<Row[]>();
   if (error) {
@@ -56,6 +62,7 @@ export async function getAreaPrices(city = 'Kragujevac'): Promise<AreaPrice[]> {
     neighborhood: r.neighborhood,
     type: r.property_type,
     kind: r.listing_type ?? 'sale',
+    build: r.build_type ?? 'any',
     low: Number(r.price_per_sqm_low),
     high: Number(r.price_per_sqm_high),
     listings: r.listing_count,
