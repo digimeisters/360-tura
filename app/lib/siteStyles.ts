@@ -765,19 +765,21 @@ export const SITE_STYLES = `
      trake (.promo-card) - lako bi se pročitalo kao popust umesto kao putokaz. */
   .db-teaser{margin-top:1.6rem; padding:1.3rem 1.6rem; border-radius:22px; background:var(--surface); border:1px solid var(--line); display:flex; flex-wrap:wrap; align-items:center; gap:1rem 1.2rem;}
   .db-teaser-icon{flex:none; display:grid; place-items:center; width:2.4rem; height:2.4rem; border-radius:50%; background:var(--accent-soft); font-size:1.15rem;}
-  .db-teaser-body{flex:1 1 16rem; min-width:0; display:flex; flex-direction:column; gap:.55rem;}
+  /* Tekst uzima samo koliko mu treba, filteri ostatak - bez praznine između. */
+  .db-teaser-body{flex:0 1 19rem; min-width:0; display:flex; flex-direction:column; gap:.55rem;}
   .db-teaser-text{font-size:.9rem; color:var(--ink-soft); line-height:1.5;}
   .db-teaser-title{font-size:1.2rem; margin:0;}
   /* Mini-pretraga: ista traka kao filteri na /ture. */
-  .db-search{flex:1.6 1 30rem; display:flex; align-items:stretch; background:var(--surface); border:1px solid var(--line-strong); border-radius:20px;}
+  .db-search{flex:1 1 30rem; display:flex; align-items:stretch; background:var(--surface); border:1px solid var(--line-strong); border-radius:20px;}
   .db-field{flex:1 1 0; min-width:0; display:flex; flex-direction:column; gap:.15rem; padding:.6rem 1rem; border-left:1px solid var(--line); cursor:pointer;}
   .db-field:first-child{border-left:0;}
-  .db-field span{font-family:var(--font-display); font-size:.66rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint);}
+  .db-field span{font-family:var(--font-display); font-size:.8rem; font-weight:700; color:var(--ink-soft);}
   .db-field select{font:inherit; font-size:.92rem; font-weight:600; color:var(--ink); background:none; border:0; padding:0; margin:0 -.2rem; cursor:pointer; min-width:0;}
   .db-field select:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:6px;}
   .db-search .db-teaser-cta{margin:.4rem; border-radius:14px;}
   .db-teaser-cta{flex:none;}
-  @media (max-width:640px){ .db-teaser{flex-direction:column; align-items:stretch; padding:1.2rem;} .db-search{flex-direction:column; flex-basis:auto;} .db-field{border-left:0; border-top:1px solid var(--line);} .db-field:first-child{border-top:0;} .db-search .db-teaser-cta{margin:.5rem;} }
+  /* U koloni bi osnova od 19rem postala visina teksta - otuda prazan prostor iznad filtera. */
+  @media (max-width:640px){ .db-teaser{flex-direction:column; align-items:stretch; padding:1.2rem;} .db-teaser-body{flex:none;} .db-search{flex-direction:column; flex-basis:auto;} .db-field{border-left:0; border-top:1px solid var(--line);} .db-field:first-child{border-top:0;} .db-search .db-teaser-cta{margin:.5rem;} }
   .tour-card{position:relative; overflow:hidden; display:flex; flex-direction:column; text-decoration:none; color:inherit; border:0; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;}
   @media (hover:hover){ .tour-card:hover{transform:translateY(-3px); box-shadow:var(--shadow-lg);} .tour-card:hover .tour-open{border-color:var(--accent); color:var(--accent);} }
   /* Reflektor koji prati miš (--mx/--my postavlja components/CardSpotlight.tsx)
