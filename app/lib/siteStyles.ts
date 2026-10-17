@@ -181,6 +181,12 @@ export const SITE_STYLES = `
   .nav .btn-primary{background:#1E5AA8; color:#FFFFFF; box-shadow:none;}
   .nav .btn-primary:hover{background:#17447E; color:#FFFFFF;}
   .brand{text-decoration:none; display:inline-flex;}
+  /* Logo investitora umesto znaka (strane projekta, SiteNav brandLogo). */
+  .brand-logo{display:inline-flex; align-items:center; height:44px;}
+  .brand-logo img{display:block; max-height:40px; max-width:200px; width:auto; height:auto; object-fit:contain;}
+  .brand-logo.is-dark{background:#111113; border-radius:10px; padding:6px 12px;}
+  .brand-logo.is-dark img{max-height:32px;}
+  @media (max-width:520px){ .brand-logo img{max-height:32px; max-width:150px;} }
   .navlinks{display:flex; align-items:center; gap:.2rem; list-style:none; margin:0; padding:0;}
   .navlinks a{display:block; white-space:nowrap; text-decoration:none; font-size:.88rem; font-weight:600; color:var(--ink-soft); padding:.45rem .85rem; border-radius:999px; transition:background .15s ease, color .15s ease;}
   /* Samo gde postoji miš - na telefonu bi hover ostao "zalepljen" posle dodira. */

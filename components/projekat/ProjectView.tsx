@@ -105,9 +105,12 @@ export default function ProjectView({
       <style dangerouslySetInnerHTML={{ __html: PAGE_STYLES }} />
       {/* Pregled se ne broji u posetama - gleda ga samo admin ili investitor. */}
       {!preview && <SiteTracker />}
+      {/* Sa logom investitora (migracija 034) znak u zaglavlju je njegov i vodi na
+          vrh ove strane, ne na naš sajt; Kvadrat360 ostaje u podnožju. */}
       <SiteNav
-        brandHref={lang === 'en' ? '/en' : '/'}
-        brandAria="Kvadrat360"
+        brandHref={project.logo_url ? '#' : lang === 'en' ? '/en' : '/'}
+        brandAria={project.logo_url ? project.developer_name || title : 'Kvadrat360'}
+        brandLogo={project.logo_url ? { src: project.logo_url, alt: project.developer_name || title, dark: project.logo_dark } : null}
         cta={{ href: '#izbor', label: lang === 'en' ? 'Choose an apartment' : 'Izaberite stan', track: 'cta:project_nav' }}
       >
         {nearby && (

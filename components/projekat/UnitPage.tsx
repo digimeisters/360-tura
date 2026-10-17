@@ -111,7 +111,12 @@ export default function UnitPage({
       <SiteStylesheets selector />
       <style dangerouslySetInnerHTML={{ __html: PAGE_STYLES }} />
       <SiteTracker />
-      <SiteNav brandHref={lang === 'en' ? '/en' : '/'} brandAria="Kvadrat360" cta={{ href: `${base}#izbor`, label: t.allUnits, track: 'cta:unit_nav' }}>
+      {/* Logo investitora (migracija 034) vodi na stranu projekta. */}
+      <SiteNav
+        brandHref={project.logo_url ? base : lang === 'en' ? '/en' : '/'}
+        brandAria={project.logo_url ? project.developer_name || title : 'Kvadrat360'}
+        brandLogo={project.logo_url ? { src: project.logo_url, alt: project.developer_name || title, dark: project.logo_dark } : null}
+        cta={{ href: `${base}#izbor`, label: t.allUnits, track: 'cta:unit_nav' }}>
         <li className="nav-lang">
           {lang === 'en' ? (
             <Link href={`/novogradnja/${project.slug}/stan/${encodeURIComponent(unit.code)}`}>SR</Link>

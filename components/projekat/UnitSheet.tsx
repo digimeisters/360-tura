@@ -38,6 +38,11 @@ const STYLES = `
   .us{width:210mm; min-height:297mm; margin:12px auto 24px; background:#fff; padding:14mm; box-sizing:border-box; box-shadow:0 10px 40px rgba(0,0,0,.15); display:flex; flex-direction:column; gap:7mm;}
   .us-head{display:flex; justify-content:space-between; align-items:flex-start; gap:8mm; border-bottom:2px solid #1E5AA8; padding-bottom:5mm;}
   .us-brand{font-family:var(--font-display); font-weight:800; font-size:12pt; color:#1E5AA8;}
+  /* Logo investitora iznad naziva stana (migracija 034). */
+  .us-logo{display:inline-flex; align-items:center; margin-bottom:2mm;}
+  .us-logo img{display:block; max-height:15mm; max-width:60mm; width:auto; height:auto; object-fit:contain;}
+  .us-logo.is-dark{background:#111113; border-radius:2mm; padding:2mm 3mm;}
+  .us-logo.is-dark img{max-height:11mm;}
   .us-head h1{margin:2mm 0 0; font-family:var(--font-display); font-size:24pt; letter-spacing:-.02em; line-height:1.05;}
   .us-head p{margin:1.5mm 0 0; color:#5B5D63; font-size:10.5pt;}
   .us-price{text-align:right;}
@@ -124,11 +129,22 @@ export default async function UnitSheet({
       <article className="us">
         <header className="us-head">
           <div>
-            <div className="us-brand">{title}</div>
+            {project.logo_url ? (
+              <span className={project.logo_dark ? 'us-logo is-dark' : 'us-logo'}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- logo investitora sa R2 CDN-a, štampa */}
+                <img src={project.logo_url} alt={project.developer_name || title} />
+              </span>
+            ) : (
+              <div className="us-brand">{title}</div>
+            )}
             <h1>
               {pt.unit} {unit.code}
             </h1>
-            <p>{[floor ? floorLabel(floor.level, floor.label, lang) : null, project.address, project.city].filter(Boolean).join(' · ')}</p>
+            <p>
+              {[floor ? floorLabel(floor.level, floor.label, lang) : null, project.logo_url ? title : null, project.address, project.city]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
             <span className={`us-status${badge}`}>{statusLabel(unit.status, lang)}</span>
           </div>
           <div className="us-price">
@@ -212,7 +228,7 @@ export default async function UnitSheet({
               </>
             )}
             {project.developer_name && <span style={{ color: '#5B5D63' }}>{project.developer_name} · </span>}
-            <span style={{ color: '#8C8E93' }}>Kvadrat360</span>
+            <span style={{ color: '#8C8E93' }}>{project.logo_url ? (lang === 'en' ? 'Apartment selector: Kvadrat360' : 'Izbor stana: Kvadrat360') : 'Kvadrat360'}</span>
           </div>
           <div className="us-qr">
             <span>{t.scan}</span>

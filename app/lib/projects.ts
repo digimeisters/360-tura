@@ -55,6 +55,9 @@ export type ProjectRow = {
   /** Naselje i učešće u statistici cena novogradnje (migracija 033). */
   neighborhood: string | null;
   include_in_price_stats: boolean;
+  /** Logo investitora i da li mu treba tamna podloga (migracija 034). */
+  logo_url: string | null;
+  logo_dark: boolean;
   published: boolean;
   created_at: string;
   updated_at: string;

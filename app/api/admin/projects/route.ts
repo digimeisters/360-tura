@@ -221,6 +221,14 @@ export async function POST(req: Request) {
         if ('demo_tour_id' in fields) patch.demo_tour_id = text(fields.demo_tour_id, 40);
         // Cenovnik u statistici cena novogradnje (migracija 033).
         if ('include_in_price_stats' in fields) patch.include_in_price_stats = Boolean(fields.include_in_price_stats);
+        // Logo investitora (migracija 034): samo naš CDN, ili null za uklanjanje.
+        if ('logo_url' in fields) {
+          const logo = text(fields.logo_url, 500);
+          const cdn = (process.env.NEXT_PUBLIC_CDN_URL || '').replace(/\/+$/, '');
+          if (logo && (!cdn || !logo.startsWith(`${cdn}/projekti/${id}/logo-`))) return fail('Logo mora biti otpremljen kroz admin.');
+          patch.logo_url = logo;
+        }
+        if ('logo_dark' in fields) patch.logo_dark = Boolean(fields.logo_dark);
 
         // Ručno upisane koordinate (npr. prekopirane iz Google mapa) imaju prednost.
         let coords: { lat: number; lng: number } | null = null;

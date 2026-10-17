@@ -21,6 +21,7 @@ export function SiteNav({
   cta,
   children,
   mainMenu,
+  brandLogo,
   logoSpin
 }: {
   /** Početna strana vodi na svoj vrh (#pocetna), ostale na "/". */
@@ -30,12 +31,25 @@ export function SiteNav({
   children?: ReactNode;
   /** Glavni meni sajta umesto `children`; `lang` = čip druge jezičke verzije. */
   mainMenu?: { lang?: MenuLang };
+  /**
+   * Logo investitora umesto znaka Kvadrat360 (strane projekta novogradnje,
+   * migracija 034). `dark` = svetao logo, dobija tamnu podlogu.
+   */
+  brandLogo?: { src: string; alt: string; dark: boolean } | null;
   /** Jedan obrtaj znaka pri učitavanju - samo početna strana ovo prosleđuje. */
   logoSpin?: boolean;
 }) {
   // Unutrašnje veze idu kroz Link (bez ponovnog učitavanja strane), a veza
   // ka delu iste strane (#kontakt) mora da ostane običan skok.
   const Cta = cta.href.startsWith('#') ? 'a' : Link;
+  const mark = brandLogo ? (
+    <span className={brandLogo.dark ? 'brand-logo is-dark' : 'brand-logo'}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- logo investitora sa R2 CDN-a, bilo kog oblika (i SVG) */}
+      <img src={brandLogo.src} alt={brandLogo.alt} />
+    </span>
+  ) : (
+    <Logo spin={logoSpin} />
+  );
 
   return (
     <header className="nav">
@@ -43,11 +57,11 @@ export function SiteNav({
         <div className="nav-bar">
           {brandHref.startsWith('#') ? (
             <a className="brand" href={brandHref} aria-label={brandAria}>
-              <Logo spin={logoSpin} />
+              {mark}
             </a>
           ) : (
             <Link className="brand" href={brandHref} aria-label={brandAria}>
-              <Logo spin={logoSpin} />
+              {mark}
             </Link>
           )}
           {mainMenu ? (

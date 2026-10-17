@@ -25,7 +25,7 @@ const MAX_FILE_BYTES = 25 * 1024 * 1024;
  * /api/admin/projects (update / floor-save). Stari fajl se ne briše:
  * slike su male, a ovako izmena nikad ne ostavi projekat bez slike.
  *
- * Body: { projectId: string, kind: 'view' | 'plan' | 'unit', fileType: string, fileSize: number }
+ * Body: { projectId: string, kind: 'view' | 'plan' | 'unit' | 'doc' | 'logo', fileType: string, fileSize: number }
  */
 export async function POST(req: Request) {
   const ctx = await requireAdmin(req);
@@ -41,20 +41,27 @@ export async function POST(req: Request) {
   const projectId = typeof body.projectId === 'string' ? body.projectId : '';
   // view (fasada ili kompleks - migracija 025; stari naziv facade) / plan (sprata) / unit (osnova, 3D osnova i slike stana - migracija 024)
   // doc = cenovnik investitora (PDF ili slika) samo za AI čitanje u tabelu stanova
-  const kind = ['view', 'facade', 'plan', 'unit', 'doc'].includes(body.kind) ? (body.kind as string) : '';
+  // logo = logo investitora (migracija 034) - sme i SVG; prikazuje se samo kao <img>, pa skripte u njemu ne rade
+  const kind = ['view', 'facade', 'plan', 'unit', 'doc', 'logo'].includes(body.kind) ? (body.kind as string) : '';
   const fileType = typeof body.fileType === 'string' ? body.fileType : '';
   const fileSize = typeof body.fileSize === 'number' ? body.fileSize : 0;
 
   if (!/^[0-9a-f-]{36}$/i.test(projectId) || !kind) {
     return NextResponse.json({ success: false, error: 'Nedostaje projekat ili vrsta slike.' }, { status: 400 });
   }
-  const ext = ALLOWED_TYPES[fileType] ?? (kind === 'doc' && fileType === 'application/pdf' ? 'pdf' : undefined);
+  const ext =
+    ALLOWED_TYPES[fileType] ??
+    (kind === 'doc' && fileType === 'application/pdf' ? 'pdf' : kind === 'logo' && fileType === 'image/svg+xml' ? 'svg' : undefined);
   if (!ext) {
-    return NextResponse.json({ success: false, error: kind === 'doc' ? 'Dozvoljeni su PDF, JPG, PNG i WEBP.' : 'Dozvoljene su samo JPG, PNG i WEBP slike.' }, { status: 400 });
+    const allowed = kind === 'doc' ? 'Dozvoljeni su PDF, JPG, PNG i WEBP.' : kind === 'logo' ? 'Logo može biti PNG, SVG, WEBP ili JPG.' : 'Dozvoljene su samo JPG, PNG i WEBP slike.';
+    return NextResponse.json({ success: false, error: allowed }, { status: 400 });
   }
   // Cenovnik ide modelu kao celina (Gemini prima do ~20MB po pozivu).
   if (kind === 'doc' && fileSize > 15 * 1024 * 1024) {
     return NextResponse.json({ success: false, error: 'Cenovnik je veći od 15MB - sačuvajte manji PDF ili samo strane sa tabelom.' }, { status: 400 });
+  }
+  if (kind === 'logo' && fileSize > 2 * 1024 * 1024) {
+    return NextResponse.json({ success: false, error: 'Logo je veći od 2MB - sačuvajte manju verziju.' }, { status: 400 });
   }
   if (fileSize > MAX_FILE_BYTES) {
     return NextResponse.json({ success: false, error: 'Slika je veća od 25MB.' }, { status: 400 });

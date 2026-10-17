@@ -219,8 +219,9 @@ export default function ProjectEditorPage() {
     }
   };
 
-  const upload = async (file: File, kind: 'view' | 'plan' | 'unit'): Promise<string> => {
-    const small = await shrinkImage(file, 3 * 1024 * 1024);
+  const upload = async (file: File, kind: 'view' | 'plan' | 'unit' | 'logo'): Promise<string> => {
+    // Logo se ne smanjuje: shrinkImage pravi JPG, a logo treba providnu pozadinu (i SVG ostaje SVG).
+    const small = kind === 'logo' ? file : await shrinkImage(file, 3 * 1024 * 1024);
     const res = await fetch('/api/admin/projects/upload', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
@@ -748,6 +749,88 @@ export default function ProjectEditorPage() {
               <a className="pa-btn" href={`/en/novogradnja/${project.slug}`} target="_blank" rel="noreferrer">
                 Engleska strana ↗
               </a>
+            )}
+          </div>
+
+          {/* Logo investitora (migracija 034): zaglavlje strane projekta i stanova, PDF letak. */}
+          <div className="pa-card" style={{ marginTop: 14, marginBottom: 0, padding: 14, background: 'var(--surface-2)' }}>
+            <b style={{ fontSize: 14 }}>Logo investitora</b>
+            <p className="pa-hint" style={{ margin: '4px 0 10px' }}>
+              Stoji gore levo na strani projekta i stanova (umesto znaka Kvadrat360) i iznad naziva stana na PDF letku. PNG ili SVG, najbolje
+              vodoravan logo na providnoj pozadini, do 2MB. Bez loga strana izgleda kao do sada.
+            </p>
+            <div className="pa-row" style={{ alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              {project.logo_url && (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    height: 64,
+                    padding: '8px 14px',
+                    borderRadius: 12,
+                    border: '1.5px dashed #9DBBE3',
+                    background: project.logo_dark ? '#111113' : '#FFFFFF'
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- pregled loga sa R2 CDN-a */}
+                  <img src={project.logo_url} alt="Logo investitora" style={{ maxHeight: 44, maxWidth: 200, display: 'block' }} />
+                </span>
+              )}
+              <label className="pa-btn" style={{ cursor: busy === 'logo' ? 'wait' : 'pointer' }}>
+                {busy === 'logo' ? 'Otpremam...' : project.logo_url ? 'Zameni logo' : 'Dodaj logo'}
+                <input
+                  type="file"
+                  accept="image/png,image/svg+xml,image/webp,image/jpeg"
+                  hidden
+                  disabled={busy === 'logo'}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    if (!file) return;
+                    run('logo', async () => {
+                      const logo_url = await upload(file, 'logo');
+                      await api('update', { id, fields: { logo_url } });
+                      setData((d) => (d ? { ...d, project: { ...d.project, logo_url } } : d));
+                      return 'Logo investitora je sačuvan.';
+                    });
+                  }}
+                />
+              </label>
+              {project.logo_url && (
+                <button
+                  type="button"
+                  className="pa-btn"
+                  style={{ color: '#B42318' }}
+                  disabled={busy === 'logo'}
+                  onClick={() =>
+                    run('logo', async () => {
+                      await api('update', { id, fields: { logo_url: null } });
+                      setData((d) => (d ? { ...d, project: { ...d.project, logo_url: null } } : d));
+                      return 'Logo je uklonjen - strana opet ima znak Kvadrat360.';
+                    })
+                  }
+                >
+                  Ukloni
+                </button>
+              )}
+            </div>
+            {project.logo_url && (
+              <label className="pa-row" style={{ marginTop: 10, fontSize: 13.5 }}>
+                <input
+                  type="checkbox"
+                  checked={project.logo_dark}
+                  disabled={busy === 'logo'}
+                  onChange={(e) => {
+                    const logo_dark = e.target.checked;
+                    run('logo', async () => {
+                      await api('update', { id, fields: { logo_dark } });
+                      setData((d) => (d ? { ...d, project: { ...d.project, logo_dark } } : d));
+                      return logo_dark ? 'Logo se prikazuje na tamnoj podlozi.' : 'Logo se prikazuje bez podloge.';
+                    });
+                  }}
+                />
+                Logo je svetao (beo) - prikaži ga na tamnoj podlozi
+              </label>
             )}
           </div>
 

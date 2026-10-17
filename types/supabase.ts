@@ -1,5 +1,5 @@
 // GENERISANO skriptom scripts/gen-db-types.mjs (npm run db:types) - ne menjati ručno.
-// Izvor: živa baza sajta (tmnaguwmzlwirhjprdbh), 2026-10-16.
+// Izvor: živa baza sajta (tmnaguwmzlwirhjprdbh), 2026-10-17.
 
 export type Json =
   | string
@@ -651,6 +651,8 @@ export type Database = {
           include_in_price_stats: boolean
           lat: number | null
           lng: number | null
+          logo_dark: boolean
+          logo_url: string | null
           move_in: string | null
           nearby: Json | null
           nearby_updated_at: string | null
@@ -678,6 +680,8 @@ export type Database = {
           include_in_price_stats?: boolean
           lat?: number | null
           lng?: number | null
+          logo_dark?: boolean
+          logo_url?: string | null
           move_in?: string | null
           nearby?: Json | null
           nearby_updated_at?: string | null
@@ -705,6 +709,8 @@ export type Database = {
           include_in_price_stats?: boolean
           lat?: number | null
           lng?: number | null
+          logo_dark?: boolean
+          logo_url?: string | null
           move_in?: string | null
           nearby?: Json | null
           nearby_updated_at?: string | null
