@@ -3,13 +3,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Language, Room, Tour } from '../types';
 import { THEME, FILL_ACCENT } from '../theme';
-import { buildVideoPlan, MAX_ROOMS, VIDEO_HEIGHT, VIDEO_WIDTH } from './videoPlan';
+import { buildVideoPlan, introVoiceUrl, MAX_ROOMS, VIDEO_HEIGHT, VIDEO_WIDTH } from './videoPlan';
 import type { VideoProgress } from './videoEncode';
 
 /**
  * Admin prozor "🎬 Video": pravi kratak uspravan video iz ture (Premium -
  * "Kratak video iz ture za Instagram i Facebook"). Sve se radi u ovom
  * pregledaču; gotov MP4 se pregleda i preuzme, nigde se ne otprema.
+ *
+ * Isti 9:16 fajl ide na Instagram Reels i TikTok. Tura sa lokacijom počinje
+ * letom preko mape uz glas uvoda (ako je snimljen u "Uvod"); muziku agent
+ * bira sa svog računara - mi je ne isporučujemo (prava na muziku).
  */
 
 const LANGS: Language[] = ['sr', 'en', 'de', 'ru'];
@@ -35,8 +39,29 @@ export default function TourVideoModal({
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
   const previewRef = useRef<HTMLCanvasElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const [music, setMusic] = useState<File | null>(null);
 
-  const plan = useMemo(() => buildVideoPlan(tour, rooms, lang), [tour, rooms, lang]);
+  // Dužina glasa uvoda određuje koliko traje mapa na početku - zna se tek kad
+  // se fajl učita (samo zaglavlje, ne ceo snimak).
+  const voiceUrl = introVoiceUrl(tour, lang);
+  const [voiceInfo, setVoiceInfo] = useState<{ url: string; seconds: number | null } | null>(null);
+  useEffect(() => {
+    if (!voiceUrl) return;
+    const audio = new Audio();
+    audio.preload = 'metadata';
+    audio.onloadedmetadata = () => setVoiceInfo({ url: voiceUrl, seconds: Number.isFinite(audio.duration) ? audio.duration : null });
+    audio.onerror = () => setVoiceInfo({ url: voiceUrl, seconds: null });
+    audio.src = voiceUrl;
+    return () => {
+      audio.onloadedmetadata = null;
+      audio.onerror = null;
+      audio.src = '';
+    };
+  }, [voiceUrl]);
+  const voiceLoading = Boolean(voiceUrl) && voiceInfo?.url !== voiceUrl;
+  const voiceSeconds = voiceUrl && voiceInfo?.url === voiceUrl ? voiceInfo.seconds : null;
+
+  const plan = useMemo(() => buildVideoPlan(tour, rooms, lang, voiceSeconds), [tour, rooms, lang, voiceSeconds]);
   const skipped = rooms.length - plan.rooms.length;
 
   // Oslobodi gotov video iz memorije kad se prozor zatvori ili napravi novi.
@@ -54,7 +79,8 @@ export default function TourVideoModal({
       const blob = await renderTourVideo(plan, {
         onProgress: (progress) => setPhase({ kind: 'working', progress }),
         getPreview: () => previewRef.current,
-        signal: controller.signal
+        signal: controller.signal,
+        music
       });
       setPhase({ kind: 'done', url: URL.createObjectURL(blob), sizeMb: blob.size / 1024 / 1024 });
     } catch (error) {
@@ -99,7 +125,7 @@ export default function TourVideoModal({
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: THEME.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
       <div style={{ backgroundColor: THEME.surface, border: '1px solid ' + THEME.border, borderRadius: '20px', width: '100%', maxWidth: '640px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadowLg, fontFamily: THEME.fontBody }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid ' + THEME.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ color: THEME.textPrimary, fontSize: '18px', margin: 0, fontWeight: 700 }}>🎬 Video za Instagram i Facebook</h2>
+          <h2 style={{ color: THEME.textPrimary, fontSize: '18px', margin: 0, fontWeight: 700 }}>🎬 Video za Instagram i TikTok</h2>
           <button
             onClick={() => { abortRef.current?.abort(); onClose(); }}
             title="Zatvori"
@@ -144,7 +170,14 @@ export default function TourVideoModal({
                 Sadržaj · {Math.round(plan.duration)} s, uspravno 1080×1920
               </div>
               <ol style={{ margin: 0, paddingLeft: '18px' }}>
-                <li>Uvodna kartica: {plan.intro.title || 'naziv ture'}{plan.intro.price ? `, ${plan.intro.price}` : ''}</li>
+                {plan.map ? (
+                  <li>
+                    Dolazak sa mape do zgrade, naslov{plan.intro.price ? ' i cena' : ''}, pločice sa podacima
+                    {plan.voice ? ` + glas uvoda (${Math.round(plan.voice.seconds)} s)` : ''}
+                  </li>
+                ) : (
+                  <li>Uvodna kartica: {plan.intro.title || 'naziv ture'}{plan.intro.price ? `, ${plan.intro.price}` : ''}</li>
+                )}
                 {plan.rooms.map((shot) => (
                   <li key={shot.roomId}>{shot.title || 'Soba bez naziva'}</li>
                 ))}
@@ -152,9 +185,37 @@ export default function TourVideoModal({
               </ol>
               {skipped > 0 && (
                 <div style={{ fontSize: '12px', marginTop: '6px' }}>
-                  Bez {skipped} {skipped % 10 >= 1 && skipped % 10 <= 4 && (skipped % 100 < 12 || skipped % 100 > 14) ? 'sobe' : 'soba'} (najviše {MAX_ROOMS}, redom putanje vodiča; sobe bez panorame se preskaču).
+                  Bez {skipped} {skipped % 10 >= 1 && skipped % 10 <= 4 && (skipped % 100 < 12 || skipped % 100 > 14) ? 'sobe' : 'soba'} ({plan.map ? 'video sa mapom ostaje do ~40 s' : `najviše ${MAX_ROOMS}`}, redom putanje vodiča; sobe bez panorame se preskaču).
                 </div>
               )}
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 700, color: THEME.textPrimary, marginBottom: '6px' }}>Zvuk</div>
+              <div style={{ fontSize: '12.5px', marginBottom: '8px' }}>
+                {voiceLoading
+                  ? 'Proveravam glas uvoda…'
+                  : plan.voice
+                    ? `✓ Glas uvoda na ${lang.toUpperCase()} ide preko mape na početku.`
+                    : voiceUrl
+                      ? 'Glas uvoda nije mogao da se učita - video ide bez glasa.'
+                      : `Nema snimljenog uvoda na ${lang.toUpperCase()} - napravite ga dugmetom „Uvod“ u spisku tura, ili video ide bez glasa.`}
+                {!plan.map && ' Tura nema lokaciju na mapi, pa počinje uvodnom karticom.'}
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '12.5px' }}>
+                <span style={{ fontWeight: 600 }}>🎵 Muzika ispod (opciono):</span>
+                <input
+                  type="file"
+                  accept="audio/mpeg,audio/mp4,audio/aac,audio/x-m4a,audio/wav,.mp3,.m4a,.wav"
+                  disabled={working}
+                  onChange={(e) => setMusic(e.target.files?.[0] ?? null)}
+                  style={{ fontSize: '12px', maxWidth: '100%' }}
+                />
+              </label>
+              <div style={{ fontSize: '12px', marginTop: '6px' }}>
+                Samo muzika za koju imate pravo (npr. besplatna iz YouTube Audio Library). Ili napravite video bez muzike i dodajte je u samom
+                Instagramu ili TikToku - tamo je muzika već licencirana.
+              </div>
             </div>
 
             {phase.kind === 'error' && (
@@ -175,7 +236,7 @@ export default function TourVideoModal({
               {working ? (
                 <button onClick={() => abortRef.current?.abort()} style={{ ...btn, background: THEME.textMuted }}>Prekini</button>
               ) : (
-                <button onClick={() => void start()} disabled={plan.rooms.length === 0} style={{ ...btn, ...FILL_ACCENT }}>
+                <button onClick={() => void start()} disabled={plan.rooms.length === 0 || voiceLoading} style={{ ...btn, ...FILL_ACCENT }}>
                   {phase.kind === 'done' ? 'Napravi ponovo' : 'Napravi video'}
                 </button>
               )}

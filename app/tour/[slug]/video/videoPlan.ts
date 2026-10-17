@@ -6,6 +6,7 @@ import { formatListingPrice } from '../../../lib/listingPrice';
 import { SITE_URL } from '../../../lib/site';
 import { phoneToE164 } from '../TourControls';
 import { ROTATE_RAMP_MS } from '../transition';
+import { chipsFor } from '../introChips';
 
 /**
  * Plan kratkog uspravnog videa iz ture (za Instagram/Facebook, Premium):
@@ -17,6 +18,11 @@ import { ROTATE_RAMP_MS } from '../transition';
  *
  * Ovde nema crtanja - samo podaci i vremena. Crta videoFrame.ts, kodira
  * videoEncode.ts.
+ *
+ * Od 17. 10. 2026 (Instagram i TikTok): tura sa lokacijom počinje "dolaskom sa
+ * mape" kao uvod u turi - let do zgrade, oznaka, pločice sa podacima - uz glas
+ * uvoda ture (tours.intro_audio_i18n), ako je snimljen za taj jezik. Tada
+ * naslov i cena stoje u kartici preko mape umesto posebne uvodne kartice.
  */
 
 export const VIDEO_WIDTH = 1080;
@@ -29,6 +35,9 @@ export const INTRO_S = 4;
 export const ROOM_S = 4.2;
 export const FADE_S = 0.7;
 export const OUTRO_S = 3.2;
+/** Mapa na početku traje bar ovoliko; sa glasom uvoda - koliko glas plus predah. */
+export const MAP_MIN_S = 6;
+const MAP_AFTER_VOICE_S = 0.8;
 /**
  * Kadar sobe u videu kreće od pogleda koji tura ima posle ovoliko sekundi
  * uvodne priče (vlasnik, 1. 10. 2026: početni kadar sobe mu nije odgovarao,
@@ -58,6 +67,9 @@ function tourRotationAfter(seconds: number): number {
 
 /** Više soba bi video učinilo dužim od 35 s - za Reels je to granica pažnje. */
 export const MAX_ROOMS = 8;
+/** Sa mapom i glasom na početku: soba manje, da ceo video ostane oko 40 s. */
+const TARGET_WITH_MAP_S = 40;
+const MIN_ROOMS_WITH_MAP = 4;
 
 export type VideoRoomShot = {
   roomId: string;
@@ -72,8 +84,21 @@ export type VideoRoomShot = {
   end: number;
 };
 
+export type VideoMapScene = {
+  center: [number, number];
+  /** Kamera stiže do zgrade; tad pada oznaka. */
+  flyEnd: number;
+  /** Mapa se do ovog trenutka pretopi u prvu sobu. */
+  end: number;
+  chips: { icon: string; text: string; at: number }[];
+};
+
 export type VideoPlan = {
   lang: Language;
+  /** Početak sa mape (tura ima koordinate); null = klasična uvodna kartica. */
+  map: VideoMapScene | null;
+  /** Glas uvoda ture na jeziku videa; null = video bez glasa. */
+  voice: { url: string; seconds: number } | null;
   /** Logo agencije (agency_branding, migracija 027) za uvodnu i završnu karticu; null = samo naziv. */
   agencyLogoUrl: string | null;
   intro: {
@@ -173,8 +198,38 @@ function videoPanoramaUrl(room: Room): string {
   return room.panorama_url_mobile || room.panorama_url_cf || room.panorama_url || '';
 }
 
-export function buildVideoPlan(tour: Tour, rooms: Room[], lang: Language): VideoPlan {
+/** Glas uvoda ture za jezik videa (bez pada na srpski, kao i u turi). */
+export function introVoiceUrl(tour: Tour, lang: Language): string {
+  return tour.intro_audio_i18n?.[lang]?.trim() || '';
+}
+
+export function buildVideoPlan(
+  tour: Tour,
+  rooms: Room[],
+  lang: Language,
+  /** Trajanje glasa uvoda u sekundama (zna se tek kad se fajl učita); null = bez glasa. */
+  voiceSeconds: number | null = null
+): VideoPlan {
   const t = TEXT[lang];
+  const voiceUrl = introVoiceUrl(tour, lang);
+  const voice = voiceUrl && voiceSeconds ? { url: voiceUrl, seconds: voiceSeconds } : null;
+  const located = typeof tour.lat === 'number' && typeof tour.lng === 'number';
+  let map: VideoMapScene | null = null;
+  if (located) {
+    const end = voice ? Math.max(MAP_MIN_S, voice.seconds + MAP_AFTER_VOICE_S) : MAP_MIN_S;
+    const flyEnd = Math.min(5.5, Math.max(3, end * 0.35));
+    const chips = chipsFor(tour, lang);
+    // Pločice iskaču ravnomerno od kraja leta do pred kraj glasa.
+    const from = flyEnd - 0.3;
+    const to = Math.max(from + 0.5, (voice ? voice.seconds : end) - 1.2);
+    map = {
+      center: [tour.lng as number, tour.lat as number],
+      flyEnd,
+      end,
+      chips: chips.map((c, i) => ({ icon: c.icon, text: c.text, at: from + ((to - from) * i) / Math.max(1, chips.length) }))
+    };
+  }
+  const introEnd = map ? map.end : INTRO_S;
   const facts = buildFactList(tour, lang);
   const fact = (key: string) => facts.find((row) => row.key === key);
 
@@ -199,7 +254,10 @@ export function buildVideoPlan(tour: Tour, rooms: Room[], lang: Language): Video
   const category = tour.category ? t.categories[tour.category] : '';
 
   const shots: VideoRoomShot[] = [];
-  const list = orderedRooms(tour, rooms).filter((room) => videoPanoramaUrl(room)).slice(0, MAX_ROOMS);
+  const maxRooms = map
+    ? Math.max(MIN_ROOMS_WITH_MAP, Math.min(MAX_ROOMS, Math.floor((TARGET_WITH_MAP_S - introEnd - OUTRO_S + FADE_S) / (ROOM_S - FADE_S))))
+    : MAX_ROOMS;
+  const list = orderedRooms(tour, rooms).filter((room) => videoPanoramaUrl(room)).slice(0, maxRooms);
   let cursor = 0;
   list.forEach((room, i) => {
     const establish = parseEstablish(room.establish_i18n);
@@ -207,13 +265,14 @@ export function buildVideoPlan(tour: Tour, rooms: Room[], lang: Language): Video
     const intro = getLocalizedText(composeEstablishText(establish), lang);
     const subtitle = firstSentence(intro);
     // Prva soba je i pozadina uvodne kartice, pa traje duže i klizi više.
-    const start = i === 0 ? 0 : cursor - FADE_S;
-    const duration = i === 0 ? INTRO_S + ROOM_S - FADE_S : ROOM_S;
+    // Posle mape kreće tek kad se mapa pretapa.
+    const start = i === 0 ? (map ? introEnd - FADE_S : 0) : cursor - FADE_S;
+    const duration = i === 0 && !map ? INTRO_S + ROOM_S - FADE_S : ROOM_S;
     // Kadar u trenutku kad se soba prvi put vidi = pogled ture posle
     // KEY_NARRATION_S sekundi priče (tura kruži smanjujući yaw). Prva soba se
     // vidi tek kad se skloni uvodna kartica, pa do tada već klizi ka tom kadru.
     const keyYaw = center - tourRotationAfter(KEY_NARRATION_S);
-    const visibleAfter = i === 0 ? INTRO_S - start : 0;
+    const visibleAfter = i === 0 && !map ? INTRO_S - start : 0;
     const fromYaw = keyYaw + VIDEO_PAN_DEG_PER_S * visibleAfter;
     shots.push({
       roomId: String(room.id),
@@ -230,13 +289,15 @@ export function buildVideoPlan(tour: Tour, rooms: Room[], lang: Language): Video
     cursor = start + duration;
   });
 
-  const outroStart = Math.max(INTRO_S, cursor - FADE_S);
+  const outroStart = Math.max(introEnd, cursor - FADE_S);
   const url = `${SITE_URL}/tour/${tour.slug}`;
   const phone = phoneToE164(tour.agent_phone || '');
   const phoneLabel = phone ? formatPhone(phone) : '';
 
   return {
     lang,
+    map,
+    voice,
     agencyLogoUrl: tour.agency_logo_url || null,
     intro: {
       agency: tour.agency_name?.trim() || 'Kvadrat360',
@@ -247,7 +308,7 @@ export function buildVideoPlan(tour: Tour, rooms: Room[], lang: Language): Video
       tiles,
       perks,
       tagline: t.tagline,
-      end: INTRO_S
+      end: introEnd
     },
     rooms: shots,
     outro: {

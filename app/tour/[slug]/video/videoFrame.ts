@@ -1,6 +1,9 @@
 import { FADE_S, VIDEO_HEIGHT, VIDEO_WIDTH, type VideoPlan, type VideoRoomShot } from './videoPlan';
 import type { PanoRenderer } from './panoRenderer';
 
+/** Mapa za početak videa (videoMap.ts) - platno za tekući kadar i tačka nekretnine. */
+export type MapFrameSource = { canvas: HTMLCanvasElement; pinPoint: () => { x: number; y: number } };
+
 /**
  * Crta JEDAN kadar videa u trenutku `t` (sekunde) na 2D platno 1080x1920:
  * panorame (WebGL, PanoRenderer) + kartice i titlovi preko njih. Izgled prati
@@ -57,7 +60,8 @@ export class VideoFrameRenderer {
     private pano: PanoRenderer,
     private qr: HTMLCanvasElement | null,
     /** Logo agencije (agency_branding); null = kartice nose samo naziv agencije. */
-    private logo: HTMLImageElement | null = null
+    private logo: HTMLImageElement | null = null,
+    private mapFrames: MapFrameSource | null = null
   ) {
     this.display = cssFont('--font-urbanist', 'system-ui, sans-serif');
     this.body = cssFont('--font-inter', 'system-ui, sans-serif');
@@ -119,7 +123,10 @@ export class VideoFrameRenderer {
     this.drawBrand(ctx, t);
 
     const introAlpha = 1 - rise(t, plan.intro.end - FADE_S, FADE_S);
-    if (introAlpha > 0) this.drawIntro(ctx, t, introAlpha);
+    if (introAlpha > 0) {
+      if (plan.map && this.mapFrames) this.drawMapIntro(ctx, t, introAlpha);
+      else this.drawIntro(ctx, t, introAlpha);
+    }
     const outroAlpha = rise(t, plan.outro.start, FADE_S);
     if (outroAlpha > 0) this.drawOutro(ctx, t, outroAlpha);
   }
@@ -311,6 +318,154 @@ export class VideoFrameRenderer {
       block.draw(y);
       y += block.h;
     }
+    ctx.restore();
+  }
+
+  /**
+   * Početak sa mape: mapa preko celog kadra, gore kartica (agencija, vrsta i
+   * naselje, naslov, cena), oznaka nekretnine kad kamera stigne i pločice sa
+   * podacima dole, dok traje glas uvoda.
+   */
+  private drawMapIntro(ctx: CanvasRenderingContext2D, t: number, alpha: number): void {
+    const scene = this.plan.map;
+    const frames = this.mapFrames;
+    if (!scene || !frames) return;
+    const { intro } = this.plan;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(frames.canvas, 0, 0, W, H);
+
+    // Blago zatamnjenje gore i dole, da kartica i pločice budu čitljive.
+    const shade = ctx.createLinearGradient(0, 0, 0, H);
+    shade.addColorStop(0, 'rgba(14, 32, 64, 0.45)');
+    shade.addColorStop(0.28, 'rgba(14, 32, 64, 0)');
+    shade.addColorStop(0.62, 'rgba(14, 32, 64, 0)');
+    shade.addColorStop(1, 'rgba(14, 32, 64, 0.6)');
+    ctx.fillStyle = shade;
+    ctx.fillRect(0, 0, W, H);
+
+    // Oznaka nekretnine pada kad kamera stigne.
+    const drop = rise(t, scene.flyEnd - 0.1, 0.6);
+    if (drop > 0) {
+      const { x, y } = frames.pinPoint();
+      const k = easeOut(drop);
+      ctx.save();
+      ctx.globalAlpha = alpha * Math.min(1, drop * 2);
+      ctx.translate(x, y - (1 - k) * 90);
+      ctx.scale(3.2, 3.2);
+      ctx.translate(-15, -29);
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetY = 2;
+      ctx.fillStyle = '#1E5AA8';
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 1.6;
+      ctx.fill(new Path2D('M15 29C15 29 4 19.2 4 12A11 11 0 0 1 26 12C26 19.2 15 29 15 29Z'));
+      ctx.shadowColor = 'transparent';
+      ctx.stroke(new Path2D('M15 29C15 29 4 19.2 4 12A11 11 0 0 1 26 12C26 19.2 15 29 15 29Z'));
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(15, 12, 4.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Kartica gore.
+    const enter = easeOut(rise(t, 0.15, 0.6));
+    ctx.globalAlpha = alpha * enter;
+    const cardX = 56;
+    const cardW = W - cardX * 2;
+    const inner = cardW - 88;
+    ctx.font = `700 76px ${this.display}`;
+    const titleLines = wrap(ctx, intro.title, inner).slice(0, 3);
+    const brandH = this.logo ? 96 : 44;
+    const eyebrowH = intro.eyebrow ? 56 : 0;
+    const priceH = intro.price ? 92 : 0;
+    const cardH = 44 + brandH + 26 + eyebrowH + titleLines.length * 86 + priceH + 40;
+    const cardY = 96 + (1 - enter) * -30;
+    ctx.fillStyle = 'rgba(14, 32, 64, 0.86)';
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardW, cardH, 40);
+    ctx.fill();
+    let y = cardY + 44;
+    const x = cardX + 44;
+    if (this.logo) {
+      this.drawLogoBadge(ctx, x, y, brandH, 440, false);
+    } else {
+      ctx.font = `600 38px ${this.body}`;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(intro.agency, x, y + brandH / 2, inner);
+      ctx.textBaseline = 'alphabetic';
+    }
+    y += brandH + 26;
+    if (intro.eyebrow) {
+      ctx.font = `700 34px ${this.body}`;
+      ctx.letterSpacing = '4px';
+      ctx.fillStyle = ACCENT;
+      ctx.fillText(intro.eyebrow, x, y + 36, inner);
+      ctx.letterSpacing = '0px';
+      y += eyebrowH;
+    }
+    ctx.font = `700 76px ${this.display}`;
+    ctx.fillStyle = '#FFFFFF';
+    titleLines.forEach((line, i) => ctx.fillText(line, x, y + 66 + i * 86));
+    y += titleLines.length * 86;
+    if (intro.price) {
+      ctx.font = `800 70px ${this.display}`;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText(intro.price, x, y + 76);
+    }
+
+    // Pločice dole, u redovima, centrirane; svaka "iskoči" u svom trenutku.
+    ctx.font = `700 46px ${this.display}`;
+    const chipH = 92;
+    const gap = 18;
+    const padX = 30;
+    const maxRow = W - 120;
+    const rows: { w: number; items: { text: string; w: number; at: number }[] }[] = [];
+    for (const chip of scene.chips) {
+      const text = `${chip.icon}  ${chip.text}`;
+      const w = ctx.measureText(text).width + padX * 2;
+      const row = rows[rows.length - 1];
+      if (row && row.w + gap + w <= maxRow) {
+        row.items.push({ text, w, at: chip.at });
+        row.w += gap + w;
+      } else rows.push({ w, items: [{ text, w, at: chip.at }] });
+    }
+    // Iznad donje trećine - na Reels/TikTok tu stoje opis i dugmad aplikacije.
+    const bottom = H - 400;
+    rows.forEach((row, r) => {
+      const rowY = bottom - (rows.length - r) * (chipH + gap);
+      let cx = (W - row.w) / 2;
+      for (const item of row.items) {
+        const pop = rise(t, item.at, 0.35);
+        if (pop > 0) {
+          const k = easeOut(pop);
+          ctx.save();
+          ctx.globalAlpha = alpha * pop;
+          ctx.translate(cx + item.w / 2, rowY + chipH / 2 + (1 - k) * 18);
+          ctx.scale(0.9 + 0.1 * k, 0.9 + 0.1 * k);
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.84)';
+          ctx.beginPath();
+          ctx.roundRect(-item.w / 2, -chipH / 2, item.w, chipH, 26);
+          ctx.fill();
+          ctx.fillStyle = '#FFFFFF';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(item.text, 0, 2);
+          ctx.restore();
+        }
+        cx += item.w + gap;
+      }
+    });
+
+    // Izvor mape (licenca OpenStreetMap traži navođenje).
+    ctx.globalAlpha = alpha * 0.8;
+    ctx.font = `500 22px ${this.body}`;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.textAlign = 'right';
+    ctx.fillText('© OpenStreetMap · Protomaps', W - 32, H - 34);
     ctx.restore();
   }
 

@@ -5,7 +5,7 @@ import type { Map as MlMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { createMap, loadMapLibre } from '../../../components/maps/protomaps';
 import { GLASS, THEME } from './theme';
-import { buildFactList } from './utils';
+import { chipsFor } from './introChips';
 import { prefersReducedMotion } from './transition';
 import type { Language, Tour } from './types';
 
@@ -20,39 +20,6 @@ import type { Language, Tour } from './types';
  * "Preskoči", zove se onDone; strana tada pokreće turu i ovaj sloj pretapa.
  * Tura bez koordinata: umesto mape lagano se približava naslovna slika.
  */
-
-type Chip = { key: string; icon: string; text: string };
-
-const ICONS: Record<string, string> = {
-  structure: '🛏️',
-  area: '📐',
-  floor: '🏢',
-  elevator: '↕️',
-  terrace: '🌿',
-  heating: '🔥',
-  parking: '🚗',
-  basement: '📦',
-  buildStatus: '🏗️',
-  finishStatus: '🛋️',
-  registration: '📄'
-};
-/** Redosled pločica prati redosled kojim uvod priča (vidi /api/ai/tour-intro). */
-const ORDER = ['structure', 'area', 'floor', 'elevator', 'terrace', 'heating', 'parking', 'basement', 'buildStatus', 'finishStatus', 'registration'];
-const YES_NO_KEYS = new Set(['elevator', 'basement', 'registration']);
-const NONE_VALUES = new Set(['Nema', 'None', 'Keine', 'Keiner', 'Нет']);
-
-function chipsFor(tour: Tour, lang: Language): Chip[] {
-  const facts = buildFactList(tour, 'sr');
-  const local = new Map<string, { label: string; value: string }>(buildFactList(tour, lang).map((f) => [f.key, f]));
-  return ORDER.flatMap((key) => {
-    const sr = facts.find((f) => f.key === key);
-    const f = local.get(key);
-    if (!sr || !f || NONE_VALUES.has(f.value)) return [];
-    // Da/ne podatak ide samo kad je "da", i to kao naziv ("Lift"), ne "Da".
-    if (YES_NO_KEYS.has(key)) return sr.value === 'Da' ? [{ key, icon: ICONS[key], text: f.label }] : [];
-    return [{ key, icon: ICONS[key], text: f.value }];
-  }).slice(0, 8);
-}
 
 const PIN_HTML = `<div class="k360-intro-pin"><svg width="46" height="46" viewBox="0 0 30 30" fill="none" style="display:block">
   <path d="M15 29C15 29 4 19.2 4 12A11 11 0 0 1 26 12C26 19.2 15 29 15 29Z" fill="#1E5AA8" stroke="#fff" stroke-width="1.6"/>
