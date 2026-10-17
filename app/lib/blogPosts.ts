@@ -183,9 +183,9 @@ export const BLOG_POSTS: BlogPost[] = [
         ]
       },
       {
-        heading: 'Fotografija pokazuje sobu, tura pokazuje stan',
+        heading: 'Fotografija pokazuje sobu, tura pokazuje celu nekretninu',
         paragraphs: [
-          'Obična fotografija daje osam do petnaest uglova iz kojih je fotograf odlučio da stan treba da se vidi. Kupac nema kontrolu:'
+          'Obična fotografija daje osam do petnaest uglova iz kojih je fotograf odlučio da nekretnina treba da se vidi. Kupac nema kontrolu:'
         ],
         bullets: [
           'Ne može da pogleda levo',
@@ -195,15 +195,15 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         paragraphs: [
-          '360° virtuelna tura prebacuje tu kontrolu kupcu: on hoda kroz stan onim redom koji mu je logičan, zadržava se gde ga zanima, preskače gde ne.',
-          'Razlika nije kozmetička. Agencije koje su prešle sa foto-galerije na virtuelnu turu beleže znatno više upita i bržu prodaju - ne zato što je tura "lepša", nego zato što kupac stigne do ozbiljnog pitanja (termin za posetu, ponuda) sa mnogo jasnijom slikom u glavi nego posle galerije fotografija.'
+          '360° virtuelna tura prebacuje tu kontrolu kupcu: on hoda kroz prostor onim redom koji mu je logičan, zadržava se gde ga zanima, preskače gde ne.',
+          'Razlika nije kozmetička. Tura ne pomaže zato što je "lepša", nego zato što kupac stigne do ozbiljnog pitanja (termin za posetu, ponuda) sa mnogo jasnijom slikom u glavi nego posle galerije fotografija.'
         ]
       },
       {
         heading: 'Neozbiljne posete koštaju agenciju vreme, ne samo novac',
         paragraphs: [
-          'Svaka poseta koja se završi rečenicom "ovo ipak nije to" jeste vreme utrošeno na put, dogovor termina i prezentaciju - vreme koje je moglo da ode na kupca koji je stvarno spreman. Fotografija ne daje dovoljno informacija da kupac sam sebe isključi pre nego što zakaže posetu. Tura to radi: ko je prošetao kroz stan na ekranu i i dalje je zainteresovan, dolazi na teren već ubeđen, ne na razgledanje.',
-          'To je razlika između "dovodim ljude da vide stan" i "dovodim ljude koji žele taj stan".'
+          'Svaka poseta koja se završi rečenicom "ovo ipak nije to" jeste vreme utrošeno na put, dogovor termina i prezentaciju - vreme koje je moglo da ode na kupca koji je stvarno spreman. Fotografija ne daje dovoljno informacija da kupac sam sebe isključi pre nego što zakaže posetu. Tura to radi: ko je prošetao kroz nekretninu na ekranu i i dalje je zainteresovan, dolazi na razgledanje već ubeđen.',
+          'To je razlika između "dovodim ljude da vide nekretninu" i "dovodim ljude koji žele baš tu nekretninu".'
         ]
       },
       {
@@ -221,7 +221,7 @@ export const BLOG_POSTS: BlogPost[] = [
         bullets: [
           'Broju poziva koji ne stižu',
           'Posetama koje propadnu na vratima',
-          'Stanu koji sedi na oglasu nedeljama duže nego što bi morao'
+          'Nekretnini koja stoji na oglasu nedeljama duže nego što bi morala'
         ]
       },
       {
@@ -232,7 +232,7 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         heading: 'Kako to radi Kvadrat360',
         paragraphs: [
-          'Kvadrat360 radi ceo proces "ključ u ruke" - snimanje, optimizaciju i ugradnju ture na sajt agencije za manje od 5 minuta, uz AI opise i glasovnu naraciju na više jezika za kupce koji ne govore srpski. Javite nam se za primer gotove ture i okvirnu ponudu za vaš portfolio nekretnina.'
+          'Kvadrat360 radi ceo proces "ključ u ruke" - snimanje i optimizaciju ture, a ugradnja na sajt agencije traje manje od 5 minuta. Uz turu idu AI opisi i glasovna naracija na više jezika za kupce koji ne govore srpski. Javite nam se za primer gotove ture i okvirnu ponudu za vaš portfolio nekretnina.'
         ]
       }
     ],
@@ -289,12 +289,12 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         heading: 'Kupac iz inostranstva dobija ono što bi dobio na terenu',
         paragraphs: [
-          'Veliki deo kupaca za novogradnju u Srbiji dolazi iz dijaspore ili iz inostranstva - kupuju za sebe, za decu ili kao investiciju, a ne mogu da putuju zbog svake odluke. Kvadrat360 tura im to olakšava:'
+          'Deo kupaca za novogradnju dolazi iz drugih gradova ili iz inostranstva - kupuju za sebe, za decu ili kao investiciju, a ne mogu da putuju zbog svake odluke. Kvadrat360 tura im to olakšava:'
         ],
         bullets: [
           'Radi direktno u browseru, bez instalacije aplikacije',
           'Podržava giroskop na mobilnom - kupac samo nagne telefon i "okreće se" po stanu kao da stoji u njemu',
-          'AI opisi sa glasovnom naracijom na više jezika - kupac koji ne govori srpski prati turu bez prevodioca i bez da iko mora da mu objašnjava raspored uživo'
+          'AI opisi sa glasovnom naracijom na više jezika - kupac koji ne govori srpski prati turu bez prevodioca, a da niko ne mora da mu objašnjava raspored uživo'
         ]
       },
       {
@@ -316,6 +316,7 @@ export const BLOG_POSTS: BlogPost[] = [
     ],
     relatedLinks: [
       { href: '/za-investitore', label: 'Investitor ste? Pogledajte kako izgleda prodaja novogradnje sa 360° turom' },
+      { href: '/', label: 'Želite da probate kako izgleda gotova 360° tura? Prošetajte kroz jednu' },
       { href: '/za-agencije', label: 'Agencija ste i prodajete stanove investitora? Pogledajte paket za agencije' }
     ]
   }

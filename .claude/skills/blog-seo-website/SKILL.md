@@ -31,6 +31,7 @@ Ako nije jasno iz zahteva, pitaj:
 {
   slug: 'kebab-case-slug',
   title: 'Naslov sa ključnom reči',
+  seoTitle: 'Kraći naslov za Google', // opciono, bez "| Kvadrat360" (to dodaje layout); H1 i schema ostaju na title
   description: 'Meta opis, 150-160 karaktera.',
   excerpt: 'Kratak rezime za /blog spisak, 1-2 rečenice.',
   publishedAt: 'YYYY-MM-DD',
@@ -74,3 +75,7 @@ Ne piši cenu kao statičan tekst - cene i promocije se menjaju (`app/lib/pricin
 ## Ovaj skill se dograđuje
 
 Kad korisnik da povratnu informaciju o tonu, strukturi ili nečemu što treba drugačije - zabeleži to ovde, u odgovarajućoj sekciji, da se sledeći post automatski piše po novom pravilu.
+
+- **Gotov tekst od vlasnika (2026-10-16):** kad vlasnik pošalje tekst + SEO naslov + meta opis, SEO naslov ide u `seoTitle`, a meta opis se upisuje tačno kako je dat, i kad je kraći od 150 karaktera. Tekst se samo formatira (Ukratko, bullets) i lektoriše; tvrdnje bez izvora se ublaže, a generičko "stan" ide u "nekretnina".
+- **Postovi za investitore:** `relatedLinks` vode na `/za-investitore`, uz `/` (gotova tura) umesto `/#cenovnik`, jer se cena za investitore dogovara.
+- **Ne obećavati turu iz 3D modela** - tura za novogradnju se snima u oglednom ili prvom završenom stanu (ili iz 360° rendera koje arhitekta već ima).

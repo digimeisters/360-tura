@@ -198,7 +198,7 @@ export const INVESTOR_COPY: InvestorCopy = {
         from: '23 osnove odjednom',
         to: 'prostorije i m²',
         title: 'Svaka osnova uz svoj stan',
-        text: 'Svaku osnovu povežemo sa njenim stanom i upišemo prostorije i kvadrature, tačno kao na vašem crtežu.'
+        text: 'Svaku osnovu povežemo sa stanovima na koje se odnosi i upišemo prostorije i kvadrature, tačno kao na vašem crtežu.'
       },
       {
         from: 'render zgrade',
@@ -219,7 +219,7 @@ export const INVESTOR_COPY: InvestorCopy = {
       { title: 'Ceo ekran za sastanke', text: 'Zgrada preko celog ekrana, sa filterima i karticom stana - za prodajnu kancelariju i sajam.' },
       { title: 'Kompleks sa više zgrada', text: 'Pogled iz vazduha: kupac prvo bira zgradu, pa sprat i stan.' },
       { title: 'Link za vašu prodaju', text: 'Status i cena sa telefona, upiti kupaca, beleške i izveštaj po stanu na jednom mestu.' },
-      { title: '360° tura i pogled sa sprata', text: 'Tura iz rendera ili uzornog stana, i pogled snimljen dronom na visini sprata.' },
+      { title: '360° tura i pogled sa sprata', text: 'Tura iz rendera ili oglednog stana, i pogled snimljen dronom na visini sprata.' },
       { title: 'Gradilište svakog meseca', text: 'Novi 360° snimak mesečno - kupci koji su dali kaparu vide da radovi idu.' },
       { title: 'Okolina na mapi', text: 'Škole, vrtići, prodavnice i prevoz oko zgrade, sa udaljenošću od zgrade.' },
       { title: 'Na vašem sajtu, i na engleskom', text: 'Isti izbor stana ugrađen na vaš sajt, ceo i na engleskom - bez posebnog održavanja.' }
@@ -260,7 +260,7 @@ export const INVESTOR_COPY: InvestorCopy = {
       {
         question: 'Šta ako nemamo 3D model enterijera?',
         answer:
-          'Izbor stana, kartica sa osnovom i prostorijama, pogled sa sprata i snimak gradilišta rade i bez njega. Ture enterijera dodajemo kad bude gotov uzorni stan, ili iz rendera ako ih vaš arhitekta ili vizualizator napravi.'
+          'Izbor stana, kartica sa osnovom i prostorijama, pogled sa sprata i snimak gradilišta rade i bez njega. Ture enterijera dodajemo kad bude gotov ogledni stan, ili iz rendera ako ih vaš arhitekta ili vizualizator napravi.'
       },
       {
         question: 'Gradimo više zgrada - da li to radi?',
