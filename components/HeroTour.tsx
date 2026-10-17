@@ -8,7 +8,7 @@ import { IconPlay } from './SiteIcons';
 
 const LABELS: Record<
   HomeLang,
-  { empty: string; sample: string; open: string; drag: string; pick: string; plan: string; view: string; prev: string; next: string; position: string }
+  { empty: string; sample: string; open: string; drag: string; pick: string; mini: string; collapse: string; plan: string; view: string; prev: string; next: string; position: string }
 > = {
   sr: {
     empty: 'Primer ture stiže uskoro.',
@@ -16,6 +16,8 @@ const LABELS: Record<
     open: 'Otvori celu turu',
     drag: 'Prevucite da pogledate okolo',
     pick: 'Izaberite tačku na tlocrtu',
+    mini: 'Tlocrt i sobe',
+    collapse: 'Sklopi tlocrt',
     plan: 'Tlocrt - izaberite prostoriju',
     view: '360° pogled: {room}. Strelice levo i desno okreću pogled.',
     prev: 'Prethodna prostorija',
@@ -28,6 +30,8 @@ const LABELS: Record<
     open: 'Open the full tour',
     drag: 'Drag to look around',
     pick: 'Pick a dot on the floor plan',
+    mini: 'Floor plan and rooms',
+    collapse: 'Hide the floor plan',
     plan: 'Floor plan - pick a room',
     view: '360° view: {room}. Left and right arrows turn the view.',
     prev: 'Previous room',
@@ -64,6 +68,10 @@ export default function HeroTour({ tour, lang = 'sr' }: { tour: ShowcaseTour | n
   const [touched, setTouched] = useState(false);
   // Poruka "izaberite tačku" stoji dok posetilac prvi put ne promeni sobu.
   const [picked, setPicked] = useState(false);
+  // Na telefonu je tlocrt sklopljen u pločicu u uglu, da panorama dobije ceo
+  // kadar; dodir ga otvara, a izbor sobe ili prevlačenje ga ponovo sklapa.
+  // Na računaru se ovo ne vidi (CSS) - tamo je kartica uvek otvorena.
+  const [planOpen, setPlanOpen] = useState(false);
   const panoRef = useRef<HTMLDivElement>(null);
   const offset = useRef(0);
   const drag = useRef<{ x: number; start: number } | null>(null);
@@ -133,6 +141,7 @@ export default function HeroTour({ tour, lang = 'sr' }: { tour: ShowcaseTour | n
     if (!target || target.id === room.id) return;
     setTouched(true);
     setPicked(true);
+    setPlanOpen(false);
     setActiveId(target.id);
     setPanoId(null);
     loadPanorama(target);
@@ -141,6 +150,7 @@ export default function HeroTour({ tour, lang = 'sr' }: { tour: ShowcaseTour | n
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if (!panoId) return;
     setTouched(true);
+    setPlanOpen(false);
     drag.current = { x: e.clientX, start: offset.current };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
@@ -184,7 +194,29 @@ export default function HeroTour({ tour, lang = 'sr' }: { tour: ShowcaseTour | n
       />
       {showPano && <span className="ht-hint" aria-hidden="true">{t.drag}</span>}
 
-      <div className="ht-card">
+      {/* Sklopljen tlocrt (samo na telefonu): sličica sa tačkom sobe + ime sobe. */}
+      {!planOpen && (
+        <button type="button" className="ht-mini" onClick={() => setPlanOpen(true)} aria-expanded={false} aria-controls="ht-card">
+          {hasPlan && (
+            <span className="ht-mini-plan" aria-hidden="true">
+              {/* eslint-disable-next-line @next/next/no-img-element -- SVG tlocrt sa CDN-a */}
+              <img src={tour.floorplanUrl as string} alt="" />
+              {room.planX !== null && room.planY !== null && <i style={{ left: `${room.planX}%`, top: `${room.planY}%` }} />}
+            </span>
+          )}
+          <span className="ht-mini-text">
+            <b>{room.title}</b>
+            <small>{t.mini}</small>
+          </span>
+        </button>
+      )}
+
+      <div id="ht-card" className={`ht-card${planOpen ? ' is-open' : ''}`}>
+        <button type="button" className="ht-collapse" onClick={() => setPlanOpen(false)} aria-label={t.collapse} title={t.collapse}>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
         <div className="ht-card-head">
           {/* Jasno da je ovo primer i odakle je - ne nečiji aktuelni oglas. */}
           <span className="ht-sample">{tour.city ? t.sample.replace('{city}', tour.city) : tour.title}</span>

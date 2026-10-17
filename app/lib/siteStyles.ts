@@ -362,9 +362,25 @@ export const SITE_STYLES = `
     .ht-media{position:relative; height:min(62svh, 560px); min-height:380px;}
     .ht-copy{position:static; max-width:none; border-radius:0; box-shadow:none; padding:1.8rem clamp(1rem,4vw,2.5rem) 0;}
   }
+  /* Sklopljen tlocrt postoji samo na telefonu (ispod). */
+  .ht-mini, .ht-collapse{display:none;}
   @media (max-width:640px){
-    .ht-card{width:212px; padding:.6rem .6rem .7rem; right:12px; bottom:12px; border-radius:16px;}
-    .ht-pick{font-size:.72rem; white-space:nowrap; margin-bottom:.4rem;}
+    /* Tlocrt je sklopljen u pločicu, pa kadar može da bude viši. */
+    .ht-media:has(.ht-card){height:min(72svh, 620px);}
+    .ht-mini{display:flex; align-items:center; gap:.55rem; position:absolute; right:12px; bottom:12px; max-width:calc(100% - 24px); padding:.4rem .75rem .4rem .4rem;
+      border:0; border-radius:16px; background:#FFFFFF; color:#111113; box-shadow:0 10px 28px rgba(0,0,0,.3); font:inherit; text-align:left; cursor:pointer;}
+    .ht-mini-plan{position:relative; flex:none; width:58px; line-height:0; border-radius:6px; overflow:hidden; background:#FFFFFF; border:1px solid #E4E4DE;}
+    .ht-mini-plan img{display:block; width:100%; height:auto;}
+    .ht-mini-plan i{position:absolute; width:9px; height:9px; transform:translate(-50%,-50%); border-radius:50%; background:#1E5AA8; border:1.5px solid #FFFFFF;}
+    .ht-mini-text{display:flex; flex-direction:column; min-width:0;}
+    .ht-mini-text b{font-family:var(--font-display); font-size:.86rem; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+    .ht-mini-text small{font-size:.74rem; font-weight:700; color:#1E5AA8;}
+    /* Otvoren: kartica preko donjeg dela kadra, cele širine. */
+    .ht-card{display:none; left:12px; right:12px; width:auto; padding:.7rem .7rem .8rem; bottom:12px; border-radius:18px;}
+    .ht-card.is-open{display:block;}
+    .ht-card .ht-plan{max-width:340px; margin-inline:auto;}
+    .ht-collapse{display:grid; place-items:center; position:absolute; top:.45rem; right:.45rem; width:36px; height:36px; border:0; border-radius:50%; background:#F1F1EC; color:#5B5D63; cursor:pointer;}
+    .ht-pick{font-size:.76rem; margin-bottom:.4rem;}
     .ht-card-head{padding-bottom:.4rem;}
     .ht-card-head strong{font-size:.9rem;}
     .ht-card-head .ht-sample{font-size:.72rem;}
