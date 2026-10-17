@@ -15,7 +15,7 @@ const LABELS: Record<
     sample: 'Primer · {city}',
     open: 'Otvori celu turu',
     drag: 'Prevucite da pogledate okolo',
-    pick: 'Izaberite tačku na tlocrtu',
+    pick: 'Izaberite sobu na tlocrtu',
     mini: 'Tlocrt i sobe',
     collapse: 'Sklopi tlocrt',
     plan: 'Tlocrt - izaberite prostoriju',
@@ -29,7 +29,7 @@ const LABELS: Record<
     sample: 'Sample · {city}',
     open: 'Open the full tour',
     drag: 'Drag to look around',
-    pick: 'Pick a dot on the floor plan',
+    pick: 'Pick a room on the floor plan',
     mini: 'Floor plan and rooms',
     collapse: 'Hide the floor plan',
     plan: 'Floor plan - pick a room',
@@ -197,6 +197,7 @@ export default function HeroTour({ tour, lang = 'sr' }: { tour: ShowcaseTour | n
       {/* Sklopljen tlocrt (samo na telefonu): sličica sa tačkom sobe + ime sobe. */}
       {!planOpen && (
         <button type="button" className="ht-mini" onClick={() => setPlanOpen(true)} aria-expanded={false} aria-controls="ht-card">
+          {hasPlan && !picked && <span className="ht-plan-hint" aria-hidden="true">{t.pick}</span>}
           {hasPlan && (
             <span className="ht-mini-plan" aria-hidden="true">
               {/* eslint-disable-next-line @next/next/no-img-element -- SVG tlocrt sa CDN-a */}
@@ -223,12 +224,9 @@ export default function HeroTour({ tour, lang = 'sr' }: { tour: ShowcaseTour | n
           <strong>{room.title}</strong>
         </div>
 
-        {hasPlan && !picked && (
-          <p className="ht-pick" aria-hidden="true">
-            <i />
-            {t.pick}
-          </p>
-        )}
+        {/* Ista tamna poruka kao "Prevucite da pogledate okolo", iznad tlocrta,
+            dok posetilac prvi put ne izabere sobu. */}
+        {hasPlan && !picked && <span className="ht-plan-hint" aria-hidden="true">{t.pick}</span>}
         {hasPlan ? (
           <div className="ht-plan" role="group" aria-label={t.plan}>
             {/* eslint-disable-next-line @next/next/no-img-element -- SVG tlocrt sa CDN-a */}

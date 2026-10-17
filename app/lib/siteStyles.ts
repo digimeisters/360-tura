@@ -322,12 +322,11 @@ export const SITE_STYLES = `
   .ht-card-head{display:flex; flex-direction:column; gap:.1rem; padding:0 .2rem .6rem;}
   .ht-card-head strong{font-family:var(--font-display); font-size:1.02rem; font-weight:800; letter-spacing:-0.01em;}
   .ht-card-head .ht-sample{font-size:.8rem; font-weight:700; color:#1E5AA8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  /* Poruka nad tlocrtom: tačka iz poruke liči na tačke na planu, i blago pulsira. */
-  .ht-pick{display:flex; align-items:center; gap:.45rem; margin:0 .2rem .5rem; font-size:.8rem; font-weight:600; color:#5B5D63;}
-  .ht-pick i{position:relative; width:10px; height:10px; flex:none; border-radius:50%; background:rgba(15,23,42,.55); border:2px solid #FFFFFF; box-shadow:0 0 0 1px rgba(15,23,42,.35);}
-  .ht-pick i::after{content:""; position:absolute; inset:-5px; border-radius:50%; border:2px solid #1E5AA8; animation:htPick 1.8s ease-out infinite;}
-  @keyframes htPick{from{transform:scale(.5); opacity:1;} to{transform:scale(1.4); opacity:0;}}
-  @media (prefers-reduced-motion: reduce){ .ht-pick i::after{animation:none; opacity:0;} }
+  /* Poruka za tlocrt: ista tamna pilula kao .ht-hint, iznad kartice (ili
+     iznad sklopljene pločice na telefonu), poravnata desno. */
+  .ht-plan-hint{position:absolute; right:0; bottom:calc(100% + 10px); padding:.5rem 1rem; border-radius:999px; background:rgba(17,17,19,.6); color:#FFFFFF;
+    font-family:var(--font-display); font-weight:600; font-size:.88rem; white-space:nowrap; pointer-events:none;
+    -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);}
   .ht-plan{position:relative; line-height:0; border-radius:10px; overflow:hidden; background:#FFFFFF;}
   .ht-plan img{display:block; width:100%; height:auto;}
   /* Dugme je 28px (lako se pogodi), a vidi se tačka od 12px u sredini - kao u turi. */
@@ -380,12 +379,12 @@ export const SITE_STYLES = `
     .ht-card.is-open{display:block;}
     .ht-card .ht-plan{max-width:340px; margin-inline:auto;}
     .ht-collapse{display:grid; place-items:center; position:absolute; top:.45rem; right:.45rem; width:36px; height:36px; border:0; border-radius:50%; background:#F1F1EC; color:#5B5D63; cursor:pointer;}
-    .ht-pick{font-size:.76rem; margin-bottom:.4rem;}
     .ht-card-head{padding-bottom:.4rem;}
     .ht-card-head strong{font-size:.9rem;}
     .ht-card-head .ht-sample{font-size:.72rem;}
     .ht-open{min-height:38px; font-size:.82rem; margin-top:.55rem;}
-    .ht-hint{font-size:.8rem; top:.9rem;}
+    .ht-hint, .ht-plan-hint{font-size:.8rem;}
+    .ht-hint{top:.9rem;}
   }
   @media (max-width:480px){ .ht-copy h1{font-size:min(2.4rem, calc(10.6vw - 4.5px));} }
 
