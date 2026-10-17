@@ -19,6 +19,7 @@ import {
   MAX_WAYPOINT_TITLE_WORDS,
   MAX_WAYPOINTS
 } from '@/app/lib/roomDraftRules';
+import { synthesizeSpeech, uploadNarration, voiceIdFor, VOICE_LANGS, type VoiceLang } from '@/app/lib/tts';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -909,24 +910,12 @@ async function handleReviewDraft(body: ReviewDraftBody) {
  * ima prednost nad opštim ELEVENLABS_VOICE_ID.
  */
 
-type VoiceLang = 'sr' | 'en' | 'de' | 'ru';
-const VOICE_LANGS: VoiceLang[] = ['sr', 'en', 'de', 'ru'];
-
-const ELEVENLABS_MODEL_ID = 'eleven_v4';
-const ELEVENLABS_TTS_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
-const NARRATIONS_BUCKET = 'narrations';
-/** ElevenLabs ume povremeno da ne odgovori - drugi pokušaj pre nego što segment javi grešku. */
-const TTS_MAX_ATTEMPTS = 2;
 /**
  * Bezbednosna kočnica za slučajno zalepljen ogroman tekst - admin forma inače
  * ograničava uvod/detalj/tačku na 140/220/180 znakova (roomDraftRules.ts), pa
  * i spojen establish tekst retko pređe par stotina znakova.
  */
 const TTS_MAX_CHARS = 700;
-
-function voiceIdFor(lang: VoiceLang): string | undefined {
-  return process.env[`ELEVENLABS_VOICE_ID_${lang.toUpperCase()}`] || process.env.ELEVENLABS_VOICE_ID;
-}
 
 /**
  * Da li i18n polje ima SVOJ tekst za `lang` - za razliku od `extractText`,
@@ -948,41 +937,6 @@ function hasOwnLangText(value: unknown, lang: string): boolean {
     return typeof v === 'string' && v.trim().length > 0;
   }
   return false;
-}
-
-async function synthesizeSpeech(text: string, voiceId: string, apiKey: string): Promise<Buffer> {
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= TTS_MAX_ATTEMPTS; attempt++) {
-    try {
-      const res = await fetch(`${ELEVENLABS_TTS_URL}/${voiceId}`, {
-        method: 'POST',
-        headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json', Accept: 'audio/mpeg' },
-        body: JSON.stringify({
-          text,
-          model_id: ELEVENLABS_MODEL_ID,
-          voice_settings: { stability: 0.5, similarity_boost: 0.75 }
-        })
-      });
-      if (!res.ok) {
-        const detail = await res.text().catch(() => '');
-        throw new Error(`ElevenLabs ${res.status}${detail ? `: ${detail.slice(0, 200)}` : ''}`);
-      }
-      return Buffer.from(await res.arrayBuffer());
-    } catch (err) {
-      lastError = err;
-      if (attempt < TTS_MAX_ATTEMPTS) await new Promise((r) => setTimeout(r, 700));
-    }
-  }
-  throw lastError instanceof Error ? lastError : new Error('TTS poziv nije uspeo.');
-}
-
-async function uploadNarration(supabase: SupabaseClient, path: string, audio: Buffer): Promise<string> {
-  const { error } = await supabase.storage.from(NARRATIONS_BUCKET).upload(path, audio, {
-    contentType: 'audio/mpeg',
-    upsert: true
-  });
-  if (error) throw new Error(error.message);
-  return supabase.storage.from(NARRATIONS_BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
 type GenerateVoiceBody = {

@@ -12,6 +12,7 @@ import TourQrDialog from './TourQrDialog';
 import SendToClientDialog from './SendToClientDialog';
 import TourVideoLauncher from './TourVideoLauncher';
 import TourSnapshotModal from './TourSnapshotModal';
+import TourIntroModal from './TourIntroModal';
 import AgencyLogoButton from './AgencyLogoButton';
 import AgencyPicker from './AgencyPicker';
 import { TourFilterBar, formatCreatedDate, useTourListFilter } from './TourListFilters';
@@ -203,8 +204,10 @@ export default function ToursAdminPage() {
   const [sendTour, setSendTour] = useState<TourRow | null>(null);
   // Tura za koju se pravi kratak video za Instagram/Facebook (Premium).
   const [videoSlug, setVideoSlug] = useState<string | null>(null);
-  // Snimak iz ture: slika kadra za oglas/mreže sa QR bedžom (TourSnapshotModal).
+  // Snimak iz ture: slika kadra za oglas/mreže sa bedžom i linkom (TourSnapshotModal).
   const [snapshotSlug, setSnapshotSlug] = useState<string | null>(null);
+  // Uvod ture: AI tekst + glas na početku vodiča (TourIntroModal).
+  const [introSlug, setIntroSlug] = useState<string | null>(null);
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
   // Tajni linkovi mesečnih izveštaja (lib/agencyReport.ts) - potpisuje ih server.
   const [agencyReports, setAgencyReports] = useState<{ agency: string; tours: number; path: string; logoUrl: string | null }[]>([]);
@@ -1183,6 +1186,13 @@ export default function ToursAdminPage() {
                         Pošalji klijentu
                       </button>
                       <button
+                        onClick={() => setIntroSlug(tour.slug)}
+                        title="Kratak glas na početku vodiča (AI iz osnovnih podataka, po nameni) dok posetilac dolazi sa mape do nekretnine"
+                        style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', marginLeft: '6px' }}
+                      >
+                        Uvod
+                      </button>
+                      <button
                         onClick={() => setVideoSlug(tour.slug)}
                         disabled={tour.roomsWithPanorama === 0}
                         title="Kratak uspravan video iz ture za Instagram i Facebook (Premium) - MP4 na ovaj računar"
@@ -1193,7 +1203,7 @@ export default function ToursAdminPage() {
                       <button
                         onClick={() => setSnapshotSlug(tour.slug)}
                         disabled={tour.roomsWithPanorama === 0}
-                        title="Slika bilo kog kadra ture za oglas (4zida, Halo oglasi) ili mreže, sa QR bedžom koji vodi na turu - JPG ili ZIP svih soba"
+                        title="Slika bilo kog kadra ture za oglas (4zida, Halo oglasi) ili mreže, sa bedžom i linkom ture - JPG ili ZIP svih soba"
                         style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', marginLeft: '6px' }}
                       >
                         Snimak
@@ -1246,6 +1256,7 @@ export default function ToursAdminPage() {
       </div>
       {videoSlug && <TourVideoLauncher slug={videoSlug} onClose={() => setVideoSlug(null)} />}
       {snapshotSlug && <TourSnapshotModal slug={snapshotSlug} onClose={() => setSnapshotSlug(null)} />}
+      {introSlug && <TourIntroModal slug={introSlug} onClose={() => setIntroSlug(null)} />}
       {qrTour && (
         <TourQrDialog
           slug={qrTour.slug}

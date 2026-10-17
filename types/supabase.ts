@@ -999,6 +999,8 @@ export type Database = {
           has_elevator: string | null
           heating: string | null
           id: string
+          intro_audio_i18n: Json | null
+          intro_i18n: Json | null
           lat: number | null
           lng: number | null
           location_map_url: string | null
@@ -1046,6 +1048,8 @@ export type Database = {
           has_elevator?: string | null
           heating?: string | null
           id?: string
+          intro_audio_i18n?: Json | null
+          intro_i18n?: Json | null
           lat?: number | null
           lng?: number | null
           location_map_url?: string | null
@@ -1093,6 +1097,8 @@ export type Database = {
           has_elevator?: string | null
           heating?: string | null
           id?: string
+          intro_audio_i18n?: Json | null
+          intro_i18n?: Json | null
           lat?: number | null
           lng?: number | null
           location_map_url?: string | null

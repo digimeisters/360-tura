@@ -112,6 +112,12 @@ export type Tour = {
   // zarezom, npr. "1,2,3,2,4,2,5" - vidi guidePath.ts. Prazno/undefined = tura
   // nema automatskog vodiča.
   guide_path?: string | null;
+  /** Koordinate nekretnine (javna mapa na /ture) - let mape u uvodu ture. */
+  lat?: number | null;
+  lng?: number | null;
+  /** Uvod ture (migracija 035): tekst i snimljen glas po jeziku - vidi TourIntroOverlay. */
+  intro_i18n?: Record<string, string> | null;
+  intro_audio_i18n?: Record<string, string> | null;
 };
 
 export type ActiveModal = 'plan' | 'location' | 'about' | 'faq' | 'contact' | null;

@@ -66,6 +66,8 @@ import {
 // Admin alati (AI popuna, jezici, glas, otpremanje panorame) su poseban chunk
 // koji se skida tek kad postoji admin sesija - posetilac ga nikad ne dobija.
 const TourAdminTools = dynamic(() => import('./TourAdminTools'), { ssr: false });
+// Uvod ture (let preko mape) vuče MapLibre - samo turama koje imaju snimljen uvod.
+const TourIntroOverlay = dynamic(() => import('./TourIntroOverlay'), { ssr: false });
 
 // Uzak ekran (telefon, ista granica kao mala mapa - 1024px): kartica sa
 // tekstom i donji meni se spajaju u jednu ploču (InfoCard docked).
@@ -154,6 +156,11 @@ export default function TourPage() {
 
   const [isMuted, setIsMuted] = useState(false);
   const isMutedRef = useRef(false);
+
+  // Uvod ture (TourIntroOverlay): glas koji traje, šta se pokreće posle
+  // njega (vodič) i da li se sloj već pretapa.
+  const [intro, setIntro] = useState<{ audio: HTMLAudioElement; start: () => void } | null>(null);
+  const [introLeaving, setIntroLeaving] = useState(false);
 
 
   // Deljenje linka ture (Web Share API na mobilnom, kopiranje u clipboard
@@ -865,6 +872,27 @@ export default function TourPage() {
   // na welcome ekranu i na ekranu zaključane ture.
   const welcomeCoverUrl = pickCoverRoom(rooms)?.preview_url ?? null;
 
+  // Uvod ture (vlasnik, 17. 10. 2026): pre automatskog vodiča glas ukratko
+  // predstavi nekretninu dok slika "dolazi sa mape". Samo kad uvod postoji na
+  // IZABRANOM jeziku - bez pada na srpski, kao i naracija soba.
+  const introAudioUrl = tour?.intro_audio_i18n?.[lang]?.trim() || '';
+  // Kraj uvoda: tura kreće ispod, a sloj se pretapa i nestaje.
+  const leaveIntro = (start: () => void) => {
+    setIntroLeaving(true);
+    start();
+    window.setTimeout(() => {
+      setIntro(null);
+      setIntroLeaving(false);
+    }, 1100);
+  };
+  const withIntro = (start: () => void) => () => {
+    if (!introAudioUrl || adminMode) return start();
+    // Audio se pravi i pušta u samom kliku - Safari inače ne pusti zvuk.
+    const audio = new Audio(introAudioUrl);
+    setIntro({ audio, start });
+    audio.play().catch(() => leaveIntro(start));
+  };
+
   // Nekretnina izdata/prodata/pauzirana (migracija 010, nezavisno od
   // published): posetilac vidi poruku i kontakt umesto ture. Admin i dalje
   // uređuje turu preko ?admin=1 - adminRequested skloni bljesak ove poruke
@@ -972,7 +1000,7 @@ export default function TourPage() {
           startHint={guideRequested && hasGuide ? t.startGuidedTourHint : t.exploreSelfHint}
           help={{ link: t.howItWorks, steps: [t.howStep1, t.howStep2, t.howStep3, t.howStep4], close: t.close }}
           startLabel={guideRequested && hasGuide ? t.startGuidedTour : t.startTour}
-          onStart={startTour}
+          onStart={guideRequested && hasGuide ? withIntro(startTour) : startTour}
           // ?vodic=1 (agent-link) već je odlučen - zadržava stari jednodelan
           // CTA. Organski posetilac sa turom koja ima putanju vodiča ("hoću
           // li sam da hodam ili da me neko vodi") dobija pravi izbor.
@@ -983,7 +1011,7 @@ export default function TourPage() {
                   guidedHint: t.startGuidedTourHint,
                   exploreLabel: t.exploreSelf,
                   exploreHint: t.exploreSelfHint,
-                  onStartGuided: startTourGuided
+                  onStartGuided: withIntro(startTourGuided)
                 }
               : null
           }
@@ -994,6 +1022,20 @@ export default function TourPage() {
           lang={lang}
           languages={availableLanguages.filter((l) => adminMode || isLanguageAvailable(l))}
           onChangeLanguage={changeLanguage}
+        />
+      )}
+
+      {intro && tour && (
+        <TourIntroOverlay
+          tour={tour}
+          lang={lang}
+          audio={intro.audio}
+          coverUrl={welcomeCoverUrl}
+          leaving={introLeaving}
+          skipLabel={t.introSkip}
+          onDone={() => {
+            if (!introLeaving) leaveIntro(intro.start);
+          }}
         />
       )}
 
