@@ -11,6 +11,7 @@ import { embedSnippet } from '../../lib/embedCode';
 import TourQrDialog from './TourQrDialog';
 import SendToClientDialog from './SendToClientDialog';
 import TourVideoLauncher from './TourVideoLauncher';
+import TourSnapshotModal from './TourSnapshotModal';
 import AgencyLogoButton from './AgencyLogoButton';
 import AgencyPicker from './AgencyPicker';
 import { TourFilterBar, formatCreatedDate, useTourListFilter } from './TourListFilters';
@@ -202,6 +203,8 @@ export default function ToursAdminPage() {
   const [sendTour, setSendTour] = useState<TourRow | null>(null);
   // Tura za koju se pravi kratak video za Instagram/Facebook (Premium).
   const [videoSlug, setVideoSlug] = useState<string | null>(null);
+  // Snimak iz ture: slika kadra za oglas/mreže sa QR bedžom (TourSnapshotModal).
+  const [snapshotSlug, setSnapshotSlug] = useState<string | null>(null);
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
   // Tajni linkovi mesečnih izveštaja (lib/agencyReport.ts) - potpisuje ih server.
   const [agencyReports, setAgencyReports] = useState<{ agency: string; tours: number; path: string; logoUrl: string | null }[]>([]);
@@ -1188,6 +1191,14 @@ export default function ToursAdminPage() {
                         Video
                       </button>
                       <button
+                        onClick={() => setSnapshotSlug(tour.slug)}
+                        disabled={tour.roomsWithPanorama === 0}
+                        title="Slika bilo kog kadra ture za oglas (4zida, Halo oglasi) ili mreže, sa QR bedžom koji vodi na turu - JPG ili ZIP svih soba"
+                        style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', marginLeft: '6px' }}
+                      >
+                        Snimak
+                      </button>
+                      <button
                         onClick={() => void deleteTour(tour)}
                         disabled={deletingSlug === tour.slug}
                         title="Trajno briše turu, sobe, panorame i statistiku - ne može se vratiti"
@@ -1234,6 +1245,7 @@ export default function ToursAdminPage() {
         </p>
       </div>
       {videoSlug && <TourVideoLauncher slug={videoSlug} onClose={() => setVideoSlug(null)} />}
+      {snapshotSlug && <TourSnapshotModal slug={snapshotSlug} onClose={() => setSnapshotSlug(null)} />}
       {qrTour && (
         <TourQrDialog
           slug={qrTour.slug}

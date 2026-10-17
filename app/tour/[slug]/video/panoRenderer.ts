@@ -92,6 +92,13 @@ export class PanoRenderer {
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
   }
 
+  /** Nova veličina kadra (Snimak iz ture menja format bez ponovnog učitavanja panorame). */
+  resize(width: number, height: number): void {
+    this.canvas.width = width;
+    this.canvas.height = height;
+    this.gl.uniform1f(this.uniforms.aspect, width / height);
+  }
+
   /** Skida panoramu (CORS, kao i tura) i pravi teksturu sa mipmapama. */
   async load(url: string): Promise<void> {
     if (this.textures.has(url)) return;
