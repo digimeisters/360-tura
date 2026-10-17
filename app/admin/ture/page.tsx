@@ -12,6 +12,7 @@ import TourQrDialog from './TourQrDialog';
 import SendToClientDialog from './SendToClientDialog';
 import TourVideoLauncher from './TourVideoLauncher';
 import AgencyLogoButton from './AgencyLogoButton';
+import { TourFilterBar, formatCreatedDate, useTourListFilter } from './TourListFilters';
 import {
   STRUCTURE_ORDER,
   HEATING_OPTIONS,
@@ -204,6 +205,8 @@ export default function ToursAdminPage() {
   // Tajni linkovi mesečnih izveštaja (lib/agencyReport.ts) - potpisuje ih server.
   const [agencyReports, setAgencyReports] = useState<{ agency: string; tours: number; path: string; logoUrl: string | null }[]>([]);
   const [copiedReport, setCopiedReport] = useState<string | null>(null);
+  // Pretraga, filteri i redosled spiska tura - vidi TourListFilters.tsx.
+  const tourFilter = useTourListFilter(tours, pickTitle);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -995,15 +998,18 @@ export default function ToursAdminPage() {
             overflowX: 'auto'
           }}
         >
+          {tours.length > 0 && (
+            <TourFilterBar state={tourFilter} total={tours.length} categoryLabels={CATEGORY_LABELS} statusLabels={STATUS_LABELS} />
+          )}
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
             <thead>
               <tr>
-                {['Tura', 'Stanje', 'Nekretnina', 'Agencija', 'Tip', 'Sobe', ''].map((h, i) => (
+                {['Tura', 'Kreirana', 'Stanje', 'Nekretnina', 'Agencija', 'Tip', 'Sobe', ''].map((h, i) => (
                   <th
                     key={h || i}
                     style={{
                       padding: '13px 14px',
-                      textAlign: i === 5 ? 'right' : 'left',
+                      textAlign: i === 6 ? 'right' : 'left',
                       fontSize: '12px',
                       fontWeight: 700,
                       letterSpacing: '0.3px',
@@ -1019,7 +1025,7 @@ export default function ToursAdminPage() {
               </tr>
             </thead>
             <tbody>
-              {tours.map((tour) => {
+              {tourFilter.visible.map((tour) => {
                 const missingPanorama = tour.rooms > 0 && tour.roomsWithPanorama < tour.rooms;
                 return (
                   <tr key={tour.slug} style={{ borderBottom: '1px solid ' + FORM.border }}>
@@ -1028,6 +1034,9 @@ export default function ToursAdminPage() {
                       <div style={{ fontSize: '12px', color: FORM.textMuted, fontFamily: 'monospace' }}>
                         /tour/{tour.slug}
                       </div>
+                    </td>
+                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', color: FORM.textSecondary }}>
+                      {formatCreatedDate(tour.created_at)}
                     </td>
                     <td style={{ padding: '12px 14px' }}>
                       <span
@@ -1178,6 +1187,16 @@ export default function ToursAdminPage() {
                   </tr>
                 );
               })}
+              {tours.length > 0 && tourFilter.visible.length === 0 && (
+                <tr>
+                  <td colSpan={8} style={{ padding: '22px 14px', textAlign: 'center', color: FORM.textSecondary }}>
+                    Nijedna tura ne odgovara filterima.{' '}
+                    <button type="button" onClick={tourFilter.reset} style={{ ...formBtnStyle, padding: '5px 10px', fontSize: '12.5px', marginLeft: '6px' }}>
+                      Poništi filtere
+                    </button>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
