@@ -88,6 +88,7 @@ export function emailLayout({
     .h1{font-size:24px !important;}
     .stack{display:block !important;width:100% !important;box-sizing:border-box !important;}
     .stack-gap{padding:0 0 10px 0 !important;}
+    .stack-r{text-align:left !important;padding-top:0 !important;}
   }
 </style>
 </head>

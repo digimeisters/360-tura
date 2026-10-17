@@ -15,6 +15,10 @@ export async function sendEmail(message: {
   subject: string;
   html: string;
   text: string;
+  /** Kome ide odgovor (npr. info@ umesto adrese sa koje se šalje). */
+  replyTo?: string;
+  /** Prilozi: sadržaj je base64 (npr. PNG QR koda). */
+  attachments?: { filename: string; content: string }[];
 }): Promise<EmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return { ok: false, reason: 'not-configured' };
@@ -28,7 +32,9 @@ export async function sendEmail(message: {
         to: [message.to],
         subject: message.subject,
         html: message.html,
-        text: message.text
+        text: message.text,
+        ...(message.replyTo ? { reply_to: message.replyTo } : {}),
+        ...(message.attachments?.length ? { attachments: message.attachments } : {})
       }),
       // Spor servis ne sme da drži posetioca da čeka potvrdu forme.
       signal: AbortSignal.timeout(6000)

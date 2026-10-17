@@ -24,14 +24,14 @@ const INK = '#111113';
 const BRAND = '#1E5AA8';
 /** Deo širine koda koji zauzima belo polje sa logom - ispod granice koju H podnosi. */
 const LOGO_SHARE = 0.22;
-const PNG_SIZE = 1600;
+export const PNG_SIZE = 1600;
 
 export function tourQrUrl(slug: string): string {
   return `${SITE_URL}/tour/${slug}?utm_source=qr`;
 }
 
 /** SVG QR koda sa logom u sredini. */
-async function buildQrSvg(url: string): Promise<string> {
+export async function buildQrSvg(url: string): Promise<string> {
   const raw = await QRCode.toString(url, {
     type: 'svg',
     errorCorrectionLevel: 'H',
@@ -61,7 +61,7 @@ function download(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-async function svgToPng(svg: string, px: number): Promise<Blob> {
+export async function svgToPng(svg: string, px: number): Promise<Blob> {
   const img = new Image();
   img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   await img.decode();

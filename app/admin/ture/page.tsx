@@ -7,7 +7,9 @@ import { Logo } from '../../tour/[slug]/Logo';
 import PasswordInput from '../../../components/PasswordInput';
 import { slugify } from '../../lib/slug';
 import { SITE_URL } from '../../lib/site';
+import { embedSnippet } from '../../lib/embedCode';
 import TourQrDialog from './TourQrDialog';
+import SendToClientDialog from './SendToClientDialog';
 import TourVideoLauncher from './TourVideoLauncher';
 import AgencyLogoButton from './AgencyLogoButton';
 import {
@@ -139,16 +141,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   booking: 'Stan na dan'
 };
 
-/**
- * Kod za ugradnju ture na sajt agencije (obećano na sajtu i u ponudama -
- * vidi HomePage.tsx, FAQ, agencyCopy.ts). `allow` sa senzorima je bitan:
- * bez njega bi žiroskop i ceo ekran ćutali kad je tura ugrađena na TUĐEM
- * domenu, jer pregledač po difoltu ne prosleđuje te dozvole u iframe.
- */
-function embedSnippet(slug: string): string {
-  const url = `${SITE_URL}/tour/${slug}`;
-  return `<iframe src="${url}" width="100%" height="600" style="border:0;border-radius:12px;overflow:hidden" allow="fullscreen; accelerometer; gyroscope; magnetometer" allowfullscreen loading="lazy"></iframe>`;
-}
 
 /** Srpski tekst iz i18n polja (objekat ili stariji JSON-string). */
 function pickSr(raw: unknown): string {
@@ -205,6 +197,7 @@ export default function ToursAdminPage() {
   const [copiedEmbedSlug, setCopiedEmbedSlug] = useState<string | null>(null);
   // Tura čiji je QR prozor otvoren (Premium: QR kod za oglas, letak i izlog).
   const [qrTour, setQrTour] = useState<TourRow | null>(null);
+  const [sendTour, setSendTour] = useState<TourRow | null>(null);
   // Tura za koju se pravi kratak video za Instagram/Facebook (Premium).
   const [videoSlug, setVideoSlug] = useState<string | null>(null);
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
@@ -1151,6 +1144,13 @@ export default function ToursAdminPage() {
                         QR
                       </button>
                       <button
+                        onClick={() => setSendTour(tour)}
+                        title="Mejl „Vaša tura je gotova“ klijentu: link, kod za sajt, HDR i QR - sa pregledom pre slanja"
+                        style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', marginLeft: '6px' }}
+                      >
+                        Pošalji klijentu
+                      </button>
+                      <button
                         onClick={() => setVideoSlug(tour.slug)}
                         disabled={tour.roomsWithPanorama === 0}
                         title="Kratak uspravan video iz ture za Instagram i Facebook (Premium) - MP4 na ovaj računar"
@@ -1186,6 +1186,7 @@ export default function ToursAdminPage() {
           {"„Uredi sadržaj“"} otvara turu u admin režimu, gde se dodaju sobe, panorame i hotspotovi.
           {"„Iframe“"} kopira gotov kod za ugradnju ture na sajt agencije — radi tek kad je tura objavljena.
           {"„QR“"} pravi QR kod ture sa logom (PNG za oglas i poruke, SVG za štampu) — deo Premium paketa.
+          {"„Pošalji klijentu“"} šalje mejl „Vaša tura je gotova“ (link, kod za sajt, HDR i QR) — vidiš ga pre slanja, a ide samo za objavljenu turu.
           {"„Video“"} pravi kratak uspravan video iz ture za Instagram i Facebook (MP4, čuva se samo na ovom računaru) — deo Premium paketa, radi u Chrome-u.
 
           {"„Obriši“"} trajno uklanja turu, sobe, panorame i statistiku — traži da upišeš slug ture za potvrdu,
@@ -1200,6 +1201,21 @@ export default function ToursAdminPage() {
           title={pickTitle(qrTour)}
           published={Boolean(qrTour.published)}
           onClose={() => setQrTour(null)}
+        />
+      )}
+      {sendTour && (
+        <SendToClientDialog
+          slug={sendTour.slug}
+          title={pickTitle(sendTour)}
+          published={Boolean(sendTour.published) && sendTour.status === 'active'}
+          defaultTo={sendTour.agent_email || ''}
+          defaultName={(sendTour.agent_name || '').split(/\s+/)[0] || ''}
+          onClose={() => setSendTour(null)}
+          onSent={(to) => {
+            setSendTour(null);
+            setError('');
+            setNotice(`Mejl „Vaša tura je gotova“ je poslat na ${to}.`);
+          }}
         />
       )}
     </main>
