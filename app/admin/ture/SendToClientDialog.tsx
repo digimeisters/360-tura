@@ -42,6 +42,9 @@ export default function SendToClientDialog({ slug, title, published, defaultTo, 
   const [subject, setSubject] = useState('');
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
+  // Posle slanja prozor ostaje otvoren i kaže ishod - poruka na vrhu strane
+  // se ne vidi kad je tura niže u tabeli (vlasnik, 17. 10.: "ništa se ne desi").
+  const [sentTo, setSentTo] = useState('');
   const qrCache = useRef<string | null>(null);
 
   const post = useCallback(
@@ -86,10 +89,17 @@ export default function SendToClientDialog({ slug, title, published, defaultTo, 
     try {
       let qrPng = '';
       if (withQr) {
-        qrCache.current ??= await blobToBase64(await svgToPng(await buildQrSvg(tourQrUrl(slug)), PNG_SIZE));
+        // QR se pravi u pregledaču; ako zapne (npr. kartica u pozadini), ne
+        // sme da zaglavi slanje - posle 8 s javlja grešku.
+        const build = async () => blobToBase64(await svgToPng(await buildQrSvg(tourQrUrl(slug)), PNG_SIZE));
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('QR kod nije napravljen. Isključite „QR kod u prilogu“ i pošaljite ponovo.')), 8000)
+        );
+        qrCache.current ??= await Promise.race([build(), timeout]);
         qrPng = qrCache.current;
       }
       await post({ qrPng });
+      setSentTo(to);
       onSent(to);
     } catch (err) {
       setError((err as Error).message);
@@ -164,13 +174,22 @@ export default function SendToClientDialog({ slug, title, published, defaultTo, 
                 QR kod u prilogu (PNG)
               </label>
               {subject && <p style={{ margin: 0, fontSize: '12.5px', color: FORM.textSecondary }}>Naslov: <b style={{ color: FORM.textPrimary }}>{subject}</b></p>}
-              {error && <p role="alert" style={{ margin: 0, fontSize: '13px', color: FORM.danger }}>{error}</p>}
+              {error && (
+                <p role="alert" style={{ margin: 0, fontSize: '13.5px', fontWeight: 600, color: '#991b1b', background: '#fee2e2', borderRadius: '8px', padding: '10px 12px' }}>
+                  {error}
+                </p>
+              )}
+              {sentTo && !error && (
+                <p role="status" style={{ margin: 0, fontSize: '13.5px', fontWeight: 600, color: '#166534', background: '#dcfce7', borderRadius: '8px', padding: '10px 12px' }}>
+                  Poslato na {sentTo} ✓ Ako ne stigne za par minuta, pogledajte folder Spam, pa u Resendu stranu „Emails“.
+                </p>
+              )}
               <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
                 <button type="button" onClick={() => void send()} disabled={sending || !to} style={{ ...btn, flex: 1, background: FORM.accent, color: FORM.onAccent, borderColor: FORM.accent }}>
-                  {sending ? 'Šaljem…' : 'Pošalji'}
+                  {sending ? 'Šaljem…' : sentTo ? 'Pošalji ponovo' : 'Pošalji'}
                 </button>
                 <button type="button" onClick={onClose} disabled={sending} style={btn}>
-                  Otkaži
+                  {sentTo ? 'Zatvori' : 'Otkaži'}
                 </button>
               </div>
               <p style={{ margin: 0, fontSize: '11.5px', color: FORM.textSecondary }}>

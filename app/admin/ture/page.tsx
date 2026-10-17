@@ -1251,7 +1251,7 @@ export default function ToursAdminPage() {
           defaultName={(sendTour.agent_name || '').split(/\s+/)[0] || ''}
           onClose={() => setSendTour(null)}
           onSent={(to) => {
-            setSendTour(null);
+            // Prozor ostaje otvoren i sam prikazuje "Poslato" - ovde samo trag na vrhu strane.
             setError('');
             setNotice(`Mejl „Vaša tura je gotova“ je poslat na ${to}.`);
           }}
