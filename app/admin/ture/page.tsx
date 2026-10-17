@@ -12,6 +12,7 @@ import TourQrDialog from './TourQrDialog';
 import SendToClientDialog from './SendToClientDialog';
 import TourVideoLauncher from './TourVideoLauncher';
 import AgencyLogoButton from './AgencyLogoButton';
+import AgencyPicker from './AgencyPicker';
 import { TourFilterBar, formatCreatedDate, useTourListFilter } from './TourListFilters';
 import {
   STRUCTURE_ORDER,
@@ -207,6 +208,14 @@ export default function ToursAdminPage() {
   const [copiedReport, setCopiedReport] = useState<string | null>(null);
   // Pretraga, filteri i redosled spiska tura - vidi TourListFilters.tsx.
   const tourFilter = useTourListFilter(tours, pickTitle);
+  // Agencije koje već imaju turu - za izbor u formi (AgencyPicker).
+  const agencyNames = useMemo(
+    () => [...new Set(tours.map((t) => t.agency_name?.trim()).filter((a): a is string => Boolean(a)))].sort((a, b) => a.localeCompare(b, 'sr')),
+    [tours]
+  );
+  // Izveštaji: bira se jedna agencija, pa se njen link kopira i prosleđuje.
+  const [reportAgency, setReportAgency] = useState('');
+  const selectedReport = agencyReports.find((r) => r.agency === reportAgency) ?? null;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -559,35 +568,46 @@ export default function ToursAdminPage() {
             <p style={{ margin: 0, fontSize: '12.5px', color: FORM.textSecondary }}>
               Logo agencije stoji u krugu na dnu svake njene ture (na mestu stativa); bez loga tura prikazuje Kvadrat360 znak. Link izveštaja pošaljite agenciji - vidi samo svoje ture, po mesecima, bez prijave, i ne ističe.
             </p>
-            {agencyReports.map((r) => (
-              <div key={r.agency} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', borderTop: `1px solid ${FORM.border}`, paddingTop: '10px' }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxWidth: '360px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: FORM.textSecondary }}>Agencija</span>
+              <select id="report-agency" value={reportAgency} onChange={(e) => setReportAgency(e.target.value)} style={inputStyle}>
+                <option value="">Izaberite agenciju…</option>
+                {agencyReports.map((r) => (
+                  <option key={r.agency} value={r.agency}>
+                    {r.agency} · {r.tours} {r.tours === 1 ? 'tura' : r.tours < 5 ? 'ture' : 'tura'}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {selectedReport && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', borderTop: `1px solid ${FORM.border}`, paddingTop: '10px' }}>
                 <span style={{ fontSize: '14px', fontWeight: 600 }}>
-                  {r.agency} <span style={{ color: FORM.textSecondary, fontWeight: 400 }}>· {r.tours} {r.tours === 1 ? 'tura' : r.tours < 5 ? 'ture' : 'tura'}</span>
+                  {selectedReport.agency} <span style={{ color: FORM.textSecondary, fontWeight: 400 }}>· {selectedReport.tours} {selectedReport.tours === 1 ? 'tura' : selectedReport.tours < 5 ? 'ture' : 'tura'}</span>
                 </span>
                 <span style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <AgencyLogoButton agency={r.agency} logoUrl={r.logoUrl} onChanged={() => void load()} />
+                  <AgencyLogoButton agency={selectedReport.agency} logoUrl={selectedReport.logoUrl} onChanged={() => void load()} />
                   <button
                     type="button"
                     onClick={async () => {
-                      const link = `${SITE_URL}${r.path}`;
+                      const link = `${SITE_URL}${selectedReport.path}`;
                       try {
                         await navigator.clipboard.writeText(link);
                       } catch {
                         window.prompt('Link izveštaja (Ctrl+C, pa Enter):', link);
                       }
-                      setCopiedReport(r.agency);
-                      setTimeout(() => setCopiedReport((cur) => (cur === r.agency ? null : cur)), 1800);
+                      setCopiedReport(selectedReport.agency);
+                      setTimeout(() => setCopiedReport((cur) => (cur === selectedReport.agency ? null : cur)), 1800);
                     }}
                     style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px' }}
                   >
-                    {copiedReport === r.agency ? 'Kopirano ✓' : 'Kopiraj link'}
+                    {copiedReport === selectedReport.agency ? 'Kopirano ✓' : 'Kopiraj link'}
                   </button>
-                  <a href={r.path} target="_blank" rel="noreferrer" style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', textDecoration: 'none' }}>
+                  <a href={selectedReport.path} target="_blank" rel="noreferrer" style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', textDecoration: 'none' }}>
                     Otvori
                   </a>
                 </span>
               </div>
-            ))}
+            )}
           </section>
         )}
 
@@ -622,11 +642,11 @@ export default function ToursAdminPage() {
 
           <div style={twoCol}>
             <Field label="Agencija">
-              <input
-                id="tour-agency"
+              <AgencyPicker
                 value={form.agency_name}
-                onChange={(e) => setForm({ ...form, agency_name: e.target.value })}
-                style={inputStyle}
+                agencies={agencyNames}
+                onChange={(agency) => setForm((prev) => ({ ...prev, agency_name: agency }))}
+                inputStyle={inputStyle}
               />
             </Field>
             <Field label="Tip oglasa">
