@@ -195,7 +195,7 @@ function Report({ report, token }: { report: AgencyReport; token: string }) {
       <footer className="rep-foot">
         <p>
           <b>Kako se broji:</b> posetilac je jedan otvoren pregledač (isti čovek na telefonu i računaru broji se
-          dva puta). „Ušli u turu" su oni koji su pokrenuli obilazak; vreme se meri samo dok je prostorija
+          dva puta). „Ušli u turu“ su oni koji su pokrenuli obilazak; vreme se meri samo dok je prostorija
           na ekranu, najviše 5 minuta po jednom gledanju prostorije (da ostavljen otvoren tab ne naduva
           prosek). Ne beležimo nikakve lične podatke posetilaca.
           {report.truncated && ' Ovog meseca je bilo više događaja nego što izveštaj čita odjednom - prikazani su najnoviji.'}

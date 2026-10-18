@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '../../lib/supabaseClient';
 import { FORM, FormThemeStyle, formBtnStyle } from '../../lib/formTheme';
 import { Logo } from '../../tour/[slug]/Logo';
@@ -554,12 +555,12 @@ export default function ToursAdminPage() {
             <h1 style={{ fontSize: '20px', margin: 0, fontFamily: FORM.fontDisplay }}>Ture</h1>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <a href="/admin/analitika" style={{ ...formBtnStyle, padding: '7px 14px', fontSize: '13px', textDecoration: 'none' }}>
+            <Link href="/admin/analitika" style={{ ...formBtnStyle, padding: '7px 14px', fontSize: '13px', textDecoration: 'none' }}>
               Analitika
-            </a>
-            <a href="/admin/projekti" style={{ ...formBtnStyle, padding: '7px 14px', fontSize: '13px', textDecoration: 'none' }}>
+            </Link>
+            <Link href="/admin/projekti" style={{ ...formBtnStyle, padding: '7px 14px', fontSize: '13px', textDecoration: 'none' }}>
               Novogradnja
-            </a>
+            </Link>
             <button onClick={() => supabase.auth.signOut()} style={{ ...formBtnStyle, padding: '7px 14px', fontSize: '13px' }}>
               Odjava
             </button>

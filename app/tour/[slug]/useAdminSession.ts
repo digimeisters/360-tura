@@ -16,6 +16,9 @@ export function useAdminSession() {
   // da li je prijava uspela - inače bi admin video kratak bljesak poruke
   // pre nego što se sesija prepozna.
   const [adminRequested, setAdminRequested] = useState(false);
+  // Provera prijave je gotova - do tada ?admin=1 samo sklanja bljesak
+  // ekrana "nekretnina više nije dostupna", a posle toga ne otključava ništa.
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
@@ -31,6 +34,7 @@ export function useAdminSession() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!active) return;
       const loggedIn = Boolean(session);
+      setSessionChecked(true);
       setAdminMode(loggedIn);
       adminModeRef.current = loggedIn;
       if (!loggedIn && requested) setShowAdminLogin(true);
@@ -76,6 +80,7 @@ export function useAdminSession() {
     adminMode,
     adminModeRef,
     adminRequested,
+    sessionChecked,
     showAdminLogin,
     setShowAdminLogin,
     loginForm: {

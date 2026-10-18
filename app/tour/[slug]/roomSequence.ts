@@ -2,7 +2,7 @@ import type { MutableRefObject } from 'react';
 import { lastCueStartFraction } from './subtitleCues';
 import { translations } from './translations';
 import type { EstablishData, Language, Room, Waypoint } from './types';
-import { composeEstablishText, getLocalizedText, getShortestTargetYaw, normalizeYaw } from './utils';
+import { composeEstablishText, getAudioUrlFor, getLocalizedText, getShortestTargetYaw, normalizeYaw } from './utils';
 import {
   ARRIVE_GLIDE_DEG_PER_S,
   ARRIVE_GLIDE_MAX_MS,
@@ -309,7 +309,9 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
     // (walkToRoom). Ranije se ovde kamera prvo okretala ka vratima, pa je
     // prilaz dodavao još jedan okret; kad putanja prođe kroz više takvih
     // soba zaredom, to je izgledalo kao vrtenje u krug (vlasnik, 30. 9. 2026).
-    window.setTimeout(() => {
+    window.setTimeout(async () => {
+      // Pauziran vodič ne sme dalje ni kroz sobu koju samo prolazi.
+      await waitWhilePaused();
       if (currentSession !== roomSessionRef.current || !isMountedRef.current) return;
       if (!sequenceActiveRef.current || isInterruptedRef.current) return;
       if (guideModeRef.current === 'auto') advanceGuide();
@@ -364,7 +366,7 @@ export async function runRoomSequence(ctx: RoomSequenceContext): Promise<void> {
   // ima SNIMLJEN audio (od pre nego što je TTS isključen), taj audio
   // priča ceo spojeni tekst kao jednu celinu, pa prikaz ostaje spojen
   // da se ne raziđe od onoga što se čuje - vidi [[project-voice-narration-pending]].
-  const hasRecordedAudio = Boolean(getLocalizedText(introAudioUrl, langRef.current));
+  const hasRecordedAudio = Boolean(getAudioUrlFor(introAudioUrl, langRef.current));
   const introOnlyText = getLocalizedText(establishData.intro_i18n, langRef.current);
   const detailOnlyText = getLocalizedText(establishData.detail_i18n, langRef.current);
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
-import { PROMO, isPromoActive } from '../app/lib/pricing';
+import { isPromoActive, promoEnd } from '../app/lib/pricing';
 
 /**
  * Da li promocija traje - provereno na KLIJENTU, pri svakom otvaranju strane.
@@ -41,7 +41,7 @@ export function usePromoMinutesLeft(): number {
   return useSyncExternalStore(
     subscribeMinute,
     () => {
-      const end = new Date(`${PROMO.endDate}T23:59:59`).getTime();
+      const end = promoEnd().getTime();
       return Math.max(0, Math.floor((end - Date.now()) / 60_000));
     },
     () => 0
@@ -57,7 +57,7 @@ export function usePromoDaysLeft(): number {
   return useSyncExternalStore(
     subscribe,
     () => {
-      const end = new Date(`${PROMO.endDate}T23:59:59`).getTime();
+      const end = promoEnd().getTime();
       return Math.max(0, Math.ceil((end - Date.now()) / 86_400_000));
     },
     () => 0

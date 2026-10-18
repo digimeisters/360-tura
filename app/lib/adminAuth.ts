@@ -55,7 +55,9 @@ export async function requireAdmin(req: Request): Promise<AdminContext> {
   }
 
   const email = (data.user.email || '').toLowerCase();
-  if (!allowed.includes(email)) {
+  // Nepotvrđen mejl ne daje prava: inače bi neko ko registruje admin adresu
+  // (dok je registracija otvorena) postao admin bez pristupa tom sandučetu.
+  if (!allowed.includes(email) || !data.user.email_confirmed_at) {
     return { ok: false, status: 403, error: 'Nalog nema administratorska prava.' };
   }
 

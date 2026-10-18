@@ -29,13 +29,16 @@ export const translateRoomToLanguages = async (
   establishIntroI18n: Record<string, string>;
   establishDetailI18n: Record<string, string>;
   waypoints: Waypoint[];
+  /** Jezici čiji prevod nije uspeo - za njih nema teksta (ne ostaje stari). */
+  failed: Language[];
 }> => {
   if (targetLangs.length === 0) {
     return {
       titleI18n: baseTitleI18n,
       establishIntroI18n: baseEstablishIntroI18n,
       establishDetailI18n: baseEstablishDetailI18n,
-      waypoints: baseWaypoints
+      waypoints: baseWaypoints,
+      failed: []
     };
   }
 
@@ -56,7 +59,8 @@ export const translateRoomToLanguages = async (
           }
         })
       });
-      const result = await res.json();
+      // Vercel 504 vraća HTML - jedan pao jezik ne sme da obori ceo upis.
+      const result = await res.json().catch(() => ({ success: false, error: `Greška servera (${res.status}).` }));
       return { targetLang, result };
     })
   );
@@ -65,6 +69,7 @@ export const translateRoomToLanguages = async (
   let establishIntroI18n: Record<string, string> = { ...baseEstablishIntroI18n };
   let establishDetailI18n: Record<string, string> = { ...baseEstablishDetailI18n };
   let waypoints = baseWaypoints;
+  const failed: Language[] = [];
 
   for (const { targetLang, result } of responses) {
     if (result.success && result.translated) {
@@ -89,10 +94,11 @@ export const translateRoomToLanguages = async (
       }
     } else {
       console.warn(`[Prevod] Neuspešan prevod za ${targetLang}:`, result.error);
+      failed.push(targetLang);
     }
   }
 
-  return { titleI18n, establishIntroI18n, establishDetailI18n, waypoints };
+  return { titleI18n, establishIntroI18n, establishDetailI18n, waypoints, failed };
 };
 
 // Za razliku od getLocalizedText (koja pada nazad na 'sr' ako traženi jezik

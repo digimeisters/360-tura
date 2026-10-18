@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { fetchAllRows } from '@/app/lib/fetchAllRows';
 import { requireAdmin } from '@/app/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
@@ -91,39 +92,47 @@ export async function GET(req: Request) {
   const supabase = ctx.supabase;
 
   const [
-    { data: events, error: evErr },
+    { data: events, error: evErr, truncated: eventsTruncated },
     { data: tours },
     { data: rooms },
-    { data: siteEvents, error: siteErr }
+    { data: siteEvents, error: siteErr, truncated: siteTruncated }
   ] = await Promise.all([
     // Redosled je obavezan uz limit: bez njega Postgres pri odsecanju vraća
     // proizvoljnih MAX_EVENTS redova, pa bi izveštaj tiho pokazivao pogrešne
     // brojeve. Ovako odsečeno znači "poslednjih MAX_EVENTS", što je i
     // prijavljeno kroz `truncated`.
-    supabase
-      .from('tour_events')
-      .select('tour_slug, room_id, event_type, session_id, duration_ms')
-      .gte('created_at', since)
-      .order('created_at', { ascending: false })
-      .limit(MAX_EVENTS),
+    fetchAllRows(
+      (from, to) =>
+        supabase
+          .from('tour_events')
+          .select('tour_slug, room_id, event_type, session_id, duration_ms')
+          .gte('created_at', since)
+          .order('created_at', { ascending: false })
+          .range(from, to),
+      MAX_EVENTS
+    ),
     supabase.from('tours').select('slug, title, title_i18n, agency_name'),
     supabase.from('rooms').select('id, tour_slug, title, title_i18n'),
-    supabase
-      .from('site_events')
-      .select('event_type, target, session_id, device, source')
-      .gte('created_at', since)
-      .order('created_at', { ascending: false })
-      .limit(MAX_EVENTS)
+    fetchAllRows(
+      (from, to) =>
+        supabase
+          .from('site_events')
+          .select('event_type, target, session_id, device, source')
+          .gte('created_at', since)
+          .order('created_at', { ascending: false })
+          .range(from, to),
+      MAX_EVENTS
+    )
   ]);
 
   let site: (ReturnType<typeof summarizeSite> & { truncated: boolean }) | null = null;
   let siteStatus: 'ok' | 'missing' | 'error' = 'ok';
   if (siteErr) {
-    siteStatus = MISSING_TABLE_CODES.has(siteErr.code) ? 'missing' : 'error';
+    siteStatus = MISSING_TABLE_CODES.has(siteErr.code ?? '') ? 'missing' : 'error';
     if (siteStatus === 'error') console.error('[api/analytics] site read failed:', siteErr.message);
   } else {
     const siteRows = (siteEvents ?? []) as SiteRow[];
-    site = { ...summarizeSite(siteRows), truncated: siteRows.length >= MAX_EVENTS };
+    site = { ...summarizeSite(siteRows), truncated: siteTruncated };
   }
 
   if (evErr) {
@@ -234,7 +243,7 @@ export async function GET(req: Request) {
     success: true,
     days,
     totalEvents: rows.length,
-    truncated: rows.length >= MAX_EVENTS,
+    truncated: eventsTruncated,
     tours: result,
     site,
     siteStatus

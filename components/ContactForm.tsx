@@ -205,7 +205,8 @@ export default function ContactForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-      const json = await res.json();
+      // Greška servera (HTML 500/504) nije "nema interneta" - ide opšta poruka.
+      const json = await res.json().catch(() => ({ success: false }));
 
       if (!res.ok || !json.success) {
         // Poruke servera su na srpskom; na engleskoj strani ide opšta poruka.

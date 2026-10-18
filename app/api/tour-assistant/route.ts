@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { streetOnly } from '@/app/lib/streetOnly';
 import { ThinkingLevel, Type, type Schema } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
@@ -66,15 +67,9 @@ type Turn = { role: 'user' | 'ai'; text: string };
 /** Bez kontrolnih znakova i viška razmaka - tekst ide u prompt kao podatak. */
 function cleanText(value: unknown, max: number): string {
   if (typeof value !== 'string') return '';
-  // eslint-disable-next-line no-control-regex
   return value.replace(/[\u0000-\u001F\u007F]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 }
 
-/** Samo ulica, bez kućnog broja (isto pravilo kao u Info modulu). */
-function streetOnly(address: string | null | undefined): string {
-  const first = address?.split(',')[0]?.trim() || '';
-  return first.replace(/\s+(bb|b\.b\.|\d+[a-zA-Z]?(\s*[/-]\s*\d+[a-zA-Z]?)?)$/i, '').trim();
-}
 
 function readHistory(value: unknown): Turn[] {
   if (!Array.isArray(value)) return [];

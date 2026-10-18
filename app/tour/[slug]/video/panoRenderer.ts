@@ -146,6 +146,23 @@ export class PanoRenderer {
     }
   }
 
+  /**
+   * Oslobađa sve teksture osim te jedne - pune panorame su i po ~180 MB
+   * grafičke memorije, pa ih izvoz soba po soba ne sme gomilati.
+   */
+  keepOnly(url: string): void {
+    for (const [key, texture] of this.textures) {
+      if (key === url) continue;
+      this.gl.deleteTexture(texture);
+      this.textures.delete(key);
+    }
+  }
+
+  /** Grafička kartica je oduzela kontekst (premalo memorije) - crtanje bi bilo prazno. */
+  get lost(): boolean {
+    return this.gl.isContextLost();
+  }
+
   dispose(): void {
     for (const texture of this.textures.values()) this.gl.deleteTexture(texture);
     this.textures.clear();

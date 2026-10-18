@@ -5,11 +5,14 @@
 const TELEGRAM_API = 'https://api.telegram.org';
 
 // Telegram HTML parse_mode ruši poruku ako sadržaj korisnika ima < > &.
+// Navodnici takođe, jer se ista funkcija koristi i u atributima mejlova.
 export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 export async function sendTelegramMessage(html: string): Promise<boolean> {

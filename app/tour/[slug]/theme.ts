@@ -141,10 +141,8 @@ export function applyGlassHotspotStyle(hotSpotDiv: HTMLDivElement, isNav: boolea
 
   inner.className = 'k360-hotspot-scale';
   inner.style.backgroundColor = 'rgba(15, 23, 42, 0.32)';
-  // @ts-ignore - backdropFilter nije u starijim CSSProperties tipovima za sve DOM lib verzije
-  inner.style.backdropFilter = 'blur(6px)';
-  // @ts-ignore
-  inner.style.webkitBackdropFilter = 'blur(6px)';
+  inner.style.setProperty('backdrop-filter', 'blur(6px)');
+  inner.style.setProperty('-webkit-backdrop-filter', 'blur(6px)');
   inner.style.border = '1px solid rgba(255, 255, 255, 0.7)';
   inner.style.borderRadius = '50%';
   inner.style.color = '#fde68a';

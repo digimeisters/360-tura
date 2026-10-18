@@ -46,7 +46,8 @@ export default function LoanCalculator({ newBuildHref }: { newBuildHref: string 
   const [firstHome, setFirstHome] = useState<boolean | null>(null);
   const [members, setMembers] = useState(0);
 
-  const price = digits(priceText);
+  // Decimale posle zareza se odbacuju: '85.000,00' je 85.000 €, ne 8.500.000 €.
+  const price = digits(priceText.split(',')[0]);
   const area = decimal(areaText);
   const ratePct = Math.min(20, Math.max(0, decimal(rate)));
   const valid = price > 0;
@@ -66,6 +67,8 @@ export default function LoanCalculator({ newBuildHref }: { newBuildHref: string 
   const rateText = ratePct.toLocaleString('sr-RS');
 
   const setPrice = (n: number) => setPriceText(n.toLocaleString('sr-RS'));
+  // Bez upisane cene nema računice - ranije su se prikazivali iznosi za 90.000 €.
+  const money = (n: number) => (valid ? formatPrice(n, 'sr') : '—');
 
   return (
     <section className="tl-calc" aria-label="Kalkulator kredita i troškova kupovine">
@@ -236,29 +239,29 @@ export default function LoanCalculator({ newBuildHref }: { newBuildHref: string 
           <div className="tl-big">
             <small>{mode === 'installments' ? `${months} rata` : `${t.payYears(years)} · ${rateText}%`}</small>
             <b>
-              {formatPrice(r.monthly, 'sr')} <em>{t.payMonthly}</em>
+              {money(r.monthly)} <em>{t.payMonthly}</em>
             </b>
           </div>
           <div className="tl-kv">
             <div>
               <small>{t.payUpfront}</small>
-              <b>{formatPrice(r.upfront, 'sr')}</b>
+              <b>{money(r.upfront)}</b>
             </div>
             <div>
               <small>{mode === 'installments' ? 'Ostatak u ratama' : t.payLoanAmount}</small>
-              <b>{formatPrice(r.rest, 'sr')}</b>
+              <b>{money(r.rest)}</b>
             </div>
           </div>
           {r.vatRefund > 0 && (
             <div className="tl-back">
               <small>{t.payVatBack}</small>
-              <b>{formatPrice(r.vatRefund, 'sr')}</b>
+              <b>{money(r.vatRefund)}</b>
             </div>
           )}
           <div className="tl-costs">
             <div className="tl-costs-t">
               <span>{t.payCosts} (okvirno)</span>
-              <span>{formatPrice(r.costsTotal, 'sr')}</span>
+              <span>{money(r.costsTotal)}</span>
             </div>
             <ul>
               {r.costs.map((c) => (
@@ -267,7 +270,7 @@ export default function LoanCalculator({ newBuildHref }: { newBuildHref: string 
                     {t.payCost[c.key][0]}
                     <small>{t.payCost[c.key][1]}</small>
                   </span>
-                  <b>{formatPrice(c.eur, 'sr')}</b>
+                  <b>{money(c.eur)}</b>
                 </li>
               ))}
             </ul>

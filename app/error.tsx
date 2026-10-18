@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 import { THEME } from './tour/[slug]/theme';
 import { reportClientError } from './lib/reportError';
 
@@ -50,7 +51,7 @@ export default function SiteError({ error, retry }: { error: Error & { digest?: 
         >
           Pokušaj ponovo
         </button>
-        <a
+        <Link
           href="/"
           style={{
             padding: '11px 24px',
@@ -63,7 +64,7 @@ export default function SiteError({ error, retry }: { error: Error & { digest?: 
           }}
         >
           Početna strana
-        </a>
+        </Link>
       </div>
     </main>
   );

@@ -44,6 +44,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
       >
         {photo ? (
           <img
+            alt=""
             src={photo}
             width={1200}
             height={630}

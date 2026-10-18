@@ -166,6 +166,9 @@ export function useRoomNavigation({
     if (isGuidePausedRef.current) {
       isGuidePausedRef.current = false;
       setIsGuidePaused(false);
+      // Zaustavljena naracija nastavlja - inače bi kartica ostala bez glasa,
+      // a sekvenca sobe bi čekala zauvek.
+      resumeAfterMute();
     }
     if (guideModeRef.current === 'manual') return;
     guideModeRef.current = 'manual';

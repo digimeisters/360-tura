@@ -95,6 +95,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Naslov je obavezan.' }, { status: 400 });
     }
 
+    // Tlocrt se proverava PRE AI obrade - pogrešan fajl ne sme da potroši Gemini poziv.
+    const floorplanInput = formData.get('floorplan');
+    if (floorplanInput instanceof File && floorplanInput.size > 0) {
+      if (!FLOORPLAN_TYPES[floorplanInput.type]) {
+        return NextResponse.json(
+          { success: false, error: 'Tlocrt mora biti slika (JPG, PNG ili WEBP). PDF se ne prikazuje u turi.' },
+          { status: 400 }
+        );
+      }
+      if (floorplanInput.size > MAX_FLOORPLAN_BYTES) {
+        return NextResponse.json({ success: false, error: 'Tlocrt je veći od 4MB.' }, { status: 400 });
+      }
+    }
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

@@ -53,11 +53,23 @@ export class VideoMapFrames {
       canvasContextAttributes: { preserveDrawingBuffer: true }
     });
     const frames = new VideoMapFrames(map, box, scene);
-    await new Promise<void>((resolve, reject) => {
-      map.once('load', () => resolve());
-      map.once('error', (e) => reject(new Error(`Mapa nije učitana: ${e.error?.message ?? 'greška'}`)));
-    });
-    await frames.settle();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const timer = window.setTimeout(() => reject(new Error('Mapa se nije učitala za 30 s - proverite internet i pokušajte ponovo.')), 30000);
+        map.once('load', () => {
+          window.clearTimeout(timer);
+          resolve();
+        });
+        map.once('error', (e) => {
+          window.clearTimeout(timer);
+          reject(new Error(`Mapa nije učitana: ${e.error?.message ?? 'greška'}`));
+        });
+      });
+      await frames.settle();
+    } catch (err) {
+      frames.dispose();
+      throw err;
+    }
     return frames;
   }
 

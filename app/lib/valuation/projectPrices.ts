@@ -51,7 +51,8 @@ export async function getProjectAreaPrices(db: SupabaseClient, city: string): Pr
     .eq('published', true)
     .eq('include_in_price_stats', true)
     .not('neighborhood', 'is', null)
-    .ilike('city', city);
+    // Grad stiže iz javnog formulara - % i _ bi inače bili džokeri ("%" = svi gradovi).
+    .ilike('city', city.replace(/[\\%_]/g, (c) => `\\${c}`));
   if (error) {
     console.error('[projectPrices] projects:', error.message);
     return [];

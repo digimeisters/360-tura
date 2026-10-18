@@ -61,9 +61,36 @@ export const PROMO = {
   endDate: '2026-11-01'
 } as const;
 
+/**
+ * Trenutak po vremenu u Srbiji (Europe/Belgrade, sa letnjim računanjem) -
+ * inače bi posetilac iz Beča ili Toronta video drugačiji početak i kraj.
+ */
+function belgradeTime(date: string, time: string): Date {
+  const guess = new Date(`${date}T${time}Z`);
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Belgrade',
+      hourCycle: 'h23',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    })
+      .formatToParts(guess)
+      .map((p) => [p.type, p.value])
+  );
+  const shownAsUtc = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
+  return new Date(guess.getTime() - (shownAsUtc - guess.getTime()));
+}
+
+/** Kraj promocije: poslednja sekunda dana PROMO.endDate po vremenu u Srbiji. */
+export const promoEnd = (): Date => belgradeTime(PROMO.endDate, '23:59:59');
+
 export function isPromoActive(now: Date = new Date()): boolean {
-  const start = new Date(`${PROMO.startDate}T00:00:00`);
-  const end = new Date(`${PROMO.endDate}T23:59:59`);
+  const start = belgradeTime(PROMO.startDate, '00:00:00');
+  const end = promoEnd();
   return now >= start && now <= end;
 }
 

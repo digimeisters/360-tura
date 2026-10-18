@@ -22,6 +22,8 @@ export async function geocodeAddress(
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
     const res = await fetch(url, {
+      // Zaglavljen Nominatim ne sme da drži unos ture do isteka funkcije.
+      signal: AbortSignal.timeout(6000),
       headers: {
         // Nominatim traži da se pošiljalac jasno identifikuje - bez ovoga
         // ume da odbije zahtev.

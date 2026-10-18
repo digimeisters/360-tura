@@ -104,6 +104,8 @@ const letter = (i: number) => (i < 26 ? String.fromCharCode(97 + i) : String(i +
 export default function TourSnapshotModal({ slug, onClose }: { slug: string; onClose: () => void }) {
   const [data, setData] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Greška pri preuzimanju ide pored dugmadi - ne briše prozor i sačuvane kadrove.
+  const [exportError, setExportError] = useState<string | null>(null);
   const [roomIdx, setRoomIdx] = useState(0);
   const [fmtIdx, setFmtIdx] = useState(0);
   const [badgeOn, setBadgeOn] = useState(true);
@@ -267,8 +269,13 @@ export default function TourSnapshotModal({ slug, onClose }: { slug: string; onC
       if (!exportRenderer.current) exportRenderer.current = new PanoRenderer(fmt.w, fmt.h);
       else exportRenderer.current.resize(fmt.w, fmt.h);
       const url = fullUrl(r);
+      exportRenderer.current.keepOnly(url);
       await exportRenderer.current.load(url);
       exportRenderer.current.render([{ url, view }]);
+      if (exportRenderer.current.lost) {
+        exportRenderer.current = null;
+        throw new Error('Grafičkoj kartici je ponestalo memorije. Zatvorite druge kartice pregledača i pokušajte ponovo.');
+      }
       const out = document.createElement('canvas');
       out.width = fmt.w;
       out.height = fmt.h;
@@ -327,14 +334,26 @@ export default function TourSnapshotModal({ slug, onClose }: { slug: string; onC
   const totalImages = data ? data.rooms.reduce((n, r) => n + shotsFor(r).length, 0) : 0;
   const roomsWithShots = data ? data.rooms.filter((r) => (shotsByRoom.get(String(r.id)) ?? []).length > 0).length : 0;
 
+  // Oba WebGL konteksta (pregled i izvoz) se oslobađaju kad se prozor zatvori.
+  useEffect(
+    () => () => {
+      rendererRef.current?.dispose();
+      rendererRef.current = null;
+      exportRenderer.current?.dispose();
+      exportRenderer.current = null;
+    },
+    []
+  );
+
   const downloadOne = async () => {
     if (!data || !room) return;
+    setExportError(null);
     setBusy('one');
     try {
       const blob = await renderFull(data, room, viewOf(room));
       download(blob, `${slug}-${fileSafe(roomName(room, roomIdx))}-${fmt.key}.jpg`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Slika nije napravljena.');
+      setExportError(e instanceof Error ? e.message : 'Slika nije napravljena.');
     } finally {
       setBusy(null);
     }
@@ -342,6 +361,7 @@ export default function TourSnapshotModal({ slug, onClose }: { slug: string; onC
 
   const downloadAll = async () => {
     if (!data) return;
+    setExportError(null);
     setBusy('all');
     try {
       const files: { name: string; blob: Blob }[] = [];
@@ -360,7 +380,7 @@ export default function TourSnapshotModal({ slug, onClose }: { slug: string; onC
       }
       download(await storeZip(files), `${slug}-${fmt.key}.zip`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Slike nisu napravljene.');
+      setExportError(e instanceof Error ? e.message : 'Slike nisu napravljene.');
     } finally {
       setBusy(null);
     }
@@ -538,6 +558,7 @@ export default function TourSnapshotModal({ slug, onClose }: { slug: string; onC
                   {busy?.startsWith('all') ? `Pravim slike… ${busy.split(':')[1] ?? ''}` : `Sve sobe odjednom (ZIP, ${totalImages} slika)`}
                 </button>
                 <p style={{ margin: 0, fontSize: 11.5, color: FORM.textMuted, lineHeight: 1.45 }}>
+                  {exportError && <span style={{ display: 'block', color: FORM.danger, fontWeight: 600, marginBottom: 6 }}>{exportError}</span>}
                   Slike se prave u punoj oštrini iz originalne panorame. U ZIP ulaze svi sačuvani kadrovi
                   {roomsWithShots ? ` (${roomsWithShots}/${data.rooms.length} soba obrađeno)` : ''}, a sobe bez njih sa početnim kadrom iz ture.
                 </p>

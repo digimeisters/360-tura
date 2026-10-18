@@ -257,7 +257,11 @@ export default function ValuationForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
-      const data = (await res.json()) as EstimateResponse;
+      const data = (await res.json().catch(() => null)) as EstimateResponse | null;
+      if (!data) {
+        setError(`Server trenutno ne odgovara (${res.status}). Pokušajte ponovo za minut.`);
+        return;
+      }
       if (!data.success) {
         setError(data.error);
         return;

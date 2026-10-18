@@ -47,6 +47,28 @@ export const getLocalizedText = (textData: unknown, lang: string = 'sr'): string
   return String(parsed);
 };
 
+/**
+ * URL snimljenog glasa za TAČNO taj jezik - bez pada na srpski (za razliku od
+ * getLocalizedText). Inače bi engleska tura pustila srpski glas uz engleski
+ * titl. Stari zapis kao običan string važi samo za srpski.
+ */
+export const getAudioUrlFor = (audioData: unknown, lang: string): string => {
+  if (!audioData) return '';
+  let parsed = audioData;
+  if (typeof audioData === 'string') {
+    try {
+      parsed = JSON.parse(audioData);
+    } catch {
+      return lang === 'sr' ? audioData : '';
+    }
+  }
+  if (parsed && typeof parsed === 'object') {
+    const value = (parsed as Record<string, unknown>)[lang];
+    return typeof value === 'string' ? value : '';
+  }
+  return lang === 'sr' ? String(parsed) : '';
+};
+
 export const parseWaypoints = (waypointsData: unknown): Waypoint[] => {
   if (!waypointsData) return [];
   if (Array.isArray(waypointsData)) return waypointsData as Waypoint[];

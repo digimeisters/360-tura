@@ -1,7 +1,7 @@
 'use client';
 
 import type { HomeLang } from '../app/lib/homeCopy';
-import { REFERENCE_AREA_SQM, PRICE_TIERS, PROMO, displayPerProperty, formatAmount } from '../app/lib/pricing';
+import { REFERENCE_AREA_SQM, PRICE_TIERS, PROMO, displayPerProperty, formatAmount, promoEnd } from '../app/lib/pricing';
 import { usePromoActive, usePromoMinutesLeft } from './usePromoActive';
 
 /**
@@ -77,7 +77,7 @@ export default function PromoBanner({ lang = 'sr' }: { lang?: HomeLang }) {
   const regularPrice = formatAmount(displayPerProperty(entryTier, 'basic', lang), lang);
   const percent = Math.round(PROMO.discount * 100);
 
-  const end = new Date(`${PROMO.endDate}T23:59:59`);
+  const end = promoEnd();
   const endLabel =
     lang === 'sr'
       ? `${end.getDate()}. ${SR_MONTHS_GENITIVE[end.getMonth()]}`

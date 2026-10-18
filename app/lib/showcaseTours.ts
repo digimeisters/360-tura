@@ -201,10 +201,10 @@ export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
   // odveo na poruku da je više nema (vidi status u app/tour/[slug]/page.tsx).
   const tours = (allTours ?? []).filter((t) => (t.status ?? 'active') === 'active');
 
-  if (error || !tours.length) {
-    if (error) console.error('[showcaseTours] tours:', error.message);
-    return [];
-  }
+  // Greška baze se baca: ISR tada zadržava poslednju dobru stranu, umesto da
+  // sat vremena kešira "nema objavljenih tura".
+  if (error) throw new Error(`[showcaseTours] tours: ${error.message}`);
+  if (!tours.length) return [];
 
   const { data: rooms, error: roomsErr } = await supabase
     .from('rooms')

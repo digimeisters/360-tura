@@ -53,7 +53,8 @@ export async function POST(req: Request) {
   }
 
   // Objavljene, aktivne ture (isti izvor kao sajt) - neobjavljena se ne šalje.
-  const tours = await getShowcaseTours('sr');
+  const tours = await getShowcaseTours('sr').catch(() => null);
+  if (!tours) return NextResponse.json({ success: false, error: 'Baza trenutno ne odgovara - pokušajte ponovo za minut.' }, { status: 503 });
   const tour = tours.find((t) => t.slug === slug);
   if (!tour) {
     return NextResponse.json(

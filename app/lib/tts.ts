@@ -51,5 +51,6 @@ export async function uploadNarration(supabase: SupabaseClient, path: string, au
     upsert: true
   });
   if (error) throw new Error(error.message);
-  return supabase.storage.from(NARRATIONS_BUCKET).getPublicUrl(path).data.publicUrl;
+  // Ista putanja se presnimava (nova naracija sobe) - ?v= zaobilazi stari keš CDN-a.
+  return `${supabase.storage.from(NARRATIONS_BUCKET).getPublicUrl(path).data.publicUrl}?v=${Date.now().toString(36)}`;
 }

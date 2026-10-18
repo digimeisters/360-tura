@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { fetchAllRows } from './fetchAllRows';
 import { trackKey } from './projectI18n';
 
 /**
@@ -35,13 +36,18 @@ export async function loadProjectStats(
   const puPrefix = `${trackKey('pu', slug)}:`;
 
   const [{ data: events }, { data: inquiries }] = await Promise.all([
-    db
-      .from('site_events')
-      .select('target, session_id')
-      .eq('event_type', 'cta_click')
-      .gte('created_at', since)
-      .or(`target.eq.${pv},target.like.${puPrefix}%`)
-      .limit(MAX_EVENTS),
+    fetchAllRows(
+      (from, to) =>
+        db
+          .from('site_events')
+          .select('target, session_id')
+          .eq('event_type', 'cta_click')
+          .gte('created_at', since)
+          .or(`target.eq.${pv},target.like.${puPrefix}%`)
+          .order('created_at', { ascending: false })
+          .range(from, to),
+      MAX_EVENTS
+    ),
     db.from('project_inquiries').select('unit_code').eq('project_id', projectId).gte('created_at', since)
   ]);
 

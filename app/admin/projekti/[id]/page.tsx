@@ -1712,10 +1712,17 @@ export default function ProjectEditorPage() {
                               disabled={!drafts[u.id] || busy === `unit-${u.id}`}
                               onClick={() =>
                                 run(`unit-${u.id}`, async () => {
+                                  // Samo izmenjena polja: status i cena sa učitane strane bi
+                                  // inače pregazili ono što je prodavac u međuvremenu
+                                  // promenio na /prodaja (npr. "prodat" nazad u "slobodan").
+                                  const base = toDraft(u);
+                                  const changed = Object.fromEntries(
+                                    (Object.keys(d) as (keyof UnitDraft)[]).filter((k) => d[k] !== base[k]).map((k) => [k, d[k]])
+                                  ) as Partial<UnitDraft>;
                                   const json = await api('unit-save', {
                                     projectId: id,
                                     id: u.id,
-                                    fields: { ...d, tour_id: d.tour_id || null }
+                                    fields: 'tour_id' in changed ? { ...changed, tour_id: changed.tour_id || null } : changed
                                   });
                                   patchUnit(json.unit);
                                   setDrafts((all) => {

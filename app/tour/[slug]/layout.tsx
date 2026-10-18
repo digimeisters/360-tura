@@ -41,10 +41,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = agency ? `${tour.title} — ${agency}` : tour.title;
   const description = buildDescription(tour.about, tour.address, tour.agencyName);
   const url = `${SITE_URL}/tour/${tour.slug}`;
+  // Prodata/izdata/pauzirana: stranica postoji (poruka i kontakt agencije), ali ne u pretrazi.
+  const inactive = Boolean(tour.details.status && tour.details.status !== 'active');
 
   return {
     title,
     description,
+    ...(inactive ? { robots: { index: false, follow: true } } : {}),
     alternates: { canonical: url },
     openGraph: {
       type: 'website',

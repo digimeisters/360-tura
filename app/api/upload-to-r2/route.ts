@@ -55,6 +55,10 @@ export async function POST(req: Request) {
     const currentPanoramaUrl = body.currentPanoramaUrl ?? body.panoramaUrl ?? body.panorama_url;
     const force = Boolean(body.force);
 
+    // Ključ na R2 se pravi od roomId - samo pravi UUID sobe, da se ne pregazi tuđi fajl.
+    if (roomId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(roomId))) {
+      return NextResponse.json({ success: false, error: 'Neispravan roomId.' }, { status: 400 });
+    }
     if (!roomId || !currentPanoramaUrl) {
       return NextResponse.json(
         { success: false, error: 'Nedostaju roomId ili currentPanoramaUrl.' },
@@ -91,6 +95,10 @@ export async function POST(req: Request) {
     }
 
     const contentType = imageRes.headers.get('content-type') || 'image/jpeg';
+    // Samo slike idu na CDN pod imenom panorame (ne HTML ili skripte).
+    if (!/^image\/(jpeg|png|webp)\b/i.test(contentType)) {
+      return NextResponse.json({ success: false, error: `Adresa ne vraća sliku (${contentType}).` }, { status: 400 });
+    }
     const buffer = Buffer.from(await imageRes.arrayBuffer());
 
     const extFromType = contentType.includes('webp')

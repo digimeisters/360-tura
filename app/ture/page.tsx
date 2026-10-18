@@ -5,7 +5,6 @@ import CardSpotlight from '../../components/CardSpotlight';
 import TourList from '../../components/TourList';
 import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 
-import { Logo } from '../tour/[slug]/Logo';
 import { getShowcaseTours, TOUR_FILTERS_FROM } from '../lib/showcaseTours';
 import { HOME_COPY } from '../lib/homeCopy';
 import { SITE_NAME, SITE_URL } from '../lib/site';

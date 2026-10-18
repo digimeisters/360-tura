@@ -1,5 +1,5 @@
 import { useCallback, useRef, type RefObject } from 'react';
-import { getLocalizedText } from './utils';
+import { getAudioUrlFor, getLocalizedText } from './utils';
 import type { Language } from './types';
 
 /**
@@ -76,6 +76,15 @@ export function useTourNarration({
 
   const stopAudio = useCallback(() => {
     pauseElement();
+    // Prekinuta naracija se ZAVRŠAVA: sekvenca ture koja je čeka nastavlja
+    // (posle await-a sama proveri da li je soba i dalje ista). Ranije je
+    // obećanje ostajalo nerešeno - zatvorena kartica ili "nazad" tokom
+    // vodiča zaustavljali su vodič zauvek, a promena jezika je posle toga
+    // ponovo puštala već zatvorenu naraciju.
+    activePlaybackRawRef.current = null;
+    const resolveFn = activeResolveRef.current;
+    activeResolveRef.current = null;
+    if (resolveFn) resolveFn();
     // Nova naracija ne sme da nasledi dužinu prekinute (getAudioClock).
     audioDurationRef.current = 0;
     setAudioActive(false);
@@ -109,7 +118,7 @@ export function useTourNarration({
       hideTimerRef.current = null;
     }
 
-    const resolvedAudioUrl = getLocalizedText(raw.audioUrlI18n, langRef.current);
+    const resolvedAudioUrl = getAudioUrlFor(raw.audioUrlI18n, langRef.current);
     const resolvedText = getLocalizedText(raw.textFallback, langRef.current);
 
     // spoken = glas je odslušan do kraja (ne greška, ne tekst bez snimka).

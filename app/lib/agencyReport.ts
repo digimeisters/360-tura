@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'crypto';
+import { fetchAllRows } from './fetchAllRows';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 
@@ -191,15 +192,19 @@ async function readMonth(
   key: MonthKey
 ): Promise<{ events: EventRow[]; requests: { source: string | null }[]; truncated: boolean }> {
   const { from, to } = monthRange(key);
-  const [{ data: events, error }, { data: requests }] = await Promise.all([
-    supabase
-      .from('tour_events')
-      .select('tour_slug, event_type, session_id, room_id, duration_ms, lang')
-      .in('tour_slug', slugs)
-      .gte('created_at', from)
-      .lt('created_at', to)
-      .order('created_at', { ascending: false })
-      .limit(MAX_EVENTS),
+  const [{ data: events, error, truncated }, { data: requests }] = await Promise.all([
+    fetchAllRows(
+      (a, b) =>
+        supabase
+          .from('tour_events')
+          .select('tour_slug, event_type, session_id, room_id, duration_ms, lang')
+          .in('tour_slug', slugs)
+          .gte('created_at', from)
+          .lt('created_at', to)
+          .order('created_at', { ascending: false })
+          .range(a, b),
+      MAX_EVENTS
+    ),
     supabase
       .from('contact_requests')
       .select('source')
@@ -212,7 +217,7 @@ async function readMonth(
   ]);
   if (error) throw new Error(`tour_events: ${error.message}`);
   const rows = (events ?? []) as EventRow[];
-  return { events: rows, requests: requests ?? [], truncated: rows.length >= MAX_EVENTS };
+  return { events: rows, requests: requests ?? [], truncated };
 }
 
 /** Null kad agencija nema nijednu turu (npr. preimenovana). */

@@ -619,7 +619,12 @@ export default function TourAdminTools({
       }
 
       setRooms((prevRooms) =>
-        prevRooms.map((r, idx) => (idx === roomIdx ? { ...r, panorama_url_cf: result.r2Url } : r))
+        // I kopija za telefon i sličica - pregled inače i dalje pokazuje staru sliku.
+        prevRooms.map((r) =>
+          r.id === currentRoom.id
+            ? { ...r, panorama_url_cf: result.r2Url, panorama_url_mobile: result.mobileUrl ?? undefined, preview_url: result.previewUrl ?? r.preview_url }
+            : r
+        )
       );
     } catch (err) {
       console.error('[Upload panorame] Greška:', err);
@@ -804,12 +809,19 @@ export default function TourAdminTools({
 
     const otherLangs = targetLanguages.filter((l) => l !== 'sr');
 
+    // Novi srpski tekst: prevodi i snimljeni glas starog teksta više ne važe -
+    // ostaju samo jezici koji se sad prevode, a glas se snima iznova. Ranije
+    // je engleski posetilac i dalje slušao/čitao opis prethodne verzije sobe.
+    const keepLangs = (o: Record<string, string>) =>
+      Object.fromEntries(Object.entries(o).filter(([l]) => l === 'sr' || (otherLangs as string[]).includes(l)));
     const baseEstablish = parseEstablish(currentRoom.establish_i18n);
-    let currentTitleI18n: Record<string, string> = buildI18nObject(aiDraft.title, currentRoom.title_i18n, 'sr');
+    let currentTitleI18n: Record<string, string> = keepLangs(buildI18nObject(aiDraft.title, currentRoom.title_i18n, 'sr'));
     const currentEstablishI18n: EstablishData = {
       ...baseEstablish,
-      intro_i18n: buildI18nObject(aiDraft.narrationIntro, baseEstablish.intro_i18n, 'sr'),
-      detail_i18n: buildI18nObject(aiDraft.narrationDetail, baseEstablish.detail_i18n, 'sr')
+      intro_i18n: keepLangs(buildI18nObject(aiDraft.narrationIntro, baseEstablish.intro_i18n, 'sr')),
+      detail_i18n: keepLangs(buildI18nObject(aiDraft.narrationDetail, baseEstablish.detail_i18n, 'sr')),
+      audio_url_i18n: undefined,
+      audio_url: undefined
     };
 
     let currentWaypoints: Waypoint[] = aiDraft.waypoints.map((wp) => ({
@@ -818,6 +830,7 @@ export default function TourAdminTools({
       text_i18n: buildI18nObject(getLocalizedText(wp.text_i18n, 'sr'), wp.text_i18n, 'sr')
     }));
 
+    let failedLangs: Language[] = [];
     try {
       if (otherLangs.length > 0) {
         setTranslationProgress(`Prevođenje na jezike: ${otherLangs.map((l) => l.toUpperCase()).join(', ')}...`);
@@ -838,6 +851,13 @@ export default function TourAdminTools({
         currentEstablishI18n.intro_i18n = translated.establishIntroI18n;
         currentEstablishI18n.detail_i18n = translated.establishDetailI18n;
         currentWaypoints = translated.waypoints;
+        failedLangs = translated.failed;
+        // Neuspeo jezik nema tekst (prikaz pada na srpski) - ne stari opis sobe.
+        const dropFailed = (o: Record<string, string>) =>
+          Object.fromEntries(Object.entries(o).filter(([l]) => !(failedLangs as string[]).includes(l)));
+        currentTitleI18n = dropFailed(currentTitleI18n);
+        currentEstablishI18n.intro_i18n = dropFailed(translated.establishIntroI18n);
+        currentEstablishI18n.detail_i18n = dropFailed(translated.establishDetailI18n);
       }
 
       // Glasovna naracija (opciono - samo ako je izabran bar jedan jezik u
@@ -952,7 +972,11 @@ export default function TourAdminTools({
 
       refreshViewerHotspots(currentWaypoints, langRef.current);
 
-      alert('Soba je uspešno popunjena i prevedena!' + voiceSummaryMessage);
+      alert(
+        (failedLangs.length
+          ? `Soba je popunjena, ali prevod nije uspeo za: ${failedLangs.map((l) => l.toUpperCase()).join(', ')} - pokrenite prevod ponovo.`
+          : 'Soba je uspešno popunjena i prevedena!') + voiceSummaryMessage
+      );
     } catch (err) {
       console.error('Translation & Saving Error:', err);
       alert('Greška tokom prevođenja i upisa: ' + (err instanceof Error ? err.message : 'Nepoznata greška'));

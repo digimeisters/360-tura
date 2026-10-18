@@ -55,6 +55,7 @@ import {
 } from './transition';
 import {
   normalizeYaw,
+  getAudioUrlFor,
   getLocalizedText,
   parseWaypoints,
   parseEstablish,
@@ -147,6 +148,7 @@ export default function TourPage() {
     adminMode,
     adminModeRef,
     adminRequested,
+    sessionChecked,
     showAdminLogin,
     setShowAdminLogin,
     loginForm,
@@ -398,8 +400,9 @@ export default function TourPage() {
     // Naracija koja je u toku odmah prelazi na NOVI jezik, od početka (dužine
     // prevoda se razlikuju, pa nastavljanje od iste sekunde nema smisla), a
     // sekvenca ture i dalje čeka isto obećanje - vidi useTourNarration.
-    restartInCurrentLanguage();
-  }, [rooms, roomIdx, refreshViewerHotspots, restartInCurrentLanguage]);
+    // Pauziran vodič ostaje nem - novi jezik se čuje kad se vodič nastavi.
+    if (!isGuidePausedRef.current) restartInCurrentLanguage();
+  }, [rooms, roomIdx, refreshViewerHotspots, restartInCurrentLanguage, isGuidePausedRef]);
 
   // TourAdminTools javlja kad je napravio sobu: tura bez soba je do tada
   // stajala na ekranu sa greškom "nema soba", a sad treba da krene.
@@ -522,7 +525,8 @@ export default function TourPage() {
     // vrati - sekvenca ture se zbog isključenog zvuka ne prekida.
     if (nextMuteState) {
       pauseForMute();
-    } else {
+    } else if (!isGuidePausedRef.current) {
+      // Pauziran vodič ostaje nem i kad se zvuk vrati.
       resumeAfterMute();
     }
   };
@@ -574,6 +578,10 @@ export default function TourPage() {
     if (!resolvedPanoramaUrl || !panoramaContainer) {
       disposeLayer(fadingLayerRef.current);
       fadingLayerRef.current = null;
+      // Soba bez panorame: inače "Ulazimo u prostoriju" ostaje zauvek, a
+      // svaka sledeća šetnja se odbija jer je šetnja i dalje "u toku".
+      walkingRef.current = false;
+      setRoomLoading(false);
       return;
     }
 
@@ -642,6 +650,8 @@ export default function TourPage() {
       yaw: startYaw,
       pitch: startPitch,
       autoRotate: 0,
+      // Uključen žiroskop važi i u sledećoj sobi (svaka soba je nov viewer).
+      orientationOnByDefault: isGyroActiveRef.current,
       hotSpots: formattedHotspots,
       loadingHtml: ''
     });
@@ -896,8 +906,9 @@ export default function TourPage() {
   // Nekretnina izdata/prodata/pauzirana (migracija 010, nezavisno od
   // published): posetilac vidi poruku i kontakt umesto ture. Admin i dalje
   // uređuje turu preko ?admin=1 - adminRequested skloni bljesak ove poruke
-  // dok se prijava ne prepozna (async).
-  if (tour?.status && tour.status !== 'active' && !adminMode && !adminRequested) {
+  // dok se prijava ne prepozna (async). Bez prijave ?admin=1 ne otključava
+  // prodatu/izdatu turu (ranije: "Otkaži" na prijavi je otvarao celu turu).
+  if (tour?.status && tour.status !== 'active' && !adminMode && !(adminRequested && !sessionChecked)) {
     return (
       <LockedTourScreen
         tour={tour}
@@ -952,7 +963,7 @@ export default function TourPage() {
   // do sledeće tačke). Bez zvuka ili bez snimka za taj jezik ostaje kartica,
   // jer tada posetilac tekst čita sam. Ručni režim uvek ima karticu.
   const subtitleMode =
-    isGuideAuto && !isMuted && Boolean(infoBoxData) && Boolean(getLocalizedText(infoBoxData?.audio_url, lang));
+    isGuideAuto && !isMuted && Boolean(infoBoxData) && Boolean(getAudioUrlFor(infoBoxData?.audio_url, lang));
   const showSubtitles = subtitleMode && narrationAudioActive && !pendingCoords && !activeModal;
   const infoCardShown = Boolean(infoBoxData) && !subtitleMode && !pendingCoords && !activeModal;
   // Meni (Pitanja, Lokacija, Info, Plan, Kontakt) je na dnu, a kartica ili

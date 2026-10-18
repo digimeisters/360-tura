@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { streetOnly } from '../../lib/streetOnly';
 import { THEME, btnStyle, FILL_ACCENT, FILL_ACCENT_BG } from './theme';
 import {
   MODAL_ICONS,
@@ -173,14 +174,6 @@ function FactCard({ icon, label, value }: { icon: React.ReactNode; label: string
 /** Plavi naslov unutar bele kartice ("OPIS", "OSNOVNI PODACI"). */
 const cardHead: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', padding: '13px 16px 4px', fontSize: '11.5px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: THEME.accent };
 
-/**
- * Samo ulica, bez kućnog broja: "Maglićka 12, Kragujevac" -> "Maglićka".
- * Tačan broj posetilac dobija od agenta, pred razgledanje.
- */
-function streetOnly(address: string | null | undefined): string {
-  const first = address?.split(',')[0]?.trim() || '';
-  return first.replace(/\s+(bb|b\.b\.|\d+[a-zA-Z]?(\s*[/-]\s*\d+[a-zA-Z]?)?)$/i, '').trim();
-}
 
 // Na telefonu dve kolone, na računaru tri - uže kartice bi lomile reči.
 const factGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(190px, 42%), 1fr))', gap: '8px' };

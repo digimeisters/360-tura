@@ -58,10 +58,8 @@ export async function getAreaPrices(city = 'Kragujevac'): Promise<AreaPrice[]> {
     .select('neighborhood, property_type, listing_type, build_type, price_per_sqm_low, price_per_sqm_high, listing_count, independent_count, updated_at')
     .ilike('city', city)
     .returns<Row[]>();
-  if (error) {
-    console.error('[areaPrices]', error.message);
-    return [];
-  }
+  // Bacanje (ne prazna lista): ISR zadržava poslednju dobru stranu cena.
+  if (error) throw new Error(`[areaPrices] ${error.message}`);
   const fromAds: AreaPrice[] = (data ?? []).map((r) => ({
     source: 'ads' as const,
     neighborhood: r.neighborhood,

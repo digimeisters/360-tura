@@ -110,12 +110,25 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ success: true, data });
   }
 
-  const { error } = await db
+  // Upis samo ako je stan i dalje u stanju koje je prodavac video: dva
+  // prodavca u istoj sekundi bi inače oba prošla proveru gore, a drugi bi
+  // tiho pregazio prvog.
+  let update = db
     .from('project_units')
     .update({ status, price, updated_at: new Date().toISOString() })
     .eq('id', cur.id)
-    .eq('project_id', project.id);
+    .eq('project_id', project.id)
+    .eq('status', cur.status);
+  update = cur.price === null ? update.is('price', null) : update.eq('price', cur.price);
+  const { data: written, error } = await update.select('id');
   if (error) return fail('Izmena nije sačuvana. Pokušajte ponovo.', 500);
+  if (!written?.length) {
+    const data = await loadSalesData(db, project.id, link.person_name);
+    return NextResponse.json(
+      { success: false, conflict: true, error: `Stan ${cur.code} je u međuvremenu promenio neko drugi. Prikazano je novo stanje - proverite i pokušajte ponovo.`, data },
+      { status: 409 }
+    );
+  }
 
   await Promise.all([
     recordUnitChanges(db, project, link.person_name, link.id, [

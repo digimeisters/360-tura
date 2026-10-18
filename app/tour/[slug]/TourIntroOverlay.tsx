@@ -75,6 +75,8 @@ export default function TourIntroOverlay({
       cancelAnimationFrame(raf);
       audio.removeEventListener('ended', end);
       audio.removeEventListener('error', end);
+      // Izlazak sa strane usred uvoda (nazad, drugi link) - glas ne sme da nastavi.
+      audio.pause();
     };
   }, [audio, finish]);
 

@@ -92,13 +92,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Anon rola posle migracije 007 ionako vidi samo objavljene ture, ali uslov
   // stoji i ovde: sitemap ne sme da zavisi od toga kojim ključem se čita.
-  const { data: tours } = await supabase
+  const { data: tours, error: toursError } = await supabase
     .from('tours')
-    .select('slug, created_at')
+    .select('slug, created_at, status')
     .eq('published', true)
     .order('created_at', { ascending: false });
+  // Greška baze se NE kešira kao "nema tura" - neuspela obnova zadržava poslednji dobar sitemap.
+  if (toursError) throw new Error(`[sitemap] tours: ${toursError.message}`);
 
-  const tourRoutes: MetadataRoute.Sitemap = (tours || []).map((tour) => ({
+  // Prodata/izdata/pauzirana nekretnina ne ide u pretragu - posetilac bi dobio poruku da je više nema.
+  const tourRoutes: MetadataRoute.Sitemap = (tours || []).filter((tour) => (tour.status ?? 'active') === 'active').map((tour) => ({
     url: `${SITE_URL}/tour/${tour.slug}`,
     lastModified: tour.created_at ? new Date(tour.created_at) : new Date(),
     changeFrequency: 'monthly' as const,

@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import { streetOnly } from '../../lib/streetOnly';
 import { supabase } from '../../lib/supabaseClient';
 import { pickCoverRoom } from '../../lib/coverRoom';
 import type { Tour } from './types';
@@ -138,7 +139,8 @@ export const getTourMeta = cache(async (slug: string): Promise<TourMetaFull | nu
     title: realValue(pickLang(data.title_i18n)) || realValue(data.title) || 'Virtuelna tura',
     agencyName: realValue(data.agency_name ?? null),
     about: realValue(pickLang(data.about_text_i18n)) || '',
-    address: realValue(data.address ?? null),
+    // Samo ulica - opis za pretraživače, JSON-LD i SEO tekst idu javno.
+    address: realValue(streetOnly(data.address)) || null,
     category: data.category ?? null,
     propertyType: data.property_type,
     details: data,
