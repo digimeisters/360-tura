@@ -1,7 +1,7 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
-import { isPromoActive, promoEnd } from '../app/lib/pricing';
+import { isPromoActive, promoDaysLeft, promoEnd } from '../app/lib/pricing';
 
 /**
  * Da li promocija traje - provereno na KLIJENTU, pri svakom otvaranju strane.
@@ -19,11 +19,18 @@ import { isPromoActive, promoEnd } from '../app/lib/pricing';
 // Vrednost se ne menja tokom jedne posete, pa nema na šta da se pretplati.
 const subscribe = () => () => {};
 
-export function usePromoActive(): boolean {
+/**
+ * `serverValue`: šta je server video kad je pravio stranu (zasad je prosleđuje
+ * samo PromoTopBar). Hidracija mora da krene od iste vrednosti kao HTML, pa
+ * traka koja je već u HTML-u ostaje gde jeste - nema naknadnog skoka sadržaja.
+ * Ako se datum na klijentu razlikuje (strana iz keša, promocija u međuvremenu
+ * istekla), React odmah posle hidracije uzima vrednost sa klijenta.
+ */
+export function usePromoActive(serverValue = false): boolean {
   return useSyncExternalStore(
     subscribe,
     () => isPromoActive(),
-    () => false
+    () => serverValue
   );
 }
 
@@ -53,13 +60,10 @@ export function usePromoMinutesLeft(): number {
  * objektu uz `active`: useSyncExternalStore poredi vrednosti identitetom, pa
  * bi nov objekat pri svakom pozivu vrteo render u krug. Broj je bezbedan.
  */
-export function usePromoDaysLeft(): number {
+export function usePromoDaysLeft(serverValue = 0): number {
   return useSyncExternalStore(
     subscribe,
-    () => {
-      const end = promoEnd().getTime();
-      return Math.max(0, Math.ceil((end - Date.now()) / 86_400_000));
-    },
-    () => 0
+    () => promoDaysLeft(),
+    () => serverValue
   );
 }

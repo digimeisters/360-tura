@@ -88,6 +88,11 @@ function belgradeTime(date: string, time: string): Date {
 /** Kraj promocije: poslednja sekunda dana PROMO.endDate po vremenu u Srbiji. */
 export const promoEnd = (): Date => belgradeTime(PROMO.endDate, '23:59:59');
 
+/** Koliko je dana ostalo do kraja promocije (zaokruženo naviše, najmanje 0). */
+export function promoDaysLeft(now: Date = new Date()): number {
+  return Math.max(0, Math.ceil((promoEnd().getTime() - now.getTime()) / 86_400_000));
+}
+
 export function isPromoActive(now: Date = new Date()): boolean {
   const start = belgradeTime(PROMO.startDate, '00:00:00');
   const end = promoEnd();
