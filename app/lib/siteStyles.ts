@@ -1131,19 +1131,19 @@ export const SITE_STYLES = `
   html.rv-armed [data-reveal="scale"]:not(.is-in){transform:translateY(var(--rv-dist)) scale(.965);}
   html.rv-armed [data-reveal="list"]:not(.is-in){transform:translateX(calc(var(--rv-dist) * -1));}
 
-  /* Sve ispod važi samo unutar <main class="home"> (početna); ostale strane dobijaju animacije u svom krugu.
+  /* Sve ispod važi samo unutar <main class="rv-page"> - strane koje su dobile animacije (početna, za-agencije); ostale dobijaju svoje u sledećim krugovima.
      Hero ne čeka JS: naslov, uvod, dugmad i činjenice izranjaju pri učitavanju, fotografija se približi. */
   @keyframes rv-hero-in{from{opacity:0; transform:translateY(18px); filter:blur(8px);} to{opacity:1; transform:none; filter:none;}}
   @keyframes rv-hero-zoom{from{transform:scale(1.07);} to{transform:scale(1);}}
   @media (prefers-reduced-motion:no-preference){
-    .home .ht-copy h1, .home .ht-copy .lede, .home .ht-copy .hero-ctas, .home .ht-facts li{animation:rv-hero-in .8s cubic-bezier(.22,.8,.24,1) both;}
-    .home .ht-copy .lede{animation-delay:90ms;}
-    .home .ht-copy .hero-ctas{animation-delay:180ms;}
-    .home .ht-facts li:nth-child(1){animation-delay:270ms;}
-    .home .ht-facts li:nth-child(2){animation-delay:360ms;}
-    .home .ht-facts li:nth-child(3){animation-delay:450ms;}
-    .home .ht-facts li:nth-child(4){animation-delay:540ms;}
-    .home .ht-still{animation:rv-hero-zoom 2.4s cubic-bezier(.2,.7,.2,1) both;}
+    .rv-page .ht-copy h1, .rv-page .ht-copy .lede, .rv-page .ht-copy .hero-ctas, .rv-page .ht-facts li{animation:rv-hero-in .8s cubic-bezier(.22,.8,.24,1) both;}
+    .rv-page .ht-copy .lede{animation-delay:90ms;}
+    .rv-page .ht-copy .hero-ctas{animation-delay:180ms;}
+    .rv-page .ht-facts li:nth-child(1){animation-delay:270ms;}
+    .rv-page .ht-facts li:nth-child(2){animation-delay:360ms;}
+    .rv-page .ht-facts li:nth-child(3){animation-delay:450ms;}
+    .rv-page .ht-facts li:nth-child(4){animation-delay:540ms;}
+    .rv-page .ht-still{animation:rv-hero-zoom 2.4s cubic-bezier(.2,.7,.2,1) both;}
   }
 
   /* "Kako radimo" - Linija (B2a): vodilica kroz krugove 01-04, plava linija se spušta, krug se popuni kad ga dotakne. */
@@ -1160,9 +1160,9 @@ export const SITE_STYLES = `
   html.rv-armed [data-reveal-steps] .step:not(.is-in) .num{background:#fff; color:#1e5aa8; box-shadow:inset 0 0 0 2px #1e5aa8;}
 
   /* Pitanja i tabela popusta: odgovor se glatko otvara (gde pregledač to podržava). */
-  .home{interpolate-size:allow-keywords;}
-  .home details.faq-item::details-content, .home details.vol-details::details-content{height:0; overflow:clip; transition:height .45s var(--rv-ease), content-visibility .45s allow-discrete;}
-  .home details.faq-item[open]::details-content, .home details.vol-details[open]::details-content{height:auto;}
+  .rv-page{interpolate-size:allow-keywords;}
+  .rv-page details.faq-item::details-content, .rv-page details.vol-details::details-content, .rv-page details.embed-details::details-content{height:0; overflow:clip; transition:height .45s var(--rv-ease), content-visibility .45s allow-discrete;}
+  .rv-page details.faq-item[open]::details-content, .rv-page details.vol-details[open]::details-content, .rv-page details.embed-details[open]::details-content{height:auto;}
 
   /* Glavno dugme: jedan blagi odsjaj kad se prvi put pojavi. */
   html.rv-armed .btn-primary{position:relative; overflow:hidden;}
@@ -1175,8 +1175,8 @@ export const SITE_STYLES = `
 
   /* Kartice benefita i usluga se blago podignu pod mišem (kartice tura to već imaju).
      Podizanje ide preko svojstva translate, da ne pregazi transform izrona (i njegovo kašnjenje u nizu). */
-  .home .card.feat, .home .card.svc{transition:opacity var(--rv-dur) var(--rv-ease) calc(var(--i,0) * var(--rv-step)), transform var(--rv-dur) var(--rv-ease) calc(var(--i,0) * var(--rv-step)), filter var(--rv-dur) var(--rv-ease) calc(var(--i,0) * var(--rv-step)), translate .35s var(--rv-ease), box-shadow .35s var(--rv-ease);}
-  @media (hover:hover){ .home .card.feat:hover, .home .card.svc:hover{translate:0 -4px; box-shadow:0 14px 34px -18px rgba(15,23,42,.35);} }
+  .rv-page .card.feat, .rv-page .card.svc{transition:opacity var(--rv-dur) var(--rv-ease) calc(var(--i,0) * var(--rv-step)), transform var(--rv-dur) var(--rv-ease) calc(var(--i,0) * var(--rv-step)), filter var(--rv-dur) var(--rv-ease) calc(var(--i,0) * var(--rv-step)), translate .35s var(--rv-ease), box-shadow .35s var(--rv-ease);}
+  @media (hover:hover){ .rv-page .card.feat:hover, .rv-page .card.svc:hover{translate:0 -4px; box-shadow:0 14px 34px -18px rgba(15,23,42,.35);} }
 
   /* ---------- "OD TLOCRTA DO TURE" (components/TourStory + TourStoryPlayer) ----------
      Bez JS-a: tlocrt + lista od 8 koraka. Sa JS-om (.is-armed): visoka sekcija,

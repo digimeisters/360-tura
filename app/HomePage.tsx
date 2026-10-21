@@ -164,8 +164,8 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
       </SiteNav>
       )}
 
-      {/* .home: animacije iz siteStyles (krug 1) važe samo na početnoj. */}
-      <main className="home">
+      {/* .rv-page: animacije iz siteStyles važe samo na stranama koje ih imaju. */}
+      <main className="rv-page">
         {/* Vrh je sama tura preko cele širine (vlasnik, 16. 10. 2026): kadar se
             vuče, tačke na tlocrtu menjaju sobu. Tekst stoji na svojoj pločici. */}
         <section className="hero-tour" id="pocetna">

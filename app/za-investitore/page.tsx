@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
+import type { CSSProperties } from 'react';
 import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 import ContactForm from '../../components/ContactForm';
-import InvestorDemo, { Building } from '../../components/InvestorDemo';
+import InvestorDemo from '../../components/InvestorDemo';
 import InvestorHeroDevice from '../../components/InvestorHeroDevice';
-import InvestorHeroPhoto, { FacadeMini, type HeroUnit } from '../../components/InvestorHeroPhoto';
+import InvestorHeroPhoto, { type HeroUnit } from '../../components/InvestorHeroPhoto';
 import ProjectSelector from '../../components/projekat/ProjectSelector';
 import { selectorProject } from '../../components/projekat/ProjectView';
 import { getPublicProject, type ProjectPageData } from '../lib/projectData';
@@ -11,6 +12,9 @@ import { floorLabel, formatArea, formatPrice, statusLabel, structureText } from 
 import type { UnitStatus } from '../lib/projects';
 import SiteTracker from '../../components/SiteTracker';
 import NavScrollSpy from '../../components/NavScrollSpy';
+import SiteReveal from '../../components/SiteReveal';
+import InvestorStory from '../../components/InvestorStory';
+import { buildInvestorStory } from '../lib/investorStory';
 import { IconPhone } from '../../components/SiteIcons';
 import { INVESTOR_COPY } from '../lib/investorCopy';
 import { accent } from '../lib/accent';
@@ -248,6 +252,118 @@ const INVESTOR_STYLES = `
   .contact-line{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem; font-size:.95rem; color:var(--ink-soft); grid-column:1 / -1;}
   #kontakt .contact-form{grid-column:1 / -1;}
   .contact-line a{color:inherit; text-decoration:none;}
+
+  /* ---------- "Od zgrade do upita" (components/InvestorStory + InvestorStoryPlayer) ----------
+     Bez JS-a: fasada + lista koraka. Sa JS-om (.is-armed): visoka sekcija i kadrovi po skrolu. */
+  .inv-stage{max-width:1180px; margin:0 auto; padding:0 clamp(1rem,4vw,2.5rem); display:grid; grid-template-columns:minmax(260px,1fr) 1.6fr; gap:clamp(1.5rem,4vw,3rem); align-items:center;}
+  .inv-steps{list-style:none; margin:1rem 0 0; padding:0; display:grid; gap:1.1rem;}
+  .inv-kicker{display:block; font-size:.72rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); margin-bottom:.35rem;}
+  .inv-step h3{font-size:clamp(1.15rem,1.6vw,1.35rem); letter-spacing:-.02em; margin:0 0 .3rem;}
+  .inv-step p{margin:0; color:var(--ink-soft); line-height:1.5;}
+  .inv-cta{margin-top:1rem;}
+  .inv-progress{display:none;}
+  .inv-view{position:relative; width:100%; overflow:hidden; border-radius:18px; background:#eef1f5;}
+  .inv-layer{position:relative;}
+  .inv-fit{position:relative;}
+  .inv-fit img{display:block; width:100%; height:auto;}
+  .inv-fit svg{position:absolute; inset:0; width:100%; height:100%; overflow:visible;}
+  .inv-fl{fill:rgba(46,158,91,.28); stroke:#fff; stroke-width:2.5px; vector-effect:non-scaling-stroke; stroke-linejoin:round;}
+  .inv-plan, .inv-3d, .inv-ui{display:none;}
+
+  .inv-story.is-armed{height:700vh; padding:0;}
+  .inv-story.is-armed .inv-stage{position:sticky; top:0; height:100vh; height:100svh;}
+  .inv-story.is-armed .inv-text{position:relative;}
+  .inv-story.is-armed .inv-steps{position:relative; height:250px; margin:0; display:block;}
+  .inv-story.is-armed .inv-step{position:absolute; inset:0; opacity:0; visibility:hidden; transform:translateY(14px); pointer-events:none; transition:opacity .45s ease, transform .45s ease, visibility 0s linear .45s;}
+  .inv-story.is-armed .inv-step.on{opacity:1; visibility:visible; transform:none; pointer-events:auto; transition-delay:0s;}
+  .inv-story.is-armed .inv-step h3{font-size:clamp(1.5rem,3vw,2.35rem); line-height:1.12; margin-bottom:.6rem;}
+  .inv-story.is-armed .inv-step p{font-size:1.02rem; max-width:36ch;}
+  .inv-story.is-armed .inv-progress{display:flex; gap:5px; margin-top:1.2rem;}
+  .inv-progress i{height:3px; flex:1; max-width:34px; border-radius:3px; background:var(--line); overflow:hidden; position:relative;}
+  .inv-progress b{position:absolute; inset:0; background:var(--accent); transform-origin:left; transform:scaleX(0);}
+  .inv-story.is-armed .inv-view{max-height:82vh; aspect-ratio:4/3;}
+  .inv-story.is-armed .inv-layer{position:absolute; inset:0; transform-origin:0 0;}
+  .inv-story.is-armed .inv-facade .inv-fit{position:absolute; inset:0;}
+  .inv-story.is-armed .inv-facade img{height:100%; object-fit:cover;}
+  .inv-story.is-armed .inv-fl{fill:rgba(46,158,91,0);}
+  .inv-story.is-armed .inv-plan{display:block; background:#fff; opacity:0;}
+  .inv-story.is-armed .inv-plan .inv-fit{position:absolute; left:4%; right:4%; top:50%; transform:translateY(-50%);}
+  .inv-un{fill:rgba(46,158,91,0); stroke:#2E9E5B; stroke-width:2px; vector-effect:non-scaling-stroke; stroke-linejoin:round;}
+  .inv-code{position:absolute; transform:translate(-50%,-50%); font:800 clamp(10px,1.1vw,14px)/1 var(--font-display),sans-serif; color:#1F7A45; background:rgba(255,255,255,.85); padding:2px 5px; border-radius:6px; pointer-events:none; opacity:0;}
+  .inv-story.is-armed .inv-3d{display:block; background:#000; opacity:0; z-index:2;}
+  .inv-3d-img{position:absolute; left:50%; top:50%; height:104%; width:auto; aspect-ratio:1; translate:-50% -50%;}
+  .inv-tag{position:absolute; z-index:3; background:rgba(17,17,19,.72); color:#fff; font-size:13px; font-weight:600; padding:7px 11px; border-radius:999px;}
+  .inv-3d .inv-tag{left:14px; top:14px;}
+  .inv-floor-tag{right:14px; top:14px; opacity:0;}
+  .inv-story.is-armed .inv-ui{display:block; position:absolute; inset:0; z-index:3; pointer-events:none;}
+  .inv-legend{position:absolute; left:14px; top:14px; display:flex; gap:6px; flex-wrap:wrap; opacity:0;}
+  .inv-legend span{font-size:12px; font-weight:700; padding:5px 9px; border-radius:999px; background:rgba(255,255,255,.94); color:#111113;}
+  .inv-legend i{display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; vertical-align:-1px;}
+  .inv-card{position:absolute; right:14px; bottom:14px; width:min(290px,58%); background:#fff; color:#111113; border-radius:16px; padding:14px; box-shadow:0 22px 50px -18px rgba(15,23,42,.5); z-index:4; opacity:0; transform:translateY(16px); transition:opacity .4s, transform .45s cubic-bezier(.22,.8,.24,1);}
+  .inv-card.on{opacity:1; transform:none;}
+  .inv-card-head{display:flex; justify-content:space-between; align-items:center;}
+  .inv-card h4{margin:0; font-size:18px;}
+  .inv-badge{font-size:11px; font-weight:800; padding:4px 9px; border-radius:999px; background:#DCF3E4; color:#1F7A45; transition:background .4s, color .4s;}
+  .inv-badge.res{background:#FCEFD3; color:#9A6A0B;}
+  .inv-tabs{display:flex; gap:4px; margin:10px 0; background:#F1F4F8; border-radius:10px; padding:3px;}
+  .inv-tabs i{flex:1; text-align:center; font-style:normal; font-size:11px; font-weight:700; color:#5B5D63; padding:5px 0; border-radius:8px;}
+  .inv-tabs i.on{background:#fff; color:#1e5aa8;}
+  .inv-facts{display:grid; grid-template-columns:1fr 1fr; gap:6px;}
+  .inv-facts span{background:#F7F8FA; border-radius:10px; padding:7px 9px; font-size:11px; color:#5B5D63;}
+  .inv-facts b{display:block; font-size:15px; color:#111113;}
+  .inv-price{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:2px 8px; margin-top:8px; font-size:12px; color:#6B7280;}
+  .inv-price b{font-family:var(--font-display); font-size:18px; color:#111113;}
+  .inv-price small{flex-basis:100%; font-size:10.5px; color:#9A6A0B;}
+  .inv-form{display:grid; gap:6px; margin-top:9px; max-height:0; overflow:hidden; transition:max-height .4s;}
+  .inv-card.asking .inv-form{max-height:120px;}
+  .inv-field{border:1.5px solid #D5DEEB; border-radius:10px; padding:7px 10px; font-size:12px; display:flex; justify-content:space-between;}
+  .inv-field span{color:#6B7280;} .inv-field b{min-height:1em;}
+  .inv-cbtn{display:block; margin-top:9px; text-align:center; font-size:13px; font-weight:700; border-radius:999px; padding:10px; background:#1e5aa8; color:#fff; transition:background .3s;}
+  .inv-cbtn.ok{background:#1E7A4C;}
+  .inv-card.in3d .inv-facts, .inv-card.in3d .inv-price, .inv-card.in3d .inv-cbtn{display:none;}
+  .inv-toast{position:absolute; left:14px; bottom:14px; z-index:5; max-width:56%; background:#111113; color:#fff; border-radius:14px; padding:10px 12px; font-size:13px; box-shadow:0 16px 40px -14px rgba(0,0,0,.6); opacity:0; transform:translateY(12px); transition:opacity .35s, transform .35s;}
+  .inv-toast.on{opacity:1; transform:none;}
+  .inv-toast small{display:block; color:#9aa3b2; font-size:11px; margin-bottom:3px;}
+  .inv-toast b{color:#F2C46D;}
+  @media (max-width:760px){
+    .inv-stage{grid-template-columns:minmax(0,1fr);}
+    .inv-view{order:-1;}
+    .inv-story.is-armed{height:570vh;}
+    .inv-story.is-armed .inv-stage{align-content:center; gap:24px;}
+    .inv-story.is-armed .inv-view{max-height:none; border-radius:14px;}
+    .inv-story.is-armed .inv-steps{height:180px;}
+    .inv-story.is-armed .inv-step h3{font-size:1.45rem;}
+    .inv-story.is-armed .inv-step p{font-size:.95rem;}
+    .inv-story.is-armed .inv-progress{position:absolute; top:-14px; left:0; right:0; margin:0;}
+    .inv-card{width:74%; padding:10px; right:10px; bottom:10px;} .inv-card h4{font-size:15px;} .inv-facts b{font-size:13px;}
+    .inv-card .inv-tabs{display:none;}
+    .inv-card.asking .inv-facts, .inv-card.asking .inv-price{display:none;}
+    .inv-facts{margin-top:8px;}
+    .inv-toast{max-width:60%; font-size:12px;}
+  }
+
+  /* ---------- Animacije ostatka strane (maketa public/mockup/AnimacijeInvestitori.html) ----------
+     Opšti efekti su u siteStyles (data-reveal, .rv-page); ovde su samo filmovi ove strane. */
+  html.rv-armed .week-day[data-reveal]{transition-delay:calc(var(--row,0) * 220ms + var(--side,0) * 110ms);}
+  html.rv-armed .week-card.is-dark[data-reveal]{transition-delay:140ms;}
+  /* V1 Prodaja: upit uleti, statusi stanova se upale redom, trake porastu. */
+  html.rv-armed .sc-inq{transform:translateX(24px); opacity:0; transition:transform .6s cubic-bezier(.22,.8,.24,1) .4s, opacity .4s .4s;}
+  html.rv-armed .report-card.is-in .sc-inq{transform:none; opacity:1;}
+  html.rv-armed .sc-seg i{transition:background .4s, color .4s;}
+  html.rv-armed .report-card:not(.is-in) .sc-seg i{background:transparent; color:#5B5D63;}
+  html.rv-armed .sc-unit:nth-of-type(2) .sc-seg i{transition-delay:.8s;}
+  html.rv-armed .sc-unit:nth-of-type(3) .sc-seg i{transition-delay:1s;}
+  html.rv-armed .sc-unit:nth-of-type(4) .sc-seg i{transition-delay:1.2s;}
+  html.rv-armed .room-bar span i{transform:scaleX(0); transform-origin:left; transition:transform 1.1s cubic-bezier(.22,.8,.24,1) .5s;}
+  html.rv-armed .room-bar + .room-bar span i{transition-delay:.66s;}
+  html.rv-armed .room-bar + .room-bar + .room-bar span i{transition-delay:.82s;}
+  html.rv-armed .report-card.is-in .room-bar span i{transform:none;}
+  /* S1 Postavljanje: vaš materijal -> strelica -> gotovo kod nas. */
+  html.rv-armed .setup-in, html.rv-armed .setup-arrow, html.rv-armed .setup-out{display:inline-block; opacity:0; transition:opacity .4s, transform .5s cubic-bezier(.22,.8,.24,1);}
+  html.rv-armed .setup-in{transform:translateX(-10px);} html.rv-armed .setup-arrow{transform:translateX(-14px);} html.rv-armed .setup-out{transform:scale(.85);}
+  html.rv-armed .setup-card.is-in .setup-in{opacity:1; transform:none; transition-delay:calc(var(--i,0) * 90ms + .3s);}
+  html.rv-armed .setup-card.is-in .setup-arrow{opacity:1; transform:none; transition-delay:calc(var(--i,0) * 90ms + .7s);}
+  html.rv-armed .setup-card.is-in .setup-out{opacity:1; transform:none; transition-delay:calc(var(--i,0) * 90ms + 1.1s);}
 `;
 
 export default async function InvestorPage() {
@@ -257,6 +373,7 @@ export default async function InvestorPage() {
   const demoData = DEMO_SLUG ? await getPublicProject(DEMO_SLUG) : null;
   const heroPhoto = heroFromProject(demoData);
   const liveDemo = demoData && demoData.floors.length > 0 && demoData.units.length > 0 ? demoData : null;
+  const story = buildInvestorStory(demoData);
   const statusLabels = Object.fromEntries((['available', 'reserved', 'sold'] as UnitStatus[]).map((s) => [s, statusLabel(s, 'sr')])) as Record<UnitStatus, string>;
 
   const tours = await getShowcaseTours('sr');
@@ -270,10 +387,12 @@ export default async function InvestorPage() {
       <style dangerouslySetInnerHTML={{ __html: INVESTOR_STYLES }} />
       <SiteTracker />
       <NavScrollSpy />
+      <SiteReveal />
 
       <SiteNav brandHref="/" brandAria={nav.brandAria} cta={{ href: '#kontakt', label: nav.cta, track: 'cta:investor_nav' }} mainMenu={{}} />
 
-      <main>
+      {/* .rv-page: animacije iz siteStyles (kao na početnoj) važe i ovde. */}
+      <main className="rv-page">
         {/* Vrh: živa zgrada preko cele širine (isti raspored kao tura na
             početnoj), obećanje na pločici preko nje. */}
         <section className="hero-tour inv-hero-full" id="pocetna">
@@ -310,20 +429,21 @@ export default async function InvestorPage() {
         <section className="band" id="danas">
           <div className="wrap">
             <div className="section-head">
-              <span className="eyebrow">{compare.eyebrow}</span>
-              <h2>{accent(compare.title)}</h2>
-              <p className="note">{compare.note}</p>
+              <span className="eyebrow" data-reveal="up">{compare.eyebrow}</span>
+              <h2 data-reveal="blur">{accent(compare.title)}</h2>
+              <p className="note" data-reveal="up">{compare.note}</p>
             </div>
             <div className="week-grid">
               {[compare.without, compare.with].map((side, i) => (
-                <div key={side.title} className={i === 1 ? 'week-card is-dark' : 'week-card'}>
+                <div key={side.title} className={i === 1 ? 'week-card is-dark' : 'week-card'} data-reveal="scale">
                   <div className="week-head">
                     <h3>{side.title}</h3>
                     <span className="week-tag">{side.tag}</span>
                   </div>
                   <div className="week-days">
-                    {side.rows.map((d) => (
-                      <div key={d.day} className="week-day">
+                    {side.rows.map((d, row) => (
+                      // --row/--side: redovi obe strane ulaze u paru (INVESTOR_STYLES).
+                      <div key={d.day} className="week-day" data-reveal="up" style={{ ['--row' as string]: row, ['--side' as string]: i } as CSSProperties}>
                         <b>{d.day}</b>
                         <div>
                           <strong>{d.title}</strong>
@@ -342,9 +462,9 @@ export default async function InvestorPage() {
         <section id="primer">
           <div className="wrap">
             <div className="section-head">
-              <span className="eyebrow">{demo.eyebrow}</span>
-              <h2>{accent(demo.title)}</h2>
-              <p className="note">{liveDemo ? demo.note : demo.noteIllustration}</p>
+              <span className="eyebrow" data-reveal="up">{demo.eyebrow}</span>
+              <h2 data-reveal="blur">{accent(demo.title)}</h2>
+              <p className="note" data-reveal="up">{liveDemo ? demo.note : demo.noteIllustration}</p>
               <span className="inv-badge-note">{liveDemo ? `${demo.badgeLive} ${liveDemo.project.title}` : demo.badge}</span>
             </div>
             {liveDemo ? (
@@ -377,110 +497,24 @@ export default async function InvestorPage() {
           </div>
         </section>
 
-        {/* 03 Kupac: od linka do upita, ekran po ekran. */}
-        <section className="band" id="kupac">
-          <div className="wrap">
-            <div className="section-head">
-              <span className="eyebrow">{buyer.eyebrow}</span>
-              <h2>{accent(buyer.title)}</h2>
-              <p className="note">{buyer.note}</p>
-            </div>
-            <div className="path">
-              <div className="path-step">
-                <span className="path-time">{buyer.steps[0].time}</span>
-                <div className="phone" aria-hidden="true">
-                  {heroPhoto ? (
-                    <div className="phone-screen">
-                      {/* Ekran telefona je 4 : 3.4 (.phone). */}
-                      <FacadeMini imageUrl={heroPhoto.imageUrl} units={heroPhoto.units} frame={4 / 3.4} />
-                    </div>
-                  ) : (
-                    <div className="phone-screen ph-building">
-                      <Building highlight={4} />
-                    </div>
-                  )}
-                </div>
-                <div><h3>{buyer.steps[0].title}</h3><p>{buyer.steps[0].text}</p></div>
-              </div>
-
-              <div className="path-step">
-                <span className="path-time">{buyer.steps[1].time}</span>
-                <div className="phone" aria-hidden="true">
-                  <div className="phone-screen ph-plan">
-                    <h4>4. sprat</h4>
-                    <div className="ph-units">
-                      <span className="s on">4A</span>
-                      <span className="s">4B</span>
-                      <span className="r">4C</span>
-                      <span className="s">4D</span>
-                    </div>
-                  </div>
-                </div>
-                <div><h3>{buyer.steps[1].title}</h3><p>{buyer.steps[1].text}</p></div>
-              </div>
-
-              <div className="path-step">
-                <span className="path-time">{buyer.steps[2].time}</span>
-                <div className="phone" aria-hidden="true">
-                  <div className="phone-screen ph-unit">
-                    <div className="ph-unit-head">
-                      <h4>Stan 4A</h4>
-                      <span className="ph-badge">Slobodan</span>
-                    </div>
-                    <div className="ph-tabs">
-                      <i className="on">Osnova</i>
-                      <i>360°</i>
-                      <i>3D</i>
-                      <i>Slike</i>
-                    </div>
-                    <div className="ph-facts">
-                      <span>Površina<b>54 m²</b></span>
-                      <span>Terasa<b>6 m²</b></span>
-                    </div>
-                    <div className="ph-price">
-                      <span>1.810 €/m²</span>
-                      <b>97.700 €</b>
-                    </div>
-                    <span className="ph-btn">PDF letak · Plan rata</span>
-                  </div>
-                </div>
-                <div><h3>{buyer.steps[2].title}</h3><p>{buyer.steps[2].text}</p></div>
-              </div>
-
-              <div className="path-step">
-                <span className="path-time">{buyer.steps[3].time}</span>
-                <div className="phone" aria-hidden="true">
-                  <div className="phone-screen ph-ask">
-                    <h4>Upit za stan 4A</h4>
-                    <span className="ph-field">Marko Petrović</span>
-                    <span className="ph-field">06x xxx xxxx</span>
-                    <span className="ph-ok">✓ Upit je stigao prodaji</span>
-                  </div>
-                </div>
-                <div><h3>{buyer.steps[3].title}</h3><p>{buyer.steps[3].text}</p></div>
-              </div>
-            </div>
-            <div className="path-end">
-              <span>{buyer.end.text}</span>
-              <a className="btn btn-primary btn-sm" href="#kontakt" data-track="cta:investor_story_end">{buyer.end.cta}</a>
-            </div>
-          </div>
-        </section>
+        {/* 03 Kupac: priča na skrol od zgrade do upita (vlasnik, 21. 10. 2026) -
+            zamenila je četiri telefona; bez podataka projekta se ne prikazuje. */}
+        {story && <InvestorStory data={story} copy={buyer} />}
 
         {/* 04 Vaša prodaja: link za prodaju, upiti, izveštaj (primer). */}
         <section className="owner is-dark" id="prodaja">
           <div className="wrap">
             <div>
               <div className="section-head left">
-                <span className="eyebrow">{sales.eyebrow}</span>
-                <h2>{accent(sales.title)}</h2>
-                <p className="note">{sales.text}</p>
+                <span className="eyebrow" data-reveal="up">{sales.eyebrow}</span>
+                <h2 data-reveal="blur">{accent(sales.title)}</h2>
+                <p className="note" data-reveal="up">{sales.text}</p>
               </div>
               <ul className="owner-points">
-                {sales.points.map((point) => <li key={point}>{point}</li>)}
+                {sales.points.map((point) => <li key={point} data-reveal="list">{point}</li>)}
               </ul>
             </div>
-            <div className="report-card" aria-label={sales.card.title}>
+            <div className="report-card" aria-label={sales.card.title} data-reveal="scale">
               <div className="report-head">
                 <strong>{sales.card.title}</strong>
                 <span>{sales.card.badge}</span>
@@ -511,7 +545,7 @@ export default async function InvestorPage() {
                 <div key={row.code} className="room-bar">
                   <b>{row.code}</b>
                   <span><i style={{ width: `${row.pct}%` }} /></span>
-                  <small>{row.views}</small>
+                  <small data-count>{row.views}</small>
                 </div>
               ))}
             </div>
@@ -521,13 +555,13 @@ export default async function InvestorPage() {
         {/* Poziv na sredini - kao plava traka na /za-agencije. */}
         <section id="razgovor" className="mid-cta-sec">
           <div className="wrap mid-cta">
-            <div className="mid-cta-text">
+            <div className="mid-cta-text" data-reveal="up">
               <h2>{accent(midCta.title)}</h2>
               <ul>
                 {midCta.points.map((point) => <li key={point}>{point}</li>)}
               </ul>
             </div>
-            <div className="mid-cta-actions">
+            <div className="mid-cta-actions" data-reveal="up">
               <a className="btn btn-primary" href="#kontakt" data-track="cta:investor_mid">{midCta.button}</a>
               <a className="btn btn-secondary" href={CONTACT_LINKS.phone} data-track="contact:phone"><IconPhone /> {midCta.call}</a>
             </div>
@@ -538,17 +572,17 @@ export default async function InvestorPage() {
         <section id="postavljanje">
           <div className="wrap">
             <div className="section-head">
-              <span className="eyebrow">{setup.eyebrow}</span>
-              <h2>{accent(setup.title)}</h2>
-              <p className="note">{setup.note}</p>
+              <span className="eyebrow" data-reveal="up">{setup.eyebrow}</span>
+              <h2 data-reveal="blur">{accent(setup.title)}</h2>
+              <p className="note" data-reveal="up">{setup.note}</p>
             </div>
             <div className="setup-grid">
               {setup.items.map((item) => (
-                <div key={item.title} className="card setup-card">
+                <div key={item.title} className="card setup-card" data-reveal="up">
                   <div className="setup-flow" aria-hidden="true">
                     <span className="setup-in">{item.from}</span>
                     <span className="setup-arrow">→</span>
-                    <span className="setup-out">{item.to}</span>
+                    <span className="setup-out" data-count>{item.to}</span>
                   </div>
                   <h3>{item.title}</h3>
                   <p>{item.text}</p>
@@ -563,13 +597,13 @@ export default async function InvestorPage() {
         <section className="band" id="paket">
           <div className="wrap">
             <div className="section-head">
-              <span className="eyebrow">{offer.eyebrow}</span>
-              <h2>{accent(offer.title)}</h2>
-              <p className="note">{offer.note}</p>
+              <span className="eyebrow" data-reveal="up">{offer.eyebrow}</span>
+              <h2 data-reveal="blur">{accent(offer.title)}</h2>
+              <p className="note" data-reveal="up">{offer.note}</p>
             </div>
             <div className="feat-grid n-3">
               {offer.items.map((item) => (
-                <div key={item.title} className="card feat">
+                <div key={item.title} className="card feat" data-reveal="up">
                   <h3>{item.title}</h3>
                   <p>{item.text}</p>
                 </div>
@@ -582,23 +616,23 @@ export default async function InvestorPage() {
         <section id="kako-radi">
           <div className="wrap steps-split">
             <div className="section-head left">
-              <span className="eyebrow">{steps.eyebrow}</span>
-              <h2>{accent(steps.title)}</h2>
-              <p className="note">{steps.note}</p>
+              <span className="eyebrow" data-reveal="up">{steps.eyebrow}</span>
+              <h2 data-reveal="blur">{accent(steps.title)}</h2>
+              <p className="note" data-reveal="up">{steps.note}</p>
             </div>
-            <div className="steps-row">
+            <div className="steps-row" data-reveal-steps>
               {steps.items.map((item, i) => (
-                <div key={item.title} className="card step">
+                <div key={item.title} className="card step" data-reveal="up">
                   <span className="num">{String(i + 1).padStart(2, '0')}</span>
                   <h3>{item.title}</h3>
                   <p>{item.text}</p>
                 </div>
               ))}
             </div>
-            <div className="card inv-needs">
+            <div className="card inv-needs" data-reveal="up">
               <h3>{steps.needs.title}</h3>
               <ul>
-                {steps.needs.items.map((item) => <li key={item}>{item}</li>)}
+                {steps.needs.items.map((item) => <li key={item} data-reveal="list">{item}</li>)}
               </ul>
             </div>
           </div>
@@ -608,13 +642,13 @@ export default async function InvestorPage() {
         <section className="band" id="pitanja">
           <div className="wrap faq-split">
             <div className="section-head left">
-              <span className="eyebrow">{faq.eyebrow}</span>
-              <h2>{accent(faq.title)}</h2>
-              <p className="note">{faq.note}</p>
+              <span className="eyebrow" data-reveal="up">{faq.eyebrow}</span>
+              <h2 data-reveal="blur">{accent(faq.title)}</h2>
+              <p className="note" data-reveal="up">{faq.note}</p>
             </div>
             <div className="faq-list">
               {faq.items.map((item) => (
-                <details key={item.question} className="card faq-item">
+                <details key={item.question} className="card faq-item" data-reveal="up">
                   <summary>{item.question}</summary>
                   <p>{item.answer}</p>
                 </details>
@@ -628,11 +662,11 @@ export default async function InvestorPage() {
           <div className="wrap">
             <div className="contact-head">
               <div className="section-head left">
-                <span className="eyebrow">{contact.eyebrow}</span>
-                <h2>{accent(contact.title)}</h2>
-                <p className="note">{contact.note}</p>
+                <span className="eyebrow" data-reveal="up">{contact.eyebrow}</span>
+                <h2 data-reveal="blur">{accent(contact.title)}</h2>
+                <p className="note" data-reveal="up">{contact.note}</p>
               </div>
-              <div className="quick-contact">
+              <div className="quick-contact" data-reveal="up">
                 <a className="btn btn-secondary btn-sm qc-phone" href={CONTACT_LINKS.phone} data-track="contact:phone">
                   <span className="qc-dot" />{contact.call}
                 </a>

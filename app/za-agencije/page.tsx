@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import type { CSSProperties } from 'react';
 import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 import ContactForm from '../../components/ContactForm';
 import HeroTour from '../../components/HeroTour';
@@ -9,6 +10,7 @@ import { IconPhone } from '../../components/SiteIcons';
 import Pricing from '../../components/Pricing';
 import SiteTracker from '../../components/SiteTracker';
 import NavScrollSpy from '../../components/NavScrollSpy';
+import SiteReveal from '../../components/SiteReveal';
 import { AGENCY_COPY } from '../lib/agencyCopy';
 import { HOME_COPY } from '../lib/homeCopy';
 import { accent, plainAccent } from '../lib/accent';
@@ -207,6 +209,42 @@ const AGENCY_STYLES = `
   /* Ovde nema kartica sa kontaktom desno od forme (kraći red ispod nje), pa forma ide preko cele širine. */
   #kontakt .contact-form{grid-column:1 / -1;}
   .contact-line a{color:inherit; text-decoration:none;}
+
+  /* ---------- Animacije (vlasnik, 21. 10. 2026; maketa public/mockup/AnimacijeAgencije.html) ----------
+     Opšti efekti su u siteStyles (data-reveal, .rv-page); ovde su samo filmovi
+     ove strane. Važe dok je html.rv-armed (components/SiteReveal), pa bez JS-a
+     i uz smanjene pokrete strana izgleda kao ranije. */
+  /* N1 Nedelja: dani obe nedelje ulaze u paru, red po red. */
+  html.rv-armed .week-day[data-reveal]{transition-delay:calc(var(--row,0) * 220ms + var(--side,0) * 110ms);}
+  html.rv-armed .week-card.is-dark[data-reveal]{transition-delay:140ms;}
+  /* K1 Put kupca: linija se iscrta, vremena 21:40 -> 21:50 se pale redom, telefoni izranjaju. */
+  html.rv-armed .path::before{transform:scaleX(0); transform-origin:left; transition:transform 2.2s cubic-bezier(.45,0,.55,1) .2s;}
+  html.rv-armed .path.is-in::before{transform:scaleX(1);}
+  .path-step:nth-child(2){--d:550ms;} .path-step:nth-child(3){--d:1100ms;} .path-step:nth-child(4){--d:1650ms;}
+  html.rv-armed .path-time{transform:scale(.6); opacity:0; transition:transform .5s cubic-bezier(.34,1.56,.64,1), opacity .3s; transition-delay:var(--d,0ms);}
+  html.rv-armed .path-step .phone, html.rv-armed .path-step > div:last-child{opacity:0; transform:translateY(16px); transition:opacity .6s cubic-bezier(.22,.8,.24,1), transform .6s cubic-bezier(.22,.8,.24,1); transition-delay:calc(var(--d,0ms) + 150ms);}
+  html.rv-armed .path.is-in .path-time, html.rv-armed .path.is-in .path-step .phone, html.rv-armed .path.is-in .path-step > div:last-child{opacity:1; transform:none;}
+  /* K2 Filmovi u telefonima: poruke stižu, vodič teče, konus se okreće, dugmad iskoče. */
+  html.rv-armed .chat > *{opacity:0; transform:translateY(8px); transition:opacity .35s, transform .35s;}
+  html.rv-armed .path.is-in .chat > *{opacity:1; transform:none;}
+  html.rv-armed .path.is-in .chat .chat-app{transition-delay:.3s;}
+  html.rv-armed .path.is-in .chat .chat-msg{transition-delay:.7s;}
+  html.rv-armed .path.is-in .chat .chat-card{transition-delay:1.2s;}
+  html.rv-armed .path.is-in .chat .chat-reply{transition-delay:1.9s;}
+  html.rv-armed .ph-bar i{transform:scaleX(0); transform-origin:left; transition:transform 2.4s linear 1.2s;}
+  html.rv-armed .path.is-in .ph-bar i{transform:none;}
+  html.rv-armed .mini-cone{transform-origin:55% 26%; transform:rotate(-70deg); opacity:0; transition:transform 1.4s cubic-bezier(.22,.8,.24,1) 1.9s, opacity .4s 1.9s;}
+  html.rv-armed .path.is-in .mini-cone{transform:none; opacity:1;}
+  html.rv-armed .agent-screen .ph-btn{transform:scale(.8); opacity:0; transition:transform .45s cubic-bezier(.34,1.56,.64,1), opacity .3s;}
+  html.rv-armed .path.is-in .agent-screen .ph-btn{transform:none; opacity:1; transition-delay:2.3s;}
+  html.rv-armed .path.is-in .agent-screen .ph-btn.alt{transition-delay:2.5s;}
+  /* V1 Izveštaj vlasniku: trake prostorija porastu, čipovi iskoče (KPI brojevi rastu preko data-count). */
+  html.rv-armed .room-bar span i{transform:scaleX(0); transform-origin:left; transition:transform 1.1s cubic-bezier(.22,.8,.24,1) .5s;}
+  html.rv-armed .room-bar + .room-bar span i{transition-delay:.66s;}
+  html.rv-armed .room-bar + .room-bar + .room-bar span i{transition-delay:.82s;}
+  html.rv-armed .report-card.is-in .room-bar span i{transform:none;}
+  html.rv-armed .report-chips span{display:inline-block; transform:scale(.6); opacity:0; transition:transform .45s cubic-bezier(.34,1.56,.64,1) 1.1s, opacity .3s 1.1s;}
+  html.rv-armed .report-card.is-in .report-chips span{transform:none; opacity:1;}
 `;
 
 export default async function AgencyPage() {
@@ -233,6 +271,7 @@ export default async function AgencyPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd()) }} />
       <SiteTracker />
       <NavScrollSpy />
+      <SiteReveal />
       <PromoTopBar lang="sr" href="#paketi" />
 
       <SiteNav
@@ -242,7 +281,8 @@ export default async function AgencyPage() {
         mainMenu={{}}
       />
 
-      <main>
+      {/* .rv-page: animacije iz siteStyles (kao na početnoj) važe i ovde. */}
+      <main className="rv-page">
         {/* Vrh: prava tura preko cele širine, kao na početnoj (HeroTour) -
             agent prvo vidi proizvod, a obećanje stoji na pločici preko njega. */}
         <section className="hero-tour" id="pocetna">
@@ -266,20 +306,21 @@ export default async function AgencyPage() {
         <section className="band" id="nedelja">
           <div className="wrap">
             <div className="section-head">
-              <span className="eyebrow">{week.eyebrow}</span>
-              <h2>{accent(week.title)}</h2>
-              <p className="note">{week.note}</p>
+              <span className="eyebrow" data-reveal="up">{week.eyebrow}</span>
+              <h2 data-reveal="blur">{accent(week.title)}</h2>
+              <p className="note" data-reveal="up">{week.note}</p>
             </div>
             <div className="week-grid">
               {[week.without, week.with].map((side, i) => (
-                <div key={side.title} className={i === 1 ? 'week-card is-dark' : 'week-card'}>
+                <div key={side.title} className={i === 1 ? 'week-card is-dark' : 'week-card'} data-reveal="scale">
                   <div className="week-head">
                     <h3>{side.title}</h3>
                     <span className="week-tag">{side.tag}</span>
                   </div>
                   <div className="week-days">
-                    {side.days.map((d) => (
-                      <div key={d.day} className="week-day">
+                    {side.days.map((d, row) => (
+                      // --row/--side: dani obe nedelje ulaze u paru, red po red (AGENCY_STYLES).
+                      <div key={d.day} className="week-day" data-reveal="up" style={{ ['--row' as string]: row, ['--side' as string]: i } as CSSProperties}>
                         <b>{d.day}</b>
                         <div>
                           <strong>{d.title}</strong>
@@ -298,11 +339,11 @@ export default async function AgencyPage() {
         <section id="kupac">
           <div className="wrap">
             <div className="section-head">
-              <span className="eyebrow">{buyer.eyebrow}</span>
-              <h2>{accent(buyer.title)}</h2>
-              <p className="note">{buyer.note}</p>
+              <span className="eyebrow" data-reveal="up">{buyer.eyebrow}</span>
+              <h2 data-reveal="blur">{accent(buyer.title)}</h2>
+              <p className="note" data-reveal="up">{buyer.note}</p>
             </div>
-            <div className="path">
+            <div className="path" data-reveal-group>
               <div className="path-step">
                 <span className="path-time">{buyer.steps[0].time}</span>
                 <div className="phone" aria-hidden="true">
@@ -379,7 +420,7 @@ export default async function AgencyPage() {
               </div>
             </div>
             {/* Kraj priče: odmah korak ka upitu, dok je priča sveža. */}
-            <div className="path-end">
+            <div className="path-end" data-reveal="up">
               <span>{buyer.end.text}</span>
               <a className="btn btn-primary btn-sm" href="#kontakt" data-track="cta:agency_story_end">{buyer.end.cta}</a>
             </div>
@@ -390,13 +431,13 @@ export default async function AgencyPage() {
         <section className="band" id="brojke">
           <div className="wrap">
             <div className="section-head">
-              <span className="eyebrow">{proof.eyebrow}</span>
-              <h2>{accent(proof.title)}</h2>
+              <span className="eyebrow" data-reveal="up">{proof.eyebrow}</span>
+              <h2 data-reveal="blur">{accent(proof.title)}</h2>
             </div>
             <div className="proof-grid">
               {proof.items.map((item) => (
-                <div key={item.value} className="proof-item">
-                  <b>{item.value}</b>
+                <div key={item.value} className="proof-item" data-reveal="scale">
+                  <b data-count>{item.value}</b>
                   <p>{item.label}</p>
                   <small>{item.source}</small>
                 </div>
@@ -410,15 +451,15 @@ export default async function AgencyPage() {
           <div className="wrap">
             <div>
               <div className="section-head left">
-                <span className="eyebrow">{owner.eyebrow}</span>
-                <h2>{accent(owner.title)}</h2>
-                <p className="note">{owner.text}</p>
+                <span className="eyebrow" data-reveal="up">{owner.eyebrow}</span>
+                <h2 data-reveal="blur">{accent(owner.title)}</h2>
+                <p className="note" data-reveal="up">{owner.text}</p>
               </div>
               <ul className="owner-points">
-                {owner.points.map((point) => <li key={point}>{point}</li>)}
+                {owner.points.map((point) => <li key={point} data-reveal="list">{point}</li>)}
               </ul>
             </div>
-            <div className="report-card" aria-label={owner.report.title}>
+            <div className="report-card" aria-label={owner.report.title} data-reveal="scale">
               <div className="report-head">
                 <strong>{owner.report.title}</strong>
                 <span>{owner.report.badge}</span>
@@ -427,7 +468,7 @@ export default async function AgencyPage() {
                 {owner.report.kpis.map((kpi) => (
                   <div key={kpi.label} className="kpi">
                     <small>{kpi.label}</small>
-                    <b>{kpi.value}</b>
+                    <b data-count>{kpi.value}</b>
                     <i>{kpi.delta}</i>
                   </div>
                 ))}
@@ -451,7 +492,7 @@ export default async function AgencyPage() {
             radije zovu nego što popunjavaju formu). */}
         <section id="probajte" className="mid-cta-sec">
           <div className="wrap mid-cta">
-            <div className="mid-cta-text">
+            <div className="mid-cta-text" data-reveal="up">
               <h2>
                 {accent(midCta.title)} <FromPrice count={1} prefix="od " />
               </h2>
@@ -459,7 +500,7 @@ export default async function AgencyPage() {
                 {midCta.points.map((point) => <li key={point}>{point}</li>)}
               </ul>
             </div>
-            <div className="mid-cta-actions">
+            <div className="mid-cta-actions" data-reveal="up">
               <a className="btn btn-primary" href="#kontakt" data-track="cta:agency_mid">{midCta.button}</a>
               <a className="btn btn-secondary" href={CONTACT_LINKS.phone} data-track="contact:phone"><IconPhone /> {midCta.call}</a>
             </div>
@@ -470,20 +511,20 @@ export default async function AgencyPage() {
         <section id="kako-radi">
           <div className="wrap steps-split">
             <div className="section-head left">
-              <span className="eyebrow">{steps.eyebrow}</span>
-              <h2>{accent(steps.title)}</h2>
-              <p className="note">{steps.note}</p>
+              <span className="eyebrow" data-reveal="up">{steps.eyebrow}</span>
+              <h2 data-reveal="blur">{accent(steps.title)}</h2>
+              <p className="note" data-reveal="up">{steps.note}</p>
             </div>
-            <div className="steps-row">
+            <div className="steps-row" data-reveal-steps>
               {steps.items.map((item, i) => (
-                <div key={item.title} className="card step">
+                <div key={item.title} className="card step" data-reveal="up">
                   <span className="num">{String(i + 1).padStart(2, '0')}</span>
                   <h3>{item.title}</h3>
                   <p>{item.text}</p>
                 </div>
               ))}
             </div>
-            <details className="card embed-details">
+            <details className="card embed-details" data-reveal="up">
               <summary>{steps.embed.summary}</summary>
               <div className="embed-body">
                 <p>{steps.embed.text}</p>
@@ -507,11 +548,11 @@ export default async function AgencyPage() {
         <section className="band" id="paketi">
           <div className="wrap">
             <div className="section-head">
-              <span className="eyebrow">{copy.pricing.eyebrow}</span>
-              <h2>
+              <span className="eyebrow" data-reveal="up">{copy.pricing.eyebrow}</span>
+              <h2 data-reveal="blur">
                 {copy.pricing.titleStart} <em><FromPrice count={10} prefix="od " /></em>
               </h2>
-              <p className="note">{copy.pricing.note}</p>
+              <p className="note" data-reveal="up">{copy.pricing.note}</p>
             </div>
             <PromoBanner lang="sr" />
             {/* Isti cenovnik kao na početnoj (components/Pricing.tsx), sa
@@ -524,13 +565,13 @@ export default async function AgencyPage() {
         <section id="pitanja">
           <div className="wrap faq-split">
             <div className="section-head left">
-              <span className="eyebrow">{copy.faq.eyebrow}</span>
-              <h2>{accent(copy.faq.title)}</h2>
-              <p className="note">{copy.faq.note}</p>
+              <span className="eyebrow" data-reveal="up">{copy.faq.eyebrow}</span>
+              <h2 data-reveal="blur">{accent(copy.faq.title)}</h2>
+              <p className="note" data-reveal="up">{copy.faq.note}</p>
             </div>
             <div className="faq-list">
               {copy.faq.items.map((item) => (
-                <details key={item.question} className="card faq-item">
+                <details key={item.question} className="card faq-item" data-reveal="up">
                   <summary>{item.question}</summary>
                   <p>{item.answer}</p>
                 </details>
@@ -544,11 +585,11 @@ export default async function AgencyPage() {
           <div className="wrap">
             <div className="contact-head">
               <div className="section-head left">
-                <span className="eyebrow">{contact.eyebrow}</span>
-                <h2>{accent(contact.title)}</h2>
-                <p className="note">{contact.note}</p>
+                <span className="eyebrow" data-reveal="up">{contact.eyebrow}</span>
+                <h2 data-reveal="blur">{accent(contact.title)}</h2>
+                <p className="note" data-reveal="up">{contact.note}</p>
               </div>
-              <div className="quick-contact">
+              <div className="quick-contact" data-reveal="up">
                 <a className="btn btn-secondary btn-sm qc-phone" href={CONTACT_LINKS.phone} data-track="contact:phone">
                   <span className="qc-dot" />{contact.call}
                 </a>

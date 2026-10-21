@@ -43,12 +43,22 @@ export type InvestorCopy = {
     with: { title: string; tag: string; rows: Row[] };
   };
   demo: { eyebrow: string; title: string; note: string; noteIllustration: string; badge: string; badgeLive: string; fullNote: string; open: string };
+  /**
+   * Priča na skrol "Od zgrade do upita" (components/InvestorStory): 9 kadrova,
+   * redom kao u maketi public/mockup/InvestitorPrica.html.
+   */
   buyer: {
     eyebrow: string;
-    title: string;
-    note: string;
-    steps: { time: string; title: string; text: string }[];
-    end: { text: string; cta: string };
+    steps: { kicker: string; title: string; text: string }[];
+    tabs: [string, string, string, string];
+    facts: { structure: string; area: string; terrace: string; floor: string };
+    priceNote: string;
+    form: { name: [string, string]; phone: [string, string] };
+    send: string;
+    sent: string;
+    d3: string;
+    toast: string;
+    cta: string;
   };
   sales: {
     eyebrow: string;
@@ -142,15 +152,26 @@ export const INVESTOR_COPY: InvestorCopy = {
   },
   buyer: {
     eyebrow: 'Kupac',
-    title: 'Od linka *do upita* za dva minuta',
-    note: 'Sve na telefonu, bez aplikacije i bez dolaska u prodajnu kancelariju.',
     steps: [
-      { time: 'Zgrada', title: 'Bira na zgradi', text: 'Na fotografiji zgrade stanovi su obojeni: slobodan, rezervisan, prodat.' },
-      { time: 'Sprat', title: 'Sužava izbor', text: 'Osnova sprata ili lista svih stanova, uz filtere po spratu, m², sobama i ceni.' },
-      { time: 'Stan', title: 'Vidi sve bitno', text: 'Osnova, 360° tura, 3D i slike, prostorije sa m², PDF letak i kalkulator rata.' },
-      { time: 'Upit', title: 'Javlja se prodaji', text: 'Ime i telefon, a prodaja odmah zna o kom stanu je reč.' }
+      { kicker: 'Zgrada', title: 'Cela zgrada *na jednoj slici*', text: 'Pravi render vašeg projekta, sprat po sprat obeležen.' },
+      { kicker: 'Statusi', title: 'Boja govori *šta je slobodno*', text: 'Slobodan, rezervisan, prodat - kupac vidi odmah, bez poziva.' },
+      { kicker: 'Sprat', title: 'Jedan dodir, i *kupac je na spratu*', text: 'Bira sprat na fasadi i otvara se njegova osnova.' },
+      { kicker: 'Osnova', title: 'Svaki stan *sa svojim m²*', text: 'Prava osnova sprata, stanovi obojeni po statusu.' },
+      { kicker: 'Stan', title: 'Sve bitno *o jednom stanu*', text: 'Struktura, kvadratura, terasa, cena, osnova, 3D i PDF letak.' },
+      { kicker: '3D', title: 'Stan u 3D, *pre nego što je sagrađen*', text: 'Kupac vidi raspored nameštaja i prostorija, ne samo crtež.' },
+      { kicker: 'Upit', title: 'Upit stiže *sa oznakom stana*', text: 'Kupac ostavi ime i telefon; prodaja tačno zna za koji stan.' },
+      { kicker: 'Prodaja', title: 'Status se menja *jednim dodirom*', text: 'Vaša prodaja označi stan kao rezervisan, a sajt se osveži odmah.' },
+      { kicker: 'Primer', title: 'Ovo je *pravi projekat*', text: 'Isprobajte izbor stana na telefonu, isto kao vaš kupac.' }
     ],
-    end: { text: 'Primer iznad radi isto - isprobajte ga na telefonu.', cta: 'Zakažite razgovor' }
+    tabs: ['Osnova', '360°', '3D', 'Slike'],
+    facts: { structure: 'Struktura', area: 'Površina', terrace: 'Terasa', floor: 'Sprat' },
+    priceNote: 'Primer cene - cene nisu ažurirane',
+    form: { name: ['Ime', 'Marko P.'], phone: ['Telefon', '06x xxx xxxx'] },
+    send: 'Pošalji upit',
+    sent: '✓ Upit je stigao prodaji',
+    d3: '3D prikaz',
+    toast: 'Prodaja · primer prikaza',
+    cta: 'Otvorite primer →'
   },
   sales: {
     eyebrow: 'Vaša prodaja',

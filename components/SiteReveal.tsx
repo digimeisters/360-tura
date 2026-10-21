@@ -3,13 +3,16 @@
 import { useEffect } from 'react';
 
 /**
- * Animacije pri skrolu na početnoj (krug 1, vidi
+ * Animacije pri skrolu (početna, za-agencije; vidi
  * docs/superpowers/specs/2026-10-21-animacije-sajta-design.md). Kao
  * CardSpotlight: jedan efekat na nivou dokumenta, pa sadržaj strane ostaje
  * serverski i samo nosi oznake.
  *
  *   data-reveal="up|blur|scale|list"  element izroni kad uđe u ekran
  *   data-reveal-steps                 red koraka "Kako radimo": linija kroz krugove
+ *   data-reveal-group                 dobija .is-in kad uđe u ekran, bez skrivanja -
+ *                                     unutrašnji filmovi su u CSS-u strane
+ *   data-count                        brojevi u tekstu (31%, +79%, 3:40) narastu od nule
  *   .btn-primary                      jedan odsjaj kad se prvi put pojavi
  *
  * Skrivanje važi samo dok je na <html> klasa rv-armed, koju postavlja ova
@@ -27,6 +30,24 @@ export default function SiteReveal() {
     const items = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));
     const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal-steps]'));
     const buttons = Array.from(document.querySelectorAll<HTMLElement>('.btn-primary'));
+    const groups = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal-group]'));
+    const counters = Array.from(document.querySelectorAll<HTMLElement>('[data-count]'));
+    const texts = new Map(counters.map((el) => [el, el.textContent ?? '']));
+    const frames = new Set<number>();
+    // Sve cifre u tekstu rastu zajedno (1200 ms, ease-out); na kraju tačan tekst.
+    const count = (el: HTMLElement) => {
+      const text = texts.get(el) ?? '';
+      if (!/\d/.test(text)) return;
+      const start = performance.now();
+      const step = (now: number) => {
+        const k = Math.min(1, (now - start) / 1200);
+        const e = 1 - Math.pow(1 - k, 3);
+        el.textContent = k < 1 ? text.replace(/\d+/g, (d) => String(Math.round(Number(d) * e))) : text;
+        if (k < 1) frames.add(requestAnimationFrame(step));
+      };
+      el.textContent = text.replace(/\d+/g, '0');
+      frames.add(requestAnimationFrame(step));
+    };
 
     // Redosled u grupi: indeks među braćom koja takođe izranjaju.
     const counts = new Map<Element | null, number>();
@@ -89,8 +110,9 @@ export default function SiteReveal() {
         el.querySelectorAll('[data-reveal]').forEach((step) => step.classList.add('is-in'));
         return;
       }
-      if (el.hasAttribute('data-reveal')) el.classList.add('is-in');
+      if (el.hasAttribute('data-reveal') || el.hasAttribute('data-reveal-group')) el.classList.add('is-in');
       if (el.classList.contains('btn-primary')) el.classList.add('is-shone');
+      if (el.hasAttribute('data-count')) count(el);
     };
 
     const io = new IntersectionObserver((entries) => {
@@ -100,7 +122,7 @@ export default function SiteReveal() {
     }, VIEW);
 
     for (const el of items) if (!el.closest('[data-reveal-steps]')) pending.add(el);
-    for (const el of [...rows, ...buttons]) pending.add(el);
+    for (const el of [...rows, ...buttons, ...groups, ...counters]) pending.add(el);
     pending.forEach((el) => io.observe(el));
 
     // Ono što je ostalo iznad ekrana (skok na #kontakt, osvežavanje usred
@@ -127,6 +149,9 @@ export default function SiteReveal() {
       resizers.forEach((ro) => ro.disconnect());
       added.forEach((el) => el.remove());
       root.classList.remove('rv-armed');
+      frames.forEach((id) => cancelAnimationFrame(id));
+      texts.forEach((text, el) => (el.textContent = text));
+      for (const el of groups) el.classList.remove('is-in');
       for (const el of [...items, ...rows]) el.classList.remove('is-in');
       for (const el of buttons) el.classList.remove('is-shone');
     };
