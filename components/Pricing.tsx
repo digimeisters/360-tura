@@ -28,7 +28,7 @@ export default function Pricing({
     <>
       <div className="price-grid n-2">
         {copy.plans.map((plan) => (
-          <div key={plan.track} className={`card price-card${plan.packageType === 'premium' ? ' featured' : ''}`}>
+          <div key={plan.track} className={`card price-card${plan.packageType === 'premium' ? ' featured' : ''}`} data-reveal="scale">
             {plan.badge && <span className="price-badge">{plan.badge}</span>}
             <SaleSticker />
             <span className="price-audience">{plan.audience}</span>

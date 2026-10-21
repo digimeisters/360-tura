@@ -5,6 +5,10 @@ import HeroTour from '../components/HeroTour';
 import ContactForm from '../components/ContactForm';
 import SiteTracker from '../components/SiteTracker';
 import CardSpotlight from '../components/CardSpotlight';
+import SiteReveal from '../components/SiteReveal';
+import CountUp from '../components/CountUp';
+import TourStory from '../components/TourStory';
+import { getStoryData } from './lib/tourStory';
 import PromoBanner from '../components/PromoBanner';
 import Pricing from '../components/Pricing';
 import NavScrollSpy from '../components/NavScrollSpy';
@@ -77,7 +81,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
   const faq = HOME_FAQ[lang];
   const { nav, hero, contact } = copy;
 
-  const [allTours, openCount] = await Promise.all([getShowcaseTours(lang), getPublicOpenCount()]);
+  const [allTours, openCount, story] = await Promise.all([getShowcaseTours(lang), getPublicOpenCount(), getStoryData(lang)]);
   // Strana kaže "Vaš kvadrat u Kragujevcu" - primeri i kadar u vrhu kreću od tog grada.
   const tours = localToursFirst(allTours);
   const heroTour = pickHeroTour(tours, lang, HOME_CITY);
@@ -100,6 +104,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
       />
       <SiteTracker />
       <CardSpotlight />
+      <SiteReveal />
       <NavScrollSpy />
       <PromoTopBar lang={lang} href="#cenovnik" />
 
@@ -159,7 +164,8 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
       </SiteNav>
       )}
 
-      <main>
+      {/* .home: animacije iz siteStyles (krug 1) važe samo na početnoj. */}
+      <main className="home">
         {/* Vrh je sama tura preko cele širine (vlasnik, 16. 10. 2026): kadar se
             vuče, tačke na tlocrtu menjaju sobu. Tekst stoji na svojoj pločici. */}
         <section className="hero-tour" id="pocetna">
@@ -175,7 +181,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
               {hero.trust.map((item) => (
                 <li key={item}>{item}</li>
               ))}
-              {openCount !== null && <li>{hero.opens(new Intl.NumberFormat(copy.locale).format(openCount))}</li>}
+              {openCount !== null && <li><CountUp value={openCount} lang={lang} kind="count" />{hero.opensSuffix}</li>}
             </ul>
           </div>
         </section>
@@ -184,13 +190,13 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
           <section className="band" id="primeri">
             <div className="wrap">
               <div className="section-head">
-                <span className="eyebrow">{copy.examples.eyebrow}</span>
-                <h2>{accent(copy.examples.title)}</h2>
-                <p className="note">{copy.examples.note}</p>
+                <span className="eyebrow" data-reveal="up">{copy.examples.eyebrow}</span>
+                <h2 data-reveal="blur">{accent(copy.examples.title)}</h2>
+                <p className="note" data-reveal="up">{copy.examples.note}</p>
               </div>
               <div className={`tours-grid home-tours ${gridClass(tours.length)}`}>
                 {tours.map((tour) => (
-                  <TourCard key={tour.slug} tour={tour} labels={tourCardLabels(copy)} lang={lang} />
+                  <TourCard key={tour.slug} tour={tour} labels={tourCardLabels(copy)} lang={lang} reveal />
                 ))}
               </div>
               {copy.examples.allTours && tours.length < TOUR_FILTERS_FROM && (
@@ -201,7 +207,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
               {copy.examples.database && tours.length >= TOUR_FILTERS_FROM && (
                 // Obična GET forma: radi i bez JavaScript-a, a /ture čita
                 // ?kategorija=&grad=&struktura= iz adrese (prazno = bez filtera).
-                <form className="db-teaser" action="/ture" method="get">
+                <form className="db-teaser" data-reveal="up" action="/ture" method="get">
                   <div className="db-teaser-body">
                     <h3 className="db-teaser-title">{copy.examples.database.title}</h3>
                     <p className="db-teaser-text">{copy.examples.database.text}</p>
@@ -251,13 +257,13 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
         <section id="benefiti">
           <div className="wrap">
             <div className="section-head">
-              <span className="eyebrow">{copy.benefits.eyebrow}</span>
-              <h2>{accent(copy.benefits.title)}</h2>
-              <p className="note">{copy.benefits.note}</p>
+              <span className="eyebrow" data-reveal="up">{copy.benefits.eyebrow}</span>
+              <h2 data-reveal="blur">{accent(copy.benefits.title)}</h2>
+              <p className="note" data-reveal="up">{copy.benefits.note}</p>
             </div>
             <div className="feat-grid">
               {copy.benefits.items.map((item) => (
-                <div key={item.title} className="card feat">
+                <div key={item.title} className="card feat" data-reveal="up">
                   <h3>{item.title}</h3>
                   <p>{item.text}</p>
                 </div>
@@ -272,17 +278,21 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
           </div>
         </section>
 
+        {/* Wow sekcija (vlasnik, 21. 10. 2026): posle dugmadi ispod ture, priča
+            šta tura radi u samoj panorami. Bez podataka ture se ne prikazuje. */}
+        {story && <TourStory data={story} copy={copy.story} lang={lang} />}
+
         {/* Poziv na sredini: posle "U samoj turi" posetilac je video šta tura
             radi, a do cenovnika ima još dva ekrana bez ijednog dugmeta. */}
         <section id="zakazite" className="mid-cta-sec">
           <div className="wrap mid-cta">
-            <div className="mid-cta-text">
+            <div className="mid-cta-text" data-reveal="up">
               <h2>{accent(copy.midCta.title)}</h2>
               <ul>
                 {copy.midCta.points.map((point) => <li key={point}>{point}</li>)}
               </ul>
             </div>
-            <div className="mid-cta-actions">
+            <div className="mid-cta-actions" data-reveal="up">
               <a className="btn btn-primary" href="#kontakt" data-track="cta:home_mid">{copy.midCta.button}</a>
               <a className="btn btn-secondary" href={CONTACT_LINKS.phone} data-track="contact:phone"><IconPhone /> {copy.midCta.call}</a>
             </div>
@@ -293,23 +303,23 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
           <div className="wrap steps-split">
             <div className="steps-side">
               <div className="section-head left">
-                <span className="eyebrow">{copy.steps.eyebrow}</span>
-                <h2>{accent(copy.steps.title)}</h2>
-                <p className="note">{copy.steps.note}</p>
+                <span className="eyebrow" data-reveal="up">{copy.steps.eyebrow}</span>
+                <h2 data-reveal="blur">{accent(copy.steps.title)}</h2>
+                <p className="note" data-reveal="up">{copy.steps.note}</p>
               </div>
-              <div className="card deliver-card">
+              <div className="card deliver-card" data-reveal="up">
                 <h3>{copy.steps.deliverTitle}</h3>
                 <ul className="deliver-list">
                   {copy.steps.deliver.map((item) => (
-                    <li key={item}>{item}</li>
+                    <li key={item} data-reveal="list">{item}</li>
                   ))}
                 </ul>
               </div>
             </div>
 
-            <div className="steps-row">
+            <div className="steps-row" data-reveal-steps>
               {copy.steps.items.map((item, i) => (
-                <div key={item.title} className="card step">
+                <div key={item.title} className="card step" data-reveal="up">
                   <span className="num">{String(i + 1).padStart(2, '0')}</span>
                   <h3>{item.title}</h3>
                   <p>{item.text}</p>
@@ -322,9 +332,9 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
         <section className="band" id="cenovnik">
           <div className="wrap">
             <div className="section-head">
-              <span className="eyebrow">{copy.pricing.eyebrow}</span>
-              <h2>{accent(copy.pricing.title)}</h2>
-              <p className="note">{copy.pricing.note}</p>
+              <span className="eyebrow" data-reveal="up">{copy.pricing.eyebrow}</span>
+              <h2 data-reveal="blur">{accent(copy.pricing.title)}</h2>
+              <p className="note" data-reveal="up">{copy.pricing.note}</p>
             </div>
             <PromoBanner lang={lang} />
             <Pricing copy={copy.pricing} lang={lang} trackPrefix="" />
@@ -338,13 +348,13 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
           <section className="agency-bridge services" id="usluge">
             <div className="wrap">
               <div className="section-head left">
-                <span className="eyebrow">{copy.services.eyebrow}</span>
-                <h2>{accent(copy.services.title)}</h2>
-                <p className="note">{copy.services.note}</p>
+                <span className="eyebrow" data-reveal="up">{copy.services.eyebrow}</span>
+                <h2 data-reveal="blur">{accent(copy.services.title)}</h2>
+                <p className="note" data-reveal="up">{copy.services.note}</p>
               </div>
               <div className="svc-grid">
                 {copy.services.items.map((item) => (
-                  <div key={item.href} className="card svc">
+                  <div key={item.href} className="card svc" data-reveal="up">
                     <span className="svc-ico" aria-hidden="true">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                         {SERVICE_ICONS[item.icon]}
@@ -385,13 +395,13 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
         <section id="pitanja">
           <div className="wrap faq-split">
             <div className="section-head left">
-              <span className="eyebrow">{copy.faq.eyebrow}</span>
-              <h2>{accent(copy.faq.title)}</h2>
-              <p className="note">{copy.faq.note}</p>
+              <span className="eyebrow" data-reveal="up">{copy.faq.eyebrow}</span>
+              <h2 data-reveal="blur">{accent(copy.faq.title)}</h2>
+              <p className="note" data-reveal="up">{copy.faq.note}</p>
             </div>
             <div className="faq-list">
               {faq.map((item) => (
-                <details key={item.question} className="card faq-item">
+                <details key={item.question} className="card faq-item" data-reveal="up">
                   <summary>{item.question}</summary>
                   <p>{item.answer}</p>
                 </details>
@@ -404,11 +414,11 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
           <div className="wrap">
             <div className="contact-head">
               <div className="section-head left">
-                <span className="eyebrow">{contact.eyebrow}</span>
-                <h2>{accent(contact.title)}</h2>
-                <p className="note">{contact.note}</p>
+                <span className="eyebrow" data-reveal="up">{contact.eyebrow}</span>
+                <h2 data-reveal="blur">{accent(contact.title)}</h2>
+                <p className="note" data-reveal="up">{contact.note}</p>
               </div>
-              <div className="quick-contact">
+              <div className="quick-contact" data-reveal="up">
                 <a className="btn btn-secondary btn-sm qc-phone" href={CONTACT_LINKS.phone} data-track="contact:phone">
                   <span className="qc-dot" />{contact.call}
                 </a>
@@ -421,7 +431,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
               </div>
             </div>
             <ContactForm lang={lang} />
-            <dl className="info-list">
+            <dl className="info-list" data-reveal="up">
               <div className="card">
                 <dt>{contact.labels.phone}</dt>
                 <dd><a href={CONTACT_LINKS.phone} data-track="contact:phone">{CONTACT.phoneDisplay}</a></dd>

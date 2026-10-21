@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { MODAL_ICONS } from '../app/tour/[slug]/icons';
 import { accent } from '../app/lib/accent';
 import type { ModulesCopy, TourModuleKey } from '../app/lib/homeCopy';
@@ -19,8 +19,22 @@ import type { ModulesCopy, TourModuleKey } from '../app/lib/homeCopy';
  * neviđenim dugmadima pulsira tačka, a brojač broji viđena. Čim posetilac sam
  * klikne, smenjivanje staje zauvek. Ko je u sistemu isključio pokrete, nema
  * ni smenjivanja ni pulsiranja.
+ *
+ * Telefon uz svako dugme odigra kratak film (vlasnik, 21. 10. 2026; maketa
+ * public/mockup/DugmadTura.html): cena se izbroji, odgovor se otkuca,
+ * pribadača padne, tačka obiđe plan, forma se popuni i zahtev "ode". Sve se
+ * računa iz jednog sata (ms); pre puštanja, bez JS-a i uz smanjene pokrete sat
+ * stoji na kraju, pa telefon pokazuje gotov list.
  */
-const AUTO_MS = 3500;
+const AUTO_MS = 4600;
+
+// Mikro-film u telefonu traje FILM_MS; ostatak kruga posetilac gleda gotov list.
+const FILM_MS = 4000;
+// Plan u telefonu: pet prostorija i put kojim tačka obilazi (x, y, prostorija).
+const PLAN_ROOMS = [[6, 6, 104, 70], [110, 6, 84, 70], [6, 76, 54, 58], [60, 76, 80, 58], [140, 76, 54, 58]] as const;
+const PLAN_PATH = [[58, 40, 0], [100, 106, 3], [32, 106, 2], [100, 106, 3], [168, 106, 4], [152, 40, 1]] as const;
+
+const motionOK = () => !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export default function TourModulesShowcase({ copy, photoUrl }: { copy: ModulesCopy; photoUrl: string | null }) {
   const [active, setActive] = useState<TourModuleKey>('about');
@@ -31,7 +45,17 @@ export default function TourModulesShowcase({ copy, photoUrl }: { copy: ModulesC
   const item = copy.items.find((i) => i.key === active) ?? copy.items[0];
   const p = copy.preview;
 
+  const [ms, setMs] = useState(FILM_MS);
+  // Svako puštanje filma dobija nov list (key), da se i CSS ulasci puste iznova.
+  const [run, setRun] = useState(0);
+  const startFilm = () => {
+    if (!motionOK()) return;
+    setMs(0);
+    setRun((r) => r + 1);
+  };
+
   const show = (key: TourModuleKey) => {
+    startFilm();
     setActive(key);
     setSeen((prev) => (prev.has(key) ? prev : new Set(prev).add(key)));
   };
@@ -43,7 +67,13 @@ export default function TourModulesShowcase({ copy, photoUrl }: { copy: ModulesC
   useEffect(() => {
     const el = rootRef.current?.querySelector('.mods-bar');
     if (!el || typeof IntersectionObserver === 'undefined') return;
-    const io = new IntersectionObserver(([e]) => setInView(e.isIntersecting), { threshold: 0.6 });
+    const io = new IntersectionObserver(
+      ([e]) => {
+        setInView(e.isIntersecting);
+        if (e.isIntersecting) startFilm();
+      },
+      { threshold: 0.6 }
+    );
     io.observe(el);
     return () => io.disconnect();
   }, []);
@@ -60,15 +90,38 @@ export default function TourModulesShowcase({ copy, photoUrl }: { copy: ModulesC
   }, [auto, inView, active]);
 
   const running = auto && inView;
+
+  // Sat filma ide samo dok je traka na ekranu.
+  useEffect(() => {
+    if (!inView || !motionOK()) return;
+    const start = performance.now();
+    let frame = requestAnimationFrame(function tick(now) {
+      const t = now - start;
+      setMs(Math.min(t, FILM_MS));
+      if (t < FILM_MS) frame = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [active, inView, run]);
+
+  const at = (t: number) => ms >= t;
+  const typed = (text: string, start: number, speed: number) => text.slice(0, Math.max(0, Math.floor((ms - start) / speed)));
+  const typing = (text: string, start: number, speed: number) => at(start) && typed(text, start, speed).length < text.length;
+  const delay = (d: number) => ({ ['--d']: `${d}ms` }) as CSSProperties;
+  const priceNum = Number(p.price.replace(/\D/g, ''));
+  const countedPrice =
+    at(FILM_MS) || !priceNum
+      ? p.price
+      : p.price.replace(/\d[\d.,]*/,Math.round(priceNum * (1 - Math.pow(1 - Math.min(1, ms / 900), 3))).toLocaleString(p.price.includes(',') ? 'en-US' : 'de-DE'));
+  const walker = PLAN_PATH[ms < 500 ? 0 : Math.min(PLAN_PATH.length - 1, 1 + Math.floor((ms - 500) / 700))];
   const seenText = copy.seen.replace('{n}', String(seen.size)).replace('{total}', String(copy.items.length));
 
   return (
     <div className="mods" ref={rootRef}>
       <style>{STYLES}</style>
       <div className="section-head">
-        <span className="eyebrow">{copy.eyebrow}</span>
-        <h2>{accent(copy.title)}</h2>
-        <p className="note">{copy.note}</p>
+        <span className="eyebrow" data-reveal="up">{copy.eyebrow}</span>
+        <h2 data-reveal="blur">{accent(copy.title)}</h2>
+        <p className="note" data-reveal="up">{copy.note}</p>
       </div>
 
       <div className="mods-grid">
@@ -121,9 +174,10 @@ export default function TourModulesShowcase({ copy, photoUrl }: { copy: ModulesC
           </div>
         </div>
 
-        <div className="mods-phone" aria-hidden="true">
+        <div className="mods-phone" aria-hidden="true" data-reveal="scale">
           <div className="mods-screen" style={photoUrl ? { backgroundImage: `url(${photoUrl})` } : undefined}>
-            <div className="mods-sheet">
+            {/* key: novi list za svako dugme, pa se CSS filmovi (podizanje, ulazak redova) puštaju iznova. */}
+            <div className="mods-sheet" key={`${active}-${run}`}>
               <div className="mods-sh-h">
                 <b>{item.tab}</b>
                 <span className="mods-x">×</span>
@@ -133,10 +187,10 @@ export default function TourModulesShowcase({ copy, photoUrl }: { copy: ModulesC
                 <>
                   <div className="mods-hero">
                     <small>{p.category.toUpperCase()} · {p.place.toUpperCase()}</small>
-                    <div className="mods-price">{p.price}</div>
+                    <div className="mods-price">{countedPrice}</div>
                     <div className="mods-keys">
-                      {p.keys.map(([v, l]) => (
-                        <div key={l}>
+                      {p.keys.map(([v, l], i) => (
+                        <div key={l} className="mods-in" style={delay(250 + i * 90)}>
                           {v}
                           <i>{l}</i>
                         </div>
@@ -144,10 +198,12 @@ export default function TourModulesShowcase({ copy, photoUrl }: { copy: ModulesC
                     </div>
                   </div>
                   <div className="mods-card" style={{ marginTop: 9 }}>
-                    {p.rows.map(([l, v, ok]) => (
-                      <div key={l} className="mods-row">
+                    {p.rows.map(([l, v, ok], i) => (
+                      <div key={l} className="mods-row mods-in" style={delay(520 + i * 130)}>
                         <span>{l}</span>
-                        <b className={ok ? 'ok' : undefined}>{v}</b>
+                        <b className={ok ? 'ok' : undefined}>
+                          {ok ? <span className="mods-pop" style={delay(700 + i * 130)}>{v}</span> : v}
+                        </b>
                       </div>
                     ))}
                   </div>
@@ -157,12 +213,27 @@ export default function TourModulesShowcase({ copy, photoUrl }: { copy: ModulesC
               {active === 'faq' && (
                 <div className="mods-card">
                   {p.questions.map((q, i) => (
-                    <div key={q}>
-                      <div className="mods-q">
+                    <div key={q} className="mods-in" style={delay(100 + i * 90)}>
+                      <div className={`mods-q${i === 0 && at(700) && !at(1100) ? ' pressed' : ''}`}>
                         {q}
-                        <span>{i === 0 ? '−' : '+'}</span>
+                        <span>{i === 0 && at(700) ? '−' : '+'}</span>
                       </div>
-                      {i === 0 && <div className="mods-ans">{p.answer}</div>}
+                      {i === 0 && at(700) && (
+                        <div className="mods-ans">
+                          {at(1350) ? (
+                            <>
+                              {typed(p.answer, 1350, 32)}
+                              {typing(p.answer, 1350, 32) && <span className="mods-caret" />}
+                            </>
+                          ) : (
+                            <span className="mods-dots">
+                              <i />
+                              <i />
+                              <i />
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -172,14 +243,16 @@ export default function TourModulesShowcase({ copy, photoUrl }: { copy: ModulesC
                 <>
                   <div className="mods-card" style={{ overflow: 'hidden' }}>
                     <div className="mods-map">
+                      <span className="mods-area" />
                       <i />
+                      <span className="mods-hidden-no">{p.hiddenNumber}</span>
                     </div>
-                    <div className="mods-row" style={{ padding: '11px 12px' }}>
+                    <div className="mods-row mods-in" style={{ ...delay(900), padding: '11px 12px' }}>
                       <span>{p.addressLabel}</span>
                       <b>{p.address}</b>
                     </div>
                   </div>
-                  <div className="mods-btn" style={{ marginTop: 10 }}>↗ {p.openMaps}</div>
+                  <div className="mods-btn mods-in" style={{ ...delay(1100), marginTop: 10 }}>↗ {p.openMaps}</div>
                 </>
               )}
 
@@ -188,36 +261,53 @@ export default function TourModulesShowcase({ copy, photoUrl }: { copy: ModulesC
                   <p className="mods-plan-h">{p.planHeading}</p>
                   <div className="mods-card" style={{ padding: 8 }}>
                     <svg viewBox="0 0 200 140" width="100%" fill="none" stroke="#2A2B30" strokeWidth="2.2">
+                      {PLAN_ROOMS.map(([x, y, w, h], i) => (
+                        <rect key={i} x={x} y={y} width={w} height={h} stroke="none" className={`mods-room${walker[2] === i ? ' on' : ''}`} />
+                      ))}
                       <rect x="6" y="6" width="188" height="128" />
                       <path d="M110 6v70M6 76h80M104 76h90M140 76v58M60 76v58" />
-                      <g fill="#5B92D6" stroke="#fff" strokeWidth="2.5">
-                        <circle cx="58" cy="40" r="7" />
-                      </g>
                       <g fill="rgba(15,23,42,.55)" stroke="#fff" strokeWidth="2">
                         <circle cx="152" cy="40" r="5.5" />
                         <circle cx="32" cy="106" r="5.5" />
                         <circle cx="100" cy="106" r="5.5" />
                         <circle cx="168" cy="106" r="5.5" />
                       </g>
+                      <circle className="mods-walker" cx={walker[0]} cy={walker[1]} r="7" fill="#5B92D6" stroke="#fff" strokeWidth="2.5" />
                     </svg>
                   </div>
+                  <p className="mods-plan-tip mods-in" style={delay(300)}>{p.planTip}</p>
                 </>
               )}
 
               {active === 'contact' && (
                 <>
-                  <div className="mods-agent">
+                  <div className="mods-agent mods-in">
                     <span className="mods-av">MM</span>
                     <div>
                       <b>{p.agent}</b>
                       <div>{p.agency}</div>
                     </div>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginTop: 9 }}>
+                  <div className="mods-in" style={{ ...delay(150), display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginTop: 9 }}>
                     <div className="mods-btn">{p.call}</div>
                     <div className="mods-btn out">{p.email}</div>
                   </div>
-                  <div className="mods-btn" style={{ marginTop: 9, padding: 13 }}>{p.viewing}</div>
+                  {at(800) && (
+                    <div className="mods-form">
+                      {([[p.form.name, 1000, 45], [p.form.phone, 1350, 30], [p.form.slot, 1850, 35]] as const).map(([[label, value], start, speed], i) => (
+                        <div key={label} className="mods-field mods-in" style={delay(i * 80)}>
+                          <span>{label}</span>
+                          <b>{typed(value, start, speed)}</b>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div
+                    className={`mods-btn mods-in${at(3200) ? ' sent' : ''}${(at(800) && !at(1100)) || (at(2700) && !at(3000)) ? ' pressed' : ''}`}
+                    style={{ ...delay(300), marginTop: 9, padding: 13 }}
+                  >
+                    {!at(800) ? p.viewing : !at(2700) ? p.send : !at(3200) ? p.sending : p.sent}
+                  </div>
                 </>
               )}
 
@@ -297,5 +387,43 @@ const STYLES = `
 @media (max-width:480px){
   .mods-who{grid-template-columns:1fr;}
   .mods-tab{font-size:11px;}
+}
+
+/* Mikro-filmovi u telefonu (vrednosti iz makete public/mockup/DugmadTura.html). */
+.mods-sheet{animation:modsSheetUp .42s cubic-bezier(.22,.8,.24,1) both;}
+@keyframes modsSheetUp{from{transform:translateY(38%); opacity:.4;} to{transform:none; opacity:1;}}
+.mods-in{animation:modsIn .45s cubic-bezier(.22,.8,.24,1) both; animation-delay:var(--d,0ms);}
+@keyframes modsIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;}}
+.mods-pop{display:inline-block; animation:modsPop .45s cubic-bezier(.34,1.56,.64,1) both; animation-delay:var(--d,0ms);}
+@keyframes modsPop{from{transform:scale(0);} to{transform:scale(1);}}
+.mods-q{transition:background .25s;}
+.mods-q.pressed{background:#EAF1FB;}
+.mods-dots{display:inline-flex; gap:3px;}
+.mods-dots i{width:5px; height:5px; border-radius:50%; background:#9DBBE3; animation:modsDot 1s infinite;}
+.mods-dots i:nth-child(2){animation-delay:.15s;} .mods-dots i:nth-child(3){animation-delay:.3s;}
+@keyframes modsDot{0%,80%,100%{opacity:.3;} 40%{opacity:1;}}
+.mods-caret{display:inline-block; width:1.5px; height:12px; background:#1E5AA8; margin-left:1px; vertical-align:-2px; animation:modsBlink .8s steps(1) infinite;}
+@keyframes modsBlink{50%{opacity:0;}}
+.mods-map{animation:modsMapPan 2.6s cubic-bezier(.22,.8,.24,1) both;}
+@keyframes modsMapPan{from{background-position:-60px 30px;} to{background-position:0 0;}}
+.mods-map i{animation:modsPin .6s cubic-bezier(.34,1.56,.64,1) .55s both;}
+@keyframes modsPin{from{transform:translateY(-120px) rotate(-45deg); opacity:0;} 60%{opacity:1;} to{transform:rotate(-45deg); opacity:1;}}
+.mods-area{position:absolute; left:calc(50% + 11px); top:calc(44% + 11px); width:120px; height:120px; margin:-60px 0 0 -60px; border-radius:50%; background:rgba(30,90,168,.14); border:2px solid rgba(30,90,168,.45); animation:modsArea .8s cubic-bezier(.22,.8,.24,1) 1.05s both;}
+@keyframes modsArea{from{transform:scale(0);} to{transform:scale(1);}}
+.mods-hidden-no{position:absolute; left:10px; bottom:10px; background:#fff; border-radius:999px; font-size:10.5px; font-weight:700; padding:5px 9px; color:#1E5AA8; box-shadow:0 4px 12px -6px rgba(0,0,0,.35); animation:modsIn .4s ease 1.6s both;}
+.mods-room{fill:rgba(91,146,214,0); transition:fill .35s ease .3s;}
+.mods-room.on{fill:rgba(91,146,214,.22);}
+.mods-walker{transition:cx .55s cubic-bezier(.45,0,.55,1), cy .55s cubic-bezier(.45,0,.55,1);}
+.mods-plan-tip{margin:9px 2px 0; font-size:12px; color:#5B5D63;}
+.mods-form{display:grid; gap:7px; margin-top:9px;}
+.mods-field{background:#fff; border:1.5px solid #9DBBE3; border-radius:12px; padding:7px 11px; font-size:12px; display:flex; justify-content:space-between;}
+.mods-field span{color:#5B5D63;}
+.mods-field b{font-family:var(--font-urbanist),sans-serif; font-size:13px; min-height:1em;}
+.mods-btn{transition:background .3s, filter .2s;}
+.mods-btn.pressed{filter:brightness(1.18);}
+.mods-btn.sent{background:#1E7A4C;}
+@media (prefers-reduced-motion: reduce){
+  .mods-sheet, .mods-in, .mods-pop, .mods-map, .mods-map i, .mods-area, .mods-hidden-no, .mods-dots i, .mods-caret{animation:none;}
+  .mods-room, .mods-walker{transition:none;}
 }
 `;

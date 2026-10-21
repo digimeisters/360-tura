@@ -1119,4 +1119,154 @@ export const SITE_STYLES = `
   .foot-links a:hover, .foot-contact a:hover{color:var(--accent);}
   .foot-note{padding-top:1.2rem; border-top:1px solid var(--line);}
   @media (max-width:640px){ .foot-main{flex-direction:column; align-items:flex-start;} }
+
+  /* ---------- ANIMACIJE (krug 1, početna; vidi docs/superpowers/specs/2026-10-21-animacije-sajta-design.md) ----------
+     Elementi sa data-reveal se skrivaju samo pod html.rv-armed, koji postavlja
+     components/SiteReveal posle učitavanja. Bez JS-a, pre hidratacije i uz
+     smanjene pokrete sve je vidljivo kao ranije. Tempo "Srednje" (vlasnik, 21. 10. 2026). */
+  :root{--rv-dist:18px; --rv-dur:.8s; --rv-step:90ms; --rv-ease:cubic-bezier(.22,.8,.24,1);}
+  [data-reveal]{transition:opacity var(--rv-dur) var(--rv-ease), transform var(--rv-dur) var(--rv-ease), filter var(--rv-dur) var(--rv-ease); transition-delay:calc(var(--i,0) * var(--rv-step));}
+  html.rv-armed [data-reveal]:not(.is-in){opacity:0; transform:translateY(var(--rv-dist));}
+  html.rv-armed [data-reveal="blur"]:not(.is-in){filter:blur(8px);}
+  html.rv-armed [data-reveal="scale"]:not(.is-in){transform:translateY(var(--rv-dist)) scale(.965);}
+  html.rv-armed [data-reveal="list"]:not(.is-in){transform:translateX(calc(var(--rv-dist) * -1));}
+
+  /* Sve ispod važi samo unutar <main class="home"> (početna); ostale strane dobijaju animacije u svom krugu.
+     Hero ne čeka JS: naslov, uvod, dugmad i činjenice izranjaju pri učitavanju, fotografija se približi. */
+  @keyframes rv-hero-in{from{opacity:0; transform:translateY(18px); filter:blur(8px);} to{opacity:1; transform:none; filter:none;}}
+  @keyframes rv-hero-zoom{from{transform:scale(1.07);} to{transform:scale(1);}}
+  @media (prefers-reduced-motion:no-preference){
+    .home .ht-copy h1, .home .ht-copy .lede, .home .ht-copy .hero-ctas, .home .ht-facts li{animation:rv-hero-in .8s cubic-bezier(.22,.8,.24,1) both;}
+    .home .ht-copy .lede{animation-delay:90ms;}
+    .home .ht-copy .hero-ctas{animation-delay:180ms;}
+    .home .ht-facts li:nth-child(1){animation-delay:270ms;}
+    .home .ht-facts li:nth-child(2){animation-delay:360ms;}
+    .home .ht-facts li:nth-child(3){animation-delay:450ms;}
+    .home .ht-facts li:nth-child(4){animation-delay:540ms;}
+    .home .ht-still{animation:rv-hero-zoom 2.4s cubic-bezier(.2,.7,.2,1) both;}
+  }
+
+  /* "Kako radimo" - Linija (B2a): vodilica kroz krugove 01-04, plava linija se spušta, krug se popuni kad ga dotakne. */
+  [data-reveal-steps]{position:relative; --sg:calc(var(--rv-step) * 6);}
+  [data-reveal-steps] .step .num{position:relative; z-index:1;}
+  /* Stara siva spojnica koraka (.steps-split .step::before) bi stajala preko nove linije; bez JS-a ostaje. */
+  html.rv-armed [data-reveal-steps] .step::before{display:none;}
+  [data-reveal-steps] .step[data-reveal]{transition-delay:calc(var(--i,0) * var(--sg));}
+  .rv-steps-track, .rv-steps-line{position:absolute; width:2px; border-radius:2px; pointer-events:none; z-index:0;}
+  .rv-steps-track{background:#dbe4f0;}
+  .rv-steps-line{background:#1e5aa8; transform:scaleY(0); transform-origin:top; transition:transform calc(var(--sg) * 3) cubic-bezier(.45,0,.55,1) .15s;}
+  [data-reveal-steps].is-in .rv-steps-line{transform:scaleY(1);}
+  html.rv-armed [data-reveal-steps] .step .num{transition:background .35s ease, color .35s ease, box-shadow .35s ease; transition-delay:calc(var(--i,0) * var(--sg) + .15s);}
+  html.rv-armed [data-reveal-steps] .step:not(.is-in) .num{background:#fff; color:#1e5aa8; box-shadow:inset 0 0 0 2px #1e5aa8;}
+
+  /* Pitanja i tabela popusta: odgovor se glatko otvara (gde pregledač to podržava). */
+  .home{interpolate-size:allow-keywords;}
+  .home details.faq-item::details-content, .home details.vol-details::details-content{height:0; overflow:clip; transition:height .45s var(--rv-ease), content-visibility .45s allow-discrete;}
+  .home details.faq-item[open]::details-content, .home details.vol-details[open]::details-content{height:auto;}
+
+  /* Glavno dugme: jedan blagi odsjaj kad se prvi put pojavi. */
+  html.rv-armed .btn-primary{position:relative; overflow:hidden;}
+  html.rv-armed .btn-primary::after{content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.45) 50%,transparent 65%); transform:translateX(-120%);}
+  html.rv-armed .btn-primary.is-shone::after{transform:translateX(120%); transition:transform 1.1s ease .35s;}
+
+  /* Kartica ture koja izranja: njeno podizanje pod mišem ide preko translate, a ne transform. */
+  .tour-card[data-reveal]{transition:opacity var(--rv-dur) var(--rv-ease) calc(var(--i,0) * var(--rv-step)), transform var(--rv-dur) var(--rv-ease) calc(var(--i,0) * var(--rv-step)), translate .18s ease, box-shadow .18s ease, border-color .18s ease;}
+  @media (hover:hover){ .tour-card[data-reveal].is-in:hover{transform:none; translate:0 -3px;} }
+
+  /* Kartice benefita i usluga se blago podignu pod mišem (kartice tura to već imaju).
+     Podizanje ide preko svojstva translate, da ne pregazi transform izrona (i njegovo kašnjenje u nizu). */
+  .home .card.feat, .home .card.svc{transition:opacity var(--rv-dur) var(--rv-ease) calc(var(--i,0) * var(--rv-step)), transform var(--rv-dur) var(--rv-ease) calc(var(--i,0) * var(--rv-step)), filter var(--rv-dur) var(--rv-ease) calc(var(--i,0) * var(--rv-step)), translate .35s var(--rv-ease), box-shadow .35s var(--rv-ease);}
+  @media (hover:hover){ .home .card.feat:hover, .home .card.svc:hover{translate:0 -4px; box-shadow:0 14px 34px -18px rgba(15,23,42,.35);} }
+
+  /* ---------- "OD TLOCRTA DO TURE" (components/TourStory + TourStoryPlayer) ----------
+     Bez JS-a: tlocrt + lista od 8 koraka. Sa JS-om (.is-armed): visoka sekcija,
+     "zalepljena" scena i kadrovi po skrolu (maketa public/mockup/TlocrtTura.html). */
+  .story{background:var(--surface); padding:clamp(3rem,7vw,5.5rem) 0;}
+  .story-stage{max-width:1180px; margin:0 auto; padding:0 clamp(1rem,4vw,2.5rem); display:grid; grid-template-columns:minmax(260px,1fr) 1.6fr; gap:clamp(1.5rem,4vw,3rem); align-items:center;}
+  .story-steps{list-style:none; margin:1rem 0 0; padding:0; display:grid; gap:1.1rem;}
+  .story-kicker{display:block; font-size:.72rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); margin-bottom:.35rem;}
+  .story-step h3{font-size:clamp(1.15rem,1.6vw,1.35rem); letter-spacing:-.02em; margin:0 0 .3rem;}
+  .story-step p{margin:0; color:var(--ink-soft); line-height:1.5;}
+  .story-cta{margin-top:1rem;}
+  .story-progress{display:none;}
+  .story-view{position:relative; width:100%; overflow:hidden; border-radius:18px;}
+  .story-plan{position:absolute; inset:0; transform-origin:0 0;}
+  .story-plan svg{display:block; width:100%; height:100%;}
+  /* Isti izgled kao šematski SVG ture (floorplanLayout PLAN_STYLE), ali samo unutar sekcije. */
+  .story-plan .room, .story-mini .room{fill:#F7F7F4; stroke:#2B2D33; stroke-width:7; stroke-linejoin:miter;}
+  .story-plan .outdoor, .story-mini .outdoor{fill:#EEF3F8; stroke-dasharray:14 8; stroke-width:4;}
+  .story-plan .seam, .story-mini .seam{stroke:#F7F7F4; stroke-width:10; stroke-linecap:butt;}
+  .story-plan .outdoor-seam, .story-mini .outdoor-seam{stroke:#EEF3F8;}
+  .story-plan .door, .story-mini .door{stroke:#F7F7F4; stroke-width:10; stroke-linecap:butt;}
+  .story-plan text{font-family:var(--font-display),Inter,Arial,sans-serif; fill:#2B2D33; font-weight:700;}
+  .story-plan text.note{font-size:15px; fill:#8C8E93; font-weight:500;}
+  .story-cam{fill:#1e5aa8;}
+  .story-cam-ring{fill:none; stroke:#1e5aa8; stroke-width:4; opacity:.35;}
+  .story-cams > g{transform-box:fill-box; transform-origin:center;}
+  .story-pano, .story-ui, .story-ui > *{display:none;}
+
+  .story.is-armed{height:640vh; padding:0;}
+  .story.is-armed .story-stage{position:sticky; top:0; height:100vh; height:100svh;}
+  .story.is-armed .story-text{position:relative;}
+  .story.is-armed .story-steps{position:relative; height:240px; margin:0; display:block;}
+  /* visibility: korak koji se ne vidi nije ni dostupan tastaturi (dugme ka turi u poslednjem koraku). */
+  .story.is-armed .story-step{position:absolute; inset:0; opacity:0; visibility:hidden; transform:translateY(14px); pointer-events:none; transition:opacity .45s ease, transform .45s ease, visibility 0s linear .45s;}
+  .story.is-armed .story-step.on{opacity:1; visibility:visible; transform:none; pointer-events:auto; transition-delay:0s;}
+  .story.is-armed .story-step h3{font-size:clamp(1.5rem,3vw,2.35rem); line-height:1.12; margin-bottom:.6rem;}
+  .story.is-armed .story-step p{font-size:1.02rem; max-width:36ch;}
+  .story.is-armed .story-progress{display:flex; gap:5px; margin-top:1.2rem;}
+  .story-progress i{height:3px; flex:1; max-width:34px; border-radius:3px; background:var(--line); overflow:hidden; position:relative;}
+  .story-progress b{position:absolute; inset:0; background:var(--accent); transform-origin:left; transform:scaleX(0);}
+  .story.is-armed .story-view{max-height:82vh; justify-self:center;}
+  .story.is-armed .story-pano{display:block; position:absolute; inset:0; opacity:0; pointer-events:none; background:#ccc 0 52%/auto 165% repeat-x;}
+  .story.is-armed .story-pano-b{z-index:1;}
+  .story.is-armed .story-ui{display:block; position:absolute; inset:0; z-index:3; pointer-events:none;}
+  .story.is-armed .story-ui > *{display:block;}
+  .story-tag{position:absolute; left:14px; top:14px; background:rgba(17,17,19,.72); color:#fff; font-size:13px; font-weight:600; padding:7px 11px; border-radius:999px; backdrop-filter:blur(6px); opacity:0;}
+  .story-hs{position:absolute; width:34px; height:34px; margin:-17px 0 0 -17px; border-radius:50%; background:rgba(255,255,255,.95); opacity:0; transform:scale(.4); transition:opacity .3s, transform .4s cubic-bezier(.34,1.56,.64,1);}
+  .story-hs::after{content:"i"; position:absolute; inset:0; display:grid; place-items:center; font:800 16px/1 Georgia,serif; color:#1e5aa8;}
+  .story-hs.on{opacity:1; transform:scale(1); animation:story-pulse 1.6s ease-out infinite;}
+  @keyframes story-pulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.75);} 100%{box-shadow:0 0 0 18px rgba(255,255,255,0);}}
+  .story-card{position:absolute; width:min(300px,64%); background:rgba(255,255,255,.96); border-radius:14px; padding:14px 16px; box-shadow:0 18px 40px -16px rgba(0,0,0,.45); opacity:0; transform:translateY(8px) scale(.97); transform-origin:top left; transition:opacity .35s, transform .35s;}
+  .story-card.on{opacity:1; transform:none;}
+  .story-card b{display:block; font-size:15px; margin-bottom:4px;}
+  .story-card p{margin:0; font-size:13px; line-height:1.45; color:#3d4250;}
+  .story-play{display:inline-block; margin-top:8px; font-size:12px; font-weight:700; color:#1e5aa8;}
+  .story-door{position:absolute; transform:translate(-50%,-50%); text-align:center; opacity:0; transition:opacity .3s;}
+  .story-door.on{opacity:1;}
+  .story-arrow{display:grid; place-items:center; width:46px; height:46px; margin:0 auto 6px; border-radius:50%; background:rgba(17,17,19,.6); border:2px solid #fff; backdrop-filter:blur(4px);}
+  .story-arrow svg{width:22px; height:22px;}
+  .story-door-label{display:inline-block; background:rgba(255,255,255,.95); font-size:13px; font-weight:700; padding:6px 11px; border-radius:999px; white-space:nowrap;}
+  .story-mini{position:absolute; right:12px; bottom:12px; width:30%; max-width:170px; background:rgba(255,255,255,.94); border-radius:10px; padding:5px; box-shadow:0 10px 26px -12px rgba(0,0,0,.5); opacity:0; transition:opacity .35s;}
+  .story-mini.on{opacity:1;}
+  .story-mini svg{display:block; width:100%; height:auto;}
+  .story-mini .room{stroke-width:9;}
+  .story-sub{position:absolute; left:14px; bottom:14px; width:min(520px, calc(100% - 28px - 32%)); opacity:0; transition:opacity .35s;}
+  .story-sub.on{opacity:1;}
+  .story-langs{display:flex; gap:5px; margin-bottom:7px;}
+  .story-langs i{font-style:normal; font-size:11px; font-weight:800; letter-spacing:.06em; padding:4px 8px; border-radius:999px; background:rgba(17,17,19,.55); color:#cbd5e1; transition:background .25s, color .25s;}
+  .story-langs i.on{background:#1e5aa8; color:#fff;}
+  .story-subbox{display:flex; gap:10px; align-items:center; background:rgba(17,17,19,.76); color:#fff; border-radius:12px; padding:10px 12px; backdrop-filter:blur(6px);}
+  .story-waves{display:flex; gap:3px; align-items:center; height:20px; flex:none;}
+  .story-waves u{width:3px; border-radius:2px; background:#7fb0ff; animation:story-wave 1s ease-in-out infinite;}
+  .story-waves u:nth-child(2){animation-delay:-.2s;} .story-waves u:nth-child(3){animation-delay:-.4s;} .story-waves u:nth-child(4){animation-delay:-.6s;}
+  @keyframes story-wave{0%,100%{height:5px;} 50%{height:18px;}}
+  .story-subtxt{font-size:14px; line-height:1.4; min-height:2.8em;}
+
+  @media (max-width:760px){
+    .story-stage{grid-template-columns:1fr;}
+    .story-view{order:-1;}
+    .story.is-armed{height:520vh;}
+    .story.is-armed .story-stage{align-content:center; gap:26px;}
+    .story.is-armed .story-view{max-height:none; border-radius:14px;}
+    .story.is-armed .story-steps{height:180px;}
+    .story.is-armed .story-step h3{font-size:1.45rem;}
+    .story.is-armed .story-step p{font-size:.95rem;}
+    .story.is-armed .story-progress{position:absolute; top:-14px; left:0; right:0; margin:0;}
+    .story-card{width:72%; padding:11px 12px;} .story-card p{font-size:12px;}
+    .story-mini{width:34%;}
+    .story-sub{width:calc(100% - 28px);}
+    .story-subtxt{font-size:12.5px;}
+    .story-door-label{font-size:12px;}
+  }
 `;

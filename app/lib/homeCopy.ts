@@ -46,6 +46,14 @@ export type ModulesCopy = {
     email: string;
     viewing: string;
     credit: string;
+    /** Mikro-filmovi u telefonu (vlasnik, 21. 10. 2026; maketa public/mockup/DugmadTura.html). */
+    hiddenNumber: string;
+    planTip: string;
+    /** Primer posetioca koji zakazuje: [oznaka, vrednost]. Izmišljen, kao i agent. */
+    form: { name: [string, string]; phone: [string, string]; slot: [string, string] };
+    send: string;
+    sending: string;
+    sent: string;
   };
 };
 
@@ -100,6 +108,23 @@ export type HomeService = {
   isNew?: boolean;
 };
 
+/**
+ * Tekst sekcije "Od tlocrta do ture": 8 koraka redom kao kadrovi u
+ * docs/superpowers/specs/2026-10-21-animacije-sajta-design.md. Naslovi koriste
+ * *akcenat* kao ostali naslovi sajta.
+ */
+export type StoryCopy = {
+  eyebrow: string;
+  steps: { kicker: string; title: string; text: string }[];
+  /** Natpis na kartici hotspota ispod opisa. */
+  guideReads: string;
+  /** Natpis strelice kad tura nema tekst na jeziku strane. */
+  doorFallback: string;
+  cta: string;
+  /** Naziv ture u poslednjem koraku. */
+  tourName: string;
+};
+
 export type HomeCopy = {
   locale: string;
   meta: { title: string; description: string };
@@ -131,7 +156,8 @@ export type HomeCopy = {
     ctaTour: string;
     ctaPackages: string;
     trust: string[];
-    opens: (count: string) => string;
+    /** Posle broja otvaranja tura u heroju (broj broji components/CountUp). */
+    opensSuffix: string;
   };
   categories: Record<'sale' | 'rent' | 'booking', string>;
   tourCard: { rooms: (count: number) => string; open: string };
@@ -164,6 +190,8 @@ export type HomeCopy = {
   };
   benefits: { eyebrow: string; title: string; note: string; items: Titled[] };
   modules: ModulesCopy;
+  /** Sekcija "Od tlocrta do ture" (components/TourStory), odmah posle "U samoj turi". */
+  story: StoryCopy;
   /**
    * Poziv na sredini strane, posle "U samoj turi" - ranije između primera
    * ture i cenovnika sedam ekrana nije bilo nijednog dugmeta.
@@ -239,7 +267,7 @@ const sr: HomeCopy = {
     ctaTour: 'Pogledajte primer ture',
     ctaPackages: 'Pogledajte cenovnik',
     trust: ['Tura gotova za 24–48h', 'Audio vodič na 4 jezika'],
-    opens: (count) => `${count}+ otvaranja tura`
+    opensSuffix: '+ otvaranja tura'
   },
   categories: { sale: 'Prodaja', rent: 'Izdavanje', booking: 'Smeštaj' },
   tourCard: {
@@ -306,8 +334,31 @@ const sr: HomeCopy = {
       call: 'Pozovi',
       email: 'E-mail',
       viewing: 'Zakaži razgledanje',
-      credit: '360° turu izradio ◇ Kvadrat360'
+      credit: '360° turu izradio ◇ Kvadrat360',
+      hiddenNumber: 'Kućni broj skriven',
+      planTip: 'Dodir na tačku vodi u tu prostoriju.',
+      form: { name: ['Ime', 'Jelena'], phone: ['Telefon', '064 123 4567'], slot: ['Termin', 'subota, 11:00'] },
+      send: 'Pošalji zahtev',
+      sending: 'Šaljem…',
+      sent: 'Zahtev poslat ✓'
     }
+  },
+  story: {
+    eyebrow: 'Od tlocrta do ture',
+    steps: [
+      { kicker: 'Korak 1', title: 'Snimimo svaki *kvadrat*', text: 'Od snimka nastaje tlocrt nekretnine, zid po zid.' },
+      { kicker: 'Korak 2', title: 'Svaka prostorija *ima ime*', text: 'Kupac odmah vidi raspored: šta je gde i kako se prostorije nastavljaju.' },
+      { kicker: 'Korak 3', title: 'Tačka je *mesto kamere*', text: 'Iz svake tačke snimljena je 360° panorama.' },
+      { kicker: 'Korak 4', title: 'Jedan dodir, i *kupac je unutra*', text: 'Izabere prostoriju na tlocrtu i nađe se u njoj.' },
+      { kicker: 'U turi', title: 'Vidi i ono što *slika ne kaže*', text: 'Tačke u panorami otvaraju opis predmeta, a vodič ga i izgovori.' },
+      { kicker: 'U turi', title: 'Kreće se kao da je *tamo*', text: 'Strelica ga vodi u sledeću prostoriju, a tlocrt u uglu pokazuje gde je i kuda gleda.' },
+      { kicker: 'U turi', title: 'Vodič govori *jezik kupca*', text: 'Srpski, engleski, nemački i ruski: glas i titl uz svaku prostoriju.' },
+      { kicker: 'Gotova tura', title: 'Razgledanje *pre prvog dolaska*', text: 'Ovo je prava tura:' }
+    ],
+    guideReads: '▶ Vodič čita opis',
+    doorFallback: 'Pređite u spavaću sobu',
+    cta: 'Prošetajte sami →',
+    tourName: 'Apartman Belgrade Four, Dorćol'
   },
   midCta: {
     title: 'Hoćete ovakvu turu za *svoju nekretninu?*',
@@ -475,7 +526,7 @@ const en: HomeCopy = {
     ctaTour: 'View a sample tour',
     ctaPackages: 'See the price list',
     trust: ['Tour ready in 24–48h', 'Audio guide in 4 languages'],
-    opens: (count) => `${count}+ tour views`
+    opensSuffix: '+ tour views'
   },
   categories: { sale: 'For sale', rent: 'For rent', booking: 'Short stay' },
   tourCard: {
@@ -530,8 +581,31 @@ const en: HomeCopy = {
       call: 'Call',
       email: 'Email',
       viewing: 'Book a viewing',
-      credit: '360° tour by ◇ Kvadrat360'
+      credit: '360° tour by ◇ Kvadrat360',
+      hiddenNumber: 'House number hidden',
+      planTip: 'Tapping a dot opens that room.',
+      form: { name: ['Name', 'Jelena'], phone: ['Phone', '+381 64 123 4567'], slot: ['Time', 'Saturday, 11:00'] },
+      send: 'Send request',
+      sending: 'Sending…',
+      sent: 'Request sent ✓'
     }
+  },
+  story: {
+    eyebrow: 'From floor plan to tour',
+    steps: [
+      { kicker: 'Step 1', title: 'We capture every *square metre*', text: 'The shoot becomes a floor plan of the property, wall by wall.' },
+      { kicker: 'Step 2', title: 'Every room *has a name*', text: 'The buyer sees the layout at once: what is where and how the rooms connect.' },
+      { kicker: 'Step 3', title: 'Each dot is *a camera spot*', text: 'A 360° panorama was taken from every dot.' },
+      { kicker: 'Step 4', title: 'One tap, and *the buyer is inside*', text: 'They pick a room on the plan and find themselves in it.' },
+      { kicker: 'In the tour', title: 'They see what *a photo won’t tell*', text: 'Points in the panorama open a description, and the guide reads it aloud.' },
+      { kicker: 'In the tour', title: 'They move as if *they were there*', text: 'An arrow leads to the next room, and the plan in the corner shows where they are and where they look.' },
+      { kicker: 'In the tour', title: 'The guide speaks *the buyer’s language*', text: 'Serbian, English, German and Russian: voice and subtitles in every room.' },
+      { kicker: 'Finished tour', title: 'A viewing *before the first visit*', text: 'This is a real tour:' }
+    ],
+    guideReads: '▶ The guide reads it aloud',
+    doorFallback: 'Go to the bedroom',
+    cta: 'Walk through it yourself →',
+    tourName: 'Belgrade Four Apartment, Dorćol'
   },
   midCta: {
     title: 'Want a tour like this for *your property?*',

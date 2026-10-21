@@ -30,11 +30,14 @@ export function tourCardLabels(copy: {
 export default function TourCard({
   tour,
   labels,
-  lang = 'sr'
+  lang = 'sr',
+  reveal = false
 }: {
   tour: ShowcaseTour;
   labels: TourCardLabels;
   lang?: string;
+  /** Kartica izranja kad uđe u ekran (početna, components/SiteReveal). */
+  reveal?: boolean;
 }) {
   const category = tour.category ? labels.category(tour.category) : null;
   const rooms = labels.rooms(tour.roomCount);
@@ -45,6 +48,7 @@ export default function TourCard({
       className="card tour-card"
       href={tourHref(tour.slug, tour.languages, lang)}
       data-track={`cta:tour_card:${tour.slug}`}
+      data-reveal={reveal ? 'up' : undefined}
     >
       <div className="tour-photo">
         {tour.coverUrl && (

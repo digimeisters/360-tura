@@ -17,6 +17,7 @@ import {
   type PackageType
 } from '../app/lib/pricing';
 import { usePromoActive } from './usePromoActive';
+import CountUp from './CountUp';
 
 /**
  * Cena na kartici paketa i nalepnica sa popustom, dok traje promocija.
@@ -116,7 +117,7 @@ export function PlanPrice({
 
   return (
     <div className="price-value">
-      {from && `${from} `}<b>{price(active ? promo : regular)}</b>
+      {from && `${from} `}<b><CountUp value={active ? promo : regular} lang={lang} kind="amount" /></b>
       {active && (
         <s className="price-was" aria-label={lang === 'sr' ? 'redovna cena' : 'regular price'}>
           {price(regular)}
