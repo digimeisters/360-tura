@@ -60,21 +60,32 @@ export default function TourModulesShowcase({ copy, photoUrl }: { copy: ModulesC
     setSeen((prev) => (prev.has(key) ? prev : new Set(prev).add(key)));
   };
 
-  // Smenjuje se samo dok je traka sa dugmadima na ekranu - inače bi posetilac
-  // stigao do nje usred kruga, a ne na prvom dugmetu. Posmatra se traka, ne
-  // cela sekcija: na telefonu je sekcija viša od ekrana, pa ne bi nikad
-  // prešla prag vidljivosti.
+  // Smenjuje se samo dok je na ekranu traka sa dugmadima ILI telefon - inače
+  // bi posetilac stigao usred kruga, a ne na prvom dugmetu. Ne posmatra se cela
+  // sekcija (na telefonu je viša od ekrana, pa ne bi prešla prag). Telefon se
+  // posmatra posebno jer je na uskom ekranu ispod dugmadi: kad posetilac
+  // doskroluje do njega, traka je već otišla, a filmovi moraju da teku.
   useEffect(() => {
-    const el = rootRef.current?.querySelector('.mods-bar');
-    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const targets = ['.mods-bar', '.mods-phone']
+      .map((sel) => rootRef.current?.querySelector(sel))
+      .filter((el): el is Element => !!el);
+    if (!targets.length || typeof IntersectionObserver === 'undefined') return;
+    const visible = new Set<Element>();
+    let was = false;
     const io = new IntersectionObserver(
-      ([e]) => {
-        setInView(e.isIntersecting);
-        if (e.isIntersecting) startFilm();
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) visible.add(e.target);
+          else visible.delete(e.target);
+        }
+        const now = visible.size > 0;
+        setInView(now);
+        if (now && !was) startFilm();
+        was = now;
       },
-      { threshold: 0.6 }
+      { threshold: 0.5 }
     );
-    io.observe(el);
+    targets.forEach((el) => io.observe(el));
     return () => io.disconnect();
   }, []);
 
