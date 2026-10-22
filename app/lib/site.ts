@@ -35,6 +35,23 @@ export function whatsappLink(lang: keyof typeof WHATSAPP_GREETING = 'sr'): strin
   return `https://wa.me/${CONTACT.phoneE164.slice(1)}?text=${encodeURIComponent(WHATSAPP_GREETING[lang])}`;
 }
 
+// Profili firme (Google Business, društvene mreže) - idu u LocalBusiness
+// `sameAs`, da pretraživači i AI alati povežu sajt, Google profil, Facebook
+// i Instagram kao istu firmu. Google profil je zapisan preko CID-a (trajan
+// link), ne preko kratkog maps.app.goo.gl linka.
+export const SOCIAL_PROFILES = [
+  'https://maps.google.com/?cid=11854622975870609885',
+  'https://www.facebook.com/1313415595190061',
+  'https://www.instagram.com/kvadrat.360/'
+] as const;
+// Autor tekstova na blogu (vlasnik, 22. 10. 2026) - potpis ispod naslova,
+// kratko "o autoru" na kraju teksta i `author` u BlogPosting podacima.
+export const BLOG_AUTHOR = {
+  name: 'Nikola Stojanov',
+  jobTitle: 'Osnivač Kvadrat360',
+  bio: 'Nikola Stojanov je osnivač Kvadrat360 i lično snima 360° ture nekretnina u Kragujevcu i okolini.'
+} as const;
+
 export const CONTACT_LINKS = {
   phone: `tel:${CONTACT.phoneE164}`,
   email: `mailto:${CONTACT.email}`,

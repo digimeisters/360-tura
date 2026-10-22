@@ -7,7 +7,7 @@ import ReadingProgress from '../../../components/ReadingProgress';
 import { SiteNav, SiteFooter } from '../../../components/SiteChrome';
 import { BlogPricingSnapshot } from '../../../components/BlogPricingSnapshot';
 import { HOME_COPY } from '../../lib/homeCopy';
-import { SITE_NAME, SITE_URL } from '../../lib/site';
+import { BLOG_AUTHOR, SITE_NAME, SITE_URL } from '../../lib/site';
 import { serializeJsonLd } from '../../lib/structuredData';
 import { BLOG_POSTS, getBlogPost } from '../../lib/blogPosts';
 import SiteStylesheets from '../../../components/SiteStylesheets';
@@ -46,6 +46,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+// "2026-10-22" -> "22. 10. 2026." - iz samog niza, bez Date, da vremenska
+// zona servera ne pomeri dan.
+function srDate(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  return `${d}. ${m}. ${y}.`;
+}
+
 export default async function BlogPostPage({ params }: Props) {
   const { slug } = await params;
   const post = getBlogPost(slug);
@@ -68,9 +75,18 @@ export default async function BlogPostPage({ params }: Props) {
         headline: post.title,
         description: post.description,
         url,
+        mainEntityOfPage: url,
+        image: `${url}/opengraph-image`,
         datePublished: post.publishedAt,
+        dateModified: post.updatedAt ?? post.publishedAt,
         inLanguage: 'sr',
-        author: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
+        author: {
+          '@type': 'Person',
+          name: BLOG_AUTHOR.name,
+          jobTitle: BLOG_AUTHOR.jobTitle,
+          description: BLOG_AUTHOR.bio,
+          worksFor: { '@id': `${SITE_URL}/#business` }
+        },
         publisher: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL }
       }
     ]
@@ -98,6 +114,14 @@ export default async function BlogPostPage({ params }: Props) {
             <div>
               <h1>{post.title}</h1>
               <p className="lede">{post.excerpt}</p>
+              <p className="blog-date">
+                {BLOG_AUTHOR.name} · Objavljeno <time dateTime={post.publishedAt}>{srDate(post.publishedAt)}</time>
+                {post.updatedAt && post.updatedAt !== post.publishedAt && (
+                  <>
+                    {' · '}ažurirano <time dateTime={post.updatedAt}>{srDate(post.updatedAt)}</time>
+                  </>
+                )}
+              </p>
             </div>
           </div>
         </section>
@@ -137,6 +161,10 @@ export default async function BlogPostPage({ params }: Props) {
                 <BlogPricingSnapshot />
               </div>
             )}
+
+            <p className="blog-author">
+              <strong>O autoru.</strong> {BLOG_AUTHOR.bio}
+            </p>
           </div>
         </section>
 

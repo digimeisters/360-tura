@@ -24,6 +24,8 @@ export type BlogPost = {
   description: string;
   excerpt: string;
   publishedAt: string;
+  /** Datum poslednje suštinske izmene teksta (YYYY-MM-DD); bez njega važi publishedAt. */
+  updatedAt?: string;
   sections: BlogSection[];
   relatedLinks: { href: string; label: string }[];
 };

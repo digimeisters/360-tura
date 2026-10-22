@@ -18,7 +18,8 @@ import { buildInvestorStory } from '../lib/investorStory';
 import { IconPhone } from '../../components/SiteIcons';
 import { INVESTOR_COPY } from '../lib/investorCopy';
 import { accent } from '../lib/accent';
-import { CONTACT, CONTACT_LINKS, SITE_NAME, whatsappLink } from '../lib/site';
+import { CONTACT, CONTACT_LINKS, SITE_NAME, SITE_URL, whatsappLink } from '../lib/site';
+import { serializeJsonLd } from '../lib/structuredData';
 import { tourHref } from '../lib/tourHref';
 import { getShowcaseTours, pickHeroTour } from '../lib/showcaseTours';
 import SiteStylesheets from '../../components/SiteStylesheets';
@@ -97,6 +98,49 @@ export const metadata: Metadata = {
     locale: 'sr_RS'
   }
 };
+
+// Podaci za pretraživače: strana, usluga (pruža je firma sa početne, preko
+// @id) i ista česta pitanja koja posetilac vidi na dnu strane.
+function investorJsonLd() {
+  const url = `${SITE_URL}${PATH}`;
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': `${url}#strana`,
+        url,
+        name: copy.meta.title,
+        description: copy.meta.description,
+        inLanguage: 'sr',
+        isPartOf: { '@id': `${SITE_URL}/#website` },
+        about: { '@id': `${url}#usluga` }
+      },
+      {
+        '@type': 'Service',
+        '@id': `${url}#usluga`,
+        name: 'Interaktivna prodaja stanova u novogradnji',
+        serviceType: 'Prezentacija novogradnje: izbor stana na fotografiji zgrade, cenovnik i 360° ture stanova',
+        description: copy.meta.description,
+        url,
+        provider: { '@id': `${SITE_URL}/#business` },
+        areaServed: { '@type': 'City', name: CONTACT.city },
+        audience: { '@type': 'BusinessAudience', audienceType: 'Investitori i prodaja novogradnje' }
+      },
+      {
+        '@type': 'FAQPage',
+        '@id': `${url}#pitanja`,
+        url,
+        inLanguage: 'sr',
+        mainEntity: copy.faq.items.map((item) => ({
+          '@type': 'Question',
+          name: item.question,
+          acceptedAnswer: { '@type': 'Answer', text: item.answer }
+        }))
+      }
+    ]
+  };
+}
 
 const INVESTOR_STYLES = `
   /* Vrh: živa zgrada u okviru uređaja (.device iz SITE_STYLES). */
@@ -389,6 +433,7 @@ export default async function InvestorPage() {
     <div lang="sr" style={{ display: 'contents' }}>
       <SiteStylesheets selector />
       <style dangerouslySetInnerHTML={{ __html: INVESTOR_STYLES }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(investorJsonLd()) }} />
       <SiteTracker />
       <NavScrollSpy />
       <SiteReveal />

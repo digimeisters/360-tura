@@ -1,4 +1,4 @@
-import { CONTACT, SITE_NAME, SITE_URL } from './site';
+import { CONTACT, SITE_NAME, SITE_URL, SOCIAL_PROFILES } from './site';
 import { PRICE_TIERS, formatPrice } from './pricing';
 import type { FaqItem } from './homeFaq';
 import type { HomeLang } from './homeCopy';
@@ -33,6 +33,9 @@ export function homeJsonLd(faq: readonly FaqItem[], lang: HomeLang = 'sr') {
       addressLocality: CONTACT.city,
       addressCountry: CONTACT.countryCode
     },
+    // Bez `geo` tačke: Google profil je podešen kao oblast usluge, bez tačne
+    // lokacije na mapi (vlasnik, 22. 10. 2026).
+    sameAs: SOCIAL_PROFILES,
     areaServed: [
       { '@type': 'City', name: CONTACT.city },
       { '@type': 'AdministrativeArea', name: 'Šumadijski okrug' }
