@@ -74,7 +74,11 @@ function heroFromProject(data: ProjectPageData | null): { imageUrl: string; unit
       }
     ];
   });
-  return units.length >= 3 ? { imageUrl: best.v.imageUrl, units } : null;
+  // Smanjena slika kroz /_next/image (original fasade ima ~3 MB i sam je usporavao
+  // vrh strane na telefonu ~10 s; merenje 22. 10. 2026). Oblici stanova su u
+  // delovima slike (0-1), pa ne zavise od njene veličine.
+  const imageUrl = `/_next/image?url=${encodeURIComponent(best.v.imageUrl)}&w=2048&q=75`;
+  return units.length >= 3 ? { imageUrl, units } : null;
 }
 
 // Dugme "Prošetajte kroz stan" u primeru vodi na pravu turu iz vrha sajta.

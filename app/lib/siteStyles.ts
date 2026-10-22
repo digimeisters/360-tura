@@ -313,7 +313,9 @@ export const SITE_STYLES = `
   .hero-tour{position:relative; padding:0; height:min(calc(100svh - 7rem), 800px); min-height:600px; overflow:hidden; background:#1A1A1E;}
   .ht-media{position:absolute; inset:0; overflow:hidden;}
   .ht-still{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
-  .ht-pano{position:absolute; inset:0; background-repeat:repeat-x; background-position:0 50%; opacity:0; transition:opacity .5s ease; touch-action:pan-y; cursor:grab; user-select:none;}
+  .ht-pano{position:absolute; inset:0; overflow:hidden; opacity:0; transition:opacity .5s ease; touch-action:pan-y; cursor:grab; user-select:none;}
+  /* Traka sa panoramom pomera se transform-om (HeroTour setOffset) - crta je grafički čip. */
+  .ht-pano-strip{position:absolute; top:0; left:0; height:100%; width:100%; background-repeat:repeat-x; background-position:0 50%; will-change:transform; pointer-events:none;}
   .ht-pano.is-ready{opacity:1;}
   .ht-pano:active{cursor:grabbing;}
   .ht-pano:focus-visible{outline:3px solid #FFFFFF; outline-offset:-6px; border-radius:0;}
@@ -1133,7 +1135,9 @@ export const SITE_STYLES = `
 
   /* Sve ispod važi samo unutar <main class="rv-page"> - strane koje su dobile animacije (početna, za-agencije); ostale dobijaju svoje u sledećim krugovima.
      Hero ne čeka JS: naslov, uvod, dugmad i činjenice izranjaju pri učitavanju, fotografija se približi. */
-  @keyframes rv-hero-in{from{opacity:0; transform:translateY(18px); filter:blur(8px);} to{opacity:1; transform:none; filter:none;}}
+  /* Bez filter:blur - zamućenje se crta na procesoru u svakom frejmu i usporavalo je prvi prikaz na
+     slabijim telefonima (merenje 22. 10. 2026); izron + pojava idu preko grafičkog čipa. */
+  @keyframes rv-hero-in{from{opacity:0; transform:translateY(18px);} to{opacity:1; transform:none;}}
   @keyframes rv-hero-zoom{from{transform:scale(1.07);} to{transform:scale(1);}}
   @media (prefers-reduced-motion:no-preference){
     .rv-page .ht-copy h1, .rv-page .ht-copy .lede, .rv-page .ht-copy .hero-ctas, .rv-page .ht-facts li{animation:rv-hero-in .8s cubic-bezier(.22,.8,.24,1) both;}
@@ -1248,9 +1252,11 @@ export const SITE_STYLES = `
   .story-langs i.on{background:#1e5aa8; color:#fff;}
   .story-subbox{display:flex; gap:10px; align-items:center; background:rgba(17,17,19,.76); color:#fff; border-radius:12px; padding:10px 12px; backdrop-filter:blur(6px);}
   .story-waves{display:flex; gap:3px; align-items:center; height:20px; flex:none;}
-  .story-waves u{width:3px; border-radius:2px; background:#7fb0ff; animation:story-wave 1s ease-in-out infinite;}
+  /* Talasi: scaleY (grafički čip) umesto height (preračun rasporeda u svakom frejmu), i samo dok se titl vidi. */
+  .story-waves u{width:3px; height:18px; border-radius:2px; background:#7fb0ff; transform:scaleY(.28);}
+  .story-sub.on .story-waves u{animation:story-wave 1s ease-in-out infinite;}
   .story-waves u:nth-child(2){animation-delay:-.2s;} .story-waves u:nth-child(3){animation-delay:-.4s;} .story-waves u:nth-child(4){animation-delay:-.6s;}
-  @keyframes story-wave{0%,100%{height:5px;} 50%{height:18px;}}
+  @keyframes story-wave{0%,100%{transform:scaleY(.28);} 50%{transform:scaleY(1);}}
   .story-subtxt{font-size:14px; line-height:1.4; min-height:2.8em;}
 
   @media (max-width:760px){

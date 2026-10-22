@@ -73,15 +73,28 @@ export default function HeroTour({ tour, lang = 'sr' }: { tour: ShowcaseTour | n
   // Na računaru se ovo ne vidi (CSS) - tamo je kartica uvek otvorena.
   const [planOpen, setPlanOpen] = useState(false);
   const panoRef = useRef<HTMLDivElement>(null);
+  const stripRef = useRef<HTMLDivElement>(null);
   const offset = useRef(0);
   const drag = useRef<{ x: number; start: number } | null>(null);
   const latest = useRef<string | null>(null);
 
   const room = rooms.find((r) => r.id === activeId) ?? rooms[0];
 
+  // Panorama se pomera kao traka (transform), ne kao pozadina (background-position):
+  // transform crta grafički čip, a pozadinu je procesor ponovo crtao u svakom frejmu
+  // sporog okretanja (merenje 22. 10. 2026). Traka je za jednu panoramu šira od
+  // kadra i pomera se u krug, pa izgleda isto kao beskonačna pozadina.
   const setOffset = useCallback((value: number) => {
     offset.current = value;
-    if (panoRef.current) panoRef.current.style.backgroundPositionX = `${value}px`;
+    const pano = panoRef.current;
+    const strip = stripRef.current;
+    if (!pano || !strip) return;
+    const tile = pano.clientHeight * ZOOM * 2; // panorama je 2:1, visoka ZOOM kadrova
+    if (!tile) return;
+    const width = `${Math.ceil(pano.clientWidth + tile)}px`;
+    if (strip.style.width !== width) strip.style.width = width;
+    const x = (((value % tile) + tile) % tile) - tile;
+    strip.style.transform = `translate3d(${x}px,0,0)`;
   }, []);
 
   // Panorama sobe se prvo skine, pa tek onda prikaže - do tada se vidi
@@ -116,6 +129,13 @@ export default function HeroTour({ tour, lang = 'sr' }: { tour: ShowcaseTour | n
     // Samo pri prvom prikazu; kasnije sobe učitava selectRoom.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Promena veličine kadra (okretanje telefona) menja širinu panorame - traka se preračuna.
+  useEffect(() => {
+    const onResize = () => setOffset(offset.current);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [setOffset]);
 
   // Jedini pokret koji niko nije pokrenuo: sporo okretanje dok posetilac ne dirne kadar.
   useEffect(() => {
@@ -182,7 +202,6 @@ export default function HeroTour({ tour, lang = 'sr' }: { tour: ShowcaseTour | n
       <div
         ref={panoRef}
         className={`ht-pano${showPano ? ' is-ready' : ''}`}
-        style={showPano ? { backgroundImage: `url(${room.panoramaUrl})`, backgroundSize: `auto ${ZOOM * 100}%`, backgroundPositionY: PANO_Y } : undefined}
         role="img"
         aria-label={t.view.replace('{room}', room.title)}
         tabIndex={showPano ? 0 : -1}
@@ -191,7 +210,13 @@ export default function HeroTour({ tour, lang = 'sr' }: { tour: ShowcaseTour | n
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
         onKeyDown={onKeyDown}
-      />
+      >
+        <div
+          ref={stripRef}
+          className="ht-pano-strip"
+          style={showPano ? { backgroundImage: `url(${room.panoramaUrl})`, backgroundSize: `auto ${ZOOM * 100}%`, backgroundPositionY: PANO_Y } : undefined}
+        />
+      </div>
       {showPano && <span className="ht-hint" aria-hidden="true">{t.drag}</span>}
 
       {/* Sklopljen tlocrt (samo na telefonu): sličica sa tačkom sobe + ime sobe. */}

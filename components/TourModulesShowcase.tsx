@@ -342,13 +342,15 @@ const STYLES = `
 .mods-seen{font-size:.78rem; font-weight:700; color:var(--accent); background:var(--accent-soft); border-radius:999px; padding:.2rem .65rem;}
 .mods-tab{position:relative;}
 /* Tačka na još neviđenom dugmetu - pulsira kao tačke u samoj turi. */
-.mods-new{position:absolute; top:7px; right:calc(50% - 20px); width:7px; height:7px; border-radius:50%; background:#5B92D6; animation:modsPulse 1.6s ease-out infinite;}
-@keyframes modsPulse{0%{box-shadow:0 0 0 0 rgba(91,146,214,.75);} 70%{box-shadow:0 0 0 7px rgba(91,146,214,0);} 100%{box-shadow:0 0 0 0 rgba(91,146,214,0);}}
+.mods-new{position:absolute; top:7px; right:calc(50% - 20px); width:7px; height:7px; border-radius:50%; background:#5B92D6;}
+/* Talas oko tačke: prsten koji se širi i bledi (transform + opacity crta grafički čip; box-shadow je crtao procesor). */
+.mods-new::after{content:""; position:absolute; inset:0; border-radius:50%; background:rgba(91,146,214,.75); animation:modsPulse 1.6s ease-out infinite;}
+@keyframes modsPulse{0%{transform:scale(1); opacity:.75;} 70%{transform:scale(3); opacity:0;} 100%{transform:scale(3); opacity:0;}}
 /* Traka ispod aktivnog dugmeta: kad dolazi sledeće (samo dok se meni sam smenjuje). */
 .mods-prog{position:absolute; left:18%; right:18%; bottom:4px; height:3px; border-radius:3px; background:rgba(255,255,255,.14); overflow:hidden;}
 .mods-prog b{display:block; height:100%; width:100%; background:#5B92D6; transform-origin:left; animation:modsProg linear forwards;}
 @keyframes modsProg{from{transform:scaleX(0);} to{transform:scaleX(1);}}
-@media (prefers-reduced-motion: reduce){ .mods-new{animation:none;} }
+@media (prefers-reduced-motion: reduce){ .mods-new::after{animation:none; opacity:0;} }
 .mods-pitch{margin-top:1.6rem; max-width:540px; min-height:15rem;}
 .mods-pitch h3{font-size:clamp(1.35rem,2.2vw,1.7rem); letter-spacing:-.02em; margin:0 0 .6rem;}
 .mods-pitch p{font-size:1.02rem; line-height:1.6; color:var(--ink-soft); margin:0;}
