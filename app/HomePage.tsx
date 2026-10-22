@@ -186,6 +186,24 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
           </div>
         </section>
 
+        {/* Putokaz po publici odmah ispod vrha - ista tri smera kao Usluge niže. */}
+        {copy.audiencePick && (
+          <nav className="aud-pick" aria-label={copy.audiencePick.label}>
+            <div className="wrap" data-reveal="up">
+              <span className="aud-pick-label">{copy.audiencePick.label}</span>
+              {copy.audiencePick.items.map((item) => (
+                <Link key={item.href} className="aud-pick-link" href={item.href} data-track={`cta:audience_${item.icon}`}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    {SERVICE_ICONS[item.icon]}
+                  </svg>
+                  <span>{item.label}</span>
+                  <span className="aud-pick-arrow" aria-hidden="true">→</span>
+                </Link>
+              ))}
+            </div>
+          </nav>
+        )}
+
         {tours.length > 0 && (
           <section className="band" id="primeri">
             <div className="wrap">

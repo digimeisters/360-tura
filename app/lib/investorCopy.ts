@@ -75,7 +75,7 @@ export type InvestorCopy = {
     items: { from: string; to: string; title: string; text: string }[];
     foot: string;
   };
-  offer: { eyebrow: string; title: string; note: string; items: { title: string; text: string }[] };
+  offer: { eyebrow: string; title: string; note: string; items: { title: string; text: string }[]; price: string };
   steps: {
     eyebrow: string;
     title: string;
@@ -233,18 +233,20 @@ export const INVESTOR_COPY: InvestorCopy = {
   offer: {
     eyebrow: 'Paket',
     title: 'Ceo projekat *na jednom linku*',
-    note: 'Sve što prodaja danas objašnjava telefonom, kupac vidi sam, u bilo koje doba.',
+    // Izbor stana, kartica stana i link za prodaju ovde više ne stoje - već ih
+    // pokazuju priča "Od zgrade do upita" i sekcija "Vaša prodaja" iznad
+    // (vlasnik, 22. 10. 2026: strana je bila preduga). Ostaje samo ono što
+    // posetilac na strani još nije video.
+    note: 'Uz izbor stana koji ste videli iznad, u paketu je i ovo.',
     items: [
-      { title: 'Stanovi na fotografiji zgrade', text: 'Render ili fotografija zgrade, stanovi obojeni po statusu, više uglova koje kupac okreće strelicama.' },
-      { title: 'Kartica stana', text: 'Osnova, 360° tura, 3D osnova i slike, prostorije sa m², PDF letak i kalkulator rata.' },
       { title: 'Ceo ekran za sastanke', text: 'Zgrada preko celog ekrana, sa filterima i karticom stana - za prodajnu kancelariju i sajam.' },
       { title: 'Kompleks sa više zgrada', text: 'Pogled iz vazduha: kupac prvo bira zgradu, pa sprat i stan.' },
-      { title: 'Link za vašu prodaju', text: 'Status i cena sa telefona, upiti kupaca, beleške i izveštaj po stanu na jednom mestu.' },
       { title: '360° tura i pogled sa sprata', text: 'Tura iz rendera ili oglednog stana, i pogled snimljen dronom na visini sprata.' },
       { title: 'Gradilište svakog meseca', text: 'Novi 360° snimak mesečno - kupci koji su dali kaparu vide da radovi idu.' },
       { title: 'Okolina na mapi', text: 'Škole, vrtići, prodavnice i prevoz oko zgrade, sa udaljenošću od zgrade.' },
       { title: 'Na vašem sajtu, i na engleskom', text: 'Isti izbor stana ugrađen na vaš sajt, ceo i na engleskom - bez posebnog održavanja.' }
-    ]
+    ],
+    price: 'Cena zavisi od broja stanova i delova paketa koje izaberete. Posle razgovora dobijate ponudu u pisanom obliku.'
   },
   steps: {
     eyebrow: 'Kako radimo',

@@ -6,7 +6,7 @@ import CardSpotlight from '../../components/CardSpotlight';
 import TourList from '../../components/TourList';
 import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 
-import { getShowcaseTours, TOUR_FILTERS_FROM } from '../lib/showcaseTours';
+import { getShowcaseTours, localToursFirst, TOUR_FILTERS_FROM } from '../lib/showcaseTours';
 import { HOME_COPY } from '../lib/homeCopy';
 import { SITE_NAME, SITE_URL } from '../lib/site';
 import { serializeJsonLd } from '../lib/structuredData';
@@ -73,7 +73,8 @@ export const metadata: Metadata = {
 };
 
 export default async function ToursPage() {
-  const tours = await getShowcaseTours('sr');
+  // Kragujevac napred, kao na početnoj - sajt se obraća kragujevačkom tržištu.
+  const tours = localToursFirst(await getShowcaseTours('sr'));
   const browsing = tours.length >= TOUR_FILTERS_FROM;
   const hero = browsing ? COPY.hero : COPY.heroFew;
 

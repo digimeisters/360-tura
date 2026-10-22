@@ -296,6 +296,8 @@ const INVESTOR_STYLES = `
   .setup-card h3{font-size:1.15rem;}
   .setup-card p{color:var(--ink-soft); font-size:.95rem; line-height:1.6; margin:0;}
   .setup-foot{margin:1.4rem 0 0; padding:1rem 1.3rem; border-radius:18px; background:var(--accent-soft); color:var(--ink); font-weight:600;}
+  .setup-foot a{color:var(--accent); white-space:nowrap; text-decoration:none;}
+  .setup-foot a:hover{text-decoration:underline;}
 
   .contact-line{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem; font-size:.95rem; color:var(--ink-soft); grid-column:1 / -1;}
   #kontakt .contact-form{grid-column:1 / -1;}
@@ -658,6 +660,9 @@ export default async function InvestorPage() {
                 </div>
               ))}
             </div>
+            <p className="setup-foot" data-reveal="up">
+              {offer.price} <a href="#kontakt" data-track="cta:investor_offer_price">Zakažite razgovor →</a>
+            </p>
           </div>
         </section>
 

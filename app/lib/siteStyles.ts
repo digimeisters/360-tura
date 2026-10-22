@@ -857,6 +857,21 @@ export const SITE_STYLES = `
     .svc-grid .svc{grid-template-columns:3rem 1fr; grid-template-areas:"ico title" "text text" "points points" "link link";}
     .svc-grid .svc h3{margin-top:.5rem;}
   }
+  /* Putokaz "Ko ste vi?" ispod vrha početne. */
+  .aud-pick{padding:clamp(1.2rem,2.5vw,1.8rem) 0; border-bottom:1px solid var(--line-strong);}
+  .aud-pick .wrap{display:flex; flex-wrap:wrap; align-items:center; gap:.7rem;}
+  .aud-pick-label{margin-right:.4rem; color:var(--ink-soft); font-weight:700;}
+  .aud-pick-link{display:inline-flex; align-items:center; gap:.6rem; min-height:44px; padding:.55rem 1.1rem; border:1px solid var(--line-strong); border-radius:999px;
+    color:var(--ink); font-weight:600; text-decoration:none; transition:border-color .2s, color .2s;}
+  .aud-pick-link svg{width:20px; height:20px; flex:none; color:var(--accent);}
+  .aud-pick-arrow{color:var(--accent); transition:transform .2s;}
+  .aud-pick-link:hover{border-color:var(--accent); color:var(--accent-strong);}
+  .aud-pick-link:hover .aud-pick-arrow{transform:translateX(3px);}
+  @media (max-width:640px){
+    .aud-pick-label{width:100%;}
+    .aud-pick-link{width:100%;}
+    .aud-pick-arrow{margin-left:auto;}
+  }
   .svc-ico{width:44px; height:44px; border-radius:14px; display:grid; place-items:center; background:var(--accent-soft); color:var(--accent);}
   .svc-ico svg{width:22px; height:22px;}
   .svc h3{display:flex; align-items:center; gap:.55rem; font-size:1.25rem; font-weight:700; line-height:1.25; letter-spacing:-0.015em;}

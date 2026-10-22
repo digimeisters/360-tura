@@ -550,7 +550,10 @@ export default async function AgencyPage() {
             <div className="section-head">
               <span className="eyebrow" data-reveal="up">{copy.pricing.eyebrow}</span>
               <h2 data-reveal="blur">
-                {copy.pricing.titleStart} <em><FromPrice count={10} prefix="od " /></em>
+                {/* Ista početna cena kao u pozivu iznad (jedna nekretnina) - ranije je
+                    ovde stajala cena za 10+ mesečno, pa je strana nudila dve "od" cene.
+                    Niže cene po obimu su u tabeli ispod. */}
+                {copy.pricing.titleStart} <em><FromPrice count={1} prefix="od " /></em>
               </h2>
               <p className="note" data-reveal="up">{copy.pricing.note}</p>
             </div>

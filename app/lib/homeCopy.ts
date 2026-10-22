@@ -214,6 +214,15 @@ export type HomeCopy = {
   // Putokaz ka strani za agencije (/za-agencije), odmah ispod paketa. Ta
   // strana postoji za sada samo na srpskom, pa se i sekcija pojavljuje samo
   // tamo - isto pravilo kao nav.agencies.
+  /**
+   * Putokaz odmah ispod prvog ekrana: posetilac bira ko je i ide na svoju
+   * stranu (vlasnik, 22. 10. 2026 - agenti do sekcije Usluge pri dnu nisu
+   * stizali). Samo srpska početna, iz istog razloga kao services.
+   */
+  audiencePick?: {
+    label: string;
+    items: { icon: HomeService['icon']; label: string; href: string }[];
+  };
   /** Sve usluge na jednom mestu - samo srpska početna (te strane su samo na srpskom). */
   services?: {
     eyebrow: string;
@@ -441,6 +450,14 @@ const sr: HomeCopy = {
       hdr: 'HDR fotografije'
     },
     fine: '* Cene su prosečne, za prostor od oko 50 m². Za manje i veće prostore cenu formiramo prema broju prostorija — javite kvadraturu i broj soba, pa šaljemo tačnu ponudu. Za gradove van Kragujevca dogovaramo posebno.'
+  },
+  audiencePick: {
+    label: 'Ko ste vi?',
+    items: [
+      { icon: 'home', label: 'Vlasnik nekretnine', href: '#kako-radimo' },
+      { icon: 'agency', label: 'Agencija za nekretnine', href: '/za-agencije' },
+      { icon: 'building', label: 'Investitor novogradnje', href: '/za-investitore' }
+    ]
   },
   services: {
     eyebrow: 'Usluge',
