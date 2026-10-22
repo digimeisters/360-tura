@@ -112,6 +112,8 @@ type RangeKey = 'kvadratura' | 'cena';
 
 const FILTER_KEYS: FilterKey[] = ['kategorija', 'grad', 'naselje', 'struktura', 'agencija'];
 const RANGE_KEYS: RangeKey[] = ['kvadratura', 'cena'];
+/** Filter čije vrednosti smeju da sadrže zarez - u adresi ide kao ponovljen parametar. */
+const MULTI_PARAM_KEY: FilterKey = 'agencija';
 
 type Filters = Record<FilterKey, string[]>;
 /** null = klizač nije pomeren, pa raspon prati trenutne granice. */
@@ -275,8 +277,9 @@ export default function TourList({
       Object.fromEntries(
         FILTER_KEYS.map((key) => [
           key,
-          (params.get(key) || '')
-            .split(',')
+          // Naziv agencije sme da ima zarez ("Nekretnine X, d.o.o.") - zato ide kao
+          // ponovljen parametar (?agencija=A&agencija=B), a ostali filteri sa zarezom.
+          (key === MULTI_PARAM_KEY ? params.getAll(key) : (params.get(key) || '').split(','))
             .map((v) => v.trim())
             .filter(Boolean)
         ])
@@ -307,7 +310,8 @@ export default function TourList({
 
     const params = new URLSearchParams();
     FILTER_KEYS.forEach((key) => {
-      if (nextFilters[key].length) params.set(key, nextFilters[key].join(','));
+      if (key === MULTI_PARAM_KEY) nextFilters[key].forEach((v) => params.append(key, v));
+      else if (nextFilters[key].length) params.set(key, nextFilters[key].join(','));
     });
     RANGE_KEYS.forEach((key) => {
       const range = nextRanges[key];

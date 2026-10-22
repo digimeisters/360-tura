@@ -3,10 +3,8 @@ import { PRICE_TIERS, formatPrice } from './pricing';
 import type { FaqItem } from './homeFaq';
 import type { HomeLang } from './homeCopy';
 
-const BUSINESS_DESCRIPTION: Record<HomeLang, string> = {
-  sr: 'Profesionalne 360° virtuelne ture i HDR fotografije nekretnina za agencije i vlasnike, sa audio vodičem na srpskom, engleskom, nemačkom i ruskom.',
-  en: 'Professional 360° virtual tours and HDR real estate photography for agencies and owners, with an audio guide in Serbian, English, German and Russian.'
-};
+const BUSINESS_DESCRIPTION =
+  'Profesionalne 360° virtuelne ture i HDR fotografije nekretnina za agencije i vlasnike, sa audio vodičem na srpskom, engleskom, nemačkom i ruskom.';
 
 // Podaci o firmi u obliku koji pretraživači čitaju (schema.org JSON-LD):
 // ko smo, gde smo, kad radimo i koja pitanja kupci najčešće postavljaju.
@@ -14,6 +12,40 @@ const BUSINESS_DESCRIPTION: Record<HomeLang, string> = {
 export function homeJsonLd(faq: readonly FaqItem[], lang: HomeLang = 'sr') {
   const businessId = `${SITE_URL}/#business`;
   const pageUrl = lang === 'sr' ? SITE_URL : `${SITE_URL}/${lang}`;
+  // Puni opis firme samo na srpskoj početnoj: isti @id sa drugačijim opisom i
+  // cenom na /en Google bi video kao dve različite verzije istog subjekta.
+  // Engleska strana na firmu samo upućuje (publisher -> @id).
+  const business = {
+    '@type': 'LocalBusiness',
+    '@id': businessId,
+    name: SITE_NAME,
+    description: BUSINESS_DESCRIPTION,
+    url: SITE_URL,
+    image: `${SITE_URL}/opengraph-image`,
+    telephone: CONTACT.phoneE164,
+    email: CONTACT.email,
+    // Bio je hardkodiran (60€, stara cena) - sad čita ulaznu cenu same
+    // ture (1-2 nekretnine, Osnovni paket) direktno iz pricing.ts.
+    priceRange: `od ${formatPrice(PRICE_TIERS[0].tour, 'sr')}`,
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: CONTACT.street,
+      addressLocality: CONTACT.city,
+      addressCountry: CONTACT.countryCode
+    },
+    areaServed: [
+      { '@type': 'City', name: CONTACT.city },
+      { '@type': 'AdministrativeArea', name: 'Šumadijski okrug' }
+    ],
+    openingHoursSpecification: [
+      {
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: CONTACT.openDays,
+        opens: CONTACT.opens,
+        closes: CONTACT.closes
+      }
+    ]
+  };
 
   return {
     '@context': 'https://schema.org',
@@ -26,41 +58,7 @@ export function homeJsonLd(faq: readonly FaqItem[], lang: HomeLang = 'sr') {
         inLanguage: ['sr', 'en'],
         publisher: { '@id': businessId }
       },
-      {
-        '@type': 'LocalBusiness',
-        '@id': businessId,
-        name: SITE_NAME,
-        description: BUSINESS_DESCRIPTION[lang],
-        url: SITE_URL,
-        image: `${SITE_URL}/opengraph-image`,
-        telephone: CONTACT.phoneE164,
-        email: CONTACT.email,
-        // Bio je hardkodiran (60€, stara cena) - sad čita ulaznu cenu same
-        // ture (1-2 nekretnine, Osnovni paket) direktno iz pricing.ts.
-        // Dinari na srpskoj strani, evri na engleskoj - vidi formatPrice.
-        priceRange:
-          lang === 'sr'
-            ? `od ${formatPrice(PRICE_TIERS[0].tour, 'sr')}`
-            : `from €${PRICE_TIERS[0].tour}`,
-        address: {
-          '@type': 'PostalAddress',
-          streetAddress: CONTACT.street,
-          addressLocality: CONTACT.city,
-          addressCountry: CONTACT.countryCode
-        },
-        areaServed: [
-          { '@type': 'City', name: CONTACT.city },
-          { '@type': 'AdministrativeArea', name: 'Šumadijski okrug' }
-        ],
-        openingHoursSpecification: [
-          {
-            '@type': 'OpeningHoursSpecification',
-            dayOfWeek: CONTACT.openDays,
-            opens: CONTACT.opens,
-            closes: CONTACT.closes
-          }
-        ]
-      },
+      ...(lang === 'sr' ? [business] : []),
       {
         '@type': 'FAQPage',
         '@id': `${pageUrl}#pitanja`,
@@ -101,8 +99,7 @@ export function tourJsonLd(params: {
   datePosted?: string | null;
   faq?: { question: string; answer: string }[];
 }) {
-  const { title, description, url, previewUrl, address, city, category, price, areaSqm, datePosted, faq } =
-    params;
+  const { title, description, url, previewUrl, address, city, category, price, areaSqm, datePosted, faq } = params;
 
   const place =
     address || city
@@ -126,8 +123,7 @@ export function tourJsonLd(params: {
           '@type': 'Offer',
           price,
           priceCurrency: 'EUR',
-          businessFunction:
-            category === 'sale' ? 'http://purl.org/goodrelations/v1#Sell' : 'http://purl.org/goodrelations/v1#LeaseOut',
+          businessFunction: category === 'sale' ? 'http://purl.org/goodrelations/v1#Sell' : 'http://purl.org/goodrelations/v1#LeaseOut',
           ...(category === 'rent' || category === 'booking'
             ? {
                 priceSpecification: {

@@ -29,7 +29,14 @@ ${CONTACT.serviceArea}. Za druge gradove po dogovoru.
 ## Stranice
 - Početna: ${SITE_URL}
 - Za agencije: ${SITE_URL}/za-agencije
+- Za investitore (novogradnja: izbor stana na zgradi, cenovnik, ture stanova): ${SITE_URL}/za-investitore
 - Objavljene ture: ${SITE_URL}/ture
+- Besplatni alati: ${SITE_URL}/alati
+  - Procena vrednosti nekretnine: ${SITE_URL}/alati/procena-vrednosti
+  - Cene nekretnina po naseljima u Kragujevcu: ${SITE_URL}/alati/cene-nekretnina-kragujevac
+  - Kalkulator kredita i troškova kupovine: ${SITE_URL}/alati/kalkulator-kredita
+- Blog: ${SITE_URL}/blog
+- English: ${SITE_URL}/en
 `;
 }
 
