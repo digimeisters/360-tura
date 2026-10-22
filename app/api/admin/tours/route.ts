@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { DeleteObjectsCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { requireAdmin } from '@/app/lib/adminAuth';
 import { uniqueSlug } from '@/app/lib/slug';
@@ -8,6 +8,7 @@ import { geocodeAddress } from '@/app/lib/geocode';
 import { translateTexts, type TargetLang } from '@/app/lib/translateTexts';
 import { agencyReportToken } from '@/app/lib/agencyReport';
 import { mobilePanoramaKey } from '@/app/lib/panoramaPreview';
+import { pingIndexNow } from '@/app/lib/indexNow';
 
 export const dynamic = 'force-dynamic';
 // Izmena odgovora na pitanja prevodi ih modelom na jezike ture (vidi
@@ -323,6 +324,8 @@ export async function PATCH(req: Request) {
     }
 
     refreshPublicPages();
+    // Bing (IndexNow) saznaje za novu turu odmah, a ne kad sam naiđe.
+    if (body.published) after(() => pingIndexNow([`/tour/${slug}`, '/ture']));
     return NextResponse.json({ success: true, published: body.published });
   }
 
@@ -349,6 +352,8 @@ export async function PATCH(req: Request) {
     // vremena, iako sama tura odmah pokazuje poruku - poenta je baš da
     // nestane sa spiskova istog trena.
     refreshPublicPages();
+    // Prodata/izdata tura menja sadržaj strane - Bing je ponovo čita.
+    after(() => pingIndexNow([`/tour/${slug}`, '/ture']));
     return NextResponse.json({ success: true, status: body.status });
   }
 
