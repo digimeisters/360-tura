@@ -162,6 +162,12 @@ export default async function BlogPostPage({ params }: Props) {
               </div>
             )}
 
+            <p className="blog-cta">
+              <Link className="btn btn-primary" href={post.cta?.href ?? '/#kontakt'} data-track={`cta:blog_inline:${post.slug}`}>
+                {post.cta?.label ?? 'Zakažite snimanje'}
+              </Link>
+            </p>
+
             <p className="blog-author">
               <strong>O autoru.</strong> {BLOG_AUTHOR.bio}
             </p>

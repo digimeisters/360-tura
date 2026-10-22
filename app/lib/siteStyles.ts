@@ -712,6 +712,7 @@ export const SITE_STYLES = `
   .blog-card .note{margin:0; color:var(--ink-soft); font-size:1rem; line-height:1.6; max-width:52ch;}
   .blog-article{max-width:760px;}
   .hero .blog-date{margin-top:1rem; color:var(--ink-soft); font-size:.92rem;}
+  .blog-cta{margin:-.6rem 0 2.6rem;}
   .blog-author{margin:0; padding-top:1.4rem; border-top:1px solid var(--line-strong); color:var(--ink-soft); font-size:1rem; line-height:1.65;}
   .blog-author strong{color:var(--ink);}
   .blog-section{margin-bottom:2.6rem;}

@@ -27,6 +27,12 @@ export type BlogPost = {
   /** Datum poslednje suštinske izmene teksta (YYYY-MM-DD); bez njega važi publishedAt. */
   updatedAt?: string;
   sections: BlogSection[];
+  /**
+   * Dugme odmah posle poslednjeg pasusa (vlasnik, 22. 10. 2026). Bez njega
+   * vodi na kontakt na početnoj; tekstovi pisani za agencije ili investitore
+   * vode na kontakt svoje strane.
+   */
+  cta?: { href: string; label: string };
   relatedLinks: { href: string; label: string }[];
 };
 
@@ -160,6 +166,7 @@ export const BLOG_POSTS: BlogPost[] = [
   },
   {
     slug: 'sta-agencija-za-nekretnine-gubi-sa-obicnim-fotografijama',
+    cta: { href: '/za-agencije#kontakt', label: 'Zatražite ponudu za agenciju' },
     title: 'Šta agencija za nekretnine gubi kad koristi samo obične fotografije',
     seoTitle: 'Obične fotografije vs 360 tura nekretnina',
     description:
@@ -245,6 +252,7 @@ export const BLOG_POSTS: BlogPost[] = [
   },
   {
     slug: 'prodaja-stanova-u-izgradnji-bez-poseta',
+    cta: { href: '/za-investitore#kontakt', label: 'Zakažite razgovor o projektu' },
     title: 'Prodaja stanova u izgradnji bez poseta: kako 360° tura ubeđuje kupca da kupi na daljinu',
     seoTitle: 'Prodaja stanova u izgradnji bez poseta',
     description:
