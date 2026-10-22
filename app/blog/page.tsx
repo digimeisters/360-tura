@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import SiteTracker from '../../components/SiteTracker';
+import SiteReveal from '../../components/SiteReveal';
 import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 import { HOME_COPY } from '../lib/homeCopy';
 import { SITE_NAME, SITE_URL } from '../lib/site';
@@ -76,6 +77,7 @@ export default function BlogIndexPage() {
       <SiteStylesheets />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <SiteTracker />
+      <SiteReveal />
 
       <SiteNav
         brandHref="/"
@@ -84,7 +86,8 @@ export default function BlogIndexPage() {
         mainMenu={{}}
       />
 
-      <main>
+      {/* .rv-page: animacije iz siteStyles (vrh, kartice tekstova). */}
+      <main className="rv-page">
         <section className="hero hero-solo" id="pocetna">
           <div className="wrap">
             <div>
@@ -102,6 +105,7 @@ export default function BlogIndexPage() {
                   <Link
                     key={post.slug}
                     className="card blog-card"
+                    data-reveal="up"
                     href={`/blog/${post.slug}`}
                     data-track={`cta:blog_card:${post.slug}`}
                   >

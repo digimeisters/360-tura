@@ -170,13 +170,7 @@ export const TOOLS_STYLES = `
      Važe samo unutar <main class="rv-page"> (strana sa spiskom alata); strane samih
      alata ih nemaju. Opšti efekti su u siteStyles, ovde samo filmovi alata. */
   @media (prefers-reduced-motion:no-preference){
-    /* Vrh: tekst izroni, pa ulete kartice računice i procene; zelena kartica iskoči, raspon se raširi. */
-    .rv-page .hero h1, .rv-page .hero .lede, .rv-page .hero .hero-ctas, .rv-page .hero .ht-facts li{animation:rv-hero-in .8s cubic-bezier(.22,.8,.24,1) both;}
-    .rv-page .hero .lede{animation-delay:90ms;}
-    .rv-page .hero .hero-ctas{animation-delay:180ms;}
-    .rv-page .hero .ht-facts li:nth-child(1){animation-delay:270ms;}
-    .rv-page .hero .ht-facts li:nth-child(2){animation-delay:360ms;}
-    .rv-page .hero .ht-facts li:nth-child(3){animation-delay:450ms;}
+    /* Vrh (tekst izranja preko siteStyles .rv-page .hero): ulete kartice računice i procene; zelena kartica iskoči, raspon se raširi. */
     .rv-page .tl-vcard.is-calc{animation:tl-card-in .8s cubic-bezier(.22,.8,.24,1) .35s both;}
     .rv-page .tl-vcard.is-value{animation:tl-card-in .8s cubic-bezier(.22,.8,.24,1) .75s both;}
     .rv-page .tl-visual .tl-pv-green{animation:tl-pop .5s cubic-bezier(.34,1.56,.64,1) 1.5s both;}

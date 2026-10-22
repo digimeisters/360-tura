@@ -1269,4 +1269,27 @@ export const SITE_STYLES = `
     .story-subtxt{font-size:12.5px;}
     .story-door-label{font-size:12px;}
   }
+
+  /* ---------- Strane sa običnim vrhom (.hero: ture, alati) i spisak tura (22. 10. 2026) ---------- */
+  @media (prefers-reduced-motion:no-preference){
+    .rv-page .hero h1, .rv-page .hero .lede, .rv-page .hero .hero-ctas, .rv-page .hero .ht-facts li{animation:rv-hero-in .8s cubic-bezier(.22,.8,.24,1) both;}
+    .rv-page .hero .lede{animation-delay:90ms;}
+    .rv-page .hero .hero-ctas{animation-delay:180ms;}
+    .rv-page .hero .ht-facts li:nth-child(1){animation-delay:270ms;}
+    .rv-page .hero .ht-facts li:nth-child(2){animation-delay:360ms;}
+    .rv-page .hero .ht-facts li:nth-child(3){animation-delay:450ms;}
+    /* Spisak tura: prvi put kartice ulaze redom kad dođu na ekran; posle filtera nov spisak se kratko poređa. */
+    html.rv-armed .rv-page .tours-grid[data-reveal-group]:not(.is-in) > *{opacity:0;}
+    html.rv-armed .rv-page .tours-grid.is-in > *{animation:rv-card-in .6s cubic-bezier(.22,.8,.24,1) both;}
+    .rv-page .tours-grid.refilter > *{animation:rv-card-re .5s cubic-bezier(.22,.8,.24,1) both;}
+    .rv-page .tours-grid > :nth-child(2){animation-delay:80ms;}
+    .rv-page .tours-grid > :nth-child(3){animation-delay:160ms;}
+    .rv-page .tours-grid > :nth-child(4){animation-delay:240ms;}
+    .rv-page .tours-grid > :nth-child(n+5){animation-delay:320ms;}
+  }
+  @keyframes rv-card-in{from{opacity:0; transform:translateY(18px) scale(.97);} to{opacity:1; transform:none;}}
+  @keyframes rv-card-re{from{opacity:0; transform:translateY(12px) scale(.98);} to{opacity:1; transform:none;}}
+
+  /* Traka napretka čitanja na tekstovima bloga (components/ReadingProgress). */
+  .reading-progress{position:fixed; left:0; right:0; top:0; height:3px; z-index:200; background:var(--accent); transform-origin:left; transform:scaleX(0); opacity:0; transition:opacity .3s ease; pointer-events:none;}
 `;

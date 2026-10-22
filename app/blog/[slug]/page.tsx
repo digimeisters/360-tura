@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import SiteTracker from '../../../components/SiteTracker';
+import SiteReveal from '../../../components/SiteReveal';
+import ReadingProgress from '../../../components/ReadingProgress';
 import { SiteNav, SiteFooter } from '../../../components/SiteChrome';
 import { BlogPricingSnapshot } from '../../../components/BlogPricingSnapshot';
 import { HOME_COPY } from '../../lib/homeCopy';
@@ -79,6 +81,8 @@ export default async function BlogPostPage({ params }: Props) {
       <SiteStylesheets />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <SiteTracker />
+      <SiteReveal />
+      <ReadingProgress targetId="tekst" />
 
       <SiteNav
         brandHref="/"
@@ -87,7 +91,8 @@ export default async function BlogPostPage({ params }: Props) {
         mainMenu={{}}
       />
 
-      <main>
+      {/* .rv-page: vrh izranja (siteStyles); tekst se ne pomera, samo traka napretka čitanja. */}
+      <main className="rv-page">
         <section className="hero hero-solo" id="pocetna">
           <div className="wrap">
             <div>
@@ -138,15 +143,15 @@ export default async function BlogPostPage({ params }: Props) {
         <section id="poziv">
           <div className="wrap cta-band">
             <div className="section-head">
-              <h2>Sledeći korak</h2>
+              <h2 data-reveal="blur">Sledeći korak</h2>
               <ul className="blog-related">
                 {post.relatedLinks.map((link) => (
-                  <li key={link.href}>
+                  <li key={link.href} data-reveal="list">
                     <Link href={link.href} data-track={`cta:blog_related:${post.slug}`}>{link.label}</Link>
                   </li>
                 ))}
               </ul>
-              <p style={{ marginTop: '1.2rem' }}>
+              <p style={{ marginTop: '1.2rem' }} data-reveal="up">
                 <Link className="btn btn-primary" href="/#kontakt" data-track="cta:blog_bottom">Zakažite snimanje</Link>
               </p>
             </div>

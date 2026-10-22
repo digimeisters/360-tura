@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import SiteTracker from '../../components/SiteTracker';
+import SiteReveal from '../../components/SiteReveal';
 import CardSpotlight from '../../components/CardSpotlight';
 import TourList from '../../components/TourList';
 import { SiteNav, SiteFooter } from '../../components/SiteChrome';
@@ -103,6 +104,7 @@ export default async function ToursPage() {
       <SiteStylesheets />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <SiteTracker />
+      <SiteReveal />
       <CardSpotlight />
 
       <SiteNav
@@ -112,7 +114,8 @@ export default async function ToursPage() {
         mainMenu={{}}
       />
 
-      <main>
+      {/* .rv-page: animacije iz siteStyles važe i ovde (vrh, kartice tura, poziv). */}
+      <main className="rv-page">
         <section className="hero hero-solo" id="pocetna">
           <div className="wrap">
             <div>
@@ -138,9 +141,9 @@ export default async function ToursPage() {
         <section id="poziv">
           <div className="wrap cta-band">
             <div className="section-head">
-              <h2>{COPY.cta.title}</h2>
-              <p className="note">{COPY.cta.note}</p>
-              <p style={{ marginTop: '1.2rem' }}>
+              <h2 data-reveal="blur">{COPY.cta.title}</h2>
+              <p className="note" data-reveal="up">{COPY.cta.note}</p>
+              <p style={{ marginTop: '1.2rem' }} data-reveal="up">
                 <Link className="btn btn-primary" href="/#kontakt" data-track="cta:tours_bottom">{COPY.cta.button}</Link>
               </p>
             </div>

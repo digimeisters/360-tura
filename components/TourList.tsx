@@ -212,6 +212,10 @@ export default function TourList({
   const [navHeight, setNavHeight] = useState<number | null>(null);
   // Mapa je otvorena od starta (vlasnik, 2026-09-24): lokacija je prvo što kupac proverava.
   const [showMap, setShowMap] = useState(true);
+  // Posetilac je bar jednom promenio filter: kartice se tada ponovo poređaju
+  // (CSS .refilter) - samo kad se promeni koje se ture vide, ne pri svakom
+  // pomeranju klizača (vidi key na .tours-grid).
+  const [refiltered, setRefiltered] = useState(false);
   const blockRef = useRef<HTMLDivElement>(null);
 
   // Pilula mora da stane ISPOD gornje trake, a traka nije uvek iste visine -
@@ -297,6 +301,7 @@ export default function TourList({
    * adresu - i filter iz podeljenog linka nestane.
    */
   const apply = (nextFilters: Filters, nextRanges: Ranges) => {
+    setRefiltered(true);
     setFilters(nextFilters);
     setRanges(nextRanges);
 
@@ -598,7 +603,7 @@ export default function TourList({
     return (
       <>
         {locatedCount > 0 && <TourMap tours={tours} lang={lang} />}
-        <div className="tours-grid n-4">
+        <div className="tours-grid n-4" data-reveal-group>
           {tours.map((tour) => (
             <TourCard key={tour.slug} tour={tour} labels={CARD_LABELS} lang={lang} />
           ))}
@@ -719,7 +724,13 @@ export default function TourList({
 
 
       {shown.length > 0 ? (
-        <div className="tours-grid n-4">
+        // Prvi spisak izranja kad dođe na ekran (data-reveal-group, SiteReveal);
+        // posle filtera nov spisak (nov key) se odmah kratko poređa.
+        <div
+          key={shown.map((t) => t.slug).join('|')}
+          className={refiltered ? 'tours-grid n-4 refilter' : 'tours-grid n-4'}
+          data-reveal-group={refiltered ? undefined : true}
+        >
           {shown.map((tour) => (
             <TourCard key={tour.slug} tour={tour} labels={CARD_LABELS} lang={lang} />
           ))}
