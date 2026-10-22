@@ -319,6 +319,186 @@ export const BLOG_POSTS: BlogPost[] = [
       { href: '/', label: 'Želite da probate kako izgleda gotova 360° tura? Prošetajte kroz jednu' },
       { href: '/za-agencije', label: 'Agencija ste i prodajete stanove investitora? Pogledajte paket za agencije' }
     ]
+  },
+  {
+    slug: 'kako-brze-prodati-stan-u-kragujevcu',
+    title: 'Kako brže prodati stan u Kragujevcu: šta uraditi pre nego što objavite oglas',
+    seoTitle: 'Kako brže prodati stan u Kragujevcu',
+    description:
+      'Realna cena, sređeni papiri, oglas koji odgovara na pitanja i tura za kupce iz okolnih mesta - pet koraka pre objave koji skraćuju prodaju u Kragujevcu.',
+    excerpt:
+      'Oglas je postavljen, a posle mesec dana stižu samo pozivi "koji je sprat?". Evo šta uraditi pre objave da se nekretnina u Kragujevcu ne zadrži na portalu.',
+    publishedAt: '2026-10-22',
+    sections: [
+      {
+        paragraphs: [
+          'Vlasnik slika stan telefonom, upiše cenu "otprilike kao komšija" i objavi oglas. Prve nedelje telefon zvoni, ali pitanja su uvek ista: koji je sprat, ima li lifta, koliko su troškovi. Posle mesec dana poziva je sve manje, a oglas tone na portalu ispod novijih.',
+          'Prodaja ne počinje objavom oglasa - počinje pripremom pre nje. Evo šta u Kragujevcu najviše skraćuje put od oglasa do kupca.'
+        ]
+      },
+      {
+        variant: 'callout',
+        heading: 'Ukratko',
+        paragraphs: [],
+        bullets: [
+          'Cena po naselju, a ne po osećaju - previsoka cena najviše produžava prodaju.',
+          'Papiri sređeni pre prvog poziva, da ozbiljan kupac ne odustane zbog čekanja.',
+          'Oglas koji sam odgovara na pitanja: sprat, lift, grejanje, troškovi, parking.',
+          'Tura za kupce iz Kraljeva, Jagodine ili Gornjeg Milanovca, koji ne mogu da dođu "samo da pogledaju".'
+        ]
+      },
+      {
+        heading: 'Počnite od cene po naselju, ne od željene cene',
+        paragraphs: [
+          'Isti kvadrat ne vredi isto u Centru, na Bubnju, Erdogliji ili Aerodromu. Kupci to znaju, jer pre poziva uporede desetak oglasa iz istog kraja. Nekretnina čija je cena iznad tog raspona najčešće ne dobije ni prvi poziv - i onda se cena spušta tek posle nekoliko nedelja, kad oglas već deluje "ustajalo".',
+          'Pre objave proverite raspon cena za vaše naselje. Na kvadrat360.com/alati postoji besplatna procena vrednosti po naselju i tipu nekretnine, za prodaju i za izdavanje - bez naloga i bez obaveze.'
+        ]
+      },
+      {
+        heading: 'Sredite papire pre prvog poziva',
+        paragraphs: ['Kupac koji je odlučio često želi da krene odmah. Ako dokumentacija tek treba da se traži, gubi se i nedelja i volja. Pripremite unapred:'],
+        bullets: [
+          'List nepokretnosti i dokaz o uknjiženosti',
+          'Podatke o kvadraturi iz dokumentacije, da se poklapaju sa oglasom',
+          'Okvirne mesečne troškove: grejanje, struja, zajednički troškovi zgrade',
+          'Informaciju šta ostaje uz nekretninu (kuhinja, ugradni ormari, klima)'
+        ]
+      },
+      {
+        heading: 'Oglas koji odgovara na pitanja pre nego što zazvoni telefon',
+        paragraphs: [
+          'Svaki poziv "koji je sprat?" znači da oglas nije rekao dovoljno. Kupac koji ne nađe odgovor ne zove uvek - često samo pređe na sledeći oglas. U opisu jasno navedite:'
+        ],
+        bullets: [
+          'Sprat i ukupan broj spratova, uz lift',
+          'Vrstu grejanja i okvirne troškove',
+          'Terasu, parking ili garažu, podrum',
+          'Stanje: renovirano, za renoviranje, useljivo odmah',
+          'Raspored prostorija - najbolje sa tlocrtom'
+        ]
+      },
+      {
+        paragraphs: [
+          'Virtuelna tura ide korak dalje: kupac sam prošeta kroz nekretninu, a u turi su na jednom mestu i podaci, odgovori na najčešća pitanja, tlocrt i dugme za zakazivanje razgledanja.'
+        ]
+      },
+      {
+        heading: 'Kupci iz okolnih mesta ne dolaze "samo da pogledaju"',
+        paragraphs: [
+          'Deo kupaca za Kragujevac dolazi iz Kraljeva, Jagodine, Gornjeg Milanovca ili Aranđelovca - za posao, studije ili zbog dece. Za njih je svaka poseta pola dana puta. Pre nego što krenu, žele da budu sigurni da nekretnina vredi dolaska.',
+          'Sa fotografijama to ne mogu da procene, sa turom mogu. Tura im daje raspored, svetlo i stanje prostorija pre nego što sednu u auto - i na razgledanje dolaze oni koji su već skoro odlučili.'
+        ]
+      },
+      {
+        heading: 'Pomozite kupcu da izračuna ratu',
+        paragraphs: [
+          'Većina kupaca ne pita "da li mi se dopada", nego "mogu li to da platim". Ako odmah vidi kolika bi bila mesečna rata kredita i koliko mu treba za učešće i troškove kupovine, brže prelazi sa razgledanja na odluku.',
+          'Uz oglas možete podeliti i naš besplatan kalkulator kredita i troškova kupovine - računa ratu, učešće, troškove notara i katastra, i povrat PDV-a za prvi stan.'
+        ]
+      },
+      {
+        heading: 'Kako vam Kvadrat360 skraćuje prodaju',
+        paragraphs: [
+          'U Kragujevcu snimamo 360° turu i HDR fotografije za oglas za 30-60 minuta, a gotova tura stiže za 24-48 sati. Link stavljate u oglas i šaljete kupcima na Viber, a tura ima audio vodiča na četiri jezika i dugme za zakazivanje razgledanja. Javite se za termin snimanja.'
+        ]
+      }
+    ],
+    relatedLinks: [
+      { href: '/alati/procena-vrednosti', label: 'Koliko vredi vaša nekretnina? Proverite raspon cene za vaše naselje' },
+      { href: '/#cenovnik', label: 'Hoćete turu za svoju nekretninu? Pogledajte cenovnik' },
+      { href: '/za-agencije', label: 'Agencija ste? Pogledajte kako tura štedi uzaludna razgledanja' }
+    ]
+  },
+  {
+    slug: 'kako-pripremiti-nekretninu-za-snimanje-360-ture',
+    title: 'Kako pripremiti nekretninu za snimanje 360° ture: kontrolna lista',
+    seoTitle: 'Priprema nekretnine za snimanje 360° ture',
+    description:
+      '360° kamera vidi svaki ugao, pa priprema traje duže nego za obične slike. Kontrolna lista za agente i vlasnike: svetlo, prostorije, privatnost i dan snimanja.',
+    excerpt:
+      'Obična fotografija preskoči ugao sa kutijama. 360° kamera ga vidi. Evo šta pripremiti dan pre snimanja, da tura pokaže nekretninu u najboljem svetlu.',
+    publishedAt: '2026-10-22',
+    sections: [
+      {
+        paragraphs: [
+          'Fotograf za oglas bira uglove: okrene se od police sa kutijama, izostavi sušilicu sa vešom, ne snima hodnik. Kod 360° ture to ne postoji - kamera snima ceo prostor oko sebe, i kupac kasnije može da pogleda svaki ugao.',
+          'Zato priprema za turu traje malo duže nego za obične fotografije. Dobra vest: sve se svodi na listu koju možete da prođete za sat-dva, dan pre snimanja.'
+        ]
+      },
+      {
+        variant: 'callout',
+        heading: 'Ukratko',
+        paragraphs: [],
+        bullets: [
+          'Sklonite sitnice sa svih površina - kamera vidi i ono što ste hteli da ostane "van kadra".',
+          'Upalite sva svetla i podignite roletne; tamna prostorija na turi deluje manja.',
+          'Sklonite lične fotografije, dokumenta i sve sa imenom i adresom.',
+          'Za vreme snimanja niko ne ostaje u prostoriji koja se snima.'
+        ]
+      },
+      {
+        heading: 'Dan pre snimanja: ono što kamera ne prašta',
+        paragraphs: ['360° kamera ne može da "okrene glavu" od nereda. Prođite kroz nekretninu i:'],
+        bullets: [
+          'Ispraznite radne površine u kuhinji i kupatilu',
+          'Sklonite veš, sušilice, kese i kutije',
+          'Zamenite pregorele sijalice',
+          'Obrišite ogledala, staklena vrata i prozore',
+          'Sklonite tepihe za kućne ljubimce, posude za hranu i igračke'
+        ]
+      },
+      {
+        heading: 'Svetlo pravi utisak prostora',
+        paragraphs: [
+          'Ista soba deluje veća i toplija kad je ravnomerno osvetljena. HDR snimanje izjednačava svetlo prozora i unutrašnjosti, ali mu treba vaša pomoć:'
+        ],
+        bullets: [
+          'Podignite sve roletne i razmaknite zavese',
+          'Upalite sva svetla, i u hodniku i kupatilu',
+          'Isključite televizore i monitore - crni ekran deluje kao rupa u zidu'
+        ]
+      },
+      {
+        heading: 'Prostorija po prostorija',
+        paragraphs: [],
+        list: [
+          { term: 'Dnevna soba', text: 'Jastuci na mestu, daljinski i punjači u fioci, stolić prazan ili sa jednim ukrasom.' },
+          { term: 'Kuhinja', text: 'Prazna sudopera, aparati sklonjeni sa pulta, krpe sklonjene sa rerne.' },
+          { term: 'Kupatilo', text: 'Spuštena daska, sklonjene četkice i kozmetika, čisti peškiri ili nijedan.' },
+          { term: 'Spavaća soba', text: 'Namešten krevet, zatvoreni ormari, ništa na podu.' },
+          { term: 'Terasa', text: 'Sklonjen veš, prazne kese i pepeljare; ako ima nameštaja, poređajte ga.' }
+        ]
+      },
+      {
+        heading: 'Privatnost: šta mora da nestane iz kadra',
+        paragraphs: [
+          'Tura je javna i deli se dalje, pa iz kadra sklonite sve što otkriva ko tu živi: porodične fotografije, dokumenta, račune, kovertu sa imenom i adresom, kalendar sa obavezama.',
+          'Tačna adresa se u turi i ne prikazuje - kupac vidi ulicu i naselje, a kućni broj dobija tek kad zakaže razgledanje.'
+        ]
+      },
+      {
+        heading: 'Na dan snimanja u Kragujevcu',
+        paragraphs: ['Snimanje jedne nekretnine traje 30-60 minuta. Da prođe brzo i bez ponavljanja:'],
+        bullets: [
+          'Otključajte sve prostorije koje treba da budu u turi',
+          'Ljubimce prebacite kod komšija ili u auto na kratko',
+          'Ukućani čekaju u prostoriji koja se ne snima, ili napolju',
+          'Ostavite otvorena unutrašnja vrata - tura tako lakše vodi kroz raspored'
+        ]
+      },
+      {
+        heading: 'Pravi kvadrati, bez skrivenih ćoškova',
+        paragraphs: [
+          'Priprema nije sakrivanje mana - kupac će ih videti na razgledanju. Cilj je da tura pokaže pravo stanje, bez nereda koji odvlači pažnju. Kupac koji na turi vidi i manu, a i dalje zakaže razgledanje, dolazi ozbiljno zainteresovan.',
+          'Kvadrat360 snima turu i HDR fotografije u Kragujevcu i okolini, a gotova tura stiže za 24-48 sati. Ako ste agent, ovu listu slobodno pošaljite vlasniku pre termina.'
+        ]
+      }
+    ],
+    relatedLinks: [
+      { href: '/za-agencije', label: 'Agencija ste? Pogledajte kako izgleda saradnja i primer ture' },
+      { href: '/#cenovnik', label: 'Koliko košta snimanje jedne nekretnine? Pogledajte cenovnik' },
+      { href: '/blog/kako-brze-prodati-stan-u-kragujevcu', label: 'Spremate se za prodaju? Pročitajte šta uraditi pre objave oglasa' }
+    ]
   }
 ];
 
