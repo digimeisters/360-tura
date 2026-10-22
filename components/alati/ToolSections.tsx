@@ -42,20 +42,20 @@ export function ToolExplain({
     <section className={band ? 'band' : undefined} id={id}>
       <div className="wrap">
         <div className="section-head">
-          <span className="eyebrow">{eyebrow}</span>
-          <h2>{accent(title)}</h2>
-          {note && <p className="note">{note}</p>}
+          <span className="eyebrow" data-reveal="up">{eyebrow}</span>
+          <h2 data-reveal="blur">{accent(title)}</h2>
+          {note && <p className="note" data-reveal="up">{note}</p>}
         </div>
         <div className={`tl-explain${columns === 4 ? ' is-4' : ''}`}>
           {items.map((item) => (
-            <div key={item.title} className="card tl-explain-card">
+            <div key={item.title} className="card tl-explain-card" data-reveal="up">
               <h3>{item.title}</h3>
               {item.value && <b>{item.value}</b>}
               <p>{item.text}</p>
             </div>
           ))}
         </div>
-        {fine && <p className="tl-explain-fine">{fine}</p>}
+        {fine && <p className="tl-explain-fine" data-reveal="up">{fine}</p>}
       </div>
     </section>
   );
@@ -79,7 +79,7 @@ export function ToolCta({
   return (
     <section id={id} className="mid-cta-sec">
       <div className="wrap mid-cta">
-        <div className="mid-cta-text">
+        <div className="mid-cta-text" data-reveal="up">
           <h2>{accent(title)}</h2>
           {text && <p>{text}</p>}
           {points && points.length > 0 && (
@@ -90,7 +90,7 @@ export function ToolCta({
             </ul>
           )}
         </div>
-        <div className="mid-cta-actions">
+        <div className="mid-cta-actions" data-reveal="up">
           <Link className="btn btn-primary" href={primary.href} data-track={primary.track}>
             {primary.label}
           </Link>
@@ -120,13 +120,13 @@ export function ToolFaq({
     <section id="pitanja">
       <div className="wrap faq-split">
         <div className="section-head left">
-          <span className="eyebrow">{eyebrow}</span>
-          <h2>{accent(title)}</h2>
-          {note && <p className="note">{note}</p>}
+          <span className="eyebrow" data-reveal="up">{eyebrow}</span>
+          <h2 data-reveal="blur">{accent(title)}</h2>
+          {note && <p className="note" data-reveal="up">{note}</p>}
         </div>
         <div className="faq-list">
           {items.map((f) => (
-            <details key={f.q} className="card faq-item">
+            <details key={f.q} className="card faq-item" data-reveal="up">
               <summary>{f.q}</summary>
               <p>{f.a}</p>
             </details>

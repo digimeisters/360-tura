@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import SiteTracker from '../../components/SiteTracker';
+import SiteReveal from '../../components/SiteReveal';
 import SiteStylesheets from '../../components/SiteStylesheets';
 import { SiteFooter } from '../../components/SiteChrome';
 import { ToolCta, ToolExplain, ToolFaq, ToolsNav } from '../../components/alati/ToolSections';
@@ -191,11 +192,11 @@ export default function ToolsPage() {
           <b>Procena</b>
           <span>Najviša</span>
         </div>
-        <div className="tl-pv-range" />
+        <div className="tl-pv-range" data-reveal-group />
       </div>
       <ul>
         {COPY.valuation.points.map((p) => (
-          <li key={p}>{p}</li>
+          <li key={p} data-reveal="list">{p}</li>
         ))}
       </ul>
       <div className="tl-go">
@@ -210,10 +211,12 @@ export default function ToolsPage() {
       <style dangerouslySetInnerHTML={{ __html: TOOLS_STYLES }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <SiteTracker />
+      <SiteReveal />
 
       <ToolsNav />
 
-      <main>
+      {/* .rv-page: animacije iz siteStyles (kao na početnoj) važe i ovde; filmovi alata su u TOOLS_STYLES. */}
+      <main className="rv-page">
         <section className="hero" id="pocetna">
           <div className="wrap">
             <div>
@@ -246,16 +249,16 @@ export default function ToolsPage() {
                 <div className="tl-pv-big">
                   <small>25 god. · 4,5%</small>
                   <b>
-                    {formatPrice(SAMPLE.monthly, 'sr')} <em>mesečno</em>
+                    <span data-count>{formatPrice(SAMPLE.monthly, 'sr')}</span> <em>mesečno</em>
                   </b>
                 </div>
                 <div className="tl-pv-row">
                   <span>Odmah: učešće + troškovi</span>
-                  <b>{formatPrice(SAMPLE.upfront, 'sr')}</b>
+                  <b data-count>{formatPrice(SAMPLE.upfront, 'sr')}</b>
                 </div>
                 <div className="tl-pv-green">
                   <span>Povrat PDV-a za prvi stan</span>
-                  <span>{formatPrice(SAMPLE.vatRefund, 'sr')}</span>
+                  <span data-count>{formatPrice(SAMPLE.vatRefund, 'sr')}</span>
                 </div>
               </div>
               <div className="tl-vcard is-value">
@@ -275,12 +278,12 @@ export default function ToolsPage() {
         <section className="band" id="alati">
           <div className="wrap">
             <div className="section-head">
-              <span className="eyebrow">{COPY.tools.eyebrow}</span>
-              <h2>{accent(COPY.tools.title)}</h2>
-              <p className="note">{COPY.tools.note}</p>
+              <span className="eyebrow" data-reveal="up">{COPY.tools.eyebrow}</span>
+              <h2 data-reveal="blur">{accent(COPY.tools.title)}</h2>
+              <p className="note" data-reveal="up">{COPY.tools.note}</p>
             </div>
             <div className="tl-tools">
-              <Link className="tl-tool" href={CALC_HREF} data-track="cta:tools_card_calc">
+              <Link className="tl-tool" data-reveal="scale" href={CALC_HREF} data-track="cta:tools_card_calc">
                 <span className="tl-who">{COPY.calc.who}</span>
                 <h3>{COPY.calc.title}</h3>
                 <p>{COPY.calc.text}</p>
@@ -288,21 +291,21 @@ export default function ToolsPage() {
                   <div className="tl-pv-big">
                     <small>25 god. · 4,5%</small>
                     <b>
-                      {formatPrice(SAMPLE.monthly, 'sr')} <em>mesečno</em>
+                      <span data-count>{formatPrice(SAMPLE.monthly, 'sr')}</span> <em>mesečno</em>
                     </b>
                   </div>
                   <div className="tl-pv-row">
                     <span>Odmah: učešće + troškovi</span>
-                    <b>{formatPrice(SAMPLE.upfront, 'sr')}</b>
+                    <b data-count>{formatPrice(SAMPLE.upfront, 'sr')}</b>
                   </div>
                   <div className="tl-pv-green">
                     <span>Povrat PDV-a za prvi stan</span>
-                    <span>{formatPrice(SAMPLE.vatRefund, 'sr')}</span>
+                    <span data-count>{formatPrice(SAMPLE.vatRefund, 'sr')}</span>
                   </div>
                 </div>
                 <ul>
                   {COPY.calc.points.map((p) => (
-                    <li key={p}>{p}</li>
+                    <li key={p} data-reveal="list">{p}</li>
                   ))}
                 </ul>
                 <div className="tl-go">
@@ -311,19 +314,19 @@ export default function ToolsPage() {
               </Link>
 
               {VALUATION_LIVE ? (
-                <Link className="tl-tool" href={VALUATION_HREF} data-track="cta:tools_card_valuation">
+                <Link className="tl-tool" data-reveal="scale" href={VALUATION_HREF} data-track="cta:tools_card_valuation">
                   {valuationBody}
                 </Link>
               ) : (
-                <div className="tl-tool is-soon">{valuationBody}</div>
+                <div className="tl-tool is-soon" data-reveal="scale">{valuationBody}</div>
               )}
 
-              <Link className="tl-tool" href={PRICES_HREF} data-track="cta:tools_card_prices">
+              <Link className="tl-tool" data-reveal="scale" href={PRICES_HREF} data-track="cta:tools_card_prices">
                 <span className="tl-who">{COPY.prices.who}</span>
                 <h3>{COPY.prices.title}</h3>
                 <p>{COPY.prices.text}</p>
                 {/* Ilustracija grafikona (trake po naseljima), bez brojeva. */}
-                <div className="tl-preview tl-pv-bars" aria-hidden="true">
+                <div className="tl-preview tl-pv-bars" aria-hidden="true" data-reveal-group>
                   {[
                     [52, 40],
                     [44, 42],
@@ -335,7 +338,7 @@ export default function ToolsPage() {
                 </div>
                 <ul>
                   {COPY.prices.points.map((p) => (
-                    <li key={p}>{p}</li>
+                    <li key={p} data-reveal="list">{p}</li>
                   ))}
                 </ul>
                 <div className="tl-go">

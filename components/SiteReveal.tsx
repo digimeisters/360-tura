@@ -35,6 +35,12 @@ export default function SiteReveal() {
     const texts = new Map(counters.map((el) => [el, el.textContent ?? '']));
     const frames = new Set<number>();
     // Sve cifre u tekstu rastu zajedno (1200 ms, ease-out); na kraju tačan tekst.
+    // Broj sa tačkom za hiljade (19.817) broji kao jedan broj i zadržava tačke.
+    const NUMBER = /\d{1,3}(?:\.\d{3})+|\d+/g;
+    const scaled = (d: string, e: number) => {
+      const n = Math.round(Number(d.replace(/\./g, '')) * e);
+      return d.includes('.') ? n.toLocaleString('sr-RS') : String(n);
+    };
     const count = (el: HTMLElement) => {
       const text = texts.get(el) ?? '';
       if (!/\d/.test(text)) return;
@@ -42,10 +48,10 @@ export default function SiteReveal() {
       const step = (now: number) => {
         const k = Math.min(1, (now - start) / 1200);
         const e = 1 - Math.pow(1 - k, 3);
-        el.textContent = k < 1 ? text.replace(/\d+/g, (d) => String(Math.round(Number(d) * e))) : text;
+        el.textContent = k < 1 ? text.replace(NUMBER, (d) => scaled(d, e)) : text;
         if (k < 1) frames.add(requestAnimationFrame(step));
       };
-      el.textContent = text.replace(/\d+/g, '0');
+      el.textContent = text.replace(NUMBER, '0');
       frames.add(requestAnimationFrame(step));
     };
 
