@@ -1256,6 +1256,10 @@ export const SITE_STYLES = `
   .story.is-armed .story-view{max-height:82vh; justify-self:center;}
   .story.is-armed .story-pano{display:block; position:absolute; inset:0; opacity:0; pointer-events:none; background:#ccc 0 52%/auto 165% repeat-x;}
   .story.is-armed .story-pano-b{z-index:1;}
+  /* Traka sa panoramom (TourStoryPlayer): pomera se transform-om, ne background-position-om. */
+  .story.is-armed .story-strip{position:absolute; top:0; left:0; height:100%; background:0 52%/auto 165% repeat-x; will-change:transform;}
+  /* Tačke se postavljaju svojstvom translate (TourStoryPlayer place), od gornjeg levog ugla kadra. */
+  .story.is-armed .story-hs, .story.is-armed .story-card, .story.is-armed .story-door{left:0; top:0;}
   .story.is-armed .story-ui{display:block; position:absolute; inset:0; z-index:3; pointer-events:none;}
   .story.is-armed .story-ui > *{display:block;}
   .story-tag{position:absolute; left:14px; top:14px; background:rgba(17,17,19,.72); color:#fff; font-size:13px; font-weight:600; padding:7px 11px; border-radius:999px; backdrop-filter:blur(6px); opacity:0;}

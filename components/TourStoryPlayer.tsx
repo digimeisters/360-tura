@@ -13,6 +13,14 @@ import { STORY_LANGS, type StoryData } from '../app/lib/tourStory';
  * pomeraju, kao hero na početnoj, pa tačka (yaw, pitch) ima položaj na ekranu.
  * Petlja radi samo dok je sekcija blizu ekrana. Uz smanjene pokrete ništa se
  * ne naoružava i ostaje statičan prikaz.
+ *
+ * Brzina (vlasnik, 23. 10. 2026): u svakom kadru se menjaju samo transform,
+ * translate i opacity - to crta grafički čip. Panorama je traka u svojoj
+ * pločici (ranije background-position, pa se cela slika iznova crtala), tačke
+ * se pomeraju CSS svojstvom translate (ranije left/top), a veličine prozora,
+ * sekcije i kartice mere se jednom i pri promeni veličine ekrana, ne u
+ * svakom kadru (merenje odmah posle pomeranja teralo je pregledač da
+ * preračuna stranu).
  */
 type PlayerData = Omit<StoryData, 'planSvg'>;
 
@@ -100,12 +108,22 @@ export default function TourStoryPlayer({ data }: { data: PlayerData }) {
 
     const phone = () => window.innerWidth <= PHONE;
     let loaded = false;
+    // Traka sa panoramom u svakoj pločici: široka za kadar + jednu panoramu,
+    // pomera se transform-om i u krug, pa izgleda kao beskonačna pozadina.
+    const makeStrip = (pano: HTMLElement) => {
+      const strip = document.createElement('div');
+      strip.className = 'story-strip';
+      pano.append(strip);
+      return strip;
+    };
+    const stripA = makeStrip(panoA);
+    const stripB = makeStrip(panoB);
     const loadPanoramas = () => {
       if (loaded) return;
       loaded = true;
       const pick = (r: PlayerData['a']) => (phone() ? r.panorama.phone : r.panorama.desktop);
-      panoA.style.backgroundImage = `url(${pick(data.a)})`;
-      panoB.style.backgroundImage = `url(${pick(data.b)})`;
+      stripA.style.backgroundImage = `url(${pick(data.a)})`;
+      stripB.style.backgroundImage = `url(${pick(data.b)})`;
     };
 
     const geo = () => {
@@ -114,17 +132,30 @@ export default function TourStoryPlayer({ data }: { data: PlayerData }) {
       return { w: view.clientWidth, h, Hb, Wb: Hb * 2, oy: (h - Hb) * PANO_Y };
     };
     type Geo = ReturnType<typeof geo>;
-    const look = (el: HTMLElement, yaw: number, g: Geo) => {
-      el.style.backgroundPositionX = `${g.w / 2 - (g.Wb * (yaw + 180)) / 360}px`;
+    // Mere se jednom i pri promeni veličine ekrana (measure), ne u svakom kadru.
+    let G: Geo = geo();
+    let travel = 1;
+    let cardW = 0;
+    let cardH = 0;
+    const measure = () => {
+      G = geo();
+      travel = Math.max(1, section.offsetHeight - window.innerHeight);
+      cardW = card.offsetWidth;
+      cardH = card.offsetHeight;
+      for (const strip of [stripA, stripB]) strip.style.width = `${Math.ceil(G.w + G.Wb)}px`;
     };
-    /** Postavlja element na tačku (yaw, pitch); vraća da li je na ekranu. */
+    const look = (strip: HTMLElement, yaw: number, g: Geo) => {
+      const bx = g.w / 2 - (g.Wb * (yaw + 180)) / 360;
+      const x = ((bx % g.Wb) + g.Wb) % g.Wb - g.Wb;
+      strip.style.transform = `translate3d(${x}px,0,0)`;
+    };
+    /** Postavlja element na tačku (yaw, pitch); vraća položaj i da li je na ekranu. */
     const place = (el: HTMLElement, pt: { yaw: number; pitch: number }, yawNow: number, g: Geo) => {
       const d = ((((pt.yaw - yawNow + 540) % 360) + 360) % 360) - 180;
       const x = g.w / 2 + (g.Wb * d) / 360;
       const y = (g.Hb * (90 - pt.pitch)) / 180 + g.oy;
-      el.style.left = `${x}px`;
-      el.style.top = `${y}px`;
-      return x > -40 && x < g.w + 40;
+      el.style.translate = `${x}px ${y}px`;
+      return { x, y, visible: x > -40 && x < g.w + 40 };
     };
 
     const hsYaw = toward(data.a.startYaw, data.hotspot.yaw);
@@ -133,8 +164,8 @@ export default function TourStoryPlayer({ data }: { data: PlayerData }) {
 
     const render = () => {
       const box = section.getBoundingClientRect();
-      const p = Math.max(0, Math.min(1, -box.top / (section.offsetHeight - window.innerHeight)));
-      const g = geo();
+      const p = Math.max(0, Math.min(1, -box.top / travel));
+      const g = G;
 
       // 1-3: tlocrt nastaje (zidovi, popuna, vrata, nazivi, tačke)
       walls.forEach((w, i) => {
@@ -176,12 +207,12 @@ export default function TourStoryPlayer({ data }: { data: PlayerData }) {
       // 5: okret ka hotspotu, 6: okret ka strelici i prolaz u sobu B
       let yawA = lerp(data.a.startYaw, hsYaw, ease(seg(p, 0.42, 0.5)));
       yawA = lerp(yawA, doorYaw, ease(seg(p, 0.58, 0.63)));
-      look(panoA, yawA, g);
-      hs.classList.toggle('on', p > 0.47 && p < 0.585 && place(hs, data.hotspot, yawA, g));
+      look(stripA, yawA, g);
+      const hsAt = place(hs, data.hotspot, yawA, g);
+      hs.classList.toggle('on', p > 0.47 && p < 0.585 && hsAt.visible);
       card.classList.toggle('on', p > 0.5 && p < 0.58);
-      card.style.left = `${Math.min(parseFloat(hs.style.left) + 22, g.w - card.offsetWidth - 10)}px`;
-      card.style.top = `${Math.max(10, parseFloat(hs.style.top) - card.offsetHeight - 14)}px`;
-      door.classList.toggle('on', p > 0.61 && p < 0.665 && place(door, data.door, yawA, g));
+      card.style.translate = `${Math.min(hsAt.x + 22, g.w - cardW - 10)}px ${Math.max(10, hsAt.y - cardH - 14)}px`;
+      door.classList.toggle('on', p > 0.61 && p < 0.665 && place(door, data.door, yawA, g).visible);
       const walk = ease(seg(p, 0.645, 0.7));
       panoA.style.transform = `scale(${(1.12 - 0.12 * ease(ia)) * (1 + 0.35 * walk)})`;
       panoA.style.filter = walk ? `blur(${walk * 6}px)` : '';
@@ -189,7 +220,7 @@ export default function TourStoryPlayer({ data }: { data: PlayerData }) {
       panoB.style.opacity = String(ib);
       panoB.style.transform = `scale(${1.15 - 0.15 * ease(ib)})`;
       const yawB = lerp(data.b.startYaw - 80, data.b.startYaw, seg(p, 0.68, 0.95));
-      look(panoB, yawB, g);
+      look(stripB, yawB, g);
 
       const inB = p > 0.68;
       tag.textContent = `${(inB ? data.b : data.a).title} · 360°`;
@@ -224,6 +255,10 @@ export default function TourStoryPlayer({ data }: { data: PlayerData }) {
     };
 
     let frame = 0;
+    const onResize = () => {
+      measure();
+      onScroll();
+    };
     const onScroll = () => {
       if (!frame)
         frame = requestAnimationFrame(() => {
@@ -237,25 +272,29 @@ export default function TourStoryPlayer({ data }: { data: PlayerData }) {
         if (entry.isIntersecting) {
           loadPanoramas();
           window.addEventListener('scroll', onScroll, { passive: true });
-          window.addEventListener('resize', onScroll);
+          window.addEventListener('resize', onResize);
+          measure();
           onScroll();
         } else {
           window.removeEventListener('scroll', onScroll);
-          window.removeEventListener('resize', onScroll);
+          window.removeEventListener('resize', onResize);
         }
       },
       { rootMargin: '800px 0px' }
     );
     near.observe(section);
+    measure();
     render();
 
     return () => {
       near.disconnect();
       window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
+      window.removeEventListener('resize', onResize);
       if (frame) cancelAnimationFrame(frame);
       section.classList.remove('is-armed');
       miniSvg.remove();
+      stripA.remove();
+      stripB.remove();
       for (const el of [...walls, ...doors, ...labels, ...cams, planBox, panoA, panoB, tag, hs, card, door, sub, ...bars]) el.removeAttribute('style');
       for (const w of walls) w.removeAttribute('pathLength');
       for (const el of [hs, card, door, mini, sub, ...steps, ...langs]) el.classList.remove('on');
