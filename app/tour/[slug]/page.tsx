@@ -988,13 +988,16 @@ export default function TourPage() {
     tourStarted && isGuideAuto && roomTalkDone && Boolean(agentPhone) && !pendingCoords && !activeModal && !showSubtitles;
   // Poziv na naručivanje ture (DemoTourInvite) - samo u primerima koje je
   // snimio Kvadrat360 ("Kvadrat360 · primer"), nikad u turama agencija.
+  // Kada (vlasnik, 23. 10. 2026): uz vodiča tek kad vodič završi sve sobe;
+  // kad razgleda sam, posle polovine soba. Do kraja svih soba sam stigne
+  // samo ~7% posetilaca, do polovine ~35% (tour_events, 60 dana).
   const isDemoTour = /kvadrat360/i.test(tour?.agency_name ?? '');
+  const demoInviteReached = isGuideAuto ? guideFinished : seenRoomIds.size >= Math.ceil(rooms.length / 2);
   const showDemoInvite =
     isDemoTour &&
     !adminMode &&
     tourStarted &&
-    seenRoomIds.size >= 2 &&
-    (!isGuideAuto || guideFinished || isGuidePaused) &&
+    demoInviteReached &&
     !showSubtitles &&
     !activeModal &&
     !pendingCoords &&
