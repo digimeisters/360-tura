@@ -44,15 +44,15 @@ const COPY = {
     contactPh: '06x xxx xxxx',
     send: 'Pošaljite',
     sending: 'Šaljemo…',
-    //   i ⁠: "pon–sub 08–20h" ostaje u jednom redu.
-    fine: 'Javljamo se u radno vreme, pon⁠–⁠sub 08⁠–⁠20h. Broj koristimo samo za ovaj poziv.',
+    // Isto obećanje kao na formi sajta (vlasnik, 23. 10. 2026).
+    fine: 'Javljamo se u najkraćem roku, u toku radnog dana. Broj koristimo samo za ovaj poziv.',
     or: 'ili odmah',
     call: '📞 Pozovite',
     formInvalid: 'Upišite ime i broj telefona.',
     formFailed: 'Upit nije poslat. Pokušajte ponovo ili nas pozovite.',
     thanks: 'Hvala, {name}!',
     sentBefore: 'Javljamo se na ',
-    sentAfter: ' u radno vreme (pon⁠–⁠sub, 08⁠–⁠20h). Do tada slobodno razgledajte turu.',
+    sentAfter: ' u najkraćem roku, u toku radnog dana. Do tada slobodno razgledajte turu.',
     viberUs: 'Pišite nam na Viber'
   },
   en: {
@@ -72,14 +72,14 @@ const COPY = {
     contactPh: '+381 6x xxx xxxx',
     send: 'Send',
     sending: 'Sending…',
-    fine: 'We reply during working hours, Mon⁠–⁠Sat 08⁠–⁠20h. We use your number only for this call.',
+    fine: 'We get back to you as soon as possible during the working day. We use your number only for this call.',
     or: 'or right now',
     call: '📞 Call us',
     formInvalid: 'Please enter your name and phone number.',
     formFailed: 'Not sent. Please try again or call us.',
     thanks: 'Thank you, {name}!',
     sentBefore: 'We will call ',
-    sentAfter: ' during working hours (Mon⁠–⁠Sat, 08⁠–⁠20h). Meanwhile, feel free to keep exploring the tour.',
+    sentAfter: ' as soon as possible during the working day. Meanwhile, feel free to keep exploring the tour.',
     viberUs: 'Message us on Viber'
   }
 } as const;

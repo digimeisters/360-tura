@@ -73,7 +73,8 @@ export type AgencyCopy = {
   proof: {
     eyebrow: string;
     title: string;
-    items: { value: string; label: string; source: string }[];
+    /** Svaka brojka mora da ima javni izvor koji agent može da otvori (url). */
+    items: { value: string; label: string; source: string; url: string }[];
   };
   steps: {
     eyebrow: string;
@@ -115,7 +116,7 @@ export const AGENCY_COPY: AgencyCopy = {
     eyebrow: '360° ture za agencije · Kragujevac i okolina',
     title: 'Ista nekretnina, tri agencije. *Kupac zove vas.*',
     lede:
-      'Kad je vaš oglas jedini u kome kupac može da prošeta kroz nekretninu, zove vas. Mi snimamo — vi za 48h dobijate turu za oglas.',
+      'Kad je vaš oglas jedini u kome kupac može da prošeta kroz nekretninu, zove vas. Mi snimamo — vi za 24–48h dobijate turu za oglas.',
     ctaContact: 'Zatražite ponudu',
     ctaPrices: 'Pogledajte cene',
     trust: ['Snimanje 30–60 min', 'Tura za 24–48h', 'Radi na svakom telefonu']
@@ -205,17 +206,29 @@ export const AGENCY_COPY: AgencyCopy = {
   },
   midCta: {
     title: 'Probajte na *jednoj nekretnini* —',
-    points: ['tura za 48h', 'vaš kontakt u turi', 'izveštaj za vlasnika'],
+    points: ['tura za 24–48h', 'vaš kontakt u turi', 'izveštaj za vlasnika'],
     button: 'Zatražite ponudu',
     call: 'Pozovite'
   },
   proof: {
     eyebrow: 'Nije samo naša priča',
     title: 'Tržišta koja su ture uvela pre nas *već imaju brojke.*',
+    // Pregled 23. 10. 2026: "+49% kvalifikovanih upita" je izbačen - kruži po
+    // marketinškim stranama, ali bez ijedne javne studije iza sebe. Ostale
+    // dve brojke vode na originalni tekst.
     items: [
-      { value: 'do 31%', label: 'brža prodaja sa 3D/360° turom', source: 'Matterport, analiza MLS prodaja u SAD' },
-      { value: '+79%', label: 'pregleda oglasa sa turom i tlocrtom', source: 'Zillow Showcase' },
-      { value: '+49%', label: 'kvalifikovanih upita', source: 'Matterport, interno istraživanje' }
+      {
+        value: 'do 31%',
+        label: 'brža prodaja sa 3D/360° turom',
+        source: 'Matterport, analiza MLS prodaja na 4 tržišta u SAD',
+        url: 'https://matterport.com/blog/3d-tours-properties-sell-31-faster-and-higher-price'
+      },
+      {
+        value: '+79%',
+        label: 'pregleda oglasa sa turom i tlocrtom',
+        source: 'Zillow Showcase, podaci Zillow-a (2025)',
+        url: 'https://zillow.mediaroom.com/2025-09-30-More-than-50-brokerages-adopt-Zillow-Showcase-as-go-to-tool-for-listing-marketing-innovation'
+      }
     ]
   },
   steps: {
@@ -245,7 +258,7 @@ export const AGENCY_COPY: AgencyCopy = {
   faq: {
     eyebrow: 'Pitanja agencija',
     title: 'Ono što agencije pitaju *pre prve saradnje*',
-    note: 'Ako vašeg pitanja nema, javite se — odgovaramo u roku od 24h radnim danima.',
+    note: 'Ako vašeg pitanja nema, javite se — odgovaramo u najkraćem roku, u toku radnog dana.',
     items: [
       {
         question: 'Da li neko iz agencije mora da bude prisutan tokom snimanja?',

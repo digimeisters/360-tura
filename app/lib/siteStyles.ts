@@ -928,6 +928,15 @@ export const SITE_STYLES = `
   }
   .contact .wrap > *{min-width:0;}
   .contact-form{display:flex; flex-direction:column; gap:1rem; padding:1.4rem;}
+  /* Potvrda posle slanja (ContactForm, umesto forme). */
+  .form-sent{gap:.6rem; align-items:flex-start;}
+  .form-sent-ok{display:grid; place-items:center; width:48px; height:48px; border-radius:50%; background:#16A34A; color:#FFFFFF; font-size:1.5rem; font-weight:700;}
+  .form-sent-title{margin:.2rem 0 0; font-family:var(--font-display); font-weight:800; font-size:1.35rem; letter-spacing:-0.01em;}
+  .form-sent-text{margin:0; color:var(--ink-soft); line-height:1.6; max-width:44ch;}
+  .form-sent-text b{color:var(--ink); white-space:nowrap;}
+  .form-sent-actions{display:flex; flex-wrap:wrap; align-items:center; gap:.6rem 1rem; margin-top:.6rem;}
+  .btn-viber{background:linear-gradient(180deg,#8C7CF7 0%,#7360F2 55%,#5F4BDB 100%); color:#FFFFFF; border-color:transparent;}
+  .form-sent-again{background:none; border:0; padding:.4rem 0; color:var(--accent); font:inherit; font-weight:600; cursor:pointer; text-decoration:underline; text-underline-offset:3px;}
 
   /* Željeni termin: dani kao čipovi koji se pomeraju prstom, pa deo dana. */
   .slot{border:1px solid var(--line); border-radius:16px; padding:.85rem 1rem 1rem; margin:0; min-width:0; display:flex; flex-direction:column; gap:.75rem; background:var(--surface-2);}

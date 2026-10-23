@@ -505,7 +505,7 @@ const sr: HomeCopy = {
   contact: {
     eyebrow: 'Kontakt',
     title: 'Zakažite *snimanje*',
-    note: 'Odgovaramo za 24h radnim danima — ili se javite odmah, pozivom ili porukom:',
+    note: 'Javljamo se u najkraćem roku, u toku radnog dana — ili se javite odmah, pozivom ili porukom:',
     call: 'Pozovite',
     labels: { phone: 'Telefon', email: 'E-mail', address: 'Adresa', hours: 'Radno vreme' },
     hours: 'Pon–Sub, 08–20h',
@@ -711,7 +711,7 @@ const en: HomeCopy = {
   contact: {
     eyebrow: 'Contact',
     title: 'Book a *shoot*',
-    note: 'We reply within 24 hours on business days — or reach us right away by phone or message:',
+    note: 'We get back to you as soon as possible during the working day — or reach us right away by phone or message:',
     call: 'Call',
     labels: { phone: 'Phone', email: 'Email', address: 'Address', hours: 'Hours' },
     hours: 'Mon–Sat, 8 am – 8 pm',

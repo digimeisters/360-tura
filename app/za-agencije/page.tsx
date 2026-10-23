@@ -186,7 +186,9 @@ const AGENCY_STYLES = `
   .report-chips span{background:#F1F1EC; border-radius:999px; padding:.4rem .8rem; font-size:.78rem; font-weight:700;}
 
   /* 05 Brojke iz sveta. */
-  .proof-grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:clamp(1.5rem,4vw,3rem);}
+  .proof-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:clamp(1.5rem,4vw,3rem); max-width:900px;}
+  .proof-item small a{color:inherit; text-decoration:underline; text-underline-offset:3px;}
+  .proof-item small a:hover{color:var(--accent);}
   @media (max-width:820px){ .proof-grid{grid-template-columns:1fr;} }
   .proof-item{border-top:2px solid var(--ink); padding-top:1.4rem;}
   .proof-item b{display:block; font-family:var(--font-display); font-weight:800; font-size:clamp(3rem,6vw,4.4rem); letter-spacing:-0.03em; color:var(--accent); line-height:1.05;}
@@ -439,7 +441,11 @@ export default async function AgencyPage() {
                 <div key={item.value} className="proof-item" data-reveal="scale">
                   <b data-count>{item.value}</b>
                   <p>{item.label}</p>
-                  <small>{item.source}</small>
+                  <small>
+                    <a href={item.url} target="_blank" rel="noopener noreferrer" data-track="cta:agency_proof_source">
+                      {item.source} ↗
+                    </a>
+                  </small>
                 </div>
               ))}
             </div>

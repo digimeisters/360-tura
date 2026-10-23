@@ -5,6 +5,7 @@ import { trackSiteEvent } from '../app/lib/track';
 import type { HomeLang } from '../app/lib/homeCopy';
 import { SLOT_WINDOWS, upcomingShootDays, type ShootDay, type SlotWindow } from '../app/lib/shootSlot';
 import { CONTACT_PACKAGES } from '../app/lib/pricing';
+import { CONTACT_LINKS } from '../app/lib/site';
 
 type Status = { kind: 'idle' | 'sending' | 'ok' | 'error'; text: string };
 
@@ -45,6 +46,12 @@ const TEXT: Record<
     ok: string;
     failed: string;
     offline: string;
+    /** Potvrda posle slanja (umesto forme): "{name}" je ime koje je upisano. */
+    thanks: string;
+    sentBefore: string;
+    sentAfter: string;
+    viberUs: string;
+    again: string;
   }
 > = {
   sr: {
@@ -79,9 +86,14 @@ const TEXT: Record<
     submit: 'Pošaljite upit',
     sending: 'Šaljemo...',
     sendingStatus: 'Šaljemo upit...',
-    ok: 'Hvala! Upit je stigao — javljamo se za 24h radnim danima.',
+    ok: 'Hvala! Upit je stigao — javljamo se u najkraćem roku, u toku radnog dana.',
     failed: 'Upit nije poslat. Pokušajte ponovo.',
-    offline: 'Nema veze sa serverom. Proverite internet i pokušajte ponovo.'
+    offline: 'Nema veze sa serverom. Proverite internet i pokušajte ponovo.',
+    thanks: 'Hvala, {name}!',
+    sentBefore: 'Upit je stigao. Javljamo se na ',
+    sentAfter: ' u najkraćem roku, u toku radnog dana.',
+    viberUs: 'Pišite nam odmah na Viber',
+    again: 'Pošaljite još jedan upit'
   },
   en: {
     name: 'Full name',
@@ -120,9 +132,14 @@ const TEXT: Record<
     submit: 'Send request',
     sending: 'Sending...',
     sendingStatus: 'Sending your request...',
-    ok: 'Thank you! Your request has been received — we’ll get back to you shortly.',
+    ok: 'Thank you! Your request has been received — we’ll get back to you as soon as possible during the working day.',
     failed: 'The request wasn’t sent. Please try again or give us a call.',
-    offline: 'No connection to the server. Check your internet and try again.'
+    offline: 'No connection to the server. Check your internet and try again.',
+    thanks: 'Thank you, {name}!',
+    sentBefore: 'Your request has been received. We’ll contact you at ',
+    sentAfter: ' as soon as possible during the working day.',
+    viberUs: 'Message us on Viber now',
+    again: 'Send another request'
   }
 };
 
@@ -152,6 +169,9 @@ export default function ContactForm({
   variant?: 'default' | 'agency' | 'investor';
 }) {
   const [status, setStatus] = useState<Status>({ kind: 'idle', text: '' });
+  // Posle uspešnog slanja forma ustupa mesto jasnoj potvrdi sa upisanim
+  // imenom i kontaktom (vlasnik, 23. 10. 2026 - mali zeleni red se lako previdi).
+  const [sent, setSent] = useState<{ name: string; contact: string } | null>(null);
   const t = TEXT[lang];
 
   // Dani se računaju tek u pregledaču: strana je statična i osvežava se na
@@ -219,6 +239,8 @@ export default function ContactForm({
       setSlotWindow(null);
       trackSiteEvent('form_submit', 'contact_form');
       setStatus({ kind: 'ok', text: t.ok });
+      const fields = data as Record<string, unknown>;
+      setSent({ name: String(fields.name ?? '').trim().split(/\s+/)[0], contact: String(fields.contact ?? '').trim() });
     } catch {
       setStatus({ kind: 'error', text: t.offline });
     }
@@ -244,6 +266,33 @@ export default function ContactForm({
       </p>
     </div>
   );
+
+  if (sent) {
+    return (
+      <div id="contact-form" className="card contact-form form-sent" role="status" aria-live="polite">
+        <span className="form-sent-ok" aria-hidden="true">✓</span>
+        <p className="form-sent-title">{t.thanks.replace('{name}', sent.name)}</p>
+        <p className="form-sent-text">
+          {t.sentBefore}
+          <b>{sent.contact}</b>
+          {t.sentAfter}
+        </p>
+        <div className="form-sent-actions">
+          <a className="btn btn-viber" href={CONTACT_LINKS.viber} data-track="contact:form_sent_viber">{t.viberUs}</a>
+          <button
+            type="button"
+            className="form-sent-again"
+            onClick={() => {
+              setSent(null);
+              setStatus({ kind: 'idle', text: '' });
+            }}
+          >
+            {t.again}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (variant === 'investor') {
     return (
