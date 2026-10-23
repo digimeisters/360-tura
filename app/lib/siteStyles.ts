@@ -316,12 +316,15 @@ export const SITE_STYLES = `
   .ht-pano{position:absolute; inset:0; overflow:hidden; opacity:0; transition:opacity .5s ease; touch-action:pan-y; cursor:grab; user-select:none;}
   /* Traka sa panoramom pomera se transform-om (HeroTour setOffset) - crta je grafički čip. */
   .ht-pano-strip{position:absolute; top:0; left:0; height:100%; width:100%; background-repeat:repeat-x; background-position:0 50%; will-change:transform; pointer-events:none;}
+  /* Sporo okretanje bez JavaScript-a: traka ide za jednu panoramu (--ht-tile) ulevo i kreće ispočetka - izgleda beskonačno. Trajanje postavlja HeroTour. */
+  @keyframes ht-drift{from{transform:translate3d(0,0,0);} to{transform:translate3d(calc(var(--ht-tile) * -1),0,0);}}
+  .ht-pano-strip.is-drifting{animation-name:ht-drift; animation-timing-function:linear; animation-iteration-count:infinite;}
   .ht-pano.is-ready{opacity:1;}
   .ht-pano:active{cursor:grabbing;}
   .ht-pano:focus-visible{outline:3px solid #FFFFFF; outline-offset:-6px; border-radius:0;}
-  .ht-hint{position:absolute; top:1.4rem; left:50%; transform:translateX(-50%); padding:.5rem 1rem; border-radius:999px; background:rgba(17,17,19,.6); color:#FFFFFF;
-    font-family:var(--font-display); font-weight:600; font-size:.88rem; white-space:nowrap; pointer-events:none; transition:opacity .4s ease;
-    -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);}
+  /* Bez backdrop-filter: zamućenje ispod natpisa se crtalo iznova u svakom frejmu dok se panorama okreće - zato malo tamnija podloga. */
+  .ht-hint{position:absolute; top:1.4rem; left:50%; transform:translateX(-50%); padding:.5rem 1rem; border-radius:999px; background:rgba(17,17,19,.72); color:#FFFFFF;
+    font-family:var(--font-display); font-weight:600; font-size:.88rem; white-space:nowrap; pointer-events:none; transition:opacity .4s ease;}
   .ht-media.is-touched .ht-hint{opacity:0;}
   .ht-empty{display:grid; place-items:center; color:#FFFFFF;}
 
@@ -372,8 +375,9 @@ export const SITE_STYLES = `
   /* Sklopljen tlocrt postoji samo na telefonu (ispod). */
   .ht-mini, .ht-collapse{display:none;}
   @media (max-width:640px){
-    /* Tlocrt je sklopljen u pločicu, pa kadar može da bude viši. */
-    .ht-media:has(.ht-card){height:min(72svh, 620px);}
+    /* Kadar zauzima manje od pola ekrana, da naslov i "Zakažite snimanje" budu na prvom ekranu
+       (vlasnik, 23. 10. 2026 - ranije 62-72svh, pa je dugme bilo tek posle skrolovanja). */
+    .ht-media, .ht-media:has(.ht-card){height:44svh; min-height:300px;}
     .ht-mini{display:flex; align-items:center; gap:.55rem; position:absolute; right:12px; bottom:12px; max-width:calc(100% - 24px); padding:.4rem .75rem .4rem .4rem;
       border:0; border-radius:16px; background:#FFFFFF; color:#111113; box-shadow:0 10px 28px rgba(0,0,0,.3); font:inherit; text-align:left; cursor:pointer;}
     .ht-mini-plan{position:relative; flex:none; width:58px; line-height:0; border-radius:6px; overflow:hidden; background:#FFFFFF; border:1px solid #E4E4DE;}
@@ -1183,8 +1187,7 @@ export const SITE_STYLES = `
   html.rv-armed [data-reveal-steps] .step:not(.is-in) .num{background:#fff; color:#1e5aa8; box-shadow:inset 0 0 0 2px #1e5aa8;}
 
   /* Pitanja i tabela popusta: odgovor se glatko otvara (gde pregledač to podržava). */
-  .rv-page{interpolate-size:allow-keywords;}
-  .rv-page details.faq-item::details-content, .rv-page details.vol-details::details-content, .rv-page details.embed-details::details-content{height:0; overflow:clip; transition:height .45s var(--rv-ease), content-visibility .45s allow-discrete;}
+  .rv-page{interpolate-size:allow-keywords;}  .rv-page details.faq-item::details-content, .rv-page details.vol-details::details-content, .rv-page details.embed-details::details-content{height:0; overflow:clip; transition:height .45s var(--rv-ease), content-visibility .45s allow-discrete;}
   .rv-page details.faq-item[open]::details-content, .rv-page details.vol-details[open]::details-content, .rv-page details.embed-details[open]::details-content{height:auto;}
 
   /* Glavno dugme: jedan blagi odsjaj kad se prvi put pojavi. */

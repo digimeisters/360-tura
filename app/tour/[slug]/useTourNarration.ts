@@ -27,7 +27,10 @@ export function useTourNarration({
   langRef,
   isMutedRef,
   onNarrationChange,
-  onAudioActiveChange
+  onAudioActiveChange,
+  onAutoplayBlocked,
+  onAudioFailedChange,
+  onExternalPause
 }: {
   isMountedRef: RefObject<boolean>;
   langRef: RefObject<Language>;
@@ -40,6 +43,20 @@ export function useTourNarration({
    * rečenici na kojoj je glas stao.
    */
   onAudioActiveChange?: (active: boolean) => void;
+  /**
+   * Pregledač nije dozvolio zvuk (iPhone pušta glas samo na dodir). Strana
+   * tada isključi zvuk: posetilac čita tekst i ikonica pokazuje da je zvuk
+   * isključen - jedan dodir na nju (pravi dodir) pušta istu naraciju.
+   */
+  onAutoplayBlocked?: () => void;
+  /**
+   * Snimak ove naracije nije mogao da se pusti (greška, zaglavljena mreža).
+   * Strana tada umesto titla pokaže karticu sa tekstom; false na početku
+   * svake naracije.
+   */
+  onAudioFailedChange?: (failed: boolean) => void;
+  /** Glas je pauzirao neko drugi (poziv, zaključan ekran, slušalice). */
+  onExternalPause?: () => void;
 }) {
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
   const audioCurrentTimeRef = useRef<number>(0);
@@ -61,18 +78,29 @@ export function useTourNarration({
   } | null>(null);
 
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Glas koji predugo čeka mrežu (waiting/stalled bez napretka) prelazi na tekst.
+  const stallTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const clearStall = useCallback(() => {
+    if (stallTimerRef.current) {
+      clearTimeout(stallTimerRef.current);
+      stallTimerRef.current = null;
+    }
+  }, []);
   const guideCompleteTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   /** Zaustavlja <audio> i pamti dokle je stigao, bez diranja obećanja. */
   const pauseElement = useCallback(() => {
+    clearStall();
     if (activeAudioRef.current) {
       audioCurrentTimeRef.current = activeAudioRef.current.currentTime;
-      activeAudioRef.current.pause();
+      // Rukovaoci se skidaju PRE pause(): naša pauza nije "spoljna" (onpause).
       activeAudioRef.current.onended = null;
       activeAudioRef.current.onerror = null;
+      activeAudioRef.current.onpause = null;
+      activeAudioRef.current.pause();
       activeAudioRef.current = null;
     }
-  }, []);
+  }, [clearStall]);
 
   const stopAudio = useCallback(() => {
     pauseElement();
@@ -107,12 +135,15 @@ export function useTourNarration({
     if (!raw || !isMountedRef.current) return;
 
     // Zaustavi trenutni <audio>/tajmer, ali NE rešavaj obećanje ovde.
+    clearStall();
     if (activeAudioRef.current) {
-      activeAudioRef.current.pause();
       activeAudioRef.current.onended = null;
       activeAudioRef.current.onerror = null;
+      activeAudioRef.current.onpause = null;
+      activeAudioRef.current.pause();
       activeAudioRef.current = null;
     }
+    onAudioFailedChange?.(false);
     if (hideTimerRef.current) {
       clearTimeout(hideTimerRef.current);
       hideTimerRef.current = null;
@@ -137,9 +168,9 @@ export function useTourNarration({
       if (isMountedRef.current && resolveFn) resolveFn();
     };
 
+    const readTime = Math.max(3000, resolvedText.length * 50);
     if (isMutedRef.current || !resolvedAudioUrl) {
       setAudioActive(false);
-      const readTime = Math.max(3000, resolvedText.length * 50);
       hideTimerRef.current = setTimeout(() => {
         if (isMountedRef.current) finish();
       }, readTime);
@@ -156,15 +187,56 @@ export function useTourNarration({
         audio.currentTime = startAt;
       }
     };
+    // Glas ne može da se pusti: ista naracija ide kao tekst, sa vremenom za
+    // čitanje (kao bez zvuka). Ranije se završavala odmah - vodič je tada
+    // preletao tačke bez glasa i bez teksta (pregled 23. 10. 2026).
+    const readInstead = () => {
+      if (activeAudioRef.current !== audio || !isMountedRef.current) return;
+      clearStall();
+      audio.onended = null;
+      audio.onerror = null;
+      audio.onpause = null;
+      audio.pause();
+      activeAudioRef.current = null;
+      setAudioActive(false);
+      hideTimerRef.current = setTimeout(() => {
+        if (isMountedRef.current) finish();
+      }, readTime);
+    };
+
     audio.onplaying = () => {
+      clearStall();
       if (isMountedRef.current && activeAudioRef.current === audio) setAudioActive(true);
+    };
+    audio.ontimeupdate = clearStall;
+    audio.onwaiting = audio.onstalled = () => {
+      if (activeAudioRef.current !== audio || stallTimerRef.current) return;
+      stallTimerRef.current = setTimeout(() => {
+        stallTimerRef.current = null;
+        onAudioFailedChange?.(true);
+        readInstead();
+      }, 15000);
+    };
+    // Telefon je sam zaustavio glas (poziv, zaključan ekran) - bez ovoga je
+    // vodič zauvek čekao kraj snimka koji ne dolazi.
+    audio.onpause = () => {
+      if (activeAudioRef.current !== audio || audio.ended) return;
+      onExternalPause?.();
     };
 
     audio.onended = () => finish(true);
-    audio.onerror = () => finish();
+    audio.onerror = () => {
+      onAudioFailedChange?.(true);
+      readInstead();
+    };
 
-    audio.play().catch(() => finish());
-  }, [isMountedRef, isMutedRef, langRef, onNarrationChange, setAudioActive]);
+    audio.play().catch((err: unknown) => {
+      if (activeAudioRef.current !== audio) return;
+      if (err instanceof DOMException && err.name === 'NotAllowedError' && onAutoplayBlocked) onAutoplayBlocked();
+      else onAudioFailedChange?.(true);
+      readInstead();
+    });
+  }, [clearStall, isMountedRef, isMutedRef, langRef, onAudioFailedChange, onAutoplayBlocked, onExternalPause, onNarrationChange, setAudioActive]);
 
   /**
    * Trenutak i dužina glasa koji se čuje. Za vreme pauze vraća mesto na kom

@@ -295,6 +295,12 @@ export default function TourList({
         })
       ) as Ranges
     );
+
+    // Spisak sa filterom iz linka stiže posle SiteReveal-a, kao nov element
+    // (nov key) koji SiteReveal ne prati - kao data-reveal-group bi ostao
+    // nevidljiv (prazan spisak na podeljenom linku agencije). Zato se poređa
+    // isto kao posle ručnog filtera.
+    if ([...FILTER_KEYS, ...RANGE_KEYS].some((key) => params.has(key))) setRefiltered(true);
   }, []);
 
   /**

@@ -130,6 +130,18 @@ export default function HeroTour({ tour, lang = 'sr' }: { tour: ShowcaseTour | n
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Zaustavlja CSS okretanje tačno gde je traka bila i prepušta je ručnom
+  // pomeranju (setOffset). Zove se odmah na dodir - pre nego što potez krene
+  // od offset.current - i pri gašenju okretanja.
+  const freezeDrift = useCallback(() => {
+    const strip = stripRef.current;
+    if (!strip || !strip.classList.contains('is-drifting')) return;
+    const x = new DOMMatrixReadOnly(getComputedStyle(strip).transform).m41;
+    strip.classList.remove('is-drifting');
+    strip.style.animationPlayState = '';
+    setOffset(x);
+  }, [setOffset]);
+
   // Promena veličine kadra (okretanje telefona) menja širinu panorame - traka se preračuna.
   useEffect(() => {
     const onResize = () => setOffset(offset.current);
@@ -137,16 +149,36 @@ export default function HeroTour({ tour, lang = 'sr' }: { tour: ShowcaseTour | n
     return () => window.removeEventListener('resize', onResize);
   }, [setOffset]);
 
-  // Jedini pokret koji niko nije pokrenuo: sporo okretanje dok posetilac ne dirne kadar.
+  // Jedini pokret koji niko nije pokrenuo: sporo okretanje dok posetilac ne
+  // dirne kadar. Ide kao CSS animacija (.ht-pano-strip.is-drifting), ne iz
+  // JavaScript-a u svakom frejmu: petlja je na telefonu svakih 16 ms merila
+  // kadar i terala pregledač da iznova računa raspored strane, pa je prvi
+  // prikaz kasnio sekundama (merenje 23. 10. 2026). Kad je kadar van ekrana,
+  // animacija stoji. Na dodir se traka zaustavi tačno gde je bila.
   useEffect(() => {
-    if (touched || !panoId) return;
+    const strip = stripRef.current;
+    const pano = panoRef.current;
+    if (touched || !panoId || !strip || !pano) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    let frame = requestAnimationFrame(function step() {
-      setOffset(offset.current - DRIFT);
-      frame = requestAnimationFrame(step);
+    const fit = () => {
+      const tile = pano.clientHeight * ZOOM * 2;
+      if (!tile) return;
+      strip.style.setProperty('--ht-tile', `${tile}px`);
+      strip.style.animationDuration = `${tile / (DRIFT * 60)}s`;
+    };
+    fit();
+    strip.classList.add('is-drifting');
+    const seen = new IntersectionObserver(([entry]) => {
+      strip.style.animationPlayState = entry.isIntersecting ? 'running' : 'paused';
     });
-    return () => cancelAnimationFrame(frame);
-  }, [touched, panoId, setOffset]);
+    seen.observe(pano);
+    window.addEventListener('resize', fit);
+    return () => {
+      seen.disconnect();
+      window.removeEventListener('resize', fit);
+      freezeDrift();
+    };
+  }, [touched, panoId, freezeDrift]);
 
   if (!tour || !room) {
     return (
@@ -169,6 +201,7 @@ export default function HeroTour({ tour, lang = 'sr' }: { tour: ShowcaseTour | n
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if (!panoId) return;
+    freezeDrift();
     setTouched(true);
     setPlanOpen(false);
     drag.current = { x: e.clientX, start: offset.current };
@@ -183,6 +216,7 @@ export default function HeroTour({ tour, lang = 'sr' }: { tour: ShowcaseTour | n
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (!panoId || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
     e.preventDefault();
+    freezeDrift();
     setTouched(true);
     setOffset(offset.current + (e.key === 'ArrowLeft' ? KEY_STEP : -KEY_STEP));
   };

@@ -8,9 +8,9 @@ import { THEME, GLASS_ACCENT } from './theme';
  * Poziv "Ovakvu turu možete da imate i vi" u NAŠIM primerima tura (vlasnik,
  * 23. 10. 2026, maketa public/mockup/PlocicaUTuri.html, varijanta B).
  * Posetioci sa sajta najviše otvaraju primere tura, a u turi nije bilo ničeg
- * što vodi na naručivanje. Kartica se pojavi kad posetilac pređe u drugu
- * sobu (page.tsx odlučuje kada); posle zatvaranja ostaje mala pilula do kraja
- * posete. U turama agencija se nikad ne prikazuje.
+ * što vodi na naručivanje. Kartica se pojavi posle polovine soba, ili kad
+ * vodič završi (page.tsx odlučuje kada); posle zatvaranja ostaje mala pilula
+ * do kraja posete. U turama agencija se nikad ne prikazuje.
  *
  * Mesto se meri: kartica stoji odmah iznad donjih elemenata ture koji su
  * označeni sa data-k360-dock (opis sobe, meni, Viber dugme), i to samo onih
@@ -132,6 +132,7 @@ export default function DemoTourInvite({
       <a
         ref={ref as unknown as React.Ref<HTMLAnchorElement>}
         href={`${copy.home}#kontakt`}
+        target="_top"
         className={`${fade} k360-tap`}
         onClick={() => trackSiteEvent('cta_click', 'tour_invite_pill')}
         style={{
@@ -206,6 +207,7 @@ export default function DemoTourInvite({
       <div style={{ display: 'flex', gap: '8px', marginTop: '11px' }}>
         <a
           href={`${copy.home}#kontakt`}
+          target="_top"
           className="k360-tap"
           onClick={() => trackSiteEvent('cta_click', 'tour_invite_book')}
           style={{ display: 'inline-flex', alignItems: 'center', height: '38px', padding: '0 16px', borderRadius: '999px', background: '#1F5BB5', color: '#fff', fontSize: '13.5px', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}
@@ -214,6 +216,7 @@ export default function DemoTourInvite({
         </a>
         <a
           href={`${copy.home}#cenovnik`}
+          target="_top"
           className="k360-tap"
           onClick={() => trackSiteEvent('cta_click', 'tour_invite_prices')}
           style={{ display: 'inline-flex', alignItems: 'center', height: '38px', padding: '0 16px', borderRadius: '999px', border: '1px solid rgba(255, 255, 255, 0.35)', color: '#fff', fontSize: '13.5px', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}

@@ -185,11 +185,29 @@ export default function TourPage() {
   const [roomTalkDone, setRoomTalkDone] = useState(false);
   // Snimljeni glas se upravo čuje - tada automatski vodič pokazuje titlove.
   const [narrationAudioActive, setNarrationAudioActive] = useState(false);
+  // Snimak tekuće naracije nije mogao da se pusti - tekst ide u karticu, ne kao titl.
+  const [narrationAudioFailed, setNarrationAudioFailed] = useState(false);
+  // Pregledač nije dozvolio zvuk bez dodira (iPhone): zvuk se prikaže kao
+  // isključen, pa ga posetilac jednim dodirom uključi - tekst je u kartici.
+  const handleAutoplayBlocked = useCallback(() => {
+    isMutedRef.current = true;
+    setIsMuted(true);
+  }, []);
+  // Telefon je sam zaustavio glas (poziv, zaključan ekran). Postavlja se
+  // posle useRoomNavigation (vodič se tada pauzira, pa ▶ nastavlja).
+  const externalPauseRef = useRef<() => void>(() => {});
+  const handleExternalPause = useCallback(() => externalPauseRef.current(), []);
   // Poziv na naručivanje ture u primerima (DemoTourInvite) zatvoren u ovoj
   // poseti. Prikazuje se tek posle polaska ture, pa sessionStorage može odmah.
   const [demoInviteClosed, setDemoInviteClosed] = useState(wasDemoInviteClosed);
   // Soba u kojoj se kartica otvorila - vidi demoInviteCardOpen.
   const [demoInviteRoom, setDemoInviteRoom] = useState<number | null>(null);
+  // Vodič je bar jednom stigao do kraja. guideFinished se sam vrati na false
+  // posle 6 s (poruka "obišli ste sve"), a kartica treba da ostane.
+  const [guideEndedOnce, setGuideEndedOnce] = useState(false);
+  useEffect(() => {
+    if (demoInviteClosed) rememberDemoInviteClosed();
+  }, [demoInviteClosed]);
 
   const viewerRef = useRef<any>(null);
   // Pravac pogleda za konus na planu (ViewCone čita ovo u svakom kadru). Za
@@ -259,7 +277,10 @@ export default function TourPage() {
     langRef,
     isMutedRef,
     onNarrationChange: setInfoBoxData,
-    onAudioActiveChange: setNarrationAudioActive
+    onAudioActiveChange: setNarrationAudioActive,
+    onAutoplayBlocked: handleAutoplayBlocked,
+    onAudioFailedChange: setNarrationAudioFailed,
+    onExternalPause: handleExternalPause
   });
 
   // Kretanje između soba (klik, tačka, strelice, tlocrt) i automatski
@@ -320,6 +341,17 @@ export default function TourPage() {
     resumeAfterMute
   });
 
+  useEffect(() => {
+    externalPauseRef.current = () => {
+      if (guideModeRef.current === 'auto') {
+        if (!isGuidePausedRef.current) togglePauseGuide();
+      } else {
+        // Sam razgleda: naracija se završava, tekst ostaje u kartici.
+        stopAudio();
+      }
+    };
+  });
+
   // Gradi konfiguraciju JEDNE hotspot tačke (tooltip stil + šta se dešava na
   // klik) - deli je refreshViewerHotspots (dodaje na već postojeći viewer)
   // i efekat koji pravi novu scenu (formattedHotspots pri kreiranju
@@ -355,10 +387,7 @@ export default function TourPage() {
           walkToRoom(wp);
         } else if (!isNav) {
           // Otvorena kartica "Ovakvu turu..." ustupa mesto opisu tačke.
-          if (document.querySelector('[data-k360-invite-card]')) {
-            setDemoInviteClosed(true);
-            rememberDemoInviteClosed();
-          }
+          if (document.querySelector('[data-k360-invite-card]')) setDemoInviteClosed(true);
           // Ručni klik na info-tačku tokom automatskog vođenja: vodič je
           // sve tačke već sam obilazio, pa ovo znači da je posetilac
           // preuzeo kontrolu - vidi komentar uz takeManualControl.
@@ -974,7 +1003,7 @@ export default function TourPage() {
   // do sledeće tačke). Bez zvuka ili bez snimka za taj jezik ostaje kartica,
   // jer tada posetilac tekst čita sam. Ručni režim uvek ima karticu.
   const subtitleMode =
-    isGuideAuto && !isMuted && Boolean(infoBoxData) && Boolean(getAudioUrlFor(infoBoxData?.audio_url, lang));
+    isGuideAuto && !isMuted && !narrationAudioFailed && Boolean(infoBoxData) && Boolean(getAudioUrlFor(infoBoxData?.audio_url, lang));
   const showSubtitles = subtitleMode && narrationAudioActive && !pendingCoords && !activeModal;
   // Poziv na naručivanje ture (DemoTourInvite) - samo u primerima koje je
   // snimio Kvadrat360 ("Kvadrat360 · primer"), nikad u turama agencija.
@@ -982,12 +1011,15 @@ export default function TourPage() {
   // kad razgleda sam, posle polovine soba. Do kraja svih soba sam stigne
   // samo ~7% posetilaca, do polovine ~35% (tour_events, 60 dana).
   const isDemoTour = /kvadrat360/i.test(tour?.agency_name ?? '');
-  const demoInviteReached = isGuideAuto ? guideFinished : seenRoomIds.size >= Math.ceil(rooms.length / 2);
+  if (guideFinished && !guideEndedOnce) setGuideEndedOnce(true);
+  const demoInviteReached = isGuideAuto ? guideEndedOnce : seenRoomIds.size >= Math.ceil(rooms.length / 2);
   const showDemoInvite =
     isDemoTour &&
     !adminMode &&
     tourStarted &&
     demoInviteReached &&
+    // Prvo poruka "obišli ste sve" (6 s), pa tek onda kartica - inače je prekrije.
+    !guideFinished &&
     !showSubtitles &&
     !activeModal &&
     !pendingCoords &&
@@ -999,10 +1031,7 @@ export default function TourPage() {
   // clickHandlerFunc), kartica se skupi u pilulu - njegov izbor ima prednost.
   const demoInviteCardOpen = showDemoInvite && !demoInviteClosed;
   if (demoInviteCardOpen && demoInviteRoom === null) setDemoInviteRoom(roomIdx);
-  if (demoInviteCardOpen && demoInviteRoom !== null && demoInviteRoom !== roomIdx) {
-    setDemoInviteClosed(true);
-    rememberDemoInviteClosed();
-  }
+  if (demoInviteCardOpen && demoInviteRoom !== null && demoInviteRoom !== roomIdx) setDemoInviteClosed(true);
   const infoCardShown = Boolean(infoBoxData) && !subtitleMode && !pendingCoords && !activeModal && !demoInviteCardOpen;
   // Meni (Pitanja, Lokacija, Info, Plan, Kontakt) je na dnu, a kartica ili
   // titl stoje iznad njega. "Istražite sami" od 28. 9. 2026 (posetilac ne sme
@@ -1301,10 +1330,7 @@ export default function TourPage() {
           hidden={immersive}
           layoutKey={`${infoCardShown}|${displayedInfoText}|${isModalToolbarVisible}|${bottomDocked}|${showCallButton}`}
           closed={demoInviteClosed}
-          onClose={() => {
-            setDemoInviteClosed(true);
-            rememberDemoInviteClosed();
-          }}
+          onClose={() => setDemoInviteClosed(true)}
         />
       )}
 
