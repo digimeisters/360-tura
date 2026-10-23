@@ -4,6 +4,7 @@ import type { Database } from '@/types/supabase';
 import { escapeHtml, sendTelegramMessage } from '@/app/lib/telegram';
 import { looksLikeEmail, sendEmail } from '@/app/lib/email';
 import { rateLimit, tooManyRequests } from '@/app/lib/rateLimit';
+import { overDailyBudget } from '@/app/lib/dailyBudget';
 import { describeSlot } from '@/app/lib/shootSlot';
 import { SITE_URL } from '@/app/lib/site';
 import { pickCoverRoom } from '@/app/lib/coverRoom';
@@ -130,7 +131,11 @@ export async function POST(req: Request) {
     .order('order_index', { ascending: true });
   const cover = pickCoverRoom(rooms ?? []);
 
-  const emailStatus = await emailAgent(tour.agent_email, {
+  // Preko dnevne granice zahtev ostaje u bazi i stiže vlasniku na Telegram,
+  // ali se agentu ne šalje mejl (app/lib/dailyBudget.ts).
+  const emailStatus = (await overDailyBudget('agentEmail'))
+    ? '⚠️ Mejl agentu NIJE poslat - dnevna granica mejlova (moguća zloupotreba). Proslediti ručno ako je pravi zahtev.'
+    : await emailAgent(tour.agent_email, {
     agentName: tour.agent_name,
     title,
     tourUrl,

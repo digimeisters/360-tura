@@ -3,6 +3,7 @@ import { streetOnly } from '../../lib/streetOnly';
 import { supabase } from '../../lib/supabaseClient';
 import { pickCoverRoom } from '../../lib/coverRoom';
 import type { Tour } from './types';
+import { isDemoTour } from '../../lib/demoTour';
 
 export type TourMeta = {
   slug: string;
@@ -143,7 +144,8 @@ export const getTourMeta = cache(async (slug: string): Promise<TourMetaFull | nu
     address: realValue(streetOnly(data.address)) || null,
     category: data.category ?? null,
     propertyType: data.property_type,
-    details: data,
+    // Primer ture nije oglas: bez cene u opisu, SEO tekstu i ponudi za Google.
+    details: isDemoTour(data.agency_name) ? { ...data, price: null } : data,
     roomTitles: [...new Set(roomTitles)],
     createdAt: data.created_at
   };

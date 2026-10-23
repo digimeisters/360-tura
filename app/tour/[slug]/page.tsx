@@ -10,6 +10,7 @@ import { THEME, GLASS, applyGlassHotspotStyle } from './theme';
 import { SITE_URL } from '../../lib/site';
 import { trackEvent } from '../../lib/track';
 import { pickCoverRoom } from '../../lib/coverRoom';
+import { isDemoTour } from '../../lib/demoTour';
 import { Logo } from './Logo';
 import { RoomNavBar, type RoomDot } from './RoomNavBar';
 import { WelcomeScreen } from './WelcomeScreen';
@@ -1010,11 +1011,11 @@ export default function TourPage() {
   // Kada (vlasnik, 23. 10. 2026): uz vodiča tek kad vodič završi sve sobe;
   // kad razgleda sam, posle polovine soba. Do kraja svih soba sam stigne
   // samo ~7% posetilaca, do polovine ~35% (tour_events, 60 dana).
-  const isDemoTour = /kvadrat360/i.test(tour?.agency_name ?? '');
+  const demoTour = isDemoTour(tour?.agency_name);
   if (guideFinished && !guideEndedOnce) setGuideEndedOnce(true);
   const demoInviteReached = isGuideAuto ? guideEndedOnce : seenRoomIds.size >= Math.ceil(rooms.length / 2);
   const showDemoInvite =
-    isDemoTour &&
+    demoTour &&
     !adminMode &&
     tourStarted &&
     demoInviteReached &&

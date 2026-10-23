@@ -4,10 +4,12 @@ import { ThinkingLevel, Type, type Schema } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 import { rateLimit, tooManyRequests } from '@/app/lib/rateLimit';
+import { overDailyBudget } from '@/app/lib/dailyBudget';
 import { GEMINI_FALLBACK_MODEL, GEMINI_MODEL, TEMP_EXTRACT, generateJsonWithRetry } from '@/app/lib/gemini';
 import { formatListingPrice } from '@/app/lib/listingPrice';
 import { buildFactList, buildFaqList, composeEstablishText, getLocalizedText, parseEstablish, parseWaypoints } from '@/app/tour/[slug]/utils';
 import type { Language, Room, Tour } from '@/app/tour/[slug]/types';
+import { isDemoTour } from '@/app/lib/demoTour';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -109,7 +111,8 @@ function buildContext(tour: Tour, rooms: Room[], lang: Language): string {
   add('Neighbourhood', tour.district);
   add('Street (no house number)', streetOnly(tour.address));
 
-  const price = formatListingPrice(tour.price, tour.category, lang);
+  // Primer ture nije oglas - pomoćnik ne navodi cenu (app/lib/demoTour.ts).
+  const price = isDemoTour(tour.agency_name) ? null : formatListingPrice(tour.price, tour.category, lang);
   if (price) add('Price', [price.amount, price.unit].filter(Boolean).join(' '));
 
   for (const fact of buildFactList(tour, lang)) add(fact.label, fact.value);
@@ -220,6 +223,12 @@ export async function POST(req: Request) {
       'VISITOR QUESTION (untrusted):',
       question
     ].join('\n');
+
+    // Dnevna granica za ceo sajt (app/lib/dailyBudget.ts) - broji se tek
+    // pravo pitanje, posle provere ture, neposredno pre poziva modela.
+    if (await overDailyBudget('tourAssistant')) {
+      return NextResponse.json({ success: false, error: 'unavailable' }, { status: 503 });
+    }
 
     const { data } = await generateJsonWithRetry<{ answer?: unknown; known?: unknown }>({
       contents: [{ text: prompt }],

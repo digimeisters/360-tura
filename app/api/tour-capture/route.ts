@@ -4,6 +4,7 @@ import type { Database } from '@/types/supabase';
 import { escapeHtml, sendTelegramMessage } from '@/app/lib/telegram';
 import { looksLikeEmail, sendEmail } from '@/app/lib/email';
 import { rateLimit, tooManyRequests } from '@/app/lib/rateLimit';
+import { overDailyBudget } from '@/app/lib/dailyBudget';
 import { SITE_URL } from '@/app/lib/site';
 
 export const dynamic = 'force-dynamic';
@@ -119,7 +120,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: 'save' }, { status: 500 });
   }
 
-  const emailStatus = await emailAgent({
+  // Preko dnevne granice kontakt ostaje u bazi i na Telegramu, bez mejla agentu.
+  const emailStatus = (await overDailyBudget('agentEmail'))
+    ? '⚠️ Mejl agentu NIJE poslat - dnevna granica mejlova (moguća zloupotreba). Proslediti ručno ako je pravi kontakt.'
+    : await emailAgent({
     to: tour.agent_email,
     agentName: tour.agent_name,
     title,

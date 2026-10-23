@@ -132,7 +132,9 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
             {/* Vodi na spisak svih tura, ne na sekciju ovde - "primeri" na
                 početnoj su i dalje samo izbor. Obeležava se dok se prolazi
                 kroz tu sekciju (data-section), isto kao "Za agencije". */}
-            <Link href="/ture" data-section="primeri" data-track="cta:nav_tours">
+            {/* Ovaj meni je samo na engleskoj strani, a /ture je samo na srpskom -
+                zato vodi na primere ovde. */}
+            <Link href="#primeri" data-section="primeri" data-track="cta:nav_tours">
               {nav.examples}
             </Link>
           </li>

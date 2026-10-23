@@ -92,6 +92,37 @@ function firstSentence(text: string): string {
   return end === -1 ? clean : clean.slice(0, end + 1);
 }
 
+// Natpisi na šematskom tlocrtu su upisani na srpskom (pravi ih editor plana).
+// Na /en se zamenjuju engleskim, inače bi posetilac čitao "Dnevna soba" i
+// "Šematski prikaz" usred engleske strane (pregled 23. 10. 2026). Nepoznat
+// natpis ostaje kakav jeste.
+const PLAN_LABELS_EN: [RegExp, string][] = [
+  [/^Šematski prikaz — nije u razmeri$/, 'Schematic — not to scale'],
+  [/^Dnevna soba$/, 'Living room'],
+  [/^Dnevni boravak$/, 'Living room'],
+  [/^Dnevna-radni$/, 'Living / study'],
+  [/^Spavaća soba (\d+)$/, 'Bedroom $1'],
+  [/^Spavaća soba$/, 'Bedroom'],
+  [/^Soba (\d+)$/, 'Room $1'],
+  [/^Kuhinja(?: sa trpezarijom)?$/, 'Kitchen'],
+  [/^Trpezarija$/, 'Dining room'],
+  [/^Kupatilo$/, 'Bathroom'],
+  [/^Toalet$/, 'Toilet'],
+  [/^Ulaz-hodnik$/, 'Entrance hall'],
+  [/^Hodnik$/, 'Hallway'],
+  [/^Terasa$/, 'Terrace'],
+  [/^Ostava$/, 'Storage']
+];
+
+function translatePlanLabels(svg: string, lang: HomeLang): string {
+  if (lang === 'sr') return svg;
+  return svg.replace(/(<text\b[^>]*>)([^<]*)(<\/text>)/g, (all, open: string, label: string, close: string) => {
+    const text = label.trim();
+    const hit = PLAN_LABELS_EN.find(([re]) => re.test(text));
+    return hit ? open + text.replace(hit[0], hit[1]) + close : all;
+  });
+}
+
 export async function getStoryData(lang: HomeLang): Promise<StoryData | null> {
   const fail = (why: string) => {
     console.error(`[tourStory] ${why}`);
@@ -128,7 +159,7 @@ export async function getStoryData(lang: HomeLang): Promise<StoryData | null> {
   const planBox = box as [number, number, number, number];
   // Stil plana je globalan kad je SVG u strani (.note bi pregazio podnaslove
   // sajta), pa se izbacuje; isti izgled daje CSS sekcije (siteStyles .story-plan).
-  const planSvg = inner.replace(/<style[\s\S]*?<\/style>/g, '');
+  const planSvg = translatePlanLabels(inner.replace(/<style[\s\S]*?<\/style>/g, ''), lang);
 
   const asRoom = (r: StoryRoomRow) => r as unknown as Room;
   const aspect = planBox[2] / planBox[3];

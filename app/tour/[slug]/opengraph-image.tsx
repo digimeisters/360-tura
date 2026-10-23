@@ -1,9 +1,12 @@
 import { ImageResponse } from 'next/og';
+import sharp from 'sharp';
 import { getTourMeta } from './getTourMeta';
 import { OgMark } from '../../lib/ogMark';
 
 export const size = { width: 1200, height: 630 };
-export const contentType = 'image/png';
+// JPEG, ne PNG: sa fotografijom sobe PNG je imao 560-810 KB, a WhatsApp i
+// Viber pregled linka često ne prikažu sliku preko ~300 KB (pregled 23. 10. 2026).
+export const contentType = 'image/jpeg';
 export const alt = '360° virtuelna tura — Kvadrat360';
 
 // Preview se povlači unapred i ugrađuje kao data URI umesto da se prepusti
@@ -30,7 +33,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const address = tour?.address || '';
   const photo = await loadPreview(tour?.previewUrl ?? null);
 
-  return new ImageResponse(
+  const card = new ImageResponse(
     (
       <div
         style={{
@@ -155,4 +158,8 @@ export default async function Image({ params }: { params: Promise<{ slug: string
     ),
     size
   );
+
+  const png = Buffer.from(await card.arrayBuffer());
+  const jpeg = await sharp(png).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
+  return new Response(new Uint8Array(jpeg), { headers: { 'Content-Type': 'image/jpeg' } });
 }

@@ -2,6 +2,7 @@ import { useEffect, useState, type MutableRefObject } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { translations } from './translations';
 import type { Language, Room, Tour } from './types';
+import { isDemoTour } from '../../lib/demoTour';
 
 /**
  * Učitava turu i njene sobe iz baze. Setteri se vraćaju jer ih menjaju i
@@ -57,7 +58,8 @@ export function useTourData(
         // VAŽNO: ako tura nije nađena, ne dozvoljavamo da rooms-provera dole prepiše ovu poruku
         setError(tourErr ? `Greška (tours): ${tourErr.message}` : translations[langRef.current].tourNotFound);
       } else {
-        setTour(loadedTour);
+        // Primer ture nije oglas - bez cene (app/lib/demoTour.ts).
+        setTour(isDemoTour(loadedTour.agency_name) ? { ...loadedTour, price: null } : loadedTour);
         // Logo agencije za krug na dnu panorame stiže naknadno - ne sme da
         // drži otvaranje ture. Dok ne stigne (ili ga nema), krug nosi Kvadrat360 znak.
         const agency = loadedTour.agency_name;

@@ -8,6 +8,7 @@ import { uniqueSlug } from '@/app/lib/slug';
 import { rateLimit, tooManyRequests } from '@/app/lib/rateLimit';
 import { parseArea, priceFromAnswers } from '@/app/lib/tourNumbers';
 import { geocodeAddress } from '@/app/lib/geocode';
+import { sendTelegramMessage, escapeHtml } from '@/app/lib/telegram';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -123,7 +124,25 @@ export async function POST(req: Request) {
     const taken = new Set((existing ?? []).map((t) => t.slug.toLowerCase()));
     const slug = uniqueSlug(title, taken);
 
-    const processed = await processTourForm(answers, slug);
+    let processed: Awaited<ReturnType<typeof processTourForm>>;
+    try {
+      processed = await processTourForm(answers, slug);
+    } catch (aiErr) {
+      // AI obrada nije uspela (Gemini spor ili ne radi): odgovori agenta se
+      // ne gube - idu vlasniku na Telegram, da turu napravi ručno.
+      console.error('[api/unos] AI obrada nije uspela:', aiErr);
+      const dump = JSON.stringify(answers, null, 1).slice(0, 3000);
+      await sendTelegramMessage(
+        [`⚠️ <b>Upitnik nije obrađen (AI)</b>: ${escapeHtml(title)}`, 'Odgovori agenta:', `<pre>${escapeHtml(dump)}</pre>`].join('\n')
+      );
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Obrada trenutno ne radi. Vaši odgovori su prosleđeni Kvadrat360 timu i javićemo vam se - ili pokušajte ponovo za nekoliko minuta.'
+        },
+        { status: 503 }
+      );
+    }
 
     // Tlocrt ide na R2 tek kad je poznat slug, da ime fajla bude čitljivo.
     let floorplanUrl: string | null = null;

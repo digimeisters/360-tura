@@ -190,7 +190,12 @@ ${faqList}
     contents: prompt,
     label: 'Obrada upitnika',
     // Obrada upitnika je duža od jednog opisa sobe: 7 polja puta do 4 jezika.
-    timeoutMs: 60_000,
+    // Jedan pokušaj po modelu, do 22 s: oba modela staju u ~45 s, pa ruta
+    // (maxDuration 60 s) stigne i da sačuva turu ili javi grešku. Ranije je
+    // 60 s po pokušaju, puta 2 pokušaja i 2 modela, prelazilo rok rute i
+    // Vercel je prekidao zahtev bez odgovora (pregled 23. 10. 2026).
+    timeoutMs: 22_000,
+    attempts: 1,
     config: {
       responseMimeType: 'application/json',
       temperature: TEMP_EXTRACT,

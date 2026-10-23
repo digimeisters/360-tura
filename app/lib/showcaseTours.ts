@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { pickCoverRoom } from './coverRoom';
 import { pickLang, realValue } from '../tour/[slug]/getTourMeta';
+import { isDemoTour } from './demoTour';
 
 /**
  * Objavljene ture za početnu stranu sajta: kartice u "Primeri tura" i kadar
@@ -254,7 +255,7 @@ export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
       district: realValue(tour.district ?? null),
       structure: realValue(tour.structure ?? null),
       areaSqm: asNumber(tour.area_sqm),
-      price: asNumber(tour.price),
+      price: isDemoTour(tour.agency_name) ? null : asNumber(tour.price),
       rooms: tourRooms
         .filter((r) => r.preview_url)
         .map((r, i) => ({
