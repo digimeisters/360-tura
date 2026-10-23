@@ -46,7 +46,8 @@ const COPY = {
 
 const CLOSED_KEY = 'k360_demo_invite_closed';
 
-function wasClosed(): boolean {
+/** Posetilac je karticu već zatvorio u ovoj poseti - ostaje samo pilula. */
+export function wasDemoInviteClosed(): boolean {
   try {
     return sessionStorage.getItem(CLOSED_KEY) === '1';
   } catch {
@@ -54,13 +55,28 @@ function wasClosed(): boolean {
   }
 }
 
+export function rememberDemoInviteClosed(): void {
+  try {
+    sessionStorage.setItem(CLOSED_KEY, '1');
+  } catch {}
+}
+
 export default function DemoTourInvite({
   lang,
   narrow,
   hidden,
-  layoutKey
+  layoutKey,
+  closed,
+  onClose
 }: {
   lang: string;
+  /**
+   * Zatvorena = samo pilula. Stanje drži page.tsx: dok je kartica otvorena,
+   * opis sobe se sklanja (vlasnik, 23. 10. 2026 - ne dve kartice jedna iznad
+   * druge), a vraća se čim se ova zatvori.
+   */
+  closed: boolean;
+  onClose: () => void;
   narrow: boolean;
   /** Sklonjena dok se prstom razgleda panorama (kao opis sobe). */
   hidden: boolean;
@@ -68,9 +84,6 @@ export default function DemoTourInvite({
   layoutKey: string;
 }) {
   const copy = lang === 'sr' ? COPY.sr : COPY.en;
-  // Kartica se prikazuje tek posle polaska ture (nikad pri prvom crtanju
-  // strane), pa sessionStorage može da se pročita odmah.
-  const [closed, setClosed] = useState(wasClosed);
   const [bottom, setBottom] = useState(16);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -97,13 +110,6 @@ export default function DemoTourInvite({
       window.removeEventListener('resize', measure);
     };
   }, [measure, layoutKey, closed, narrow]);
-
-  const close = () => {
-    setClosed(true);
-    try {
-      sessionStorage.setItem(CLOSED_KEY, '1');
-    } catch {}
-  };
 
   const glass: React.CSSProperties = {
     position: 'absolute',
@@ -153,6 +159,7 @@ export default function DemoTourInvite({
   return (
     <div
       ref={ref}
+      data-k360-invite-card
       role="complementary"
       aria-label={copy.kicker}
       className={fade}
@@ -165,7 +172,7 @@ export default function DemoTourInvite({
     >
       <button
         type="button"
-        onClick={close}
+        onClick={onClose}
         className="k360-tap"
         aria-label={copy.close}
         title={copy.close}

@@ -36,7 +36,7 @@ import { withoutEmoji } from './icons';
 import { formatListingPrice } from '../../lib/listingPrice';
 import { ALL_LANGUAGES, isLanguageAvailable as isLanguageAvailableFor } from './tourLanguages';
 import { PANNELLUM_CSS, PANNELLUM_JS } from './pannellum';
-import DemoTourInvite from './DemoTourInvite';
+import DemoTourInvite, { rememberDemoInviteClosed, wasDemoInviteClosed } from './DemoTourInvite';
 import {
   ARRIVE_HFOV,
   DEFAULT_HFOV,
@@ -185,6 +185,11 @@ export default function TourPage() {
   const [roomTalkDone, setRoomTalkDone] = useState(false);
   // Snimljeni glas se upravo čuje - tada automatski vodič pokazuje titlove.
   const [narrationAudioActive, setNarrationAudioActive] = useState(false);
+  // Poziv na naručivanje ture u primerima (DemoTourInvite) zatvoren u ovoj
+  // poseti. Prikazuje se tek posle polaska ture, pa sessionStorage može odmah.
+  const [demoInviteClosed, setDemoInviteClosed] = useState(wasDemoInviteClosed);
+  // Soba u kojoj se kartica otvorila - vidi demoInviteCardOpen.
+  const [demoInviteRoom, setDemoInviteRoom] = useState<number | null>(null);
 
   const viewerRef = useRef<any>(null);
   // Pravac pogleda za konus na planu (ViewCone čita ovo u svakom kadru). Za
@@ -349,6 +354,11 @@ export default function TourPage() {
         } else if (isNav && wp.targetRoomId) {
           walkToRoom(wp);
         } else if (!isNav) {
+          // Otvorena kartica "Ovakvu turu..." ustupa mesto opisu tačke.
+          if (document.querySelector('[data-k360-invite-card]')) {
+            setDemoInviteClosed(true);
+            rememberDemoInviteClosed();
+          }
           // Ručni klik na info-tačku tokom automatskog vođenja: vodič je
           // sve tačke već sam obilazio, pa ovo znači da je posetilac
           // preuzeo kontrolu - vidi komentar uz takeManualControl.
@@ -966,7 +976,34 @@ export default function TourPage() {
   const subtitleMode =
     isGuideAuto && !isMuted && Boolean(infoBoxData) && Boolean(getAudioUrlFor(infoBoxData?.audio_url, lang));
   const showSubtitles = subtitleMode && narrationAudioActive && !pendingCoords && !activeModal;
-  const infoCardShown = Boolean(infoBoxData) && !subtitleMode && !pendingCoords && !activeModal;
+  // Poziv na naručivanje ture (DemoTourInvite) - samo u primerima koje je
+  // snimio Kvadrat360 ("Kvadrat360 · primer"), nikad u turama agencija.
+  // Kada (vlasnik, 23. 10. 2026): uz vodiča tek kad vodič završi sve sobe;
+  // kad razgleda sam, posle polovine soba. Do kraja svih soba sam stigne
+  // samo ~7% posetilaca, do polovine ~35% (tour_events, 60 dana).
+  const isDemoTour = /kvadrat360/i.test(tour?.agency_name ?? '');
+  const demoInviteReached = isGuideAuto ? guideFinished : seenRoomIds.size >= Math.ceil(rooms.length / 2);
+  const showDemoInvite =
+    isDemoTour &&
+    !adminMode &&
+    tourStarted &&
+    demoInviteReached &&
+    !showSubtitles &&
+    !activeModal &&
+    !pendingCoords &&
+    !roomLoading &&
+    !showViewing &&
+    !backGuard.askLeave;
+  // Otvorena kartica privremeno zauzima mesto opisa sobe; posle × opis se
+  // vraća. Kad posetilac pređe u drugu sobu (ili dodirne info-tačku, vidi
+  // clickHandlerFunc), kartica se skupi u pilulu - njegov izbor ima prednost.
+  const demoInviteCardOpen = showDemoInvite && !demoInviteClosed;
+  if (demoInviteCardOpen && demoInviteRoom === null) setDemoInviteRoom(roomIdx);
+  if (demoInviteCardOpen && demoInviteRoom !== null && demoInviteRoom !== roomIdx) {
+    setDemoInviteClosed(true);
+    rememberDemoInviteClosed();
+  }
+  const infoCardShown = Boolean(infoBoxData) && !subtitleMode && !pendingCoords && !activeModal && !demoInviteCardOpen;
   // Meni (Pitanja, Lokacija, Info, Plan, Kontakt) je na dnu, a kartica ili
   // titl stoje iznad njega. "Istražite sami" od 28. 9. 2026 (posetilac ne sme
   // ni na trenutak da ostane bez kontrola), automatsko vođenje od 30. 9. 2026.
@@ -986,24 +1023,6 @@ export default function TourPage() {
   const agentPhone = phoneToE164(tour?.agent_phone || '');
   const showCallButton =
     tourStarted && isGuideAuto && roomTalkDone && Boolean(agentPhone) && !pendingCoords && !activeModal && !showSubtitles;
-  // Poziv na naručivanje ture (DemoTourInvite) - samo u primerima koje je
-  // snimio Kvadrat360 ("Kvadrat360 · primer"), nikad u turama agencija.
-  // Kada (vlasnik, 23. 10. 2026): uz vodiča tek kad vodič završi sve sobe;
-  // kad razgleda sam, posle polovine soba. Do kraja svih soba sam stigne
-  // samo ~7% posetilaca, do polovine ~35% (tour_events, 60 dana).
-  const isDemoTour = /kvadrat360/i.test(tour?.agency_name ?? '');
-  const demoInviteReached = isGuideAuto ? guideFinished : seenRoomIds.size >= Math.ceil(rooms.length / 2);
-  const showDemoInvite =
-    isDemoTour &&
-    !adminMode &&
-    tourStarted &&
-    demoInviteReached &&
-    !showSubtitles &&
-    !activeModal &&
-    !pendingCoords &&
-    !roomLoading &&
-    !showViewing &&
-    !backGuard.askLeave;
 
   const callButton = showCallButton && agentPhone ? (
     <ChatAgentButton
@@ -1281,6 +1300,11 @@ export default function TourPage() {
           narrow={isNarrow}
           hidden={immersive}
           layoutKey={`${infoCardShown}|${displayedInfoText}|${isModalToolbarVisible}|${bottomDocked}|${showCallButton}`}
+          closed={demoInviteClosed}
+          onClose={() => {
+            setDemoInviteClosed(true);
+            rememberDemoInviteClosed();
+          }}
         />
       )}
 
