@@ -475,7 +475,7 @@ export function InfoCard({
   }, [expanded, text]);
 
   return (
-    <div className={`tour-ui-scale k360-fade-ui${hidden ? ' is-immersive' : ''}`} style={{
+    <div data-k360-dock className={`tour-ui-scale k360-fade-ui${hidden ? ' is-immersive' : ''}`} style={{
       position: 'absolute',
       bottom: docked ? SCREEN_BOTTOM : raised ? ABOVE_MENU_BOTTOM : SCREEN_BOTTOM,
       left: '50%',
@@ -749,6 +749,7 @@ export function ChatAgentButton({
       href={href}
       {...(viber ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
       className={floating ? 'tour-ui-scale k360-tap' : 'k360-tap'}
+      data-k360-dock={floating ? '' : undefined}
       onClick={onOpen}
       aria-label={label}
       title={label}

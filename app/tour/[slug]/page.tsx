@@ -36,6 +36,7 @@ import { withoutEmoji } from './icons';
 import { formatListingPrice } from '../../lib/listingPrice';
 import { ALL_LANGUAGES, isLanguageAvailable as isLanguageAvailableFor } from './tourLanguages';
 import { PANNELLUM_CSS, PANNELLUM_JS } from './pannellum';
+import DemoTourInvite from './DemoTourInvite';
 import {
   ARRIVE_HFOV,
   DEFAULT_HFOV,
@@ -985,6 +986,22 @@ export default function TourPage() {
   const agentPhone = phoneToE164(tour?.agent_phone || '');
   const showCallButton =
     tourStarted && isGuideAuto && roomTalkDone && Boolean(agentPhone) && !pendingCoords && !activeModal && !showSubtitles;
+  // Poziv na naručivanje ture (DemoTourInvite) - samo u primerima koje je
+  // snimio Kvadrat360 ("Kvadrat360 · primer"), nikad u turama agencija.
+  const isDemoTour = /kvadrat360/i.test(tour?.agency_name ?? '');
+  const showDemoInvite =
+    isDemoTour &&
+    !adminMode &&
+    tourStarted &&
+    seenRoomIds.size >= 2 &&
+    (!isGuideAuto || guideFinished || isGuidePaused) &&
+    !showSubtitles &&
+    !activeModal &&
+    !pendingCoords &&
+    !roomLoading &&
+    !showViewing &&
+    !backGuard.askLeave;
+
   const callButton = showCallButton && agentPhone ? (
     <ChatAgentButton
       phone={agentPhone}
@@ -1252,6 +1269,17 @@ export default function TourPage() {
 
       {/* Bez kartice dugme ide samo u dno ekrana, desno. */}
       {!infoCardShown && callButton}
+
+      {/* "Ovakvu turu i za vašu nekretninu" - samo u našim primerima tura,
+          kad posetilac pređe u drugu sobu, i nikad dok vodič priča. */}
+      {showDemoInvite && (
+        <DemoTourInvite
+          lang={lang}
+          narrow={isNarrow}
+          hidden={immersive}
+          layoutKey={`${infoCardShown}|${displayedInfoText}|${isModalToolbarVisible}|${bottomDocked}|${showCallButton}`}
+        />
+      )}
 
       {/* MODAL: ADMIN LOGIN (Supabase Auth - zamena za staru ?admin=... lozinku) */}
       {backGuard.askLeave && (

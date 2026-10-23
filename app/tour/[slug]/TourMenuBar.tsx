@@ -85,7 +85,7 @@ export function TourMenuBar({
       </button>
       )}
 
-      <div className="tour-ui-scale" style={{
+      <div data-k360-dock className="tour-ui-scale" style={{
         ...GLASS,
         ...(joined ? { background: 'transparent', border: '1px solid transparent', boxShadow: 'none', backdropFilter: 'none', WebkitBackdropFilter: 'none' } : {}),
         position: 'absolute',
