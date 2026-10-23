@@ -47,7 +47,8 @@ export const REFERENCE_AREA_SQM = 50;
 /**
  * Uvodna promocija: popust na CEO PAKET (tura + HDR fotografije zajedno), u
  * Osnovnom i u Premium paketu. Cilj je što više kontakata sa agencijama i
- * dovoljno tura za bazu, ne marža. Traje 45 dana od lansiranja.
+ * dovoljno tura za bazu, ne marža. Trajala je 45 dana od lansiranja (do
+ * 1. 11.); vlasnik ju je 23. 10. 2026 produžio za 15 dana, do 16. 11. 2026.
  *
  * HDR fotografije NARUČENE SAME, bez ture, u popust ne idu - vidi
  * standaloneHdrPrice(). Bez ovoga bi -30% spustilo samostalnu fotografiju
@@ -58,7 +59,7 @@ export const PROMO = {
   /** 0.3 = −30%. */
   discount: 0.3,
   startDate: '2026-09-17',
-  endDate: '2026-11-01'
+  endDate: '2026-11-16'
 } as const;
 
 /**

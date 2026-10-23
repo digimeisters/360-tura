@@ -84,12 +84,19 @@ export async function POST(req: Request) {
     // Upit za konkretan stan sa strane projekta (/novogradnja/[slug]):
     // u "agenciji" je naziv projekta, u "paketu" oznaka stana i sprat.
     const fromProjectPage = body.from === 'project';
+    // Kratka forma u primeru ture (DemoTourInvite): samo ime i broj; tura se
+    // pamti u poruci, da se zna iz koje je ture upit stigao.
+    const tourSlug = body.from === 'tour' && typeof body.tourSlug === 'string' && /^[a-z0-9-]{1,120}$/.test(body.tourSlug) ? body.tourSlug : null;
     // Željeni termin iz forme; tabela nema posebnu kolonu, pa se u bazi
     // čuva kao prvi red poruke, a na Telegramu ide u svoj red.
     const slot = describeSlot(body.slotDate, body.slotWindow);
-    const storedMessage = slot
+    const baseMessage = slot
       ? `Željeni termin: ${slot}${message ? `\n\n${message}` : ''}`
       : message;
+
+    const storedMessage = tourSlug
+      ? `Upit iz primera ture: ${tourSlug}${baseMessage ? `\n\n${baseMessage}` : ''}`
+      : baseMessage;
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -102,7 +109,7 @@ export async function POST(req: Request) {
       size: size || null,
       message: storedMessage || null,
       // Projekat pre jezika: upit sa engleske strane projekta je i dalje upit za stan.
-      source: fromProjectPage ? 'novogradnja' : fromEnglish ? 'landing_en' : fromAgencyPage ? 'agencije' : fromInvestorPage ? 'investitori' : 'landing'
+      source: fromProjectPage ? 'novogradnja' : tourSlug ? (fromEnglish ? 'tura_en' : 'tura') : fromEnglish ? 'landing_en' : fromAgencyPage ? 'agencije' : fromInvestorPage ? 'investitori' : 'landing'
     });
 
     if (error) {
@@ -143,6 +150,7 @@ export async function POST(req: Request) {
       `👤 <b>${escapeHtml(name)}</b>`,
       `📞 ${escapeHtml(contact)}`
     ];
+    if (tourSlug) lines.push(`🎬 Iz primera ture: <a href="https://kvadrat360.com/tour/${escapeHtml(tourSlug)}">${escapeHtml(tourSlug)}</a>`);
     if (fromEnglish) lines.push('🌐 Sa engleske strane — odgovoriti na engleskom');
     if (fromAgencyPage) lines.push('🏢 Sa strane za agencije');
     if (fromInvestorPage) lines.push('🏗️ Sa strane za investitore');

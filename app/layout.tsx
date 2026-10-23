@@ -24,12 +24,13 @@ const jakarta = Plus_Jakarta_Sans({
 // Kurziv sa serifima samo za naglašene reči u naslovima sajta (<em>).
 // Newsreader (od 27. 9. 2026, umesto Instrument Serif-a): isti elegantan,
 // "novinski" karakter, ali širi i sa većim malim slovima - Instrument je bio
-// uzak i tanak, pa su se reči u velikim naslovima sabijale. Promenljiv font:
-// debljina i optička veličina (opsz) se podešavaju u CSS-u (siteStyles.ts, em).
+// uzak i tanak, pa su se reči u velikim naslovima sabijale.
+// Statična debljina 500 (vlasnik, 23. 10. 2026): promenljivi font sa osom
+// opsz bio je ~175 KB pri prvom otvaranju, ovaj ~42 KB - razlika u izgledu
+// je za nijansu deblji potez (poređenje u public/mockup/Fontovi.html).
 const serif = Newsreader({
-  weight: "variable",
+  weight: "500",
   style: "italic",
-  axes: ["opsz"],
   subsets: ["latin", "latin-ext"],
   variable: "--font-newsreader",
   display: "swap",

@@ -111,8 +111,9 @@ export const SITE_STYLES = `
      Veličina 1.1em i debljina 450 (vlasnik, 28. 9. 2026): na 1.05/500 je
      delovao sitnije od Jakarte 800 pored njega, na 1.16/500 preglasno - kao
      da se takmiči sa naslovom umesto da bude akcenat. Sredina vraća deo
-     lakoće starog fonta, a ostaje čitljiva. */
-  em{font-family:var(--font-serif); font-style:italic; font-weight:450; font-variation-settings:'opsz' 24; color:var(--accent); letter-spacing:-0.005em; font-size:1.1em; line-height:.9;}
+     lakoće starog fonta, a ostaje čitljiva.
+     Od 23. 10. 2026 font je statičan, debljina 500 bez opsz (~42 umesto ~175 KB, vlasnik izabrao). */
+  em{font-family:var(--font-serif); font-style:italic; font-weight:500; color:var(--accent); letter-spacing:-0.005em; font-size:1.1em; line-height:.9;}
   /* Pasusi bez "siročića" (jedne reči u poslednjem redu); naslovi već imaju balance. */
   p{margin:0; text-wrap:pretty;}
   /* Naglašena fraza u naslovu se ne lomi (lib/accent.tsx dodaje .keep kratkim frazama).

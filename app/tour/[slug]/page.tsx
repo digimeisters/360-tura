@@ -1331,6 +1331,7 @@ export default function TourPage() {
           hidden={immersive}
           layoutKey={`${infoCardShown}|${displayedInfoText}|${isModalToolbarVisible}|${bottomDocked}|${showCallButton}`}
           closed={demoInviteClosed}
+          tourSlug={slug ?? ''}
           onClose={() => setDemoInviteClosed(true)}
         />
       )}
