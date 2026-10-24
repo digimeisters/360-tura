@@ -1,35 +1,19 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { supabase } from '../../lib/supabaseClient';
-import { FORM, FormThemeStyle, formBtnStyle } from '../../lib/formTheme';
-import { Logo } from '../../tour/[slug]/Logo';
-import PasswordInput from '../../../components/PasswordInput';
-import { slugify } from '../../lib/slug';
-import { SITE_URL } from '../../lib/site';
+import { FORM, formBtnStyle } from '../../lib/formTheme';
 import { embedSnippet } from '../../lib/embedCode';
 import TourQrDialog from './TourQrDialog';
 import SendToClientDialog from './SendToClientDialog';
 import TourVideoLauncher from './TourVideoLauncher';
 import TourSnapshotModal from './TourSnapshotModal';
 import TourIntroModal from './TourIntroModal';
-import AgencyLogoButton from './AgencyLogoButton';
-import AgencyPicker from './AgencyPicker';
+import TourFormDrawer from './TourFormDrawer';
+import TourRowMenu, { type TourRowAction } from './TourRowMenu';
+import { CATEGORY_LABELS, EMPTY_FORM, type FormState } from './tourForm';
 import { TourFilterBar, formatCreatedDate, useTourListFilter } from './TourListFilters';
-import {
-  STRUCTURE_ORDER,
-  HEATING_OPTIONS,
-  YES_NO,
-  BUILD_STATUS_OPTIONS,
-  FINISH_STATUS_OPTIONS,
-  TERRACE_OPTIONS,
-  PARKING_OPTIONS,
-  DEPOSIT_OPTIONS,
-  REGISTRATION_OPTIONS,
-  neighbourhoodsFor
-} from '../../lib/propertyTaxonomy';
-import { categoryQuestions } from '../../tour/[slug]/translations';
+
 
 type TourRow = {
   slug: string;
@@ -83,69 +67,14 @@ const STATUS_LABELS: Record<TourRow['status'], string> = {
   paused: 'Pauza'
 };
 
-type FormState = {
-  title: string;
-  agency_name: string;
-  address: string;
-  city: string;
-  district: string;
-  structure: string;
-  area_sqm: string;
-  price: string;
-  floor: string;
-  has_elevator: string;
-  has_basement: string;
-  heating: string;
-  build_status: string;
-  finish_status: string;
-  terrace: string;
-  parking: string;
-  deposit: string;
-  registration: string;
-  property_type: string;
-  category: string;
-  agent_name: string;
-  agent_phone: string;
-  agent_email: string;
-  nadir_logo: boolean;
-  /** Srpski odgovori na pet pitanja - samo pri izmeni postojeće ture. */
-  faq: string[];
-};
-
-const EMPTY_FORM: FormState = {
-  title: '',
-  agency_name: '',
-  address: '',
-  city: '',
-  district: '',
-  structure: '',
-  area_sqm: '',
-  price: '',
-  floor: '',
-  has_elevator: '',
-  has_basement: '',
-  heating: '',
-  build_status: '',
-  finish_status: '',
-  terrace: '',
-  parking: '',
-  deposit: '',
-  registration: '',
-  property_type: '',
-  category: 'rent',
-  agent_name: '',
-  agent_phone: '',
-  agent_email: '',
-  nadir_logo: true,
-  faq: ['', '', '', '', '']
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  rent: 'Izdavanje',
-  sale: 'Prodaja',
-  booking: 'Stan na dan'
-};
-
+/** Srpska množina: 1 tura, 2-4 ture, 5+ (i 11-14) tura. */
+function plural(n: number, one: string, few: string, many: string): string {
+  const d = n % 10;
+  const dd = n % 100;
+  if (d === 1 && dd !== 11) return one;
+  if (d >= 2 && d <= 4 && (dd < 12 || dd > 14)) return few;
+  return many;
+}
 
 /** Srpski tekst iz i18n polja (objekat ili stariji JSON-string). */
 function pickSr(raw: unknown): string {
@@ -182,19 +111,15 @@ function pickTitle(row: TourRow): string {
 }
 
 export default function ToursAdminPage() {
-  const [checkingSession, setCheckingSession] = useState(true);
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [loggingIn, setLoggingIn] = useState(false);
-
   const [tours, setTours] = useState<TourRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
+  // Panel sa formom (TourFormDrawer): otvara se na "+ Nova tura" i "Izmeni".
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [togglingSlug, setTogglingSlug] = useState<string | null>(null);
   const [updatingStatusSlug, setUpdatingStatusSlug] = useState<string | null>(null);
@@ -210,9 +135,6 @@ export default function ToursAdminPage() {
   // Uvod ture: AI tekst + glas na početku vodiča (TourIntroModal).
   const [introSlug, setIntroSlug] = useState<string | null>(null);
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
-  // Tajni linkovi mesečnih izveštaja (lib/agencyReport.ts) - potpisuje ih server.
-  const [agencyReports, setAgencyReports] = useState<{ agency: string; tours: number; path: string; logoUrl: string | null }[]>([]);
-  const [copiedReport, setCopiedReport] = useState<string | null>(null);
   // Pretraga, filteri i redosled spiska tura - vidi TourListFilters.tsx.
   const tourFilter = useTourListFilter(tours, pickTitle);
   // Agencije koje već imaju turu - za izbor u formi (AgencyPicker).
@@ -220,20 +142,6 @@ export default function ToursAdminPage() {
     () => [...new Set(tours.map((t) => t.agency_name?.trim()).filter((a): a is string => Boolean(a)))].sort((a, b) => a.localeCompare(b, 'sr')),
     [tours]
   );
-  // Izveštaji: bira se jedna agencija, pa se njen link kopira i prosleđuje.
-  const [reportAgency, setReportAgency] = useState('');
-  const selectedReport = agencyReports.find((r) => r.agency === reportAgency) ?? null;
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setLoggedIn(Boolean(session));
-      setCheckingSession(false);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_e, session) => {
-      setLoggedIn(Boolean(session));
-    });
-    return () => listener.subscription.unsubscribe();
-  }, []);
 
   const authedFetch = useCallback(async (input: string, init?: RequestInit) => {
     const {
@@ -261,7 +169,6 @@ export default function ToursAdminPage() {
         return;
       }
       setTours(json.tours);
-      setAgencyReports(json.agencyReports ?? []);
     } catch {
       setError('Nema veze sa serverom.');
     } finally {
@@ -269,22 +176,20 @@ export default function ToursAdminPage() {
     }
   }, [authedFetch]);
 
+  // Prijavu drži okvir admina (components/admin/AdminShell.tsx).
   useEffect(() => {
-    if (loggedIn) void load();
-  }, [loggedIn, load]);
+    Promise.resolve().then(load);
+  }, [load]);
 
-  const previewSlug = useMemo(() => slugify(form.title), [form.title]);
-  const slugTaken = useMemo(
-    () => !editingSlug && previewSlug !== '' && tours.some((t) => t.slug === previewSlug),
-    [previewSlug, tours, editingSlug]
-  );
+  const existingSlugs = useMemo(() => tours.map((t) => t.slug), [tours]);
+  const publishedCount = tours.filter((t) => t.published).length;
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async () => {
     if (!form.title.trim()) return;
     setSaving(true);
     setNotice('');
     setError('');
+    setFormError('');
     try {
       const res = await authedFetch('/api/admin/tours', {
         method: editingSlug ? 'PATCH' : 'POST',
@@ -292,7 +197,7 @@ export default function ToursAdminPage() {
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
-        setError(json.error || 'Nije sačuvano.');
+        setFormError(json.error || 'Nije sačuvano.');
         return;
       }
       setNotice(editingSlug ? 'Izmene su sačuvane.' : `Tura je kreirana: /tour/${json.slug}`);
@@ -300,12 +205,39 @@ export default function ToursAdminPage() {
       if (json.warning) setError(json.warning);
       setForm(EMPTY_FORM);
       setEditingSlug(null);
+      setDrawerOpen(false);
       await load();
     } catch {
-      setError('Nema veze sa serverom.');
+      setFormError('Nema veze sa serverom.');
     } finally {
       setSaving(false);
     }
+  };
+
+  const openNew = () => {
+    setEditingSlug(null);
+    setForm(EMPTY_FORM);
+    setFormError('');
+    setNotice('');
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = useCallback(() => {
+    setDrawerOpen(false);
+    setEditingSlug(null);
+    setForm(EMPTY_FORM);
+    setFormError('');
+  }, []);
+
+  // Radnje iz menija "⋯" u redu tabele (TourRowMenu).
+  const rowAction = (tour: TourRow, action: TourRowAction) => {
+    if (action === 'intro') setIntroSlug(tour.slug);
+    else if (action === 'send') setSendTour(tour);
+    else if (action === 'qr') setQrTour(tour);
+    else if (action === 'video') setVideoSlug(tour.slug);
+    else if (action === 'snapshot') setSnapshotSlug(tour.slug);
+    else if (action === 'embed') void copyEmbedCode(tour);
+    else if (action === 'delete') void deleteTour(tour);
   };
 
   // Objavljivanje se namerno pita pre nego što se uradi: skidanje sa objave
@@ -429,6 +361,8 @@ export default function ToursAdminPage() {
       window.prompt('Kod za ugradnju (Ctrl+C, pa Enter):', snippet);
     }
     setCopiedEmbedSlug(tour.slug);
+    // Meni "⋯" se zatvara na klik, pa potvrda stoji iznad liste.
+    setNotice(`Kod za sajt je kopiran (${pickTitle(tour)}).`);
     setTimeout(() => setCopiedEmbedSlug((cur) => (cur === tour.slug ? null : cur)), 1800);
   };
 
@@ -436,6 +370,8 @@ export default function ToursAdminPage() {
     setEditingSlug(tour.slug);
     setNotice('');
     setError('');
+    setFormError('');
+    setDrawerOpen(true);
     setForm({
       title: pickTitle(tour),
       agency_name: tour.agency_name || '',
@@ -463,15 +399,7 @@ export default function ToursAdminPage() {
       nadir_logo: tour.nadir_logo !== false,
       faq: [tour.faq_1_i18n, tour.faq_2_i18n, tour.faq_3_i18n, tour.faq_4_i18n, tour.faq_5_i18n].map(pickSr)
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  const districtOptions = neighbourhoodsFor(form.city);
-  // Zatečena struktura koje nema u listi (ručni unos, preimenovana stavka)
-  // ne sme tiho da se izgubi kad se tura sačuva iz ovog formulara.
-  const structureOptions = STRUCTURE_ORDER.includes(form.structure) || !form.structure
-    ? STRUCTURE_ORDER
-    : [form.structure, ...STRUCTURE_ORDER];
 
   const wrap: React.CSSProperties = {
     minHeight: '100dvh',
@@ -481,538 +409,23 @@ export default function ToursAdminPage() {
     padding: '24px 20px 64px'
   };
 
-  if (checkingSession) {
-    return (
-      <main className="k-form" style={{ ...wrap, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <FormThemeStyle />
-        <p style={{ color: FORM.textSecondary }}>Provera pristupa...</p>
-      </main>
-    );
-  }
-
-  if (!loggedIn) {
-    return (
-      <main className="k-form" style={{ ...wrap, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <FormThemeStyle />
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setLoggingIn(true);
-            setLoginError('');
-            const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
-            if (authError) setLoginError('Prijava nije uspela. Proverite email i lozinku.');
-            setLoggingIn(false);
-          }}
-          style={cardStyle}
-        >
-          <Logo />
-          <h1 style={{ fontSize: '19px', margin: '4px 0 0', fontFamily: FORM.fontDisplay }}>Ture</h1>
-          <p style={{ margin: 0, fontSize: '14px', color: FORM.textSecondary }}>
-            Prijavite se administratorskim nalogom.
-          </p>
-          <input
-            id="tours-email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="email"
-            required
-            style={inputStyle}
-          />
-          <PasswordInput
-            id="tours-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="lozinka"
-            required
-            style={inputStyle}
-          />
-          {loginError && <p style={{ margin: 0, color: FORM.danger, fontSize: '13px' }}>{loginError}</p>}
-          <button type="submit" disabled={loggingIn} style={primaryBtn}>
-            {loggingIn ? 'Prijava...' : 'Prijavi se'}
-          </button>
-        </form>
-      </main>
-    );
-  }
-
   return (
     <main className="k-form" style={wrap}>
-      <FormThemeStyle />
-      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        <header
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '14px',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '20px'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <Logo />
+      <div style={{ maxWidth: '1180px', margin: '0 auto' }}>
+        <header style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <div>
             <h1 style={{ fontSize: '20px', margin: 0, fontFamily: FORM.fontDisplay }}>Ture</h1>
+            <p style={{ margin: '2px 0 0', fontSize: '13px', color: FORM.textSecondary }}>
+              {tours.length} {plural(tours.length, 'tura', 'ture', 'tura')} · {publishedCount} {plural(publishedCount, 'objavljena', 'objavljene', 'objavljenih')}
+            </p>
           </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <Link href="/admin/analitika" style={{ ...formBtnStyle, padding: '7px 14px', fontSize: '13px', textDecoration: 'none' }}>
-              Analitika
-            </Link>
-            <Link href="/admin/projekti" style={{ ...formBtnStyle, padding: '7px 14px', fontSize: '13px', textDecoration: 'none' }}>
-              Novogradnja
-            </Link>
-            <button onClick={() => supabase.auth.signOut()} style={{ ...formBtnStyle, padding: '7px 14px', fontSize: '13px' }}>
-              Odjava
-            </button>
-          </div>
+          <button type="button" onClick={openNew} style={primaryBtn}>
+            + Nova tura
+          </button>
         </header>
 
-        {/* Mesečni izveštaj za agenciju: tajni link, agencija vidi samo svoje
-            ture (posete, ulazak u turu, kontakt, zahtevi za razgledanje). */}
-        {agencyReports.length > 0 && (
-          <section style={{ ...cardStyle, maxWidth: 'none', marginBottom: '22px' }}>
-            <h2 style={{ fontSize: '15px', margin: 0, fontFamily: FORM.fontDisplay }}>Agencije: logo i izveštaji</h2>
-            <p style={{ margin: 0, fontSize: '12.5px', color: FORM.textSecondary }}>
-              Logo agencije stoji u krugu na dnu svake njene ture (na mestu stativa); bez loga tura prikazuje Kvadrat360 znak. Link izveštaja pošaljite agenciji - vidi samo svoje ture, po mesecima, bez prijave, i ne ističe.
-            </p>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxWidth: '360px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: FORM.textSecondary }}>Agencija</span>
-              <select id="report-agency" value={reportAgency} onChange={(e) => setReportAgency(e.target.value)} style={inputStyle}>
-                <option value="">Izaberite agenciju…</option>
-                {agencyReports.map((r) => (
-                  <option key={r.agency} value={r.agency}>
-                    {r.agency} · {r.tours} {r.tours === 1 ? 'tura' : r.tours < 5 ? 'ture' : 'tura'}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {selectedReport && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', borderTop: `1px solid ${FORM.border}`, paddingTop: '10px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 600 }}>
-                  {selectedReport.agency} <span style={{ color: FORM.textSecondary, fontWeight: 400 }}>· {selectedReport.tours} {selectedReport.tours === 1 ? 'tura' : selectedReport.tours < 5 ? 'ture' : 'tura'}</span>
-                </span>
-                <span style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <AgencyLogoButton agency={selectedReport.agency} logoUrl={selectedReport.logoUrl} onChanged={() => void load()} />
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const link = `${SITE_URL}${selectedReport.path}`;
-                      try {
-                        await navigator.clipboard.writeText(link);
-                      } catch {
-                        window.prompt('Link izveštaja (Ctrl+C, pa Enter):', link);
-                      }
-                      setCopiedReport(selectedReport.agency);
-                      setTimeout(() => setCopiedReport((cur) => (cur === selectedReport.agency ? null : cur)), 1800);
-                    }}
-                    style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px' }}
-                  >
-                    {copiedReport === selectedReport.agency ? 'Kopirano ✓' : 'Kopiraj link'}
-                  </button>
-                  <a href={selectedReport.path} target="_blank" rel="noreferrer" style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', textDecoration: 'none' }}>
-                    Otvori
-                  </a>
-                </span>
-              </div>
-            )}
-          </section>
-        )}
-
-        <form onSubmit={handleSave} style={{ ...cardStyle, maxWidth: 'none', marginBottom: '22px' }}>
-          <h2 style={{ fontSize: '15px', margin: 0, fontFamily: FORM.fontDisplay }}>
-            {editingSlug ? `Izmena ture: ${editingSlug}` : 'Nova tura'}
-          </h2>
-
-          <Field label="Naslov oglasa" hint="Ovo vidi klijent kad podeli turu.">
-            <input
-              id="tour-title"
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              placeholder="npr. Dvosoban 54 m² — Kragujevac, Maglićka"
-              required
-              style={inputStyle}
-            />
-          </Field>
-
-          {!editingSlug && form.title && (
-            <p style={{ margin: '-6px 0 0', fontSize: '12.5px', color: slugTaken ? FORM.danger : FORM.textSecondary }}>
-              Link:&nbsp;
-              <code style={{ fontFamily: 'monospace' }}>kvadrat360.com/tour/{previewSlug || '...'}</code>
-              {slugTaken && ' — već postoji, dodaće se broj na kraj.'}
-            </p>
-          )}
-          {editingSlug && (
-            <p style={{ margin: '-6px 0 0', fontSize: '12.5px', color: FORM.textSecondary }}>
-              Link se ne menja pri izmeni — podeljeni linkovi i analitika ostaju vezani za njega.
-            </p>
-          )}
-
-          <div style={twoCol}>
-            <Field label="Agencija">
-              <AgencyPicker
-                value={form.agency_name}
-                agencies={agencyNames}
-                onChange={(agency) => setForm((prev) => ({ ...prev, agency_name: agency }))}
-                inputStyle={inputStyle}
-              />
-            </Field>
-            <Field label="Tip oglasa">
-              <select
-                id="tour-category"
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-                style={inputStyle}
-              >
-                <option value="rent">Izdavanje</option>
-                <option value="sale">Prodaja</option>
-                <option value="booking">Stan na dan</option>
-              </select>
-            </Field>
-          </div>
-
-          <div style={twoCol}>
-            <Field label="Adresa">
-              <input
-                id="tour-address"
-                value={form.address}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
-                style={inputStyle}
-              />
-            </Field>
-            <Field label="Grad" hint="Po njemu se filtrira spisak tura — isti grad mora svuda da bude isto napisan.">
-              <input
-                id="tour-city"
-                value={form.city}
-                onChange={(e) => setForm({ ...form, city: e.target.value })}
-                placeholder="npr. Kragujevac"
-                style={inputStyle}
-              />
-            </Field>
-          </div>
-
-          <div style={twoCol}>
-            <Field label="Naselje" hint="Filter na spisku tura. Nudi se prema upisanom gradu.">
-              <input
-                id="tour-district"
-                value={form.district}
-                onChange={(e) => setForm({ ...form, district: e.target.value })}
-                placeholder={districtOptions[0] ? `npr. ${districtOptions[0]}` : 'npr. Centar'}
-                list="admin-naselja"
-                style={inputStyle}
-              />
-              {/* Slobodan unos, a ne meni: ovde se sređuju i ture iz gradova
-                  za koje spisak naselja još ne postoji. */}
-              <datalist id="admin-naselja">
-                {districtOptions.map((d) => (
-                  <option key={d} value={d} />
-                ))}
-              </datalist>
-            </Field>
-            <Field label="Struktura" hint="Filter na spisku tura — mora da bude iz ponuđene liste.">
-              <select
-                id="tour-structure"
-                value={form.structure}
-                onChange={(e) => setForm({ ...form, structure: e.target.value })}
-                style={inputStyle}
-              >
-                <option value="">— nije određena —</option>
-                {structureOptions.map((s) => (
-                  <option key={s}>{s}</option>
-                ))}
-              </select>
-            </Field>
-          </div>
-
-          <div style={twoCol}>
-            <Field label="Kvadratura (m²)" hint="Klizač na spisku tura. Prazno = tura prolazi kroz klizač bez ograničenja.">
-              <input
-                id="tour-area"
-                inputMode="decimal"
-                value={form.area_sqm}
-                onChange={(e) => setForm({ ...form, area_sqm: e.target.value })}
-                placeholder="npr. 58"
-                style={inputStyle}
-              />
-            </Field>
-            <Field
-              label="Cena (EUR)"
-              hint={
-                form.category === 'sale'
-                  ? 'Ukupna prodajna cena.'
-                  : form.category === 'booking'
-                    ? 'Cena po noćenju.'
-                    : 'Mesečna zakupnina.'
-              }
-            >
-              <input
-                id="tour-price"
-                inputMode="decimal"
-                value={form.price}
-                onChange={(e) => setForm({ ...form, price: e.target.value })}
-                placeholder={form.category === 'sale' ? 'npr. 72000' : 'npr. 450'}
-                style={inputStyle}
-              />
-            </Field>
-          </div>
-
-          <div style={twoCol}>
-            <Field label="Sprat" hint="Red u tabeli osnovnih podataka u turi (Info modal).">
-              <input
-                id="tour-floor"
-                value={form.floor}
-                onChange={(e) => setForm({ ...form, floor: e.target.value })}
-                placeholder="npr. 3/6"
-                style={inputStyle}
-              />
-            </Field>
-            <Field label="Grejanje">
-              <select
-                id="tour-heating"
-                value={form.heating}
-                onChange={(e) => setForm({ ...form, heating: e.target.value })}
-                style={inputStyle}
-              >
-                <option value="">— nije određeno —</option>
-                {HEATING_OPTIONS.map((h) => (
-                  <option key={h}>{h}</option>
-                ))}
-              </select>
-            </Field>
-          </div>
-
-          <div style={twoCol}>
-            <Field label="Lift">
-              <select
-                id="tour-elevator"
-                value={form.has_elevator}
-                onChange={(e) => setForm({ ...form, has_elevator: e.target.value })}
-                style={inputStyle}
-              >
-                <option value="">— nije određeno —</option>
-                {YES_NO.map((v) => (
-                  <option key={v}>{v}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Podrum">
-              <select
-                id="tour-basement"
-                value={form.has_basement}
-                onChange={(e) => setForm({ ...form, has_basement: e.target.value })}
-                style={inputStyle}
-              >
-                <option value="">— nije određeno —</option>
-                {YES_NO.map((v) => (
-                  <option key={v}>{v}</option>
-                ))}
-              </select>
-            </Field>
-          </div>
-
-          <div style={twoCol}>
-            <Field label="Status gradnje">
-              <select
-                id="tour-build-status"
-                value={form.build_status}
-                onChange={(e) => setForm({ ...form, build_status: e.target.value })}
-                style={inputStyle}
-              >
-                <option value="">— nije određeno —</option>
-                {BUILD_STATUS_OPTIONS.map((v) => (
-                  <option key={v}>{v}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Stanje" hint="Stanje enterijera, nezavisno od statusa gradnje.">
-              <select
-                id="tour-finish-status"
-                value={form.finish_status}
-                onChange={(e) => setForm({ ...form, finish_status: e.target.value })}
-                style={inputStyle}
-              >
-                <option value="">— nije određeno —</option>
-                {FINISH_STATUS_OPTIONS.map((v) => (
-                  <option key={v}>{v}</option>
-                ))}
-              </select>
-            </Field>
-          </div>
-
-          <div style={twoCol}>
-            <Field label="Terasa / balkon">
-              <select
-                id="tour-terrace"
-                value={form.terrace}
-                onChange={(e) => setForm({ ...form, terrace: e.target.value })}
-                style={inputStyle}
-              >
-                <option value="">— nije određeno —</option>
-                {TERRACE_OPTIONS.map((v) => (
-                  <option key={v}>{v}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Parking">
-              <select
-                id="tour-parking"
-                value={form.parking}
-                onChange={(e) => setForm({ ...form, parking: e.target.value })}
-                style={inputStyle}
-              >
-                <option value="">— nije određeno —</option>
-                {PARKING_OPTIONS.map((v) => (
-                  <option key={v}>{v}</option>
-                ))}
-              </select>
-            </Field>
-          </div>
-
-          {/* Depozit samo za izdavanje, uknjiženost samo za prodaju - tura ih
-              ionako prikazuje samo za tu vrstu oglasa. */}
-          {(form.category === 'rent' || form.category === 'sale') && (
-            <div style={twoCol}>
-              {form.category === 'rent' ? (
-              <Field label="Depozit">
-                <select
-                  id="tour-deposit"
-                  value={form.deposit}
-                  onChange={(e) => setForm({ ...form, deposit: e.target.value })}
-                  style={inputStyle}
-                >
-                  <option value="">— nije određeno —</option>
-                  {DEPOSIT_OPTIONS.map((v) => (
-                    <option key={v}>{v}</option>
-                  ))}
-                </select>
-              </Field>
-                ) : (
-              <Field label="Uknjiženost">
-                <select
-                  id="tour-registration"
-                  value={form.registration}
-                  onChange={(e) => setForm({ ...form, registration: e.target.value })}
-                  style={inputStyle}
-                >
-                  <option value="">— nije određeno —</option>
-                  {REGISTRATION_OPTIONS.map((v) => (
-                    <option key={v}>{v}</option>
-                  ))}
-                </select>
-              </Field>
-                )}
-            </div>
-          )}
-
-          <div style={twoCol}>
-            <Field label="Tip nekretnine" hint="npr. Dvosoban stan">
-              <input
-                id="tour-property-type"
-                value={form.property_type}
-                onChange={(e) => setForm({ ...form, property_type: e.target.value })}
-                style={inputStyle}
-              />
-            </Field>
-          </div>
-
-          <div style={twoCol}>
-            <Field label="Agent">
-              <input
-                id="tour-agent-name"
-                value={form.agent_name}
-                onChange={(e) => setForm({ ...form, agent_name: e.target.value })}
-                style={inputStyle}
-              />
-            </Field>
-            <Field label="Telefon agenta">
-              <input
-                id="tour-agent-phone"
-                value={form.agent_phone}
-                onChange={(e) => setForm({ ...form, agent_phone: e.target.value })}
-                style={inputStyle}
-              />
-            </Field>
-          </div>
-
-          <Field label="Email agenta" hint="Na ovu adresu agentu stižu zahtevi za razgledanje iz ture.">
-            <input
-              id="tour-agent-email"
-              type="email"
-              value={form.agent_email}
-              onChange={(e) => setForm({ ...form, agent_email: e.target.value })}
-              style={inputStyle}
-            />
-          </Field>
-
-          {/* Krug sa logom na mestu stativa (NadirLogo.tsx): logo agencije,
-              ili Kvadrat360 znak. Isključuje se kad klijent ne želi logo. */}
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
-            <input
-              id="tour-nadir-logo"
-              type="checkbox"
-              checked={form.nadir_logo}
-              onChange={(e) => setForm({ ...form, nadir_logo: e.target.checked })}
-              style={{ width: '18px', height: '18px', marginTop: '1px', accentColor: FORM.accent }}
-            />
-            <span>
-              <b>Logo na mestu stativa</b>
-              <span style={{ display: 'block', fontSize: '12.5px', color: FORM.textSecondary }}>
-                Krug sa logom agencije (bez njega Kvadrat360 znak) kad posetilac pogleda nadole. Isključite ako klijent ne želi logo.
-              </span>
-            </span>
-          </label>
-
-          {/* Odgovori na pet pitanja (dugme "Pitanja" u turi). Samo pri izmeni:
-              nova tura ih dobija iz upitnika. Pitanja zavise od tipa oglasa,
-              a odgovor stoji na istom mestu - zato se pri promeni tipa
-              oglasa i odgovori moraju proveriti. */}
-          {editingSlug && (
-            <fieldset style={{ border: `1px solid ${FORM.border}`, borderRadius: '12px', padding: '12px 14px 14px', margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <legend style={{ padding: '0 6px', fontSize: '13.5px', fontWeight: 700 }}>Odgovori na pitanja</legend>
-              <p style={{ margin: 0, fontSize: '12.5px', color: FORM.textSecondary }}>
-                Pišete na srpskom. Izmenjen odgovor se pri čuvanju sam prevodi na jezike koje tura ima.
-                Jedan kratak red po odgovoru; prazno polje = pitanje se ne prikazuje.
-              </p>
-              {(categoryQuestions[form.category]?.sr ?? categoryQuestions.rent.sr).map((question, i) => (
-                <Field key={i} label={`${i + 1}. ${question}`}>
-                  <textarea
-                    id={`tour-faq-${i + 1}`}
-                    value={form.faq[i] ?? ''}
-                    onChange={(e) => {
-                      const faq = [...form.faq];
-                      faq[i] = e.target.value;
-                      setForm({ ...form, faq });
-                    }}
-                    rows={2}
-                    maxLength={400}
-                    style={{ ...inputStyle, resize: 'vertical' }}
-                  />
-                </Field>
-              ))}
-            </fieldset>
-          )}
-
-          {error && <p style={{ margin: 0, color: FORM.danger, fontSize: '13px' }}>{error}</p>}
-          {notice && <p style={{ margin: 0, color: FORM.success, fontSize: '13px' }}>{notice}</p>}
-
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <button type="submit" disabled={saving} style={primaryBtn}>
-              {saving ? 'Čuvanje...' : editingSlug ? 'Sačuvaj izmene' : 'Kreiraj turu'}
-            </button>
-            {editingSlug && (
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingSlug(null);
-                  setForm(EMPTY_FORM);
-                  setNotice('');
-                }}
-                style={{ ...formBtnStyle, padding: '11px 16px', fontSize: '14px' }}
-              >
-                Otkaži
-              </button>
-            )}
-          </div>
-        </form>
+        {notice && <p style={{ margin: '0 0 12px', color: FORM.success, fontSize: '13.5px' }}>{notice}</p>}
+        {error && <p style={{ margin: '0 0 12px', color: FORM.danger, fontSize: '13.5px' }}>{error}</p>}
 
         {loading && <p style={{ color: FORM.textSecondary }}>Učitavanje...</p>}
 
@@ -1031,12 +444,12 @@ export default function ToursAdminPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
             <thead>
               <tr>
-                {['Tura', 'Kreirana', 'Stanje', 'Nekretnina', 'Agencija', 'Tip', 'Sobe', ''].map((h, i) => (
+                {['Tura', 'Kreirana', 'Stanje', 'Agencija', 'Tip', 'Sobe', ''].map((h, i) => (
                   <th
                     key={h || i}
                     style={{
                       padding: '13px 14px',
-                      textAlign: i === 6 ? 'right' : 'left',
+                      textAlign: i === 5 ? 'right' : 'left',
                       fontSize: '12px',
                       fontWeight: 700,
                       letterSpacing: '0.3px',
@@ -1059,7 +472,7 @@ export default function ToursAdminPage() {
                     <td style={{ padding: '12px 14px' }}>
                       <div style={{ fontWeight: 600 }}>{pickTitle(tour)}</div>
                       <div style={{ fontSize: '12px', color: FORM.textMuted, fontFamily: 'monospace' }}>
-                        /tour/{tour.slug}
+                        {tour.city ? `${tour.city} · ` : ''}/tour/{tour.slug}
                       </div>
                     </td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', color: FORM.textSecondary }}>
@@ -1082,27 +495,23 @@ export default function ToursAdminPage() {
                       >
                         {tour.published ? 'Objavljena' : 'U pripremi'}
                       </span>
-                    </td>
-                    <td style={{ padding: '12px 14px' }}>
-                      <select
-                        value={tour.status}
-                        onChange={(e) => void updateStatus(tour, e.target.value as TourRow['status'])}
-                        disabled={updatingStatusSlug === tour.slug}
-                        style={{
-                          padding: '4px 8px',
-                          borderRadius: '8px',
-                          fontSize: '12.5px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          color: tour.status === 'active' ? FORM.textPrimary : '#fff',
-                          background: tour.status === 'active' ? FORM.surface : FORM.danger,
-                          border: '1px solid ' + (tour.status === 'active' ? FORM.border : FORM.danger)
-                        }}
-                      >
-                        {(Object.keys(STATUS_LABELS) as TourRow['status'][]).map((s) => (
-                          <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-                        ))}
-                      </select>
+                      {tour.status !== 'active' && (
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            marginLeft: '6px',
+                            padding: '3px 9px',
+                            borderRadius: '999px',
+                            fontSize: '11.5px',
+                            fontWeight: 700,
+                            whiteSpace: 'nowrap',
+                            color: '#fff',
+                            background: FORM.danger
+                          }}
+                        >
+                          {STATUS_LABELS[tour.status]}
+                        </span>
+                      )}
                     </td>
                     <td style={{ padding: '12px 14px', color: tour.agency_name ? FORM.textPrimary : FORM.textMuted }}>
                       {tour.agency_name || '—'}
@@ -1144,94 +553,30 @@ export default function ToursAdminPage() {
                         Izmeni
                       </button>
                       <a
-                        href={`/tour/${tour.slug}?admin=1`}
+                        href={`/tour/${tour.slug}`}
                         target="_blank"
                         rel="noreferrer"
                         style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', textDecoration: 'none', marginRight: '6px' }}
                       >
-                        Uredi sadržaj
+                        Otvori ↗
                       </a>
-                      {/* Šematski tlocrt: automatski nacrt + ručna ispravka (app/admin/plan). */}
-                      <a
-                        href={`/admin/plan/${tour.slug}`}
-                        style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', textDecoration: 'none', marginRight: '6px' }}
-                      >
-                        🗺 Plan
-                      </a>
-                      <button
-                        onClick={() => void copyEmbedCode(tour)}
-                        title="Kopira <iframe> kod za ugradnju ture na sajt agencije"
-                        style={{
-                          ...formBtnStyle,
-                          padding: '6px 12px',
-                          fontSize: '12.5px',
-                          ...(copiedEmbedSlug === tour.slug
-                            ? { background: FORM.success, color: '#fff', borderColor: FORM.success }
-                            : {})
-                        }}
-                      >
-                        {copiedEmbedSlug === tour.slug ? 'Kopirano ✓' : 'Iframe'}
-                      </button>
-                      <button
-                        onClick={() => setQrTour(tour)}
-                        title="QR kod ture za oglas, letak i izlog (Premium) - PNG i SVG"
-                        style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', marginLeft: '6px' }}
-                      >
-                        QR
-                      </button>
-                      <button
-                        onClick={() => setSendTour(tour)}
-                        title="Mejl „Vaša tura je gotova“ klijentu: link, kod za sajt, HDR i QR - sa pregledom pre slanja"
-                        style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', marginLeft: '6px' }}
-                      >
-                        Pošalji klijentu
-                      </button>
-                      <button
-                        onClick={() => setIntroSlug(tour.slug)}
-                        title="Kratak glas na početku vodiča (AI iz osnovnih podataka, po nameni) dok posetilac dolazi sa mape do nekretnine"
-                        style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', marginLeft: '6px' }}
-                      >
-                        Uvod
-                      </button>
-                      <button
-                        onClick={() => setVideoSlug(tour.slug)}
-                        disabled={tour.roomsWithPanorama === 0}
-                        title="Kratak uspravan video iz ture za Instagram i Facebook (Premium) - MP4 na ovaj računar"
-                        style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', marginLeft: '6px' }}
-                      >
-                        Video
-                      </button>
-                      <button
-                        onClick={() => setSnapshotSlug(tour.slug)}
-                        disabled={tour.roomsWithPanorama === 0}
-                        title="Slika bilo kog kadra ture za oglas (4zida, Halo oglasi) ili mreže, sa bedžom i linkom ture - JPG ili ZIP svih soba"
-                        style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', marginLeft: '6px' }}
-                      >
-                        Snimak
-                      </button>
-                      <button
-                        onClick={() => void deleteTour(tour)}
-                        disabled={deletingSlug === tour.slug}
-                        title="Trajno briše turu, sobe, panorame i statistiku - ne može se vratiti"
-                        style={{
-                          ...formBtnStyle,
-                          padding: '6px 12px',
-                          fontSize: '12.5px',
-                          marginLeft: '6px',
-                          background: FORM.danger,
-                          color: '#fff',
-                          borderColor: FORM.danger
-                        }}
-                      >
-                        {deletingSlug === tour.slug ? '…' : 'Obriši'}
-                      </button>
+                      <TourRowMenu
+                        slug={tour.slug}
+                        status={tour.status}
+                        statusLabels={STATUS_LABELS}
+                        embedCopied={copiedEmbedSlug === tour.slug}
+                        noPanorama={tour.roomsWithPanorama === 0}
+                        busy={deletingSlug === tour.slug || updatingStatusSlug === tour.slug}
+                        onAction={(action) => rowAction(tour, action)}
+                        onStatus={(status) => void updateStatus(tour, status)}
+                      />
                     </td>
                   </tr>
                 );
               })}
               {tours.length > 0 && tourFilter.visible.length === 0 && (
                 <tr>
-                  <td colSpan={8} style={{ padding: '22px 14px', textAlign: 'center', color: FORM.textSecondary }}>
+                  <td colSpan={7} style={{ padding: '22px 14px', textAlign: 'center', color: FORM.textSecondary }}>
                     Nijedna tura ne odgovara filterima.{' '}
                     <button type="button" onClick={tourFilter.reset} style={{ ...formBtnStyle, padding: '5px 10px', fontSize: '12.5px', marginLeft: '6px' }}>
                       Poništi filtere
@@ -1244,17 +589,22 @@ export default function ToursAdminPage() {
         </div>
 
         <p style={{ marginTop: '14px', fontSize: '12.5px', color: FORM.textMuted }}>
-          {"„Uredi sadržaj“"} otvara turu u admin režimu, gde se dodaju sobe, panorame i hotspotovi.
-          {"„Iframe“"} kopira gotov kod za ugradnju ture na sajt agencije — radi tek kad je tura objavljena.
-          {"„QR“"} pravi QR kod ture sa logom (PNG za oglas i poruke, SVG za štampu) — deo Premium paketa.
-          {"„Pošalji klijentu“"} šalje mejl „Vaša tura je gotova“ (link, kod za sajt, HDR i QR) — vidiš ga pre slanja, a ide samo za objavljenu turu.
-          {"„Video“"} pravi kratak uspravan video iz ture za Instagram i Facebook (MP4, čuva se samo na ovom računaru) — deo Premium paketa, radi u Chrome-u.
-
-          {"„Obriši“"} trajno uklanja turu, sobe, panorame i statistiku — traži da upišeš slug ture za potvrdu,
-          jer se ne može vratiti. Crveno kod broja soba znači da neka soba nema panoramu. Nova tura kreće
-          {"„u pripremi“"} — link radi samo tebi dok je ne objaviš.
+          Ostale radnje su u meniju {"„⋯“"}: sadržaj ture (sobe, plan, uvod), deljenje (klijentu, QR, video, snimak, kod za sajt), stanje nekretnine i brisanje.
+          Crveno kod broja soba znači da neka soba nema panoramu. Nova tura kreće {"„u pripremi“"} — link radi samo tebi dok je ne objaviš.
         </p>
       </div>
+      <TourFormDrawer
+        open={drawerOpen}
+        editingSlug={editingSlug}
+        form={form}
+        onChange={setForm}
+        agencies={agencyNames}
+        existingSlugs={existingSlugs}
+        saving={saving}
+        error={formError}
+        onSave={() => void handleSave()}
+        onClose={closeDrawer}
+      />
       {videoSlug && <TourVideoLauncher slug={videoSlug} onClose={() => setVideoSlug(null)} />}
       {snapshotSlug && <TourSnapshotModal slug={snapshotSlug} onClose={() => setSnapshotSlug(null)} />}
       {introSlug && <TourIntroModal slug={introSlug} onClose={() => setIntroSlug(null)} />}
@@ -1284,54 +634,6 @@ export default function ToursAdminPage() {
     </main>
   );
 }
-
-function Field({
-  label,
-  hint,
-  children
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-      <span style={{ fontSize: '12.5px', fontWeight: 600, color: FORM.textSecondary }}>{label}</span>
-      {children}
-      {hint && <span style={{ fontSize: '11.5px', color: FORM.textMuted }}>{hint}</span>}
-    </label>
-  );
-}
-
-const cardStyle: React.CSSProperties = {
-  background: FORM.surface,
-  border: '1px solid ' + FORM.border,
-  borderRadius: '18px',
-  padding: '22px',
-  width: '100%',
-  maxWidth: '380px',
-  boxShadow: FORM.shadow,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '14px'
-};
-
-const twoCol: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: '12px'
-};
-
-const inputStyle: React.CSSProperties = {
-  padding: '11px 12px',
-  borderRadius: '10px',
-  border: '1px solid ' + FORM.border,
-  fontSize: '14px',
-  fontFamily: 'inherit',
-  background: FORM.surfaceAlt,
-  color: FORM.textPrimary,
-  width: '100%'
-};
 
 const primaryBtn: React.CSSProperties = {
   ...formBtnStyle,

@@ -3,8 +3,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { FORM, FormThemeStyle, formBtnStyle } from '../../lib/formTheme';
-import { Logo } from '../../tour/[slug]/Logo';
-import PasswordInput from '../../../components/PasswordInput';
 
 type RoomStat = {
   roomId: string;
@@ -101,13 +99,6 @@ function formatDuration(ms: number): string {
 }
 
 export default function AnalyticsPage() {
-  const [checkingSession, setCheckingSession] = useState(true);
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [loggingIn, setLoggingIn] = useState(false);
-
   const [days, setDays] = useState(30);
   const [tours, setTours] = useState<TourStat[]>([]);
   const [loading, setLoading] = useState(false);
@@ -120,17 +111,6 @@ export default function AnalyticsPage() {
   const [site, setSite] = useState<SiteStat | null>(null);
   const [siteStatus, setSiteStatus] = useState<SiteStatus>('ok');
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setLoggedIn(Boolean(session));
-      setCheckingSession(false);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setLoggedIn(Boolean(session));
-    });
-    return () => listener.subscription.unsubscribe();
-  }, []);
-
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -138,10 +118,8 @@ export default function AnalyticsPage() {
       const {
         data: { session }
       } = await supabase.auth.getSession();
-      if (!session) {
-        setLoggedIn(false);
-        return;
-      }
+      // Prijavu drži okvir admina (components/admin/AdminShell.tsx).
+      if (!session) return;
       const res = await fetch(`/api/analytics?days=${days}`, {
         headers: { Authorization: `Bearer ${session.access_token}` }
       });
@@ -161,8 +139,9 @@ export default function AnalyticsPage() {
   }, [days]);
 
   useEffect(() => {
-    if (loggedIn) void load();
-  }, [loggedIn, load]);
+    // Posle iscrtavanja, ne sinhrono u effect-u (load odmah postavlja "učitava se").
+    Promise.resolve().then(load);
+  }, [load]);
 
   const totals = useMemo(() => {
     const sum = tours.reduce(
@@ -205,15 +184,6 @@ export default function AnalyticsPage() {
     );
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoggingIn(true);
-    setLoginError('');
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
-    if (authError) setLoginError('Prijava nije uspela. Proverite email i lozinku.');
-    setLoggingIn(false);
-  };
-
   const wrap: React.CSSProperties = {
     minHeight: '100dvh',
     background: FORM.bg,
@@ -221,80 +191,6 @@ export default function AnalyticsPage() {
     fontFamily: FORM.fontBody,
     padding: '24px 20px 64px'
   };
-
-  if (checkingSession) {
-    return (
-      <main className="k-form" style={{ ...wrap, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <FormThemeStyle />
-        <p style={{ color: FORM.textSecondary }}>Provera pristupa...</p>
-      </main>
-    );
-  }
-
-  if (!loggedIn) {
-    return (
-      <main className="k-form" style={{ ...wrap, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <FormThemeStyle />
-        <form
-          onSubmit={handleLogin}
-          style={{
-            background: FORM.surface,
-            border: '1px solid ' + FORM.border,
-            borderRadius: '18px',
-            padding: '28px',
-            width: '100%',
-            maxWidth: '380px',
-            boxShadow: FORM.shadow,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '14px'
-          }}
-        >
-          <Logo />
-          <h1 style={{ fontSize: '19px', margin: '4px 0 0', fontFamily: FORM.fontDisplay }}>
-            Analitika
-          </h1>
-          <p style={{ margin: 0, fontSize: '14px', color: FORM.textSecondary }}>
-            Prijavite se administratorskim nalogom.
-          </p>
-          <input
-            id="analytics-email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="email"
-            required
-            style={inputStyle}
-          />
-          <PasswordInput
-            id="analytics-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="lozinka"
-            required
-            style={inputStyle}
-          />
-          {loginError && (
-            <p style={{ margin: 0, color: FORM.danger, fontSize: '13px' }}>{loginError}</p>
-          )}
-          <button
-            type="submit"
-            disabled={loggingIn}
-            style={{
-              ...formBtnStyle,
-              background: FORM.accent,
-              color: FORM.onAccent,
-              borderColor: FORM.accent,
-              padding: '11px',
-              fontSize: '14px'
-            }}
-          >
-            {loggingIn ? 'Prijava...' : 'Prijavi se'}
-          </button>
-        </form>
-      </main>
-    );
-  }
 
   const hasData = tours.some((t) => t.opens > 0);
 
@@ -321,10 +217,7 @@ export default function AnalyticsPage() {
             marginBottom: '20px'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <Logo />
-            <h1 style={{ fontSize: '20px', margin: 0, fontFamily: FORM.fontDisplay }}>Analitika</h1>
-          </div>
+          <h1 style={{ fontSize: '20px', margin: 0, fontFamily: FORM.fontDisplay }}>Analitika</h1>
 
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             {PERIODS.map((p) => (
@@ -343,12 +236,6 @@ export default function AnalyticsPage() {
                 {p.label}
               </button>
             ))}
-            <button
-              onClick={() => supabase.auth.signOut()}
-              style={{ ...formBtnStyle, padding: '7px 14px', fontSize: '13px' }}
-            >
-              Odjava
-            </button>
           </div>
         </header>
 
@@ -745,12 +632,3 @@ const numCell: React.CSSProperties = {
 
 const subCell: React.CSSProperties = { padding: '7px 6px', fontWeight: 500 };
 
-const inputStyle: React.CSSProperties = {
-  padding: '11px 12px',
-  borderRadius: '10px',
-  border: '1px solid ' + FORM.border,
-  fontSize: '14px',
-  fontFamily: 'inherit',
-  background: FORM.surfaceAlt,
-  color: FORM.textPrimary
-};

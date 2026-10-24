@@ -8,6 +8,23 @@ export const PROJECT_ADMIN_STYLES = `
   .pa-wrap{max-width:1200px; margin:0 auto;}
   .pa-top{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px;}
   .pa-top h1{margin:0; font-family:var(--font-display); font-size:22px;}
+  .pa-sub{margin:2px 0 0; font-size:13px; color:var(--ink-soft);}
+  .pa-table-card{background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); overflow-x:auto;}
+  .pa-table{width:100%; border-collapse:collapse; font-size:14px;}
+  .pa-table th{padding:12px 14px; text-align:left; font-size:12px; font-weight:700; letter-spacing:.3px; text-transform:uppercase; color:var(--ink-soft); border-bottom:1px solid var(--line); white-space:nowrap;}
+  .pa-table td{padding:12px 14px; border-bottom:1px solid var(--line); vertical-align:middle;}
+  .pa-table tr:last-child td{border-bottom:none;}
+  .pa-t{display:block; font-weight:650;}
+  .pa-s{display:block; font-size:12px; color:var(--ink-faint);}
+  .pa-actions{text-align:right; white-space:nowrap;}
+  .pa-actions .pa-btn + .pa-btn{margin-left:6px;}
+  .pa-sections{position:sticky; top:var(--pa-sticky-top, 0px); z-index:20; display:flex; gap:4px; overflow-x:auto; margin:0 0 16px; padding:6px;
+    background:color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter:blur(6px); border:1px solid var(--line); border-radius:14px; scrollbar-width:none;}
+  .pa-sections::-webkit-scrollbar{display:none;}
+  .pa-sections button{flex:none; font:inherit; font-size:13px; font-weight:600; padding:7px 12px; border-radius:10px; border:none; background:none; color:var(--ink-soft); cursor:pointer; white-space:nowrap;}
+  .pa-sections button:hover{background:var(--surface-2); color:var(--ink);}
+  .pa-anchor{scroll-margin-top:calc(var(--pa-sticky-top, 0px) + 70px);}
+  @media (max-width:899px){ .pa{--pa-sticky-top:58px;} }
   .pa-crumbs{display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:13px; color:var(--ink-soft);}
   .pa-crumbs a{color:var(--accent); text-decoration:none; font-weight:650;}
   .pa-card{background:var(--surface); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); padding:18px; margin-bottom:16px;}

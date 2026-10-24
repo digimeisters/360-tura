@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '../../../lib/supabaseClient';
 import { adminAuthHeader } from '../../../lib/authFetch';
 import { FormThemeStyle } from '../../../lib/formTheme';
 import { shrinkImage } from '../../../lib/shrinkImage';
@@ -21,6 +20,7 @@ import NearbyPanel from '../../../../components/projekat/NearbyPanel';
 import ViewManager from '../../../../components/projekat/ViewManager';
 import BulkPlansPanel from '../../../../components/projekat/BulkPlansPanel';
 import PriceListReader from '../../../../components/projekat/PriceListReader';
+import MoreMenu from '../../../../components/admin/MoreMenu';
 import {
   floorName,
   cleanPhotos,
@@ -122,7 +122,6 @@ export default function ProjectEditorPage() {
   const id = String(params?.id || '');
   const router = useRouter();
 
-  const [session, setSession] = useState<'checking' | 'in' | 'out'>('checking');
   const [data, setData] = useState<ProjectBundle | null>(null);
   const [loadError, setLoadError] = useState('');
   const [info, setInfo] = useState<InfoForm | null>(null);
@@ -163,10 +162,6 @@ export default function ProjectEditorPage() {
   const [busy, setBusy] = useState('');
   const [msg, setMsg] = useState<Msg>(null);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: s }) => setSession(s.session ? 'in' : 'out'));
-  }, []);
-
   const load = useCallback(async () => {
     const res = await fetch(`/api/admin/projects?id=${encodeURIComponent(id)}`, { headers: await adminAuthHeader() });
     const json = await res.json().catch(() => null);
@@ -191,9 +186,10 @@ export default function ProjectEditorPage() {
     setFloorId((prev) => prev ?? [...bundle.floors].reverse().find((f) => f.building_id === firstB)?.id ?? null);
   }, [id]);
 
+  // Prijavu drži okvir admina (components/admin/AdminShell.tsx).
   useEffect(() => {
-    if (session === 'in' && id) Promise.resolve().then(load);
-  }, [session, id, load]);
+    if (id) Promise.resolve().then(load);
+  }, [id, load]);
 
   const api = useCallback(async (action: string, payload: Record<string, unknown>) => {
     const res = await fetch('/api/admin/projects', {
@@ -395,25 +391,33 @@ export default function ProjectEditorPage() {
     });
   };
 
-  // ---------- prikaz ----------
+  // Brisanje (meni "⋯" u zaglavlju): projekat, spratovi i stanovi; ture ostaju.
+  const deleteProject = () => {
+    if (!data) return;
+    if (!window.confirm(`Trajno obrisati projekat „${data.project.title}“? Brišu se spratovi i stanovi; ture ostaju netaknute.`)) return;
+    run('delete', async () => {
+      await api('delete', { id });
+      router.push('/admin/projekti');
+    });
+  };
 
-  if (session !== 'in') {
-    return (
-      <main className="pa k-form">
-        <FormThemeStyle />
-        <style>{PROJECT_ADMIN_STYLES}</style>
-        <div className="pa-wrap">
-          {session === 'checking' ? (
-            'Provera pristupa...'
-          ) : (
-            <p>
-              Prvo se prijavite u <a href="/admin/ture">admin</a>, pa se vratite ovde.
-            </p>
-          )}
-        </div>
-      </main>
-    );
-  }
+  // Traka sekcija u vrhu: samo delovi koji se trenutno prikazuju.
+  const sections: { id: string; label: string }[] = [
+    { id: 'sec-podaci', label: 'Podaci' },
+    { id: 'sec-okolina', label: 'Okolina' },
+    { id: 'sec-upiti', label: 'Upiti' },
+    { id: 'sec-zgrade', label: 'Zgrade' },
+    ...(buildings.length > 1 ? [{ id: 'sec-vazduh', label: 'Iz vazduha' }] : []),
+    { id: 'sec-fasada', label: 'Fasada i spratovi' },
+    ...(floor ? [{ id: 'sec-osnova', label: 'Osnova sprata' }] : []),
+    { id: 'sec-stanovi', label: 'Stanovi' },
+    { id: 'sec-osnove-ai', label: 'Osnove (AI)' },
+    { id: 'sec-gradiliste', label: 'Gradilište' },
+    { id: 'sec-ugradnja', label: 'Ugradnja' },
+    { id: 'sec-prodaja', label: 'Prodaja' }
+  ];
+
+  // ---------- prikaz ----------
 
   if (!data || !info) {
     return (
@@ -667,8 +671,19 @@ export default function ProjectEditorPage() {
             >
               {project.published ? 'Skloni sa sajta' : 'Objavi'}
             </button>
+            <MoreMenu items={[{ label: '🗑 Obriši projekat', danger: true, disabled: busy === 'delete', onClick: deleteProject }]} />
           </div>
         </div>
+
+        {/* Traka sekcija: skroluje do dela strane (ne menja karticu), pa
+            nesačuvano crtanje obrisa ostaje gde je. */}
+        <nav className="pa-sections" aria-label="Delovi projekta">
+          {sections.map((sec) => (
+            <button key={sec.id} type="button" onClick={() => document.getElementById(sec.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+              {sec.label}
+            </button>
+          ))}
+        </nav>
 
         {/* Poruka je pričvršćena na dno ekrana: dugmići su često daleko ispod
             vrha strane, pa poruka u vrhu ostane van vidokruga (vlasnik nije
@@ -683,7 +698,7 @@ export default function ProjectEditorPage() {
         )}
 
         {/* 1) Podaci projekta */}
-        <section className="pa-card">
+        <section className="pa-card pa-anchor" id="sec-podaci">
           <h2>Podaci projekta</h2>
           <p className="pa-hint">Prikazuju se u vrhu javne strane projekta.</p>
           <div className="pa-grid">
@@ -914,6 +929,7 @@ export default function ProjectEditorPage() {
           </div>
         </section>
 
+        <div className="pa-anchor" id="sec-okolina" />
         <NearbyPanel
           projectId={id}
           lat={project.lat}
@@ -923,10 +939,11 @@ export default function ProjectEditorPage() {
           onChange={(patch) => setData((d) => (d ? { ...d, project: { ...d.project, ...patch } } : d))}
         />
 
+        <div className="pa-anchor" id="sec-upiti" />
         <InsightsPanel projectId={id} />
 
         {/* 2) Lamele (migracija 025) */}
-        <section className="pa-card">
+        <section className="pa-card pa-anchor" id="sec-zgrade">
           <h2>Zgrade i lamele</h2>
           {!hasBuildings ? (
             <>
@@ -1031,7 +1048,7 @@ export default function ProjectEditorPage() {
 
         {/* 3) Kompleks iz vazduha - samo kad ima bar dve lamele */}
         {buildings.length > 1 && (
-          <section className="pa-card">
+          <section className="pa-card pa-anchor" id="sec-vazduh">
             <h2>Kompleks iz vazduha</h2>
             <p className="pa-hint">
               Render ili snimak dronom celog kompleksa. Na njemu iscrtajte svaku lamelu - posetilac klikne na lamelu i otvara se njena fasada.
@@ -1113,7 +1130,7 @@ export default function ProjectEditorPage() {
         )}
 
         {/* 4) Fasada i spratovi (izabrane lamele) */}
-        <section className="pa-card">
+        <section className="pa-card pa-anchor" id="sec-fasada">
           <h2>{hasBuildings ? `Fasada i spratovi: ${buildingName(bId)}` : 'Fasada i spratovi'}</h2>
           <p className="pa-hint">
             Otpremite fotografiju ili render zgrade (može više slika iz različitih uglova - posetilac ih okreće strelicama). Na svakoj slici
@@ -1451,7 +1468,7 @@ export default function ProjectEditorPage() {
 
         {/* 3) Osnova izabranog sprata */}
         {floor && (
-          <section className="pa-card">
+          <section className="pa-card pa-anchor" id="sec-osnova">
             <h2>Osnova: {floorName(floor.level, floor.label)}</h2>
             <p className="pa-hint">Otpremite osnovu sprata (PDF od arhitekte sačuvajte kao sliku), pa za svaki stan kliknite „Iscrtaj“ - ili probajte AI predlog ako je svaki stan već obeležen natpisom na osnovi.</p>
             <div className="pa-split">
@@ -1630,7 +1647,7 @@ export default function ProjectEditorPage() {
         )}
 
         {/* 4) Tabela stanova */}
-        <section className="pa-card">
+        <section className="pa-card pa-anchor" id="sec-stanovi">
           <h2>Stanovi ({units.length})</h2>
           <p className="pa-hint">Promenite status ili cenu i kliknite „Sačuvaj“ u tom redu. Javna strana se osvežava odmah.</p>
           {units.length > 0 && (
@@ -1852,12 +1869,16 @@ export default function ProjectEditorPage() {
           </details>
         </section>
 
+        <div className="pa-anchor" id="sec-osnove-ai" />
         <BulkPlansPanel projectId={id} units={units} floors={floors} api={api} upload={upload} onSaved={load} />
 
+        <div className="pa-anchor" id="sec-gradiliste" />
         <ProgressPanel projectId={id} tours={tours} />
 
+        <div className="pa-anchor" id="sec-ugradnja" />
         <EmbedCodePanel slug={project.slug} title={project.title} published={project.published} />
 
+        <div className="pa-anchor" id="sec-prodaja" />
         <SalesAccessPanel
           projectId={id}
           notifySales={project.notify_sales}
@@ -1877,23 +1898,6 @@ export default function ProjectEditorPage() {
           />
         )}
 
-        <section className="pa-card">
-          <h2>Brisanje projekta</h2>
-          <p className="pa-hint">Briše projekat, spratove i stanove. Ture ostaju netaknute.</p>
-          <button
-            type="button"
-            className="pa-btn is-danger"
-            onClick={() => {
-              if (!window.confirm(`Trajno obrisati projekat „${project.title}“?`)) return;
-              run('delete', async () => {
-                await api('delete', { id });
-                router.push('/admin/projekti');
-              });
-            }}
-          >
-            Obriši projekat
-          </button>
-        </section>
       </div>
     </main>
   );

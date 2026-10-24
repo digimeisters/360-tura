@@ -19,7 +19,11 @@ const nextConfig: NextConfig = {
   // Kratka adresa procene za oglase i štampu; strana živi među alatima.
   // ?tip=izdavanje i UTM parametri prelaze uz preusmerenje.
   async redirects() {
-    return [{ source: '/procena-vrednosti', destination: '/alati/procena-vrednosti', permanent: true }];
+    return [
+      { source: '/procena-vrednosti', destination: '/alati/procena-vrednosti', permanent: true },
+      // /admin nema svoj sadržaj - ulaz u admin je spisak tura (pre iscrtavanja, pravi 307).
+      { source: '/admin', destination: '/admin/ture', permanent: false }
+    ];
   },
 };
 

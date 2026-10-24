@@ -2,10 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { supabase } from '../../../lib/supabaseClient';
 import { adminAuthHeader } from '../../../lib/authFetch';
 import { FORM, FormThemeStyle, formBtnStyle } from '../../../lib/formTheme';
-import { Logo } from '../../../tour/[slug]/Logo';
 import {
   PLAN_STYLE,
   adjacentGroups,
@@ -79,7 +77,6 @@ export default function FloorplanEditorPage() {
   const params = useParams();
   const slug = String(params?.slug || '');
 
-  const [session, setSession] = useState<'checking' | 'in' | 'out'>('checking');
   const [tour, setTour] = useState<TourInfo | null>(null);
   const [rooms, setRooms] = useState<RoomInfo[]>([]);
   const [layout, setLayout] = useState<FloorplanLayout | null>(null);
@@ -99,11 +96,8 @@ export default function FloorplanEditorPage() {
   const [svgWidth, setSvgWidth] = useState(800);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session ? 'in' : 'out'));
-  }, []);
-
-  useEffect(() => {
-    if (session !== 'in' || !slug) return;
+    // Prijavu drži okvir admina (components/admin/AdminShell.tsx).
+    if (!slug) return;
     (async () => {
       const res = await fetch(`/api/admin/floorplan?slug=${encodeURIComponent(slug)}`, { headers: await adminAuthHeader() });
       const json = await res.json().catch(() => null);
@@ -120,7 +114,7 @@ export default function FloorplanEditorPage() {
         setVb(viewBoxFor(json.layout));
       }
     })();
-  }, [session, slug]);
+  }, [slug]);
 
   // Platno postoji tek kad se raspored učita - tada počinje merenje.
   const hasLayout = layout !== null;
@@ -413,16 +407,6 @@ export default function FloorplanEditorPage() {
 
   const wrap: React.CSSProperties = { minHeight: '100dvh', background: FORM.bg, color: FORM.textPrimary, fontFamily: FORM.fontBody, padding: '16px 14px 48px' };
 
-  if (session === 'checking') return <main className="k-form" style={wrap}><FormThemeStyle />Provera pristupa...</main>;
-  if (session === 'out') {
-    return (
-      <main className="k-form" style={wrap}>
-        <FormThemeStyle />
-        <p>Prvo se prijavite u <a href="/admin/ture">admin</a>, pa se vratite ovde.</p>
-      </main>
-    );
-  }
-
   // Oko 12 px na ekranu, bez obzira na uvećanje plana.
   const unit = vb.w / svgWidth;
   const handle = 11 * unit;
@@ -435,15 +419,11 @@ export default function FloorplanEditorPage() {
       <FormThemeStyle />
       <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <Logo />
-            <div>
-              <h1 style={{ fontSize: '17px', margin: 0, fontFamily: FORM.fontDisplay }}>Šematski plan</h1>
-              <p style={{ margin: 0, fontSize: '13px', color: FORM.textSecondary }}>{tour?.title ?? slug}</p>
-            </div>
+          <div>
+            <h1 style={{ fontSize: '17px', margin: 0, fontFamily: FORM.fontDisplay }}>Šematski plan</h1>
+            <p style={{ margin: 0, fontSize: '13px', color: FORM.textSecondary }}>{tour?.title ?? slug}</p>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <a href="/admin/ture" style={{ ...small, textDecoration: 'none' }}>← Ture</a>
             <a href={`/tour/${slug}`} target="_blank" rel="noreferrer" style={{ ...small, textDecoration: 'none' }}>Otvori turu</a>
           </div>
         </header>

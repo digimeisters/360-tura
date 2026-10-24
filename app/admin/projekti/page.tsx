@@ -2,18 +2,18 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../../lib/supabaseClient';
 import { adminAuthHeader } from '../../lib/authFetch';
-import { FormThemeStyle } from '../../lib/formTheme';
 import { PROJECT_ADMIN_STYLES } from '../../../components/projekat/adminStyles';
 import { projectNameAdvice, type UnitStatus } from '../../lib/projects';
 import { srPlural } from '../../lib/projectI18n';
 import { slugify } from '../../lib/slug';
 import NameAdvice from '../../../components/projekat/NameAdvice';
+import AdminDrawer from '../../../components/admin/AdminDrawer';
 
 /**
- * Spisak projekata novogradnje (paket za investitore) i pravljenje novog.
- * Prijava je ista kao za ture - ko nije prijavljen, ide na /admin/ture.
+ * Spisak projekata novogradnje (paket za investitore) i pravljenje novog,
+ * u istom rasporedu kao strana Ture: zaglavlje, "+ Novi projekat" u panelu
+ * sa desne strane i tabela. Prijavu drži okvir admina (AdminShell).
  */
 
 type ProjectListItem = {
@@ -28,15 +28,12 @@ type ProjectListItem = {
 
 export default function ProjectsAdminPage() {
   const router = useRouter();
-  const [session, setSession] = useState<'checking' | 'in' | 'out'>('checking');
   const [projects, setProjects] = useState<ProjectListItem[] | null>(null);
   const [error, setError] = useState('');
   const [title, setTitle] = useState('');
   const [creating, setCreating] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session ? 'in' : 'out'));
-  }, []);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createError, setCreateError] = useState('');
 
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/projects', { headers: await adminAuthHeader() });
@@ -48,14 +45,15 @@ export default function ProjectsAdminPage() {
     setProjects(json.projects);
   }, []);
 
+  // Prijavu drži okvir admina (components/admin/AdminShell.tsx).
   useEffect(() => {
-    if (session === 'in') Promise.resolve().then(load);
-  }, [session, load]);
+    Promise.resolve().then(load);
+  }, [load]);
 
   const create = async () => {
     if (!title.trim()) return;
     setCreating(true);
-    setError('');
+    setCreateError('');
     try {
       const res = await fetch('/api/admin/projects', {
         method: 'POST',
@@ -64,98 +62,158 @@ export default function ProjectsAdminPage() {
       });
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) {
-        setError(json?.error || 'Projekat nije napravljen.');
+        setCreateError(json?.error || 'Projekat nije napravljen.');
         return;
       }
       router.push(`/admin/projekti/${json.id}`);
     } catch {
-      setError('Nema veze sa serverom.');
+      setCreateError('Nema veze sa serverom.');
     } finally {
       setCreating(false);
     }
   };
 
+  const submitCreate = () => {
+    if (!title.trim()) return;
+    const advice = projectNameAdvice(title);
+    if (
+      advice.warnings.length &&
+      !window.confirm(`${advice.warnings.join(' ')}\n\nAdresa strane se posle ne menja. Ipak napraviti projekat „${title.trim()}“?`)
+    ) {
+      return;
+    }
+    void create();
+  };
+
+  const publishedCount = projects?.filter((p) => p.published).length ?? 0;
+
   return (
     <main className="pa k-form">
-      <FormThemeStyle />
       <style>{PROJECT_ADMIN_STYLES}</style>
       <div className="pa-wrap">
         <div className="pa-top">
           <div>
-            <div className="pa-crumbs">
-              <a href="/admin/ture">← Ture</a>
-            </div>
-            <h1>Novogradnja · projekti</h1>
+            <h1>Novogradnja</h1>
+            {projects && (
+              <p className="pa-sub">
+                {projects.length} {srPlural(projects.length, 'projekat', 'projekta', 'projekata')} · {publishedCount}{' '}
+                {srPlural(publishedCount, 'objavljen', 'objavljena', 'objavljenih')}
+              </p>
+            )}
           </div>
+          <button
+            type="button"
+            className="pa-btn is-primary"
+            onClick={() => {
+              setTitle('');
+              setCreateError('');
+              setCreateOpen(true);
+            }}
+          >
+            + Novi projekat
+          </button>
         </div>
 
-        {session === 'checking' && <p>Provera pristupa...</p>}
-        {session === 'out' && (
-          <p>
-            Prvo se prijavite u <a href="/admin/ture">admin</a>, pa se vratite ovde.
-          </p>
-        )}
+        {error && <p className="pa-msg is-err">{error}</p>}
+        {projects === null && !error && <p className="pa-hint">Učitavam...</p>}
+        {projects?.length === 0 && <div className="pa-empty">Još nema projekata. Napravite prvi preko „+ Novi projekat“.</div>}
 
-        {session === 'in' && (
-          <>
-            {error && <p className="pa-msg is-err">{error}</p>}
-            <section className="pa-card">
-              <h2>Novi projekat</h2>
-              <p className="pa-hint">Naziv kako ga investitor prodaje, npr. „Jadranska“. Ostalo se popunjava posle.</p>
-              <form
-                className="pa-row"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const advice = projectNameAdvice(title);
-                  if (
-                    advice.warnings.length &&
-                    !window.confirm(`${advice.warnings.join(' ')}\n\nAdresa strane se posle ne menja. Ipak napraviti projekat „${title.trim()}“?`)
-                  ) {
-                    return;
-                  }
-                  create();
-                }}
-              >
-                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Naziv projekta" style={{ maxWidth: 360 }} />
-                <button className="pa-btn is-primary" type="submit" disabled={creating || !title.trim()}>
-                  {creating ? 'Pravim...' : '+ Napravi projekat'}
-                </button>
-              </form>
-              {title.trim() && (
-                <p className="pa-hint" style={{ margin: '8px 0 0' }}>
-                  Adresa strane: <b>/novogradnja/{slugify(title) || '…'}</b> — pravi se iz naziva i <b>posle se ne menja</b>.
-                </p>
-              )}
-              <NameAdvice title={title} onAccept={setTitle} />
-            </section>
-
-            <section className="pa-card">
-              <h2>Projekti</h2>
-              {projects === null && !error && <p className="pa-hint">Učitavam...</p>}
-              {projects?.length === 0 && <div className="pa-empty">Još nema projekata.</div>}
-              <div className="pa-list">
-                {projects?.map((p) => {
+        {projects && projects.length > 0 && (
+          <div className="pa-table-card">
+            <table className="pa-table">
+              <thead>
+                <tr>
+                  <th>Projekat</th>
+                  <th>Stanovi</th>
+                  <th>Stanje</th>
+                  <th aria-label="Radnje" />
+                </tr>
+              </thead>
+              <tbody>
+                {projects.map((p) => {
                   const total = p.counts.available + p.counts.reserved + p.counts.sold;
                   return (
-                    <a key={p.id} className="pa-item" href={`/admin/projekti/${p.id}`}>
-                      <span>
-                        <b>{p.title}</b>
-                        <small>
-                          {[p.developer_name, p.city].filter(Boolean).join(' · ') || 'bez investitora'} ·{' '}
-                          {total
-                            ? `${total} ${srPlural(total, 'stan', 'stana', 'stanova')}: ${p.counts.available} slob., ${p.counts.reserved} rez., ${p.counts.sold} prod.`
-                            : 'nema stanova'}
+                    <tr key={p.id}>
+                      <td>
+                        <b className="pa-t">{p.title}</b>
+                        <small className="pa-s">
+                          {[p.developer_name, p.city].filter(Boolean).join(' · ') || 'bez investitora'} · /novogradnja/{p.slug}
                         </small>
-                      </span>
-                      <span className={p.published ? 'pa-pill is-pub' : 'pa-pill is-draft'}>{p.published ? 'Objavljen' : 'U pripremi'}</span>
-                    </a>
+                      </td>
+                      <td>
+                        {total ? (
+                          <>
+                            {total} {srPlural(total, 'stan', 'stana', 'stanova')}
+                            <small className="pa-s">
+                              {p.counts.available} slob. · {p.counts.reserved} rez. · {p.counts.sold} prod.
+                            </small>
+                          </>
+                        ) : (
+                          <span className="pa-s">nema stanova</span>
+                        )}
+                      </td>
+                      <td>
+                        <span className={p.published ? 'pa-pill is-pub' : 'pa-pill is-draft'}>{p.published ? 'Objavljen' : 'U pripremi'}</span>
+                      </td>
+                      <td className="pa-actions">
+                        <a className="pa-btn" href={`/admin/projekti/${p.id}`}>
+                          Uredi
+                        </a>
+                        {p.published && (
+                          <a className="pa-btn" href={`/novogradnja/${p.slug}`} target="_blank" rel="noreferrer">
+                            Otvori ↗
+                          </a>
+                        )}
+                      </td>
+                    </tr>
                   );
                 })}
-              </div>
-            </section>
-          </>
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
+
+      <AdminDrawer
+        open={createOpen}
+        title="Novi projekat"
+        onClose={() => setCreateOpen(false)}
+        footer={
+          <>
+            <button type="button" className="pa-btn" onClick={() => setCreateOpen(false)}>
+              Otkaži
+            </button>
+            <button type="submit" form="pa-create" className="pa-btn is-primary" disabled={creating || !title.trim()}>
+              {creating ? 'Pravim...' : 'Napravi projekat'}
+            </button>
+          </>
+        }
+      >
+        <form
+          id="pa-create"
+          className="pa"
+          style={{ minHeight: 0, padding: 0, background: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            submitCreate();
+          }}
+        >
+          <label className="pa-field">
+            Naziv projekta
+            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="npr. Jadranska" autoFocus />
+          </label>
+          <p className="pa-hint" style={{ margin: 0 }}>
+            Naziv kako ga investitor prodaje. Ostalo se popunjava posle, u uređivanju projekta.
+          </p>
+          {title.trim() && (
+            <p className="pa-hint" style={{ margin: 0 }}>
+              Adresa strane: <b>/novogradnja/{slugify(title) || '…'}</b> — pravi se iz naziva i <b>posle se ne menja</b>.
+            </p>
+          )}
+          <NameAdvice title={title} onAccept={setTitle} />
+          {createError && <p className="pa-msg is-err">{createError}</p>}
+        </form>
+      </AdminDrawer>
     </main>
   );
 }
