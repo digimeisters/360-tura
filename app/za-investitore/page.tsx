@@ -18,6 +18,7 @@ import { buildInvestorStory } from '../lib/investorStory';
 import { IconPhone } from '../../components/SiteIcons';
 import { INVESTOR_COPY } from '../lib/investorCopy';
 import { accent } from '../lib/accent';
+import { INVESTOR_EXTRA_PRICES } from '../lib/pricing';
 import { CONTACT, CONTACT_LINKS, SITE_NAME, SITE_URL, whatsappLink } from '../lib/site';
 import { serializeJsonLd } from '../lib/structuredData';
 import { tourHref } from '../lib/tourHref';
@@ -295,6 +296,18 @@ const INVESTOR_STYLES = `
   .setup-out{font-size:.8rem; font-weight:800; color:#FFFFFF; background:#1E5AA8; border-radius:10px; padding:.4rem .65rem;}
   .setup-card h3{font-size:1.15rem;}
   .setup-card p{color:var(--ink-soft); font-size:.95rem; line-height:1.6; margin:0;}
+  .extras{margin-top:clamp(2.4rem,5vw,3.6rem); padding:clamp(1.4rem,3vw,2.2rem); border-radius:28px; background:linear-gradient(160deg,#16325C 0%,#1E5AA8 100%); color:#fff;}
+  .extras-head h3{margin:0; font-size:clamp(1.4rem,2.4vw,1.9rem); font-weight:700; letter-spacing:-0.015em; color:#fff;}
+  .extras-head h3 em{color:#9CC3F2;}
+  .extras-head p{margin:.5rem 0 0; max-width:58ch; color:#C9D9EE;}
+  .extras-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:1.3rem;}
+  @media (max-width:720px){ .extras-grid{grid-template-columns:1fr;} }
+  .card.extra{display:flex; flex-direction:column; gap:.45rem; padding:1.2rem 1.3rem; border-radius:18px; background:#fff; color:var(--ink); border:0;}
+  .extra h4{margin:0; font-size:1.15rem; font-weight:700;}
+  .extra p{margin:0; color:var(--ink-soft); font-size:.95rem;}
+  .extra-foot{display:flex; justify-content:space-between; align-items:center; gap:.8rem; flex-wrap:wrap; margin-top:auto; padding-top:.7rem;}
+  .extra-price{font-weight:800; font-size:.92rem; color:var(--accent); background:var(--accent-soft); padding:.3rem .7rem; border-radius:999px;}
+  .extra-foot a{font-weight:700; color:var(--accent); text-decoration:none;}
   .setup-foot{margin:1.4rem 0 0; padding:1rem 1.3rem; border-radius:18px; background:var(--accent-soft); color:var(--ink); font-weight:600;}
   .setup-foot a{color:var(--accent); white-space:nowrap; text-decoration:none;}
   .setup-foot a:hover{text-decoration:underline;}
@@ -417,7 +430,7 @@ const INVESTOR_STYLES = `
 `;
 
 export default async function InvestorPage() {
-  const { nav, hero, compare, demo, buyer, sales, midCta, setup, offer, steps, faq, contact } = copy;
+  const { nav, hero, compare, demo, buyer, sales, midCta, setup, offer, extras, steps, faq, contact } = copy;
   const address = [CONTACT.street, CONTACT.city].filter(Boolean).join(', ');
 
   const demoData = DEMO_SLUG ? await getPublicProject(DEMO_SLUG) : null;
@@ -663,6 +676,27 @@ export default async function InvestorPage() {
             <p className="setup-foot" data-reveal="up">
               {offer.price} <a href="#kontakt" data-track="cta:investor_offer_price">Zakažite razgovor →</a>
             </p>
+
+            <div className="extras" id="renderi">
+              <div className="extras-head" data-reveal="up">
+                <h3>{accent(extras.title)}</h3>
+                <p>{extras.note}</p>
+              </div>
+              <div className="extras-grid">
+                {extras.items.map((item) => (
+                  <div key={item.key} className="card extra" data-reveal="up">
+                    <h4>{item.title}</h4>
+                    <p>{item.text}</p>
+                    <div className="extra-foot">
+                      <span className="extra-price">{INVESTOR_EXTRA_PRICES[item.key] ?? extras.onRequest}</span>
+                      <a href="#kontakt" data-track={`cta:investor_extra_${item.key}`}>
+                        {extras.cta}
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 

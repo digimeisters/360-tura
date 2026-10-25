@@ -152,6 +152,16 @@ export function standaloneHdrPrice(tier: PriceTier): number {
  * iz dana u dan) - fiksan i zaokružen, ostavlja malu rezervu, pa cena u
  * dinarima ne prati svaki pomak kursa. Menja se ručno, po dogovoru.
  */
+/**
+ * Dodatne usluge za investitore (/za-investitore, „Nemate rendere?"):
+ * 3D render enterijera i fasade, video iz rendera. Vlasnik upisuje cenu kao
+ * tekst (npr. 'od 150 € po prikazu'); null = na strani piše „Cena na upit".
+ */
+export const INVESTOR_EXTRA_PRICES: { render: string | null; video: string | null } = {
+  render: null,
+  video: null
+};
+
 export const RSD_PER_EUR = 120;
 
 /** Dinarski iznos, zaokružen na najbližih 500 - uvek "okrugla" cena. */

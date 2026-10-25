@@ -76,6 +76,7 @@ export type InvestorCopy = {
     foot: string;
   };
   offer: { eyebrow: string; title: string; note: string; items: { title: string; text: string }[]; price: string };
+  extras: { title: string; note: string; items: { key: 'render' | 'video'; title: string; text: string }[]; onRequest: string; cta: string };
   steps: {
     eyebrow: string;
     title: string;
@@ -248,6 +249,25 @@ export const INVESTOR_COPY: InvestorCopy = {
     ],
     price: 'Cena zavisi od broja stanova i delova paketa koje izaberete. Posle razgovora dobijate ponudu u pisanom obliku.'
   },
+  // Dodatne usluge (spec 2026-10-25, odeljak 4); cene u app/lib/pricing.ts (INVESTOR_EXTRA_PRICES).
+  extras: {
+    title: 'Nemate rendere? *Napravimo ih*',
+    note: 'Kad arhitekta nema vizualizacije, pravimo ih iz osnova i fasade koje već imate - i odmah ih povežemo sa izborom stana.',
+    items: [
+      {
+        key: 'render',
+        title: '3D render enterijera i fasade',
+        text: 'Prikaz stanova i zgrade pre nego što su sagrađeni - za izbor stana, karticu stana, oglase i prodajnu kancelariju.'
+      },
+      {
+        key: 'video',
+        title: 'Video iz rendera',
+        text: 'Kratak prolaz oko zgrade i kroz stan, za društvene mreže i za prekidač „Video“ na strani projekta.'
+      }
+    ],
+    onRequest: 'Cena na upit',
+    cta: 'Pitajte za ponudu →'
+  },
   steps: {
     eyebrow: 'Kako radimo',
     title: 'Od razgovora *do prvog upita*',
@@ -283,7 +303,7 @@ export const INVESTOR_COPY: InvestorCopy = {
       {
         question: 'Šta ako nemamo 3D model enterijera?',
         answer:
-          'Izbor stana, kartica sa osnovom i prostorijama, pogled sa sprata i snimak gradilišta rade i bez njega. Ture enterijera dodajemo kad bude gotov ogledni stan, ili iz rendera ako ih vaš arhitekta ili vizualizator napravi.'
+          'Izbor stana, kartica sa osnovom i prostorijama, pogled sa sprata i snimak gradilišta rade i bez njega. Ture enterijera dodajemo kad bude gotov ogledni stan, ili iz rendera - vašeg arhitekte ili onih koje napravimo mi.'
       },
       {
         question: 'Gradimo više zgrada - da li to radi?',
