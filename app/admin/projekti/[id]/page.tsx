@@ -125,6 +125,8 @@ export default function ProjectEditorPage() {
   const [data, setData] = useState<ProjectBundle | null>(null);
   const [loadError, setLoadError] = useState('');
   const [info, setInfo] = useState<InfoForm | null>(null);
+  // Video link projekta dok se kuca (null = nije menjan, važi sačuvani).
+  const [projectVideo, setProjectVideo] = useState<string | null>(null);
   const [floorId, setFloorId] = useState<string | null>(null);
   const [unitId, setUnitId] = useState<string | null>(null);
   const [draw, setDraw] = useState<Draw>(null);
@@ -215,7 +217,7 @@ export default function ProjectEditorPage() {
     }
   };
 
-  const upload = async (file: File, kind: 'view' | 'plan' | 'unit' | 'logo'): Promise<string> => {
+  const upload = async (file: File, kind: 'view' | 'plan' | 'unit' | 'logo' | 'render'): Promise<string> => {
     // Logo se ne smanjuje: shrinkImage pravi JPG, a logo treba providnu pozadinu (i SVG ostaje SVG).
     const small = kind === 'logo' ? file : await shrinkImage(file, 3 * 1024 * 1024);
     const res = await fetch('/api/admin/projects/upload', {
@@ -847,6 +849,83 @@ export default function ProjectEditorPage() {
                 Logo je svetao (beo) - prikaži ga na tamnoj podlozi
               </label>
             )}
+          </div>
+
+          {/* 3D render i video projekta (migracija 040): prekidač „Zgrada · 3D render · Video" na strani. */}
+          <div className="pa-card" style={{ marginTop: 14, marginBottom: 0, padding: 14, background: 'var(--surface-2)' }}>
+            <b style={{ fontSize: 14 }}>3D render i video projekta</b>
+            <p className="pa-hint" style={{ margin: '4px 0 10px' }}>
+              Kad postoji bar jedno, iznad slike zgrade na strani se pojavi prekidač „Zgrada · 3D render · Video“. Render je slika (JPG/PNG/WEBP), a
+              video je link na YouTube, Vimeo ili .mp4 fajl.
+            </p>
+            <div className="pa-row" style={{ alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              {project.render_url && (
+                // eslint-disable-next-line @next/next/no-img-element -- pregled rendera sa R2 CDN-a
+                <img src={project.render_url} alt="3D render projekta" style={{ height: 72, borderRadius: 10, display: 'block' }} />
+              )}
+              <label className="pa-btn" style={{ cursor: busy === 'render' ? 'wait' : 'pointer' }}>
+                {busy === 'render' ? 'Otpremam...' : project.render_url ? 'Zameni render' : 'Dodaj 3D render'}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  hidden
+                  disabled={busy === 'render'}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    if (!file) return;
+                    run('render', async () => {
+                      const render_url = await upload(file, 'render');
+                      await api('update', { id, fields: { render_url } });
+                      setData((d) => (d ? { ...d, project: { ...d.project, render_url } } : d));
+                      return '3D render projekta je sačuvan.';
+                    });
+                  }}
+                />
+              </label>
+              {project.render_url && (
+                <button
+                  type="button"
+                  className="pa-btn"
+                  style={{ color: '#B42318' }}
+                  disabled={busy === 'render'}
+                  onClick={() =>
+                    run('render', async () => {
+                      await api('update', { id, fields: { render_url: null } });
+                      setData((d) => (d ? { ...d, project: { ...d.project, render_url: null } } : d));
+                      return '3D render je uklonjen.';
+                    })
+                  }
+                >
+                  Ukloni
+                </button>
+              )}
+            </div>
+            <div className="pa-row" style={{ marginTop: 10, gap: 8, flexWrap: 'wrap' }}>
+              <input
+                type="url"
+                style={{ flex: '1 1 260px' }}
+                value={projectVideo ?? project.video_url ?? ''}
+                placeholder="Video projekta: https://youtu.be/…"
+                onChange={(e) => setProjectVideo(e.target.value)}
+              />
+              <button
+                type="button"
+                className="pa-btn"
+                disabled={busy === 'video' || projectVideo === null || projectVideo === (project.video_url ?? '')}
+                onClick={() =>
+                  run('video', async () => {
+                    const video_url = (projectVideo ?? '').trim() || null;
+                    await api('update', { id, fields: { video_url } });
+                    setData((d) => (d ? { ...d, project: { ...d.project, video_url } } : d));
+                    setProjectVideo(null);
+                    return video_url ? 'Video projekta je sačuvan.' : 'Video projekta je uklonjen.';
+                  })
+                }
+              >
+                {busy === 'video' ? 'Čuvam...' : 'Sačuvaj video'}
+              </button>
+            </div>
           </div>
 
           {/* Statistika cena (migracija 033): cenovnik ulazi u cene novogradnje za naselje. */}

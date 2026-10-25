@@ -120,6 +120,16 @@ export const SELECTOR_STYLES = `
   .inv-rooms td{padding:.32rem 0; border-bottom:1px solid #EEF2F8; color:#374151;}
   .inv-rooms td:last-child{text-align:right; white-space:nowrap; font-weight:600; color:#111113;}
   .inv-rooms tr.is-total td{font-weight:800; color:#111113; border-bottom:0; border-top:1.5px solid #111113;}
+  .inv-mswitch{display:inline-flex; align-self:flex-start; gap:4px; padding:4px; margin-bottom:.7rem; border-radius:999px; background:var(--surface-2,#F2F1EC); border:1px solid var(--line,#E6E3DB);}
+  .inv-mswitch button{min-height:36px; padding:0 .95rem; border:0; border-radius:999px; background:none; font:inherit; font-size:.86rem; font-weight:700; color:var(--ink-soft,#5E626B); cursor:pointer;}
+  .inv-mswitch button[aria-selected="true"]{background:#FFFFFF; color:var(--accent,#1E5AA8); box-shadow:0 2px 8px rgba(17,17,19,.08);}
+  .inv-mstage{display:block; border-radius:18px; overflow:hidden; background:#0E1A2C;}
+  .inv-mstage img{display:block; width:100%; height:auto; max-height:72vh; object-fit:contain;}
+  .inv-mstage.is-video, .inv-um-video{position:relative; aspect-ratio:16/9; width:100%;}
+  .inv-mstage.is-video iframe, .inv-mstage.is-video video, .inv-um-video iframe, .inv-um-video video{position:absolute; inset:0; width:100%; height:100%; border:0; background:#000;}
+  .inv-room-ico{display:inline-grid; place-items:center; width:26px; height:26px; margin-right:.55rem; border-radius:8px; background:#F2F1EC; color:#5E626B; vertical-align:middle;}
+  .inv-room-ico svg{width:15px; height:15px;}
+  @media (max-width:899px){ body:has(.usb) .pmb{display:none;} body:has(.usb){padding-bottom:calc(76px + env(safe-area-inset-bottom));} body:has([aria-modal="true"]) .usb{display:none;} }
   .inv-pdf{display:flex; align-items:center; justify-content:center; gap:.5rem; width:100%; margin:0 0 .8rem; padding:.6rem; min-height:42px; border:1.5px solid #D5DEEB; border-radius:14px; background:#FFFFFF; color:#111113; font-weight:700; font-size:.88rem; text-decoration:none;}
   .inv-pdf span{font-size:.62rem; font-weight:800; background:#B42318; color:#fff; border-radius:4px; padding:2px 5px;}
   .inv-pdf:hover{border-color:#1E5AA8; color:#1E5AA8;}
@@ -194,7 +204,9 @@ export const SELECTOR_STYLES = `
   @media (max-width:860px){ .inv-nearby-list{max-height:none;} }
   @media (max-width:640px){ .inv-nearby-list{grid-template-columns:minmax(0,1fr);} }
   .inv-nearby-cat{background:#FFFFFF; color:#111113; border:1px solid var(--line); border-radius:16px; padding:.7rem .8rem;}
-  .inv-nearby-cat b{display:block; font-family:var(--font-display); font-size:.92rem; margin-bottom:.3rem;}
+  .inv-nearby-cat b{display:flex; align-items:center; gap:.45rem; font-family:var(--font-display); font-size:.92rem; margin-bottom:.3rem;}
+  .inv-nearby-ico{display:inline-grid; place-items:center; width:28px; height:28px; border-radius:9px; background:var(--surface-2,#F2F1EC); color:#5E626B; flex:none;}
+  .inv-nearby-ico svg{width:16px; height:16px;}
   .inv-nearby-cat button{display:flex; justify-content:space-between; align-items:baseline; gap:.6rem; width:100%; border:0; background:transparent; padding:.3rem 0; text-align:left; font:inherit; font-size:.85rem; color:#374151; cursor:pointer; border-top:1px solid #F1F1EC;}
   .inv-nearby-cat button span{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .inv-nearby-cat button small{color:#1E5AA8; font-weight:700; white-space:nowrap;}
@@ -236,6 +248,45 @@ export const SELECTOR_STYLES = `
   .inv-rot:hover{background:#FFFFFF;}
   .inv-rot-label{position:absolute; left:50%; bottom:10px; transform:translateX(-50%); background:rgba(15,23,42,.72); color:#FFFFFF; font-size:.75rem; font-weight:700; border-radius:999px; padding:.25rem .7rem; white-space:nowrap; pointer-events:none;}
   .inv-tag.is-unit{transform:translate(-50%,-115%); z-index:2;}
+  /* Oblačić sprata (faza 1): broj stanova i slobodnih iznad trake sprata. */
+  .inv-tag.is-floortip{transform:translate(-50%,-115%); z-index:3; background:#14161B; color:#fff; border-radius:12px; padding:7px 11px; font-size:.86rem; box-shadow:0 10px 24px rgba(0,0,0,.28); display:flex; flex-direction:column; gap:1px; text-align:left;}
+  .inv-tag.is-floortip small{margin:0; color:#C9D3E1; font-weight:600; font-size:.76rem;}
+  /* Sličice strana zgrade ispod slike. */
+  .inv-art{flex-wrap:wrap;}
+  .inv-vthumbs{display:flex; gap:8px; width:100%; margin-top:10px; overflow-x:auto; scrollbar-width:none; padding-bottom:2px;}
+  .inv-vthumbs::-webkit-scrollbar{display:none;}
+  .inv-vthumb{flex:none; display:flex; flex-direction:column; gap:4px; width:96px; padding:4px; border:2px solid transparent; border-radius:14px; background:var(--surface,#fff); cursor:pointer; font-family:inherit; font-weight:600; font-size:12px; line-height:1.2; color:var(--ink-soft,#5E626B); box-shadow:0 1px 3px rgba(0,0,0,.08); transition:border-color .15s, transform .15s;}
+  .inv-vthumb:hover{transform:translateY(-1px);}
+  .inv-vthumb[aria-pressed="true"]{border-color:var(--accent,#1E5AA8); color:var(--ink,#14161B);}
+  .inv-vthumb img{width:100%; height:54px; object-fit:cover; border-radius:10px; display:block;}
+  .inv-vthumb span{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center;}
+  /* Kontakt investitora na strani projekta (ProjectContact). */
+  .pc{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr); gap:clamp(1rem,3vw,2rem); background:linear-gradient(160deg,#111318,#1A1E27); color:#F5F5F3; border-radius:18px; padding:clamp(1.2rem,3vw,1.8rem);}
+  @media (max-width:760px){ .pc{grid-template-columns:1fr;} }
+  .pc .eyebrow{color:#7FB0EC;}
+  .pc h2{color:#FFFFFF; font-size:clamp(1.3rem,2.4vw,1.7rem); letter-spacing:-.02em; margin:.35rem 0 .5rem;}
+  .pc h2 em{color:#9CC1F0;}
+  .pc-text p{color:#A8A9AE; margin:0 0 .8rem; line-height:1.6;}
+  .pc-direct{display:flex; flex-wrap:wrap; gap:.4rem 1.2rem;}
+  .pc-direct a{color:#FFFFFF; font-weight:700;}
+  .pc-form{display:flex; flex-direction:column; gap:10px;}
+  .pc-row{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  @media (max-width:520px){ .pc-row{grid-template-columns:1fr;} }
+  .pc-form label{display:flex; flex-direction:column; gap:5px; font-size:.8rem; font-weight:600; color:#A8A9AE;}
+  .pc-form input, .pc-form select, .pc-form textarea{font:inherit; font-size:15px; color:#F5F5F3; background:#1A1D24; border:1px solid #2C303A; border-radius:12px; padding:11px 12px; width:100%; box-sizing:border-box;}
+  .pc-form textarea{resize:vertical; min-height:76px;}
+  .pc-form input:focus, .pc-form select:focus, .pc-form textarea:focus{outline:2px solid #7FB0EC; outline-offset:1px;}
+  .pc-send{width:100%; justify-content:center;}
+  .pc-error{margin:0; color:#FCA5A5; font-size:.9rem;}
+  .pc-sent{margin:0; align-self:center; padding:1rem 1.2rem; border-radius:14px; background:rgba(127,176,236,.14); color:#FFFFFF; font-weight:600;}
+  /* Traka na dnu ekrana telefona (ProjectMobileBar). */
+  .pmb{display:none;}
+  @media (max-width:899px){
+    .pmb{position:fixed; left:0; right:0; bottom:0; z-index:60; display:flex; gap:8px; padding:10px 12px calc(10px + env(safe-area-inset-bottom)); background:rgba(255,255,255,.96); backdrop-filter:blur(8px); border-top:1px solid var(--line,#E6E3DB);}
+    .pmb .btn{flex:1; justify-content:center; min-height:46px; padding-inline:10px; white-space:nowrap;}
+    body:has(.pmb){padding-bottom:calc(76px + env(safe-area-inset-bottom));}
+    body:has([aria-modal="true"]) .pmb{display:none;}
+  }
   .inv-tag small.is-s{color:#1F7A45;} .inv-tag small.is-r{color:#9A6A0B;} .inv-tag small.is-p{color:#6B6B6B;}
 
   /* Kompleks bez slike iz vazduha: kartice lamela. */
@@ -291,8 +342,8 @@ export const SELECTOR_STYLES = `
   @media (min-width:961px){ .inv-grid > .inv-stage{position:sticky; top:88px;} }
   .inv-stagehd{min-height:40px; margin-bottom:.2rem;}
   .inv-stagehd h3{font-size:1.3rem; letter-spacing:-.01em;}
-  .inv-imgbox{border-radius:22px; box-shadow:0 12px 30px -18px rgba(17,24,39,.45);}
-  .inv-panel{border:0; background:#F4F7FB; border-radius:24px; padding:1.1rem;}
+  .inv-imgbox{border-radius:18px; box-shadow:0 14px 34px -20px rgba(17,24,39,.45);}
+  .inv-panel{border:1px solid var(--line,#E6E3DB); background:var(--surface,#fff); border-radius:18px; padding:1.1rem; box-shadow:0 1px 2px rgba(20,22,27,.04),0 8px 24px rgba(20,22,27,.06);}
   .inv-phead{margin:.1rem .2rem .9rem;}
   .inv-phead .inv-title{font-size:1.35rem; margin-top:0;}
   .inv-panel > .inv-title{font-size:1.45rem;}

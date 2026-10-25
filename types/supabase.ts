@@ -1,5 +1,5 @@
 // GENERISANO skriptom scripts/gen-db-types.mjs (npm run db:types) - ne menjati ručno.
-// Izvor: živa baza sajta (tmnaguwmzlwirhjprdbh), 2026-10-17.
+// Izvor: živa baza sajta (tmnaguwmzlwirhjprdbh), 2026-10-25.
 
 export type Json =
   | string
@@ -30,6 +30,24 @@ export type Database = {
           agency_name?: string
           logo_url?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      api_daily_usage: {
+        Row: {
+          count: number
+          day: string
+          route: string
+        }
+        Insert: {
+          count?: number
+          day: string
+          route: string
+        }
+        Update: {
+          count?: number
+          day?: string
+          route?: string
         }
         Relationships: []
       }
@@ -437,6 +455,8 @@ export type Database = {
         Row: {
           area_sqm: number | null
           code: string
+          description: string | null
+          description_en: string | null
           floor_id: string
           id: string
           orientation: string | null
@@ -453,10 +473,13 @@ export type Database = {
           terrace_sqm: number | null
           tour_id: string | null
           updated_at: string
+          video_url: string | null
         }
         Insert: {
           area_sqm?: number | null
           code: string
+          description?: string | null
+          description_en?: string | null
           floor_id: string
           id?: string
           orientation?: string | null
@@ -473,10 +496,13 @@ export type Database = {
           terrace_sqm?: number | null
           tour_id?: string | null
           updated_at?: string
+          video_url?: string | null
         }
         Update: {
           area_sqm?: number | null
           code?: string
+          description?: string | null
+          description_en?: string | null
           floor_id?: string
           id?: string
           orientation?: string | null
@@ -493,6 +519,7 @@ export type Database = {
           terrace_sqm?: number | null
           tour_id?: string | null
           updated_at?: string
+          video_url?: string | null
         }
         Relationships: [
           {
@@ -659,11 +686,13 @@ export type Database = {
           neighborhood: string | null
           notify_sales: boolean
           published: boolean
+          render_url: string | null
           show_all_tabs: boolean
           slug: string
           title: string
           title_en: string | null
           updated_at: string
+          video_url: string | null
         }
         Insert: {
           address?: string | null
@@ -688,11 +717,13 @@ export type Database = {
           neighborhood?: string | null
           notify_sales?: boolean
           published?: boolean
+          render_url?: string | null
           show_all_tabs?: boolean
           slug: string
           title: string
           title_en?: string | null
           updated_at?: string
+          video_url?: string | null
         }
         Update: {
           address?: string | null
@@ -717,11 +748,13 @@ export type Database = {
           neighborhood?: string | null
           notify_sales?: boolean
           published?: boolean
+          render_url?: string | null
           show_all_tabs?: boolean
           slug?: string
           title?: string
           title_en?: string | null
           updated_at?: string
+          video_url?: string | null
         }
         Relationships: [
           {

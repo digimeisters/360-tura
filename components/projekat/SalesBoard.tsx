@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { floorName, UNIT_STATUSES, UNIT_STATUS_LABEL, type UnitStatus } from '../../app/lib/projects';
+import { floorName, GENERAL_INQUIRY_CODE, UNIT_STATUSES, UNIT_STATUS_LABEL, type UnitStatus } from '../../app/lib/projects';
 import type { SalesChange, SalesData, SalesNote, SalesUnit } from '../../app/lib/salesAccess';
 import { srPlural } from '../../app/lib/projectI18n';
 
@@ -311,7 +311,7 @@ export default function SalesBoard({ token, initial }: { token: string; initial:
                 <div key={q.id} className={q.handled_at ? 'sb-inq-item is-done' : 'sb-inq-item'}>
                   <div className="sb-unit-top">
                     <b>
-                      Stan {q.unit_code} · {q.name}
+                      {q.unit_code === GENERAL_INQUIRY_CODE ? q.unit_code : `Stan ${q.unit_code}`} · {q.name}
                     </b>
                     <small>{when(q.created_at)}</small>
                   </div>

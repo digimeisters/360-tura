@@ -11,6 +11,7 @@ import {
   type UnitRow
 } from '../../app/lib/projects';
 import { srPlural } from '../../app/lib/projectI18n';
+import { parseVideo } from '../../app/lib/videoEmbed';
 
 /**
  * Admin -> tabela stanova -> „Detalji": kartica stana kao kod velikih
@@ -18,6 +19,7 @@ import { srPlural } from '../../app/lib/projectI18n';
  * kvadratura po prostorijama. „Primeni na iste stanove" prenosi sve to na
  * isti tip stana na drugim spratovima (2A -> 3A, 4A…), pa se ne radi stan
  * po stan.
+ * Opis i video (migracija 040) su po stanu i ne prenose se na druge stanove.
  */
 
 type Api = (action: string, payload: Record<string, unknown>) => Promise<Record<string, unknown>>;
@@ -48,6 +50,10 @@ export default function UnitMediaModal({
   const [busy, setBusy] = useState('');
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [withTour, setWithTour] = useState(true);
+  const [description, setDescription] = useState(unit.description ?? '');
+  const [descriptionEn, setDescriptionEn] = useState(unit.description_en ?? '');
+  const [videoUrl, setVideoUrl] = useState(unit.video_url ?? '');
+  const videoBad = Boolean(videoUrl.trim()) && !parseVideo(videoUrl);
 
   const parsed = parseRoomsText(roomsText);
   const total = Math.round(parsed.rooms.reduce((s, r) => s + r.m2, 0) * 100) / 100;
@@ -93,11 +99,31 @@ export default function UnitMediaModal({
     });
   };
 
+  // Sve iz prozora osim prostorija (njih save/copy proveravaju posebno).
+  const fields = () => {
+    if (videoBad) throw new Error('Video link mora biti YouTube, Vimeo ili https link na .mp4 fajl.');
+    return {
+      plan_url: planUrl,
+      plan3d_url: plan3dUrl,
+      photos,
+      description: description.trim() || null,
+      description_en: descriptionEn.trim() || null,
+      video_url: videoUrl.trim() || null
+    };
+  };
+
+  const translate = () =>
+    run('translate', async () => {
+      const json = await api('translate-en', { description });
+      setDescriptionEn(String(json.description_en ?? '').slice(0, 600));
+      return 'Engleski opis je predložen - proverite ga i kliknite „Sačuvaj“.';
+    });
+
   const save = () =>
     run('save', async () => {
       if (parsed.errors.length) throw new Error(parsed.errors.slice(0, 3).join('\n'));
       const rooms: UnitRoom[] = parsed.rooms;
-      const json = await api('unit-save', { projectId, id: unit.id, fields: { plan_url: planUrl, plan3d_url: plan3dUrl, photos, rooms } });
+      const json = await api('unit-save', { projectId, id: unit.id, fields: { ...fields(), rooms } });
       onSaved(json.unit as UnitRow);
       return `Stan ${unit.code} je sačuvan.`;
     });
@@ -106,7 +132,7 @@ export default function UnitMediaModal({
     run('copy', async () => {
       // Prvo sačuvaj ono što piše u prozoru, pa tek onda prenesi na druge stanove.
       if (parsed.errors.length) throw new Error(parsed.errors.slice(0, 3).join('\n'));
-      const json = await api('unit-save', { projectId, id: unit.id, fields: { plan_url: planUrl, plan3d_url: plan3dUrl, photos, rooms: parsed.rooms } });
+      const json = await api('unit-save', { projectId, id: unit.id, fields: { ...fields(), rooms: parsed.rooms } });
       onSaved(json.unit as UnitRow);
       const res = await api('unit-media-copy', { projectId, sourceId: unit.id, includeTour: withTour });
       await onCopied();
@@ -143,7 +169,7 @@ export default function UnitMediaModal({
           </button>
         </div>
         <p className="pa-hint" style={{ margin: '4px 0 12px' }}>
-          Ovo kupac vidi u kartici stana: osnova, 3D osnova, slike i kvadratura po prostorijama. Prazno se ne prikazuje.
+          Ovo kupac vidi u kartici stana: osnova, 3D osnova, slike, kvadratura po prostorijama, opis i video. Prazno se ne prikazuje.
         </p>
         {msg && <p className={msg.ok ? 'pa-msg is-ok' : 'pa-msg is-err'}>{msg.text}</p>}
 
@@ -236,6 +262,34 @@ export default function UnitMediaModal({
               )}
             </small>
           ) : null}
+        </div>
+
+        <div className="um-block">
+          <b>Opis stana</b>
+          <small>Kratko, do 600 znakova: raspored, svetlost, pogled, šta je posebno. Prazno = ne prikazuje se.</small>
+          <textarea value={description} maxLength={600} rows={4} onChange={(e) => setDescription(e.target.value)} />
+          <small>{description.length}/600</small>
+          <div className="pa-row" style={{ justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 8 }}>
+            <b>Opis na engleskom (za /en stranu)</b>
+            <button
+              type="button"
+              className="pa-btn"
+              disabled={!description.trim() || Boolean(busy)}
+              title="AI predlog prevoda srpskog opisa; proverite ga pa kliknite „Sačuvaj“"
+              onClick={translate}
+            >
+              {busy === 'translate' ? 'Prevodim…' : '🌐 Prevedi'}
+            </button>
+          </div>
+          <textarea value={descriptionEn} maxLength={600} rows={4} onChange={(e) => setDescriptionEn(e.target.value)} />
+          <small>{descriptionEn.length}/600 · prazno = engleska strana ne prikazuje opis</small>
+        </div>
+
+        <div className="um-block">
+          <b>Video stana (link)</b>
+          <small>YouTube, Vimeo ili https link na .mp4 fajl. Prikazuje se kao kartica „Video“ u kartici stana.</small>
+          <input type="url" value={videoUrl} placeholder="https://youtu.be/…" onChange={(e) => setVideoUrl(e.target.value)} />
+          {videoBad && <small style={{ color: 'var(--danger)' }}>Ovaj link nije YouTube, Vimeo ni .mp4 - neće moći da se sačuva.</small>}
         </div>
 
         <div className="pa-row" style={{ marginTop: 14, justifyContent: 'space-between' }}>

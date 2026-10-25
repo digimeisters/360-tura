@@ -20,6 +20,9 @@ import { getImageProps } from 'next/image';
 import PaymentCalculator from './PaymentCalculator';
 import UnitMedia, { UnitRooms, UnitThumb } from './UnitMedia';
 import UnitInquiry from './UnitInquiry';
+import UnitScreen from './UnitScreen';
+import VideoFrame from './VideoFrame';
+import { parseVideo } from '../../app/lib/videoEmbed';
 import FacadeFullscreen, { RangeSlider, shortStructure } from './FacadeFullscreen';
 import type { DemoMedia } from '../../app/lib/projectData';
 
@@ -74,6 +77,10 @@ export type SelectorUnit = {
   plan3dUrl: string | null;
   photos: string[];
   rooms: { name: string; m2: number }[];
+  /** Opis (sr/en) i video stana (migracija 040). */
+  description?: string | null;
+  descriptionEn?: string | null;
+  videoUrl?: string | null;
 };
 
 export type SelectorBuilding = { id: string; name: string };
@@ -101,6 +108,9 @@ export type SelectorProject = {
   address: string | null;
   city: string | null;
   moveIn: string | null;
+  /** 3D render i video projekta (migracija 040): prekidač iznad slike zgrade. */
+  renderUrl?: string | null;
+  videoUrl?: string | null;
 };
 
 type SortKey = 'code' | 'building' | 'floor' | 'structure' | 'area' | 'terrace' | 'price' | 'sqm' | 'status';
@@ -145,6 +155,11 @@ function viewImg(url: string): { src: string; srcSet?: string; sizes?: string } 
   const { props } = getImageProps({ src: url, alt: '', fill: true, sizes: VIEW_SIZES, quality: 75 });
   return { src: props.src, srcSet: props.srcSet, sizes: props.sizes };
 }
+/** Sličica strane zgrade (96px): mala verzija sa CDN-a, ne najveća iz srcset-a. */
+function thumbImg(url: string): string {
+  if (!url.startsWith('https://cdn.kvadrat360.com/projekti/')) return url;
+  return getImageProps({ src: url, alt: '', width: 192, height: 108, quality: 60 }).props.src;
+}
 const pts = (poly: Polygon) => poly.map(([x, y]) => `${x},${y}`).join(' ');
 const narrow = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 960px)').matches;
 
@@ -183,6 +198,8 @@ export default function ProjectSelector({
   const [onFacade, setOnFacade] = useState(false);
   const [viewIdx, setViewIdx] = useState<Record<string, number>>({});
   const [hover, setHover] = useState<string | null>(null);
+  // Prikaz projekta (migracija 040): zgrada (istraživač), 3D render ili video.
+  const [media, setMedia] = useState<'building' | 'render' | 'video'>('building');
   const [structure, setStructure] = useState<string | null>(null);
   const [maxPrice, setMaxPrice] = useState<number | null>(null);
   const [minArea, setMinArea] = useState<number | null>(null);
@@ -338,6 +355,10 @@ export default function ProjectSelector({
 
   const floor = floorId ? (floorById.get(floorId) ?? null) : null;
   const unit = units.find((u) => u.id === unitId) ?? null;
+  // Ekran stana na istoj strani (spec 2026-10-25, odeljak 2): samo javna strana -
+  // ugradnja i pregled pre objave zadržavaju malu karticu stana u panelu.
+  const inlineScreen = !embedded && Boolean(letakBase);
+  const showScreen = inlineScreen && Boolean(unit && floor);
   const fName = (f: SelectorFloor) => floorLabel(f.level, f.label, lang);
   const fShort = (level: number) => (level === 0 ? (lang === 'en' ? 'G' : 'P') : String(level));
   const status = (s: UnitStatus) => statusLabel(s, lang);
@@ -395,13 +416,17 @@ export default function ProjectSelector({
       });
     }
   };
-  const track = (u: SelectorUnit) => trackSiteEvent('cta_click', trackKey('pu', project.slug, u.code));
+  // Na javnoj strani otvaranje stana broji sam ekran stana (UnitInquiry trackView).
+  const track = (u: SelectorUnit) => {
+    if (!inlineScreen) trackSiteEvent('cta_click', trackKey('pu', project.slug, u.code));
+  };
 
   const pickBuilding = (bid: string | null) => {
     setBuildingId(bid);
     setFloorId(null);
     setUnitId(null);
     setOnFacade(false);
+    setMedia('building');
     setHover(null);
     scrollToStage();
   };
@@ -409,6 +434,7 @@ export default function ProjectSelector({
     setFloorId(fid);
     setUnitId(null);
     setHover(null);
+    setMedia('building');
     // Sprat bez osnove ostaje na fasadi - spisak stanova je u panelu.
     setOnFacade(Boolean(fid && !floorById.get(fid)?.planUrl && bViews.length));
     scrollToStage();
@@ -416,6 +442,7 @@ export default function ProjectSelector({
   const pickUnit = (uid: string | null) => {
     setUnitId(uid);
     if (uid) {
+      setMedia('building');
       const u = units.find((x) => x.id === uid);
       if (u) track(u);
       scrollToPanel();
@@ -427,9 +454,71 @@ export default function ProjectSelector({
     setUnitId(u.id);
     setOnFacade(true);
     setHover(null);
+    setMedia('building');
     track(u);
     scrollToPanel();
   };
+  // Ekran stana: izbor drugog stana na istoj strani (‹ ›, slični, ?stan= u adresi).
+  const openUnitById = (uid: string) => {
+    const u = units.find((x) => x.id === uid);
+    if (!u) return;
+    const f = floorById.get(u.floorId);
+    setMode('building');
+    if (buildings.length) setBuildingId(f?.buildingId ?? null);
+    setFloorId(u.floorId);
+    setUnitId(u.id);
+    setOnFacade(!f?.planUrl && views.some((v) => v.kind === 'building' && (buildings.length ? v.buildingId === f?.buildingId : true)));
+    setHover(null);
+    setMedia('building');
+  };
+  // Povratak sa ekrana stana: korak nazad u istoriji ako je ekran otvoren klikom
+  // (popstate ga zatvara), inače samo zatvaranje.
+  const closeUnitScreen = () => {
+    if ((window.history.state as { k360stan?: string } | null)?.k360stan) window.history.back();
+    else pickUnit(null);
+  };
+
+  // ?stan=<oznaka> u adresi: otvoren stan se može podeliti, a "nazad" ga zatvara.
+  const stanCode = showScreen && unit ? unit.code : null;
+  // Adresa se čisti tek kad je ekran stana bio otvoren - pri učitavanju sa
+  // ?stan= ovaj efekat se izvrši pre onog koji adresu čita (ispod).
+  const screenWasOpen = useRef(false);
+  useEffect(() => {
+    if (!inlineScreen) return;
+    const url = new URL(window.location.href);
+    const current = url.searchParams.get('stan');
+    if (stanCode) screenWasOpen.current = true;
+    if (stanCode === current) return;
+    if (!stanCode && !screenWasOpen.current) return;
+    if (stanCode) {
+      url.searchParams.set('stan', stanCode);
+      // Prvo otvaranje dodaje korak u istoriji; prelaz sa stana na stan ga menja.
+      if (current) {
+        const ours = Boolean((window.history.state as { k360stan?: string } | null)?.k360stan);
+        window.history.replaceState(ours ? { k360stan: stanCode } : null, '', url.toString());
+      }
+      else window.history.pushState({ k360stan: stanCode }, '', url.toString());
+      requestAnimationFrame(() => rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    } else {
+      url.searchParams.delete('stan');
+      window.history.replaceState(null, '', url.toString());
+    }
+  }, [inlineScreen, stanCode]);
+  useEffect(() => {
+    if (!inlineScreen) return;
+    const sync = () => {
+      const code = new URLSearchParams(window.location.search).get('stan');
+      const u = code ? units.find((x) => x.code === code) : null;
+      if (u) openUnitById(u.id);
+      else setUnitId(null);
+    };
+    // Pri učitavanju samo kad adresa ima stan; nepostojeća oznaka ne radi ništa.
+    if (new URLSearchParams(window.location.search).get('stan')) sync();
+    window.addEventListener('popstate', sync);
+    return () => window.removeEventListener('popstate', sync);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inlineScreen]);
+
   // Iz liste: otvara stan u prikazu zgrade (osnova sprata ako postoji).
   const openFromList = (u: SelectorUnit) => {
     const f = floorById.get(u.floorId);
@@ -440,6 +529,7 @@ export default function ProjectSelector({
     // Sprat bez osnove: stan se pokazuje na fasadi (ako lamela ima sliku).
     setOnFacade(!f?.planUrl && views.some((v) => v.kind === 'building' && (buildings.length ? v.buildingId === f?.buildingId : true)));
     setHover(null);
+    setMedia('building');
     track(u);
     requestAnimationFrame(() =>
       (narrow() ? panelRef : rootRef).current?.scrollIntoView({
@@ -824,6 +914,25 @@ export default function ProjectSelector({
             </>
           )}
         </div>
+        {/* Sličice svih strana zgrade: jedan klik do željene strane (vlasnik, 25. 10. 2026). */}
+        {list.length > 1 && (
+          <div className="inv-vthumbs" role="group" aria-label={t.viewsLabel}>
+            {list.map((v, idx) => (
+              <button
+                key={v.id}
+                type="button"
+                className="inv-vthumb"
+                aria-pressed={idx === i}
+                aria-label={v.label || t.viewN(idx + 1)}
+                onClick={() => setViewIdx((all) => ({ ...all, [key]: idx }))}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- sličica iste slike sa CDN-a */}
+                <img src={thumbImg(v.imageUrl)} alt="" loading="lazy" />
+                <span>{v.label || t.viewN(idx + 1)}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
@@ -886,6 +995,8 @@ export default function ProjectSelector({
     const unitShapes = v.shapes.filter((s) => s.target === 'unit' && bUnits.some((u) => u.id === s.id));
     const unitOf = (id: string) => units.find((u) => u.id === id)!;
     const hovered = unitShapes.find((s) => s.id === hover || (s.id === unitId && onFacade));
+    // Sprat pod mišem (na slici ili u spisku): ostali spratovi blede, uz oblačić sa brojevima.
+    const floorHover = hover && floorShapes.some((s) => s.id === hover) ? hover : null;
     return {
       svg: (
         <svg viewBox="0 0 1 1" preserveAspectRatio="none" role="group" aria-label={unitShapes.length ? t.pickUnit : t.floorList}>
@@ -898,7 +1009,7 @@ export default function ProjectSelector({
                 key={s.id}
                 className="inv-poly"
                 points={pts(s.polygon)}
-                fill={on ? 'rgba(30,90,168,.38)' : free ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,.45)'}
+                fill={on ? 'rgba(30,90,168,.38)' : floorHover ? 'rgba(255,255,255,.42)' : free ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,.45)'}
                 stroke={on ? '#1E5AA8' : 'rgba(255,255,255,.7)'}
                 strokeWidth={on ? 2.5 : 1}
                 vectorEffect="non-scaling-stroke"
@@ -968,6 +1079,22 @@ export default function ProjectSelector({
                 </span>
               );
             })}
+          {floorHover &&
+            (() => {
+              const s = floorShapes.find((x) => x.id === floorHover)!;
+              const f = floorById.get(floorHover)!;
+              const top = Math.min(...s.polygon.map((p) => p[1]));
+              const [cx] = polygonCenter(s.polygon);
+              return (
+                <span
+                  className="inv-tag is-floortip"
+                  style={{ left: `${Math.min(80, Math.max(20, cx * 100))}%`, top: `${Math.max(6, top * 100)}%` }}
+                >
+                  {fName(f)}
+                  <small>{t.floorTip(unitsOn(f.id).length, freeOn(f.id))}</small>
+                </span>
+              );
+            })()}
           {hovered &&
             (() => {
               const u = unitOf(hovered.id);
@@ -994,6 +1121,12 @@ export default function ProjectSelector({
   };
 
   // ---------- leva strana ----------
+  const hasProjectVideo = Boolean(parseVideo(project.videoUrl));
+  const mediaModes: { id: 'building' | 'render' | 'video'; label: string }[] = [
+    { id: 'building', label: t.modeBuilding },
+    ...(project.renderUrl ? [{ id: 'render' as const, label: t.modeRender }] : []),
+    ...(hasProjectVideo ? [{ id: 'video' as const, label: t.modeVideo }] : [])
+  ];
   let stage: ReactNode;
   if (atComplex) {
     stage = (
@@ -1574,19 +1707,48 @@ export default function ProjectSelector({
           }}
         />
       )}
-      {units.length > 1 && (
+      {units.length > 1 && !showScreen && (
         <>
           {filterBar}
           {mobileFilters}
           {filterSheet}
         </>
       )}
-      {mode === 'list' && units.length > 0 ? (
+      {showScreen && unit ? (
+        <UnitScreen
+          mode="inline"
+          lang={lang}
+          unit={unit}
+          floor={floor}
+          embedded={embedded}
+          data={{ units, floors, buildings, demoMedia, project: { slug: project.slug, title: project.title, city: project.city } }}
+          onPick={openUnitById}
+          onBack={closeUnitScreen}
+        />
+      ) : mode === 'list' && units.length > 0 ? (
         list
       ) : (
         <div className="inv-grid">
           <div className="inv-stage" ref={stageRef}>
-            {stage}
+            {mediaModes.length > 1 && (
+              <div className="inv-mswitch" role="tablist" aria-label={t.modeLabel}>
+                {mediaModes.map((m) => (
+                  <button key={m.id} type="button" role="tab" aria-selected={media === m.id} onClick={() => setMedia(m.id)}>
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {media === 'render' && project.renderUrl ? (
+              <a className="inv-mstage" href={project.renderUrl} target="_blank" rel="noopener noreferrer">
+                {/* eslint-disable-next-line @next/next/no-img-element -- render sa R2 CDN-a */}
+                <img src={project.renderUrl} alt={`${t.modeRender} · ${project.title}`} />
+              </a>
+            ) : media === 'video' && hasProjectVideo ? (
+              <VideoFrame url={project.videoUrl ?? null} title={`${t.modeVideo} · ${project.title}`} className="inv-mstage is-video" />
+            ) : (
+              stage
+            )}
           </div>
           <div className="inv-panel" aria-live="polite" ref={panelRef}>
             {panel}

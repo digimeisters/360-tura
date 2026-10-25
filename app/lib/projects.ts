@@ -14,6 +14,9 @@ export type UnitStatus = 'available' | 'reserved' | 'sold';
 
 export const UNIT_STATUSES: UnitStatus[] = ['available', 'reserved', 'sold'];
 
+/** Oznaka upita sa strane projekta bez izabranog stana ("Pitajte investitora"). */
+export const GENERAL_INQUIRY_CODE = 'Opšti upit';
+
 export const UNIT_STATUS_LABEL: Record<UnitStatus, string> = {
   available: 'Slobodan',
   reserved: 'Rezervisan',
@@ -58,6 +61,9 @@ export type ProjectRow = {
   /** Logo investitora i da li mu treba tamna podloga (migracija 034). */
   logo_url: string | null;
   logo_dark: boolean;
+  /** 3D render i video projekta (migracija 040); prazno = nema prekidača. */
+  render_url: string | null;
+  video_url: string | null;
   published: boolean;
   created_at: string;
   updated_at: string;
@@ -133,6 +139,10 @@ export type UnitRow = {
   plan3d_url: string | null;
   photos: unknown;
   rooms: unknown;
+  /** Opis (≤ 600, sr/en) i video link stana (migracija 040). */
+  description: string | null;
+  description_en: string | null;
+  video_url: string | null;
 };
 
 /** Prostorija stana za tabelu kvadrature (migracija 024). */

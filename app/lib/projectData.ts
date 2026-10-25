@@ -119,7 +119,10 @@ async function loadProject(db: Db, slug: string, onlyPublished: boolean): Promis
       planUrl: u.plan_url,
       plan3dUrl: u.plan3d_url,
       photos: cleanPhotos(u.photos),
-      rooms: cleanRooms(u.rooms)
+      rooms: cleanRooms(u.rooms),
+      description: u.description?.trim() || null,
+      descriptionEn: u.description_en?.trim() || null,
+      videoUrl: u.video_url
     };
   });
 

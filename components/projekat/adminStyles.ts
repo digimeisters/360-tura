@@ -33,7 +33,7 @@ export const PROJECT_ADMIN_STYLES = `
   .pa-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px 14px;}
   .pa-field{display:flex; flex-direction:column; gap:4px; font-size:12.5px; font-weight:650; color:var(--ink-soft);}
   .pa-field.is-wide{grid-column:1 / -1;}
-  .pa input[type="text"], .pa input[type="number"], .pa input[type="email"], .pa select, .pa textarea{
+  .pa input[type="text"], .pa input[type="number"], .pa input[type="email"], .pa input[type="url"], .pa select, .pa textarea{
     font:inherit; font-size:14px; font-weight:400; color:var(--ink); background:var(--surface); border:1px solid var(--line-strong);
     border-radius:10px; padding:8px 10px; min-height:38px; width:100%; box-sizing:border-box;}
   .pa textarea{min-height:90px; resize:vertical;}

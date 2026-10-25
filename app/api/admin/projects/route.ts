@@ -34,6 +34,7 @@ import { slugify } from '@/app/lib/slug';
 import { projectPreviewToken } from '@/app/lib/projectPreview';
 import { loadProjectStats } from '@/app/lib/projectStats';
 import { translateTexts } from '@/app/lib/translateTexts';
+import { parseVideo } from '@/app/lib/videoEmbed';
 import { geocodeAddress } from '@/app/lib/geocode';
 import { fetchNearby } from '@/app/lib/nearby';
 import {
@@ -105,6 +106,8 @@ const PROJECT_FIELDS: Record<string, number> = {
   title_en: 120,
   description_en: 2000
 };
+
+const VIDEO_ERROR = 'Video link mora biti YouTube, Vimeo ili https link na .mp4 fajl.';
 
 function refresh(slug?: string | null) {
   if (!slug) return;
@@ -229,6 +232,18 @@ export async function POST(req: Request) {
           patch.logo_url = logo;
         }
         if ('logo_dark' in fields) patch.logo_dark = Boolean(fields.logo_dark);
+        // 3D render (samo naš CDN) i video link projekta (migracija 040).
+        if ('render_url' in fields) {
+          const render = text(fields.render_url, 500);
+          const cdn = (process.env.NEXT_PUBLIC_CDN_URL || '').replace(/\/+$/, '');
+          if (render && (!cdn || !render.startsWith(`${cdn}/projekti/${id}/render-`))) return fail('Render mora biti otpremljen kroz admin.');
+          patch.render_url = render;
+        }
+        if ('video_url' in fields) {
+          const video = text(fields.video_url, 600);
+          if (video && !parseVideo(video)) return fail(VIDEO_ERROR);
+          patch.video_url = video;
+        }
 
         // Ručno upisane koordinate (npr. prekopirane iz Google mapa) imaju prednost.
         let coords: { lat: number; lng: number } | null = null;
@@ -781,6 +796,14 @@ export async function POST(req: Request) {
         if ('plan3d_url' in f) row.plan3d_url = text(f.plan3d_url, 600);
         if ('photos' in f) row.photos = cleanPhotos(f.photos);
         if ('rooms' in f) row.rooms = cleanRooms(f.rooms);
+        // Opis i video stana (migracija 040).
+        if ('description' in f) row.description = text(f.description, 600);
+        if ('description_en' in f) row.description_en = text(f.description_en, 600);
+        if ('video_url' in f) {
+          const video = text(f.video_url, 600);
+          if (video && !parseVideo(video)) return fail(VIDEO_ERROR);
+          row.video_url = video;
+        }
 
         let result;
         if (unitId) {

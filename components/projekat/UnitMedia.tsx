@@ -5,6 +5,8 @@ import { formatArea, PROJECT_TEXT, type ProjectLang } from '../../app/lib/projec
 import type { Polygon } from '../../app/lib/projects';
 import type { DemoMedia } from '../../app/lib/projectData';
 import UnitPlanCrop from './UnitPlanCrop';
+import VideoFrame from './VideoFrame';
+import { parseVideo } from '../../app/lib/videoEmbed';
 
 /**
  * Kartice u kartici stana (migracija 024, po uzoru na 3d.sokolis.rs):
@@ -19,9 +21,12 @@ import UnitPlanCrop from './UnitPlanCrop';
  * `demo` (projects.show_all_tabs, migracija 026 - prezentacija): sve četiri
  * kartice uvek. Stan bez ture dobija demo turu (sa oznakom „Primer ture"),
  * bez slika rendere zgrade, a ostalo oznaku „uskoro".
+ *
+ * Video (migracija 040): kartica posle slika; okvir se pravi tek kad se
+ * kartica izabere, pa se video ne učitava unapred.
  */
 
-type Tab = 'plan' | 'tour' | 'plan3d' | 'photos';
+type Tab = 'plan' | 'tour' | 'plan3d' | 'photos' | 'video';
 
 const svgProps = { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true } as const;
 
@@ -51,6 +56,12 @@ const TAB_ICONS: Record<Tab, React.ReactNode> = {
       <circle cx="9" cy="10" r="1.6" />
       <path d="M20.5 16l-5-5-8.5 8" />
     </svg>
+  ),
+  video: (
+    <svg {...svgProps}>
+      <rect x="3.5" y="5.5" width="13" height="13" rx="2" />
+      <path d="M16.5 10l4-2.5v9l-4-2.5" />
+    </svg>
   )
 };
 
@@ -70,7 +81,8 @@ export default function UnitMedia({
   lang = 'sr',
   fallbackPlan = null,
   large = false,
-  demo = null
+  demo = null,
+  videoUrl = null
 }: {
   planUrl: string | null;
   plan3dUrl: string | null;
@@ -81,6 +93,7 @@ export default function UnitMedia({
   fallbackPlan?: { src: string; polygon: Polygon } | null;
   large?: boolean;
   demo?: DemoMedia | null;
+  videoUrl?: string | null;
 }) {
   const t = PROJECT_TEXT[lang];
   const all = Boolean(demo);
@@ -92,6 +105,8 @@ export default function UnitMedia({
   if (tourHref || all) tabs.push({ id: 'tour', label: t.tab360 });
   if (plan3dUrl || all) tabs.push({ id: 'plan3d', label: t.tab3d });
   if (photos.length || all) tabs.push({ id: 'photos', label: t.tabPhotos });
+  const hasVideo = Boolean(parseVideo(videoUrl));
+  if (hasVideo || all) tabs.push({ id: 'video', label: t.tabVideo });
   const [tab, setTab] = useState<Tab | null>(tabs[0]?.id ?? null);
   const [photo, setPhoto] = useState(0);
   const [cropOpen, setCropOpen] = useState(false);
@@ -130,7 +145,7 @@ export default function UnitMedia({
       )}
     </a>
   );
-  const dark = tab === 'plan3d' && Boolean(plan3dUrl);
+  const dark = (tab === 'plan3d' && Boolean(plan3dUrl)) || (tab === 'video' && hasVideo);
 
   return (
     <div className={large ? 'inv-um is-large' : 'inv-um'}>
@@ -163,6 +178,8 @@ export default function UnitMedia({
         {tab === 'plan3d' && !plan3dUrl && soon(t.tab3d)}
         {tab === 'tour' && !tourUrl && soon(t.tab360)}
         {tab === 'photos' && !photos.length && soon(t.tabPhotos)}
+        {tab === 'video' && !hasVideo && soon(t.tabVideo)}
+        {tab === 'video' && hasVideo && <VideoFrame url={videoUrl} title={`${t.tabVideo} · ${code}`} className="inv-um-video" />}
         {tab === 'tour' && tourUrl && (
           <>
             <iframe src={tourUrl} title={`${t.tab360} · ${code}`} loading="lazy" allow="fullscreen; gyroscope; accelerometer" />
@@ -239,6 +256,19 @@ export function UnitThumb({
 }
 
 /** Tabela kvadrature po prostorijama, sa zbirom. */
+// Linijska ikonica prostorije prema nazivu (ekran stana, dizajn v2).
+const ROOM_ICONS: [RegExp, string][] = [
+  [/teras|lođ|lodj|balkon|terrace|balcony/i, 'M12 4v2M12 18v2M4 12h2M18 12h2M6.3 6.3l1.4 1.4M16.3 16.3l1.4 1.4M6.3 17.7l1.4-1.4M16.3 7.7l1.4-1.4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z'],
+  [/kupatil|wc|toalet|bath|toilet/i, 'M4 12h16v3a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-3ZM6 12V6a2 2 0 0 1 4 0'],
+  [/dnevn|kuhinj|trpezar|living|kitchen|dining/i, 'M4 11V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3M3 11a2 2 0 0 1 2 2v3h14v-3a2 2 0 1 1 2 2v3H3v-3a2 2 0 0 1 0-4Z'],
+  [/spava|soba|bed|room/i, 'M3 18V7M3 13h18v5M21 13a3 3 0 0 0-3-3h-7v3'],
+  [/hodnik|ulaz|predsob|hall|entr/i, 'M5 21V4h11v17M3 21h18M13 12h.01'],
+  [/ostav|špajz|spajz|garderob|storage|pantry/i, 'M4 7l8-4 8 4v10l-8 4-8-4V7ZM4 7l8 4 8-4M12 11v10']
+];
+function roomIcon(name: string): string {
+  return ROOM_ICONS.find(([re]) => re.test(name))?.[1] ?? 'M4 4h16v16H4z';
+}
+
 export function UnitRooms({ rooms, lang = 'sr' }: { rooms: { name: string; m2: number }[]; lang?: ProjectLang }) {
   if (!rooms.length) return null;
   const t = PROJECT_TEXT[lang];
@@ -250,7 +280,14 @@ export function UnitRooms({ rooms, lang = 'sr' }: { rooms: { name: string; m2: n
         <tbody>
           {rooms.map((r, i) => (
             <tr key={i}>
-              <td>{r.name}</td>
+              <td>
+                <span className="inv-room-ico" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d={roomIcon(r.name)} />
+                  </svg>
+                </span>
+                {r.name}
+              </td>
               <td>{formatArea(r.m2, lang)}</td>
             </tr>
           ))}

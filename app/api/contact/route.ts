@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { escapeHtml, sendTelegramMessage } from '@/app/lib/telegram';
 import { rateLimit, tooManyRequests } from '@/app/lib/rateLimit';
 import { describeSlot } from '@/app/lib/shootSlot';
+import { GENERAL_INQUIRY_CODE } from '@/app/lib/projects';
 
 export const dynamic = 'force-dynamic';
 
@@ -140,6 +141,24 @@ export async function POST(req: Request) {
         if (inqError) console.error('[api/contact] project inquiry failed:', inqError.message);
         else projectInquiry = true;
       }
+    } else if (fromProjectPage && typeof body.projectSlug === 'string' && /^[a-z0-9-]{1,120}$/.test(body.projectSlug)) {
+      // Opšti upit sa strane projekta ("Pitajte investitora"), bez izabranog
+      // stana: i on ide prodaji investitora. Samo objavljen projekat.
+      const { data: projectRow } = await supabase.from('projects').select('id').eq('slug', body.projectSlug).eq('published', true).maybeSingle();
+      if (projectRow) {
+        const { error: inqError } = await supabase.from('project_inquiries').insert({
+          project_id: projectRow.id,
+          unit_id: null,
+          unit_code: GENERAL_INQUIRY_CODE,
+          name,
+          contact,
+          message: message || null,
+          embedded: body.embedded === true,
+          lang: fromEnglish ? 'en' : 'sr'
+        });
+        if (inqError) console.error('[api/contact] general project inquiry failed:', inqError.message);
+        else projectInquiry = true;
+      }
     }
 
     // Upit je već u bazi - notifikacija je dodatak, njen neuspeh se ne
@@ -156,9 +175,13 @@ export async function POST(req: Request) {
     if (fromInvestorPage) lines.push('🏗️ Sa strane za investitore');
     if (fromProjectPage) {
       lines.push(
-        projectInquiry
-          ? '🏢 Upit za stan u novogradnji - prodaja investitora ga vidi na svojoj strani'
-          : '🏢 Upit za stan u novogradnji - proslediti prodaji investitora'
+        typeof body.unitId !== 'string' && typeof body.projectSlug === 'string'
+          ? projectInquiry
+            ? '🏢 Opšti upit za projekat - prodaja investitora ga vidi na svojoj strani'
+            : '🏢 Opšti upit za projekat - proslediti prodaji investitora'
+          : projectInquiry
+            ? '🏢 Upit za stan u novogradnji - prodaja investitora ga vidi na svojoj strani'
+            : '🏢 Upit za stan u novogradnji - proslediti prodaji investitora'
       );
     }
     if (fromProjectPage && body.embedded === true) lines.push('🌐 Poslato sa sajta investitora (ugrađeni izbor stana)');

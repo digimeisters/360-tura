@@ -7,7 +7,12 @@ import ProjectNearby from './ProjectNearby';
 import { parseNearby } from '../../app/lib/nearby';
 import EmbedAutoHeight from './EmbedAutoHeight';
 import { SITE_URL } from '../../app/lib/site';
-import { formatPrice, PROJECT_TEXT, type ProjectLang } from '../../app/lib/projectI18n';
+import { floorLabel, formatPrice, PROJECT_TEXT, structureText, type ProjectLang } from '../../app/lib/projectI18n';
+import ProjectFacts from './ProjectFacts';
+import ProjectBuying from './ProjectBuying';
+import ProjectJumpBar from './ProjectJumpBar';
+import ProjectContact from './ProjectContact';
+import ProjectMobileBar from './ProjectMobileBar';
 import type { ProjectPageData } from '../../app/lib/projectData';
 import SiteStylesheets from '../SiteStylesheets';
 import HtmlLang from '../HtmlLang';
@@ -30,18 +35,53 @@ const PAGE_STYLES = `
   .proj-meta span{display:inline-flex; align-items:center; gap:.4rem;}
   .proj-meta svg{width:16px; height:16px; flex:none; color:var(--accent);}
   .proj-cta{display:flex; flex-wrap:wrap; gap:.6rem; margin-top:1.4rem;}
-  .proj-stats{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
-  .proj-stat{background:var(--surface); border:1px solid var(--line); border-radius:22px; padding:1rem 1.1rem; box-shadow:var(--shadow);}
+  .proj-stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;}
+  .proj-stat{background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:1rem 1.1rem; box-shadow:0 1px 2px rgba(20,22,27,.04),0 8px 24px rgba(20,22,27,.06);}
   .proj-stat b{display:block; font-family:var(--font-display); font-weight:800; font-size:clamp(1.45rem,2.6vw,1.95rem); letter-spacing:-.02em; line-height:1.1; color:var(--ink); white-space:nowrap;}
   .proj-stat b small{font-size:.55em; font-weight:700; color:var(--ink-faint); margin-left:.15rem;}
   .proj-stat span{display:block; margin-top:.3rem; font-size:.78rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint);}
-  .proj-stat.is-free{background:#1E5AA8; border-color:#1E5AA8;}
+  .proj-stat.is-free{background:linear-gradient(160deg,#16325C 0%,#1E5AA8 100%); border-color:transparent;}
   .proj-stat.is-free b, .proj-stat.is-free b small{color:#FFFFFF;}
   .proj-stat.is-free span{color:#DCE8F7;}
   .proj-anchor{display:block; position:relative; top:-90px; visibility:hidden;}
-  .proj-body{padding-bottom:clamp(3rem,6vw,5rem);}
+  .proj-body{padding-bottom:clamp(1.2rem,2.5vw,1.8rem);}
   .proj-contact{display:flex; flex-wrap:wrap; gap:.4rem 1.4rem; margin-top:1.4rem; color:var(--ink-soft); font-size:.95rem;}
   .proj-contact a{color:inherit;}
+  .proj-info{padding-bottom:clamp(2.4rem,5vw,4rem);}
+  .proj-info-grid{display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:22px;}
+  .proj-info-grid > *{grid-column:span 12;}
+  .proj-card{background:var(--surface); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); padding:clamp(1.1rem,2.4vw,1.6rem); scroll-margin-top:var(--proj-anchor,140px);}
+  @media (max-width:979px){ .proj-info{--proj-anchor:124px;} }
+  .proj-card h2{font-size:clamp(1.3rem,2.4vw,1.7rem); letter-spacing:-.02em; margin:.35rem 0 .9rem;}
+  .proj-desc{color:var(--ink-soft); line-height:1.65; margin:0 0 1rem; max-width:70ch;}
+  .proj-wide{scroll-margin-top:var(--proj-anchor,140px);}
+  .proj-wide > section{margin-top:0;}
+  .proj-contact-card{scroll-margin-top:var(--proj-anchor,140px);}
+  @media (min-width:960px){ .proj-buy{grid-column:span 6;} .proj-contact-card{grid-column:span 6;} }
+  .pf-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:10px; margin:0;}
+  .pf-item{background:var(--surface-2); border-radius:14px; padding:.75rem .9rem;}
+  .pf-item dt{font-size:.72rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-faint);}
+  .pf-item dd{margin:.15rem 0 0; font-family:var(--font-display); font-weight:700; font-size:1.02rem;}
+  .pf-cta{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:.6rem; margin:1rem 0 0; padding:.75rem 1rem; border-radius:14px; background:var(--accent-soft); font-size:.92rem;}
+  .pf-cta a{font-weight:700; color:var(--accent); text-decoration:none;}
+  .pb-steps{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  @media (max-width:560px){ .pb-steps{grid-template-columns:1fr;} }
+  .pb-steps li{border:1px solid var(--line); border-radius:14px; padding:.8rem .9rem; display:flex; flex-direction:column; gap:.1rem;}
+  .pb-n{font-family:var(--font-display); font-weight:800; font-size:.8rem; color:var(--accent);}
+  .pb-steps b{font-family:var(--font-display); font-size:1rem;}
+  .pb-steps small{color:var(--ink-soft); font-size:.86rem;}
+  .pb-calc{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:.7rem; margin:1rem 0 0; padding:.8rem 1rem; border-radius:14px; background:var(--accent-soft); font-size:.92rem;}
+  /* Traka za skok samo na računaru: ispod 980px meni sajta je u dva reda, a
+     traka na dnu telefona (ProjectMobileBar) već vodi kroz stranu. */
+  @media (max-width:979px){ .pj{display:none;} }
+  .pj{position:sticky; top:72px; z-index:30; background:color-mix(in srgb, var(--bg) 94%, transparent); backdrop-filter:blur(8px); border-block:1px solid var(--line); margin-bottom:22px;}
+  .pj-inner{display:flex; gap:4px; overflow-x:auto; padding-block:8px; scrollbar-width:none;}
+  .pj-inner::-webkit-scrollbar{display:none;}
+  .pj a{flex:none; padding:.45rem .8rem; border-radius:10px; font-weight:600; font-size:.9rem; color:var(--ink-soft); text-decoration:none;}
+  .pj a.is-on{background:var(--surface); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .proj-badge{background:var(--accent-soft); border-top:1px solid var(--line);}
+  .proj-badge-inner{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:.6rem; padding-block:1rem; font-size:.9rem; color:var(--ink-soft);}
+  .proj-badge-inner a{font-weight:700; color:var(--accent); text-decoration:none;}
 `;
 
 /** Okolina za mapu: samo kad projekat ima koordinate i bar jedno mesto u blizini. */
@@ -49,6 +89,27 @@ function nearbyOf(data: ProjectPageData) {
   const { lat, lng } = data.project;
   const places = parseNearby(data.project.nearby);
   return lat !== null && lng !== null && places.length > 0 ? { lat, lng, places } : null;
+}
+
+/** „Jadranska - Garić Invest" -> naslov sa akcentom na delu posle crte. */
+function splitTitle(title: string): [string, string | null] {
+  const m = title.match(/^(.+?)\s+[-–]\s+(.+)$/);
+  return m ? [m[1], m[2]] : [title, null];
+}
+
+/** Spratovi sa najviše slobodnih stanova, kao tekst („1., 2. i 3. sprat"); null = nema slobodnih. */
+function mostFreeFloors(data: ProjectPageData, lang: ProjectLang): string | null {
+  const free = new Map<string, number>();
+  for (const u of data.units) if (u.status === 'available') free.set(u.floorId, (free.get(u.floorId) ?? 0) + 1);
+  const max = Math.max(0, ...free.values());
+  if (!max) return null;
+  const names = data.floors
+    .filter((fl) => free.get(fl.id) === max)
+    .sort((a, b) => a.level - b.level)
+    .map((fl) => floorLabel(fl.level, fl.label, lang));
+  if (names.length === 1) return names[0];
+  const and = lang === 'en' ? ' and ' : ' i ';
+  return `${names.slice(0, -1).join(', ')}${and}${names[names.length - 1]}`;
 }
 
 export function projectTitle(data: ProjectPageData, lang: ProjectLang): string {
@@ -63,7 +124,9 @@ export function selectorProject(data: ProjectPageData, lang: ProjectLang) {
     developer: project.developer_name,
     address: project.address,
     city: project.city,
-    moveIn: project.move_in
+    moveIn: project.move_in,
+    renderUrl: project.render_url,
+    videoUrl: project.video_url
   };
 }
 
@@ -96,7 +159,19 @@ export default function ProjectView({
   const prices = units.filter((u) => u.status !== 'sold' && u.price).map((u) => u.price as number);
   const areas = units.filter((u) => u.areaSqm).map((u) => u.areaSqm as number);
   const minPrice = prices.length ? Math.min(...prices) : null;
-  const areaRange = areas.length ? [Math.floor(Math.min(...areas)), Math.ceil(Math.max(...areas))] : null;
+  const areaRange: [number, number] | null = areas.length ? [Math.floor(Math.min(...areas)), Math.ceil(Math.max(...areas))] : null;
+  const topLevel = floors.length ? Math.max(...floors.map((fl) => fl.level)) : null;
+  const floorsSpan = topLevel === null ? null : t.floorsSpan(topLevel);
+  const [titleMain, titleAccent] = splitTitle(title);
+  const moveIn = project.move_in?.trim() || null;
+  // Delovi ispod izbora stana - traka za skok nudi samo one koji postoje.
+  const jump = [
+    { id: 'o-projektu', label: t.jumpAbout },
+    ...(nearby ? [{ id: 'okolina', label: t.jumpArea }] : []),
+    ...(progress.length > 0 ? [{ id: 'gradiliste', label: t.jumpProgress }] : []),
+    { id: 'kupovina', label: t.jumpBuy },
+    { id: 'kontakt', label: t.jumpContact }
+  ];
 
   return (
     <div lang={lang} style={{ display: 'contents' }}>
@@ -111,7 +186,7 @@ export default function ProjectView({
         brandHref={project.logo_url ? '#' : lang === 'en' ? '/en' : '/'}
         brandAria={project.logo_url ? project.developer_name || title : 'Kvadrat360'}
         brandLogo={project.logo_url ? { src: project.logo_url, alt: project.developer_name || title, dark: project.logo_dark } : null}
-        cta={{ href: '#izbor', label: lang === 'en' ? 'Choose an apartment' : 'Izaberite stan', track: 'cta:project_nav' }}
+        cta={{ href: '#kontakt', label: t.askInvestor, track: 'cta:project_nav_ask' }}
       >
         {nearby && (
           <li>
@@ -136,8 +211,15 @@ export default function ProjectView({
                 {t.newBuild}
                 {project.city ? ` · ${project.city}` : ''}
               </span>
-              <h1>{title}</h1>
-              {description && <p className="lede">{description}</p>}
+              <h1>
+                {titleMain}
+                {titleAccent && (
+                  <>
+                    {' – '}
+                    <em>{titleAccent}</em>
+                  </>
+                )}
+              </h1>
               <div className="proj-meta">
                 {project.address && (
                   <span>
@@ -157,16 +239,6 @@ export default function ProjectView({
                   </span>
                 )}
               </div>
-              {units.length > 0 && (
-                <div className="proj-cta">
-                  <a className="btn btn-primary" href="#izbor" data-track="cta:project_hero_pick">
-                    {t.heroPick}
-                  </a>
-                  <a className="btn btn-secondary" href="#lista" data-track="cta:project_hero_list">
-                    {t.heroList}
-                  </a>
-                </div>
-              )}
             </div>
             {units.length > 0 && (
               <div className="proj-stats">
@@ -177,18 +249,30 @@ export default function ProjectView({
                   </b>
                   <span>{t.heroFree}</span>
                 </div>
-                <div className="proj-stat">
-                  <b>{minPrice ? formatPrice(minPrice, lang) : '—'}</b>
-                  <span>{t.heroFrom}</span>
-                </div>
-                <div className="proj-stat">
-                  <b>{areaRange ? `${areaRange[0]}–${areaRange[1]} m²` : '—'}</b>
-                  <span>{t.heroSizes}</span>
-                </div>
-                <div className="proj-stat">
-                  <b>{project.move_in || '—'}</b>
-                  <span>{t.heroMoveIn}</span>
-                </div>
+                {areaRange && (
+                  <div className="proj-stat">
+                    <b>{`${areaRange[0]}–${areaRange[1]} m²`}</b>
+                    <span>{t.heroSizes}</span>
+                  </div>
+                )}
+                {floorsSpan && (
+                  <div className="proj-stat">
+                    <b>{floorsSpan}</b>
+                    <span>{t.heroFloors}</span>
+                  </div>
+                )}
+                {minPrice && (
+                  <div className="proj-stat">
+                    <b>{formatPrice(minPrice, lang)}</b>
+                    <span>{t.heroFrom}</span>
+                  </div>
+                )}
+                {moveIn && (
+                  <div className="proj-stat">
+                    <b>{moveIn}</b>
+                    <span>{t.heroMoveIn}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -213,19 +297,86 @@ export default function ProjectView({
                 letakBase={preview ? null : `${lang === 'en' ? '/en' : ''}/novogradnja/${project.slug}/stan`}
               />
             )}
-            {nearby && <ProjectNearby lang={lang} title={title} {...nearby} />}
-            <ProjectProgress entries={progress} lang={lang} />
-            {(project.contact_phone || project.contact_email) && (
-              <p className="proj-contact">
-                <span>{t.sales}:</span>
-                {project.contact_phone && <a href={`tel:${project.contact_phone.replace(/[^\d+]/g, '')}`}>{project.contact_phone}</a>}
-                {project.contact_email && <a href={`mailto:${project.contact_email}`}>{project.contact_email}</a>}
-              </p>
-            )}
           </div>
         </section>
+
+        <ProjectJumpBar items={jump} label={t.jumpLabel} />
+
+        <section className="proj-info">
+          <div className="wrap proj-info-grid">
+            <div className="proj-card proj-about" id="o-projektu">
+              <span className="eyebrow">{t.aboutEyebrow}</span>
+              <h2>
+                {titleMain}
+                {titleAccent && (
+                  <>
+                    {' – '}
+                    <em>{titleAccent}</em>
+                  </>
+                )}
+              </h2>
+              {description && <p className="proj-desc">{description}</p>}
+              <ProjectFacts
+                lang={lang}
+                developer={project.developer_name}
+                address={project.address}
+                city={project.city}
+                floorsSpan={floorsSpan}
+                unitsCount={units.length}
+                areaRange={areaRange}
+                moveIn={moveIn}
+                mostFree={mostFreeFloors(data, lang)}
+              />
+            </div>
+            {nearby && (
+              <div className="proj-wide">
+                <ProjectNearby lang={lang} title={title} {...nearby} />
+              </div>
+            )}
+            {progress.length > 0 && (
+              <div className="proj-wide">
+                <ProjectProgress entries={progress} lang={lang} />
+              </div>
+            )}
+            <div className="proj-card proj-buy" id="kupovina">
+              <ProjectBuying lang={lang} />
+            </div>
+            <div className="proj-contact-card" id="kontakt">
+              <ProjectContact
+                lang={lang}
+                slug={project.slug}
+                projectTitle={title}
+                phone={project.contact_phone}
+                email={project.contact_email}
+                units={units
+                  .filter((u) => u.status === 'available')
+                  .sort((a, b) => a.code.localeCompare(b.code, 'sr', { numeric: true }))
+                  .map((u) => {
+                    const fl = floors.find((x) => x.id === u.floorId);
+                    return {
+                      id: u.id,
+                      code: u.code,
+                      label: [`${t.unit} ${u.code}`, fl ? floorLabel(fl.level, fl.label, lang) : null, u.structure ? structureText(u.structure, lang) || u.structure : null].filter(Boolean).join(' · '),
+                      // Za Telegram i prodaju uvek na srpskom, kao upit iz kartice stana.
+                      srLabel: [`Stan ${u.code}`, fl ? floorLabel(fl.level, fl.label, 'sr') : null, u.structure].filter(Boolean).join(' · ')
+                    };
+                  })}
+              />
+            </div>
+          </div>
+        </section>
+
+        <aside className="proj-badge">
+          <div className="wrap proj-badge-inner">
+            <span>{t.investorBadge}</span>
+            <a href={lang === 'en' ? '/za-investitore' : '/za-investitore'} data-track="cta:project_investor_badge">
+              {t.investorCta} →
+            </a>
+          </div>
+        </aside>
       </main>
 
+      <ProjectMobileBar lang={lang} listCount={units.length} />
       <SiteFooter note={`${title} · ${t.credit}`} lang={lang} />
     </div>
   );
