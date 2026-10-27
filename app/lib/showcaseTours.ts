@@ -262,7 +262,11 @@ export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
           id: String(r.id),
           title: realValue(pickLang(r.title_i18n, lang)) || realValue(r.title) || fallback.room(i + 1),
           previewUrl: r.preview_url as string,
-          panoramaUrl: r.panorama_url_mobile || null,
+          // Posebna adresa (?hero) za istu sliku: početna je skida bez CORS-a
+          // (<img>, CSS pozadina), pa bi pregledač sačuvao odgovor bez
+          // Access-Control-Allow-Origin i tura bi posle dobila „could not be
+          // accessed" za prvu sobu. Ovako tura i početna ne dele keš.
+          panoramaUrl: r.panorama_url_mobile ? `${r.panorama_url_mobile}?hero` : null,
           planX: asNumber(r.floorplan_x),
           planY: asNumber(r.floorplan_y),
           narration: preview(establishNarration(r.establish_i18n, lang), NARRATION_PREVIEW_CHARS)
