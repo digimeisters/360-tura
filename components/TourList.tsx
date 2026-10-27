@@ -8,6 +8,9 @@ import { listingPriceUnit } from '../app/lib/listingPrice';
 import FilterMenu from './FilterMenu';
 import RangeFilter from './RangeFilter';
 import TourCard, { type TourCardLabels } from './TourCard';
+import CompareTray from './CompareTray';
+import { useCompare } from '../app/lib/useCompare';
+import { keepKnown } from '../app/lib/compare';
 
 // Leaflet dira window/document - učitava se samo u pregledaču, i tek kad
 // zatreba (posetilac retko traži mapu, nema razloga da je svako skida).
@@ -208,6 +211,28 @@ export default function TourList({
 }) {
   const labels = LABELS;
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+  // Poređenje (/ture/uporedi): dugme na kartici + traka na dnu.
+  const compare = useCompare();
+  const [compareNotice, setCompareNotice] = useState(false);
+  const compareNoticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const compareProps = (slug: string) => ({
+    selected: compare.slugs.includes(slug),
+    onToggle: () => {
+      if (!compare.toggle(slug).full) return;
+      setCompareNotice(true);
+      if (compareNoticeTimer.current) clearTimeout(compareNoticeTimer.current);
+      compareNoticeTimer.current = setTimeout(() => setCompareNotice(false), 3000);
+    }
+  });
+  // Tura koja je u međuvremenu skinuta ili prodata ne sme da ostane u izboru
+  // (zauzima mesto od 4, a njene kartice više nema da se odštiklira).
+  const knownSlugs = useMemo(() => tours.map((t) => t.slug), [tours]);
+  const { slugs: comparedSlugs, set: setCompared } = compare;
+  useEffect(() => {
+    const kept = keepKnown(comparedSlugs, knownSlugs);
+    if (kept.length !== comparedSlugs.length) setCompared(kept);
+  }, [comparedSlugs, knownSlugs, setCompared]);
+  const compareTray = <CompareTray tours={tours} slugs={keepKnown(comparedSlugs, knownSlugs)} notice={compareNotice} />;
   const [ranges, setRanges] = useState<Ranges>(NO_RANGES);
   const [scrolledPast, setScrolledPast] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -615,9 +640,10 @@ export default function TourList({
         {locatedCount > 0 && <TourMap tours={tours} lang={lang} />}
         <div className="tours-grid n-4" data-reveal-group>
           {tours.map((tour) => (
-            <TourCard key={tour.slug} tour={tour} labels={CARD_LABELS} lang={lang} />
+            <TourCard key={tour.slug} tour={tour} labels={CARD_LABELS} lang={lang} compare={compareProps(tour.slug)} />
           ))}
         </div>
+        {compareTray}
       </>
     );
   }
@@ -742,12 +768,13 @@ export default function TourList({
           data-reveal-group={refiltered ? undefined : true}
         >
           {shown.map((tour) => (
-            <TourCard key={tour.slug} tour={tour} labels={CARD_LABELS} lang={lang} />
+            <TourCard key={tour.slug} tour={tour} labels={CARD_LABELS} lang={lang} compare={compareProps(tour.slug)} />
           ))}
         </div>
       ) : (
         <p className="note">{labels.empty}</p>
       )}
+      {compareTray}
     </>
   );
 }

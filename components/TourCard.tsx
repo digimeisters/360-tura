@@ -31,13 +31,16 @@ export default function TourCard({
   tour,
   labels,
   lang = 'sr',
-  reveal = false
+  reveal = false,
+  compare
 }: {
   tour: ShowcaseTour;
   labels: TourCardLabels;
   lang?: string;
   /** Kartica izranja kad uđe u ekran (početna, components/SiteReveal). */
   reveal?: boolean;
+  /** Dugme "Uporedi" na slici - samo na /ture (TourList), ne na početnoj. */
+  compare?: { selected: boolean; onToggle: () => void };
 }) {
   const category = tour.category ? labels.category(tour.category) : null;
   const rooms = labels.rooms(tour.roomCount);
@@ -68,6 +71,21 @@ export default function TourCard({
             <span className="dot" />
             {category}
           </span>
+        )}
+        {compare && (
+          <button
+            type="button"
+            className="tour-compare"
+            aria-pressed={compare.selected}
+            onClick={(e) => {
+              // Kartica je link - klik na dugme ne sme da otvori turu.
+              e.preventDefault();
+              e.stopPropagation();
+              compare.onToggle();
+            }}
+          >
+            {compare.selected ? '✓ U poređenju' : '⇄ Uporedi'}
+          </button>
         )}
         <span className="tour-langs">
           {tour.languages.map((l) => (

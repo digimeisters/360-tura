@@ -1424,6 +1424,7 @@ export default function TourPage() {
           onShare={handleShareTour}
           shareCopied={shareCopied}
           onRequestViewing={slug ? () => { setActiveModal(null); setShowViewing(true); } : null}
+          compareEnabled={!adminMode && !live.blocksAutoplay}
         />
       )}
 

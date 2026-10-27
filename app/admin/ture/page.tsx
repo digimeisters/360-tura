@@ -240,6 +240,7 @@ export default function ToursAdminPage() {
     else if (action === 'snapshot') setSnapshotSlug(tour.slug);
     else if (action === 'embed') void copyEmbedCode(tour);
     else if (action === 'live') void copyLiveGuideLink(tour);
+    else if (action === 'nearby') void refreshNearby(tour);
     else if (action === 'delete') void deleteTour(tour);
   };
 
@@ -367,6 +368,28 @@ export default function ToursAdminPage() {
     // Meni "⋯" se zatvara na klik, pa potvrda stoji iznad liste.
     setNotice(`Kod za sajt je kopiran (${pickTitle(tour)}).`);
     setTimeout(() => setCopiedEmbedSlug((cur) => (cur === tour.slug ? null : cur)), 1800);
+  };
+
+  // "Osveži okolinu": ponovo pita OpenStreetMap (sama se puni pri čuvanju ture).
+  const refreshNearby = async (tour: TourRow) => {
+    setNotice('Tražim okolinu…');
+    setError('');
+    try {
+      const res = await authedFetch('/api/admin/tours', {
+        method: 'PATCH',
+        body: JSON.stringify({ slug: tour.slug, action: 'nearby-refresh' })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setNotice('');
+        setError(json.error || 'Okolina nije osvežena.');
+        return;
+      }
+      setNotice(`Okolina je osvežena (${Array.isArray(json.nearby) ? json.nearby.length : 0} mesta).`);
+    } catch {
+      setNotice('');
+      setError('Nema veze sa serverom.');
+    }
   };
 
   const copyLiveGuideLink = async (tour: TourRow) => {

@@ -113,6 +113,9 @@ export type Tour = {
   // nema automatskog vodiča.
   guide_path?: string | null;
   /** Koordinate nekretnine (javna mapa na /ture) - let mape u uvodu ture. */
+  /** Okolina iz OpenStreetMap-a (migracija 041) - čita se preko parseNearby. */
+  nearby?: unknown;
+  nearby_updated_at?: string | null;
   lat?: number | null;
   lng?: number | null;
   /** Uvod ture (migracija 035): tekst i snimljen glas po jeziku - vidi TourIntroOverlay. */

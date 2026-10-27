@@ -26,7 +26,9 @@ export default function ProjectNearbyMap({
   title,
   places,
   lang,
-  active
+  active,
+  radiusM,
+  fill = false
 }: {
   lat: number;
   lng: number;
@@ -35,6 +37,10 @@ export default function ProjectNearbyMap({
   lang: 'sr' | 'en';
   /** Istaknuto mesto iz spiska (indeks u places) - mapa ga otvori. */
   active: number | null;
+  /** Isprekidan krug oko nekretnine (okolina ture: RADIUS_M ≈ 15 min hoda). */
+  radiusM?: number;
+  /** Mapa popuni roditelja (okolina ture), umesto visine iz .inv-nearby-map. */
+  fill?: boolean;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
@@ -93,6 +99,22 @@ export default function ProjectNearbyMap({
           )
           .addTo(map);
       });
+      if (radiusM) {
+        const ring = circleRing(lat, lng, radiusM);
+        map.on('load', () => {
+          map.addSource('nearby-radius', {
+            type: 'geojson',
+            data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: ring } }
+          });
+          map.addLayer({
+            id: 'nearby-radius',
+            type: 'line',
+            source: 'nearby-radius',
+            paint: { 'line-color': '#1E5AA8', 'line-opacity': 0.45, 'line-width': 1.5, 'line-dasharray': [2, 2] }
+          });
+        });
+      }
+      // Kadar prati mesta (ne krug) - inače su tačke sitne i zbijene u sredini.
       if (places.length) map.fitBounds(bounds, { padding: 40, maxZoom: 16, duration: 0 });
 
       observer = new ResizeObserver(() => map.resize());
@@ -105,7 +127,7 @@ export default function ProjectNearbyMap({
       mapRef.current = null;
       markersRef.current = [];
     };
-  }, [visible, lat, lng, title, places, lang]);
+  }, [visible, lat, lng, title, places, lang, radiusM]);
 
   useEffect(() => {
     if (active === null) return;
@@ -117,5 +139,25 @@ export default function ProjectNearbyMap({
     }
   }, [active]);
 
-  return <div ref={boxRef} className="inv-nearby-map" role="region" aria-label={lang === 'en' ? 'Map of the area' : 'Mapa okoline'} />;
+  return (
+    <div
+      ref={boxRef}
+      className={fill ? undefined : 'inv-nearby-map'}
+      style={fill ? { width: '100%', height: '100%' } : undefined}
+      role="region"
+      aria-label={lang === 'en' ? 'Map of the area' : 'Mapa okoline'}
+    />
+  );
+}
+
+/** Krug poluprečnika r metara oko tačke, kao zatvorena linija (64 tačke). */
+function circleRing(lat: number, lng: number, r: number): [number, number][] {
+  const dLat = r / 111320;
+  const dLng = r / (111320 * Math.cos((lat * Math.PI) / 180));
+  const pts: [number, number][] = [];
+  for (let i = 0; i <= 64; i++) {
+    const a = (i / 64) * 2 * Math.PI;
+    pts.push([lng + dLng * Math.cos(a), lat + dLat * Math.sin(a)]);
+  }
+  return pts;
 }

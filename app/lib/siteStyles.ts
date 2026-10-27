@@ -824,6 +824,24 @@ export const SITE_STYLES = `
   .tour-photo img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;}
   .tour-photo .glass.tag{position:absolute; top:.75rem; left:.75rem;}
   .tour-langs{position:absolute; bottom:.75rem; right:.75rem; display:flex; gap:.3rem;}
+  /* Poređenje (/ture): dugme na slici kartice - 34 px vidljivo, 44 px za prst. */
+  .tour-compare{position:absolute; top:.75rem; right:.75rem; z-index:3; height:34px; padding:0 .75rem; border:none; border-radius:999px; cursor:pointer;
+    display:flex; align-items:center; gap:.35rem; font:700 .8rem/1 var(--font-body); white-space:nowrap;
+    background:rgba(255,255,255,.95); color:var(--ink); box-shadow:0 2px 8px rgba(0,0,0,.2);}
+  .tour-compare::before{content:""; position:absolute; inset:-5px;}
+  .tour-compare[aria-pressed="true"]{background:var(--accent); color:#fff;}
+  .tour-compare:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .compare-tray{position:fixed; left:12px; right:12px; bottom:calc(env(safe-area-inset-bottom, 0px) + 12px); z-index:50; max-width:560px; margin:0 auto;
+    display:flex; align-items:center; gap:.7rem; padding:.6rem .6rem .6rem .75rem; border-radius:18px; background:#14161a; color:#fff;
+    box-shadow:0 12px 30px rgba(0,0,0,.35); font-family:var(--font-body);}
+  .compare-tray__thumbs{display:flex; flex:none;}
+  .compare-tray__thumbs span{width:34px; height:34px; border-radius:10px; border:2px solid #14161a; background:#333 center/cover no-repeat; margin-left:-8px;}
+  .compare-tray__thumbs span:first-child{margin-left:0;}
+  .compare-tray__text{flex:1; min-width:0; font-size:.8rem; line-height:1.3; color:rgba(255,255,255,.8);}
+  .compare-tray__text b{display:block; font-size:.9rem; color:#fff;}
+  .compare-tray__go{flex:none; min-height:44px; padding:0 1rem; border-radius:999px; display:flex; align-items:center; font-weight:700; font-size:.85rem; color:#fff; text-decoration:none;
+    background:linear-gradient(180deg,#3A77C9 0%,#1E5AA8 55%,#1A4F96 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,.3);}
+  .compare-tray-space{height:84px;}
   .tour-body{padding:1.25rem 1.3rem 1.4rem; display:flex; flex-direction:column; gap:.7rem; flex:1;}
   .tour-body h3{font-size:1.1rem; font-weight:700; line-height:1.3; letter-spacing:-0.015em;}
   /* Cena odmah ispod naslova (zato negativan razmak - .tour-body ima gap). */

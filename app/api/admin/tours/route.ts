@@ -10,11 +10,42 @@ import { agencyReportToken } from '@/app/lib/agencyReport';
 import { liveGuideToken } from '@/app/lib/liveGuide';
 import { mobilePanoramaKey } from '@/app/lib/panoramaPreview';
 import { pingIndexNow } from '@/app/lib/indexNow';
+import { fetchNearby, nearbyChange, type NearbyPlace } from '@/app/lib/nearby';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/supabase';
 
 export const dynamic = 'force-dynamic';
 // Izmena odgovora na pitanja prevodi ih modelom na jezike ture (vidi
 // buildFaqUpdate) - to ume da potraje duže od podrazumevanih 10s.
 export const maxDuration = 60;
+
+/**
+ * Okolina ture iz OpenStreetMap-a (migracija 041), isto kao za projekte.
+ * Posle čuvanja ide kroz after(), da admin ne čeka Overpass (ume i do minut);
+ * "Osveži okolinu" je čeka i javlja rezultat.
+ */
+// Rok za OpenStreetMap: funkcija ima maxDuration 60 s, a pre after() su
+// možda već prošli geokodiranje i prevod pitanja.
+const NEARBY_BUDGET_MS = 30_000;
+
+async function fillTourNearby(db: SupabaseClient<Database>, slug: string, lat: number, lng: number): Promise<NearbyPlace[]> {
+  const places = await fetchNearby(lat, lng, { budgetMs: NEARBY_BUDGET_MS });
+  // Upis samo ako je tura i dalje na tim koordinatama - dva brza čuvanja sa
+  // različitom adresom inače mogu da upišu okolinu stare adrese.
+  const { error } = await db
+    .from('tours')
+    .update({ nearby: places, nearby_updated_at: new Date().toISOString() })
+    .eq('slug', slug)
+    .eq('lat', lat)
+    .eq('lng', lng);
+  if (error) throw new Error(error.message);
+  return places;
+}
+
+function fillTourNearbyLater(db: SupabaseClient<Database>, slug: string, lat: number | null, lng: number | null) {
+  if (lat == null || lng == null) return;
+  after(() => fillTourNearby(db, slug, lat, lng).catch((err) => console.error('[api/admin/tours] nearby', err)));
+}
 
 const CATEGORIES = new Set(['rent', 'sale', 'booking']);
 const TOUR_STATUSES = new Set(['active', 'rented', 'sold', 'paused']);
@@ -300,6 +331,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: 'Tura nije kreirana.' }, { status: 500 });
   }
 
+  fillTourNearbyLater(ctx.supabase, slug, newRow.lat, newRow.lng);
   return NextResponse.json({ success: true, slug });
 }
 
@@ -311,6 +343,21 @@ export async function PATCH(req: Request) {
   const slug = typeof body.slug === 'string' ? body.slug : '';
   if (!slug) {
     return NextResponse.json({ success: false, error: 'Nedostaje slug.' }, { status: 400 });
+  }
+
+  // "Osveži okolinu" iz menija "⋯": čeka OpenStreetMap i javlja koliko je mesta.
+  if (body.action === 'nearby-refresh') {
+    const { data: loc } = await ctx.supabase.from('tours').select('lat, lng').eq('slug', slug).maybeSingle();
+    if (loc?.lat == null || loc?.lng == null) {
+      return NextResponse.json({ success: false, error: 'Tura nema adresu na mapi.' }, { status: 400 });
+    }
+    try {
+      const places = await fillTourNearby(ctx.supabase, slug, loc.lat, loc.lng);
+      return NextResponse.json({ success: true, nearby: places, nearby_updated_at: new Date().toISOString() });
+    } catch (err) {
+      console.error('[api/admin/tours] nearby-refresh', err);
+      return NextResponse.json({ success: false, error: 'OpenStreetMap ne odgovara, probajte kasnije.' }, { status: 502 });
+    }
   }
 
   // Prekidač objave se šalje sam, bez ostatka formulara - lista tura ga menja
@@ -412,7 +459,7 @@ export async function PATCH(req: Request) {
   // zabeležena analitika vezani su za njega.
   const { data: current } = await ctx.supabase
     .from('tours')
-    .select('title_i18n, address, city, lat, lng, faq_1_i18n, faq_2_i18n, faq_3_i18n, faq_4_i18n, faq_5_i18n')
+    .select('title_i18n, address, city, lat, lng, nearby, faq_1_i18n, faq_2_i18n, faq_3_i18n, faq_4_i18n, faq_5_i18n')
     .eq('slug', slug)
     .maybeSingle();
 
@@ -436,6 +483,11 @@ export async function PATCH(req: Request) {
     : { lat: current?.lat ?? null, lng: current?.lng ?? null };
 
   const faq = await buildFaqUpdate(body.faq, current as Record<string, unknown> | null, titleI18n);
+  const nearbyPlan = nearbyChange(
+    { lat: current?.lat ?? null, lng: current?.lng ?? null, hasNearby: current?.nearby != null },
+    coords?.lat ?? null,
+    coords?.lng ?? null
+  );
 
   const changes = {
       title,
@@ -462,6 +514,8 @@ export async function PATCH(req: Request) {
       category: CATEGORIES.has(body.category) ? body.category : 'rent',
       nadir_logo: body.nadir_logo !== false,
       ...faq.update,
+      // Nova adresa: okolina starog kraja se briše odmah (nova stiže iz after()).
+      ...(nearbyPlan.clear ? { nearby: null, nearby_updated_at: null } : {}),
       ...facts017(body)
   };
   let { error } = await ctx.supabase.from('tours').update(changes).eq('slug', slug);
@@ -474,6 +528,10 @@ export async function PATCH(req: Request) {
     console.error('[api/admin/tours] update failed:', error.message);
     return NextResponse.json({ success: false, error: 'Izmena nije sačuvana.' }, { status: 500 });
   }
+
+  // Okolina samo kad se lokacija promenila (ili je još nema) - izmena cene ne
+  // sme svaki put da pita OpenStreetMap. Stara je već obrisana gore (nearbyPlan.clear).
+  if (nearbyPlan.refresh) fillTourNearbyLater(ctx.supabase, slug, changes.lat, changes.lng);
 
   refreshPublicPages();
   return NextResponse.json({ success: true, warning: faq.warning });

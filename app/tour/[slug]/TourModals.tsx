@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { streetOnly } from '../../lib/streetOnly';
 import { THEME, btnStyle, FILL_ACCENT, FILL_ACCENT_BG } from './theme';
 import {
@@ -41,6 +41,10 @@ import { useTourAssistant } from './useTourAssistant';
 import { phoneToE164 } from './TourControls';
 import { ViewCone, type ViewReader } from './ViewCone';
 import { formatListingPrice } from '../../lib/listingPrice';
+import { NEARBY_ICONS, NEARBY_LABELS, TOUR_NEARBY_SUMMARY, nearestByCategory, parseNearby, walkMinutes } from '../../lib/nearby';
+import NearbyExplorer from './NearbyExplorer';
+import { useCompare } from '../../lib/useCompare';
+import { compareHref } from '../../lib/compare';
 import { SITE_URL } from '../../lib/site';
 
 /**
@@ -54,6 +58,8 @@ import { SITE_URL } from '../../lib/site';
  */
 
 type Labels = (typeof translations)[Language];
+
+const noopSubscribe = () => () => {};
 
 export type FaqItem = { question: string; answer: string };
 
@@ -216,6 +222,7 @@ export function TourModals({
   getView,
   onShare,
   onRequestViewing,
+  compareEnabled,
   shareCopied
 }: {
   activeModal: ActiveModal;
@@ -240,6 +247,8 @@ export function TourModals({
   onShare: () => void;
   /** Otvara formu "Zakaži razgledanje" - null kad je tura nema (admin, nepoznata tura). */
   onRequestViewing: (() => void) | null;
+  /** Dugme "Dodaj u poređenje" u Info - ne u admin režimu ni tokom razgledanja uživo. */
+  compareEnabled: boolean;
   shareCopied: boolean;
 }) {
   // Admin: postavljanje oznake na skicu tek posle klika na dugme.
@@ -249,6 +258,52 @@ export function TourModals({
   // "Pošaljite sebi link i tlocrt" - najviše jednom po poseti, vidi TourCapture.tsx.
   const captureInPlan = useTourCaptureOffer(tour?.slug, !adminMode && activeModal === 'plan');
   const captureInInfo = useTourCaptureOffer(tour?.slug, !adminMode && activeModal === 'about');
+  // "Istraži okolinu" (prozor Lokacija) - ceo ekran preko ture.
+  const [nearbyOpen, setNearbyOpen] = useState(false);
+  // Poređenje (/ture/uporedi): dugme u prozoru Info. Ne u turi ugrađenoj na
+  // sajt agencije (iframe) - vodilo bi na listu svih tura, i tuđih agencija.
+  const embedded = useSyncExternalStore(
+    noopSubscribe,
+    () => window.self !== window.top,
+    () => true
+  );
+  const compare = useCompare();
+  const [compareFull, setCompareFull] = useState(false);
+  const inCompare = Boolean(tour?.slug && compare.slugs.includes(tour.slug));
+  const compareBtnStyle: React.CSSProperties = {
+    marginTop: '10px',
+    width: '100%',
+    minHeight: '44px',
+    borderRadius: '999px',
+    border: `1.5px solid ${inCompare ? THEME.accent : '#C9D7EC'}`,
+    background: inCompare ? THEME.accentSoft : '#FFFFFF',
+    color: THEME.accent,
+    fontFamily: THEME.fontBody,
+    fontWeight: 700,
+    fontSize: '14px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textDecoration: 'none',
+    cursor: 'pointer'
+  };
+  const compareButton =
+    compareEnabled && !embedded && tour?.slug ? (
+      <>
+        {inCompare ? (
+          <a href={compareHref(compare.slugs)} style={compareBtnStyle}>
+            {t.compareIn.replace('{n}', String(compare.slugs.length))}
+          </a>
+        ) : (
+          <button type="button" style={compareBtnStyle} onClick={() => setCompareFull(compare.toggle(tour.slug).full)}>
+            {t.compareAdd}
+          </button>
+        )}
+        {compareFull && !inCompare && (
+          <p style={{ margin: '6px 4px 0', fontSize: '12.5px', color: THEME.textSecondary, textAlign: 'center' }}>{t.compareFull}</p>
+        )}
+      </>
+    ) : null;
   const { status: captureStatus, send: sendCapture } = useTourCaptureSend(tour?.slug);
   const [captureDismissed, setCaptureDismissed] = useState(false);
   // Asistent u "Pitanja": razgovor živi dok je prozor otvoren.
@@ -342,6 +397,40 @@ export function TourModals({
         return { key: f.key, icon: <FactIcon size={18} />, label: f.label, value: f.value, tone };
       })
   ];
+
+  // Okolina iz OpenStreetMap-a (migracija 041): 4 najčešće vrste u kartici,
+  // a sve na mapi u "Istraži okolinu".
+  const nearbyPlaces = parseNearby(tour?.nearby);
+  const nearest = nearestByCategory(nearbyPlaces);
+  const nearbySummary = TOUR_NEARBY_SUMMARY.filter((c) => nearest[c]);
+  const canExplore = nearbyPlaces.length > 0 && tour?.lat != null && tour?.lng != null;
+  const nearbyCard = canExplore ? (
+    <div style={{ ...BOX, borderRadius: '18px', padding: '12px 14px 14px', marginTop: '10px' }}>
+      <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: THEME.textSecondary, marginBottom: '10px' }}>
+        📍 {t.nearbyTitle}
+      </div>
+      {nearbySummary.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '7px' }}>
+          {nearbySummary.map((c) => (
+            <div key={c} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', borderRadius: '12px', background: '#F3F6FA', fontSize: '13px', minWidth: 0 }}>
+              <span aria-hidden="true" style={{ fontSize: '16px' }}>{NEARBY_ICONS[c]}</span>
+              <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{NEARBY_LABELS[lang][c]}</span>
+              <b style={{ marginLeft: 'auto', fontFamily: THEME.fontDisplay, fontSize: '14px', whiteSpace: 'nowrap' }}>
+                {t.nearbyMin.replace('{n}', String(walkMinutes(nearest[c]!.m)))}
+              </b>
+            </div>
+          ))}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={() => setNearbyOpen(true)}
+        style={{ ...FILL_ACCENT, marginTop: '11px', width: '100%', height: '44px', border: 'none', borderRadius: '999px', color: '#fff', fontWeight: 700, fontSize: '14px', fontFamily: THEME.fontBody, cursor: 'pointer' }}
+      >
+        🧭 {t.nearbyExplore}
+      </button>
+    </div>
+  ) : null;
 
   const empty = (text: string) => (
     <p style={{ textAlign: 'center', color: THEME.textMuted, fontSize: '16px' }}>{text}</p>
@@ -570,8 +659,34 @@ export function TourModals({
                     {city && <FactCard icon={<IconGlobe size={18} />} label={t.cityLabel} value={city} />}
                   </div>
                 )}
+                {nearbyCard}
+              </div>
+            ) : nearbyCard ? (
+              // Bez ugrađene mape, ali sa okolinom: adresa + okolina umesto "nije dostupna".
+              <div>
+                {street && (
+                  <div style={{ ...BOX_STRONG, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Chip><IconPin size={18} /></Chip>
+                    <div style={{ minWidth: 0 }}>
+                      <span style={smallLabel}>{t.addressLabel}</span>
+                      <span style={{ ...bigValue, fontSize: '15px' }}>{[street, city].filter(Boolean).join(', ')}</span>
+                    </div>
+                  </div>
+                )}
+                {nearbyCard}
               </div>
             ) : empty(t.noLocation)
+          )}
+          {nearbyOpen && canExplore && (
+            <NearbyExplorer
+              lat={tour!.lat!}
+              lng={tour!.lng!}
+              address={[street, city].filter(Boolean).join(', ')}
+              places={nearbyPlaces}
+              lang={lang}
+              t={t}
+              onClose={() => setNearbyOpen(false)}
+            />
           )}
 
           {activeModal === 'about' && (
@@ -580,8 +695,10 @@ export function TourModals({
               <div className="k360-about">
                 <style>{'.k360-about{display:grid;gap:12px;align-items:start}@media (min-width: 821px){.k360-about{grid-template-columns:1fr 1fr;grid-template-areas:"hero spec" "desc spec";gap:16px}.k360-about__hero{grid-area:hero}.k360-about__spec{grid-area:spec}.k360-about__desc{grid-area:desc}}'}</style>
                   {/* Glavna kartica: vrsta oglasa, gde je, cena i tri ključna broja. */}
-                  {(price || categoryLabel || locationLine) && (
-                    <div className="k360-about__hero" style={{ borderRadius: '20px', padding: '16px 16px 14px', background: `linear-gradient(135deg, ${THEME.accent} 0%, #2C6FC4 100%)`, color: '#FFFFFF', boxShadow: '0 10px 24px -12px rgba(30, 90, 168, 0.8)' }}>
+                  {(price || categoryLabel || locationLine || compareButton) && (
+                    <div className="k360-about__hero">
+                    {(price || categoryLabel || locationLine) && (
+                    <div style={{ borderRadius: '20px', padding: '16px 16px 14px', background: `linear-gradient(135deg, ${THEME.accent} 0%, #2C6FC4 100%)`, color: '#FFFFFF', boxShadow: '0 10px 24px -12px rgba(30, 90, 168, 0.8)' }}>
                       {categoryLabel && (
                         <span style={{ display: 'block', fontSize: '10.5px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#CFE0F5' }}>{categoryLabel}</span>
                       )}
@@ -612,6 +729,9 @@ export function TourModals({
                           })}
                         </div>
                       )}
+                    </div>
+                    )}
+                    {compareButton}
                     </div>
                   )}
                 {/* Svi ostali podaci u JEDNOJ kartici: naziv levo, vrednost desno. */}

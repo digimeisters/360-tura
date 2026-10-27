@@ -555,7 +555,18 @@ export const translations: Record<Language, Record<string, string>> = {
     liveFailedTitle: 'Veza nije uspela',
     liveEndText: 'Tura ostaje otvorena, pa slobodno nastavite da gledate sami.',
     liveContinue: 'Nastavi razgledanje',
-    liveAgentFallback: 'Agent'
+    liveAgentFallback: 'Agent',
+    // Okolina i poređenje
+    nearbyTitle: 'U blizini · peške',
+    nearbyExplore: 'Istraži okolinu',
+    nearbyAreaTitle: 'Okolina',
+    nearbyAll: 'Sve',
+    nearbyMin: '{n} min',
+    nearbyM: '{m} m',
+    nearbySource: 'Podaci: © OpenStreetMap saradnici. Minuti su vazdušnom linijom, okvirno.',
+    compareAdd: '⇄ Dodaj u poređenje',
+    compareIn: '✓ U poređenju · Otvori ({n})',
+    compareFull: 'Najviše 4 nekretnine – uklonite jednu na stranici poređenja.'
   },
   en: {
     secBasics: 'Key facts',
@@ -706,7 +717,18 @@ export const translations: Record<Language, Record<string, string>> = {
     liveFailedTitle: 'Could not connect',
     liveEndText: 'The tour stays open, so feel free to keep looking on your own.',
     liveContinue: 'Keep exploring',
-    liveAgentFallback: 'Agent'
+    liveAgentFallback: 'Agent',
+    // Okolina i poređenje
+    nearbyTitle: 'Nearby · on foot',
+    nearbyExplore: 'Explore the area',
+    nearbyAreaTitle: 'The area',
+    nearbyAll: 'All',
+    nearbyMin: '{n} min',
+    nearbyM: '{m} m',
+    nearbySource: 'Data: © OpenStreetMap contributors. Minutes are approximate, in a straight line.',
+    compareAdd: '⇄ Add to comparison',
+    compareIn: '✓ In comparison · Open ({n})',
+    compareFull: 'Up to 4 properties – remove one on the comparison page.'
   },
   de: {
     secBasics: 'Eckdaten',
@@ -857,7 +879,18 @@ export const translations: Record<Language, Record<string, string>> = {
     liveFailedTitle: 'Verbindung fehlgeschlagen',
     liveEndText: 'Die Tour bleibt geöffnet - schauen Sie sich gerne selbst weiter um.',
     liveContinue: 'Weiter ansehen',
-    liveAgentFallback: 'Makler'
+    liveAgentFallback: 'Makler',
+    // Okolina i poređenje
+    nearbyTitle: 'In der Nähe · zu Fuß',
+    nearbyExplore: 'Umgebung erkunden',
+    nearbyAreaTitle: 'Umgebung',
+    nearbyAll: 'Alle',
+    nearbyMin: '{n} Min.',
+    nearbyM: '{m} m',
+    nearbySource: 'Daten: © OpenStreetMap-Mitwirkende. Minuten ungefähr, Luftlinie.',
+    compareAdd: '⇄ Zum Vergleich hinzufügen',
+    compareIn: '✓ Im Vergleich · Öffnen ({n})',
+    compareFull: 'Höchstens 4 Immobilien – entfernen Sie eine auf der Vergleichsseite.'
   },
   ru: {
     secBasics: 'Основные данные',
@@ -1008,7 +1041,18 @@ export const translations: Record<Language, Record<string, string>> = {
     liveFailedTitle: 'Не удалось подключиться',
     liveEndText: 'Тур остаётся открытым - можете продолжить осмотр сами.',
     liveContinue: 'Продолжить осмотр',
-    liveAgentFallback: 'Агент'
+    liveAgentFallback: 'Агент',
+    // Okolina i poređenje
+    nearbyTitle: 'Рядом · пешком',
+    nearbyExplore: 'Исследовать район',
+    nearbyAreaTitle: 'Окрестности',
+    nearbyAll: 'Все',
+    nearbyMin: '{n} мин',
+    nearbyM: '{m} м',
+    nearbySource: 'Данные: © участники OpenStreetMap. Минуты примерные, по прямой.',
+    compareAdd: '⇄ Добавить к сравнению',
+    compareIn: '✓ В сравнении · Открыть ({n})',
+    compareFull: 'Не более 4 объектов – удалите один на странице сравнения.'
   }
 };
 

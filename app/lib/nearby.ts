@@ -15,7 +15,8 @@ export type NearbyPlace = { cat: NearbyCategory; name: string; lat: number; lng:
 
 export const NEARBY_CATEGORIES: NearbyCategory[] = ['school', 'kindergarten', 'shop', 'pharmacy', 'health', 'bus', 'park'];
 
-export const NEARBY_LABELS: Record<'sr' | 'en', Record<NearbyCategory, string>> = {
+// de i ru su za ture (tura ima 4 jezika); novogradnja koristi sr i en.
+export const NEARBY_LABELS: Record<'sr' | 'en' | 'de' | 'ru', Record<NearbyCategory, string>> = {
   sr: {
     school: 'Škola',
     kindergarten: 'Vrtić',
@@ -33,8 +34,54 @@ export const NEARBY_LABELS: Record<'sr' | 'en', Record<NearbyCategory, string>> 
     health: 'Health centre',
     bus: 'Bus stop',
     park: 'Park'
+  },
+  de: {
+    school: 'Schule',
+    kindergarten: 'Kindergarten',
+    shop: 'Geschäft',
+    pharmacy: 'Apotheke',
+    health: 'Gesundheitszentrum',
+    bus: 'Bushaltestelle',
+    park: 'Park'
+  },
+  ru: {
+    school: 'Школа',
+    kindergarten: 'Детский сад',
+    shop: 'Магазин',
+    pharmacy: 'Аптека',
+    health: 'Поликлиника',
+    bus: 'Автобус',
+    park: 'Парк'
   }
 };
+
+/** Vrste na kartici „Lokacija“ u turi - ono što kupci najčešće pitaju. */
+export const TOUR_NEARBY_SUMMARY: NearbyCategory[] = ['shop', 'bus', 'school', 'pharmacy'];
+
+/**
+ * Šta posle čuvanja ture: `refresh` = pitati OpenStreetMap (nova lokacija ili
+ * okoline još nema), `clear` = obrisati staru okolinu odmah, da kupac ne vidi
+ * prodavnice iz starog kraja ako Overpass ne odgovori.
+ */
+export function nearbyChange(
+  prev: { lat: number | null; lng: number | null; hasNearby: boolean },
+  lat: number | null,
+  lng: number | null
+): { refresh: boolean; clear: boolean } {
+  const moved = prev.lat !== lat || prev.lng !== lng;
+  const located = lat != null && lng != null;
+  return { refresh: located && (moved || !prev.hasNearby), clear: moved && prev.hasNearby };
+}
+
+/** Najbliže mesto po vrsti (za kratak pregled; vrsta bez mesta izostaje). */
+export function nearestByCategory(places: NearbyPlace[]): Partial<Record<NearbyCategory, NearbyPlace>> {
+  const out: Partial<Record<NearbyCategory, NearbyPlace>> = {};
+  for (const p of places) {
+    const cur = out[p.cat];
+    if (!cur || p.m < cur.m) out[p.cat] = p;
+  }
+  return out;
+}
 
 export const NEARBY_ICONS: Record<NearbyCategory, string> = {
   school: '🏫',
@@ -65,6 +112,9 @@ const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter'
 ];
 const PER_CATEGORY = 3;
+const PER_ENDPOINT_MS = 18_000;
+// Server koji ne stiže bar ovoliko vremena se ni ne pita.
+const MIN_ENDPOINT_MS = 4_000;
 
 /** Minuti hoda (≈80 m u minuti), najmanje 1. */
 export const walkMinutes = (m: number) => Math.max(1, Math.round(m / 80));
@@ -115,8 +165,12 @@ type OverpassElement ={ lat?: number; lon?: number; center?: { lat: number; lon:
  * Najbliža mesta po kategoriji (do PER_CATEGORY). Bez imena se zadržavaju
  * samo stajališta i parkovi (tada piše samo kategorija) - neimenovana škola
  * ili prodavnica u OSM-u je obično greška u podacima.
+ *
+ * `budgetMs`: ukupan rok za sve servere zajedno (ture: funkcija ima ograničeno
+ * vreme). Bez njega svaki server dobija po PER_ENDPOINT_MS, kao do sada.
  */
-export async function fetchNearby(lat: number, lng: number): Promise<NearbyPlace[]> {
+export async function fetchNearby(lat: number, lng: number, opts: { budgetMs?: number } = {}): Promise<NearbyPlace[]> {
+  const deadline = opts.budgetMs ? Date.now() + opts.budgetMs : Infinity;
   const around = `(around:${RADIUS_M},${lat},${lng})`;
   const query = `[out:json][timeout:25];
 (
@@ -132,6 +186,11 @@ out center tags;`;
   let json: { elements?: OverpassElement[] } | null = null;
   let lastError = '';
   for (const endpoint of OVERPASS_ENDPOINTS) {
+    const left = deadline - Date.now();
+    if (left < MIN_ENDPOINT_MS) {
+      lastError = lastError || 'rok istekao';
+      break;
+    }
     try {
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -140,7 +199,7 @@ out center tags;`;
           'User-Agent': 'Kvadrat360/1.0 (https://kvadrat360.com; info@kvadrat360.com)'
         },
         body: `data=${encodeURIComponent(query)}`,
-        signal: AbortSignal.timeout(18_000)
+        signal: AbortSignal.timeout(Math.min(PER_ENDPOINT_MS, left))
       });
       if (!res.ok) {
         lastError = `${endpoint} ${res.status}`;
