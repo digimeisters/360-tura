@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --test",
     "db:types": "node scripts/gen-db-types.mjs",
     "prices:refresh": "node scripts/refresh-valuation-prices.mjs",
     "indexnow": "node scripts/indexnow-submit.mjs"

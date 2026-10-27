@@ -58,6 +58,8 @@ type TourRow = {
   faq_5_i18n?: unknown;
   rooms: number;
   roomsWithPanorama: number;
+  /** Agentov link za razgledanje uživo (/tour/<slug>?agent=<token>), pravi ga server. */
+  liveGuidePath: string;
 };
 
 const STATUS_LABELS: Record<TourRow['status'], string> = {
@@ -237,6 +239,7 @@ export default function ToursAdminPage() {
     else if (action === 'video') setVideoSlug(tour.slug);
     else if (action === 'snapshot') setSnapshotSlug(tour.slug);
     else if (action === 'embed') void copyEmbedCode(tour);
+    else if (action === 'live') void copyLiveGuideLink(tour);
     else if (action === 'delete') void deleteTour(tour);
   };
 
@@ -364,6 +367,16 @@ export default function ToursAdminPage() {
     // Meni "⋯" se zatvara na klik, pa potvrda stoji iznad liste.
     setNotice(`Kod za sajt je kopiran (${pickTitle(tour)}).`);
     setTimeout(() => setCopiedEmbedSlug((cur) => (cur === tour.slug ? null : cur)), 1800);
+  };
+
+  const copyLiveGuideLink = async (tour: TourRow) => {
+    const url = window.location.origin + tour.liveGuidePath;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      window.prompt('Link za vođenje uživo (Ctrl+C, pa Enter):', url);
+    }
+    setNotice(`Link za vođenje uživo je kopiran (${pickTitle(tour)}). Pošaljite ga agentu - samo on treba da ga ima.`);
   };
 
   const startEdit = (tour: TourRow) => {

@@ -11,7 +11,7 @@ import { FORM, formBtnStyle } from '../../lib/formTheme';
  */
 
 type PropertyStatus = 'active' | 'rented' | 'sold' | 'paused';
-export type TourRowAction = 'content' | 'plan' | 'intro' | 'send' | 'qr' | 'video' | 'snapshot' | 'embed' | 'delete';
+export type TourRowAction = 'content' | 'plan' | 'intro' | 'send' | 'live' | 'qr' | 'video' | 'snapshot' | 'embed' | 'delete';
 
 const MENU_WIDTH = 230;
 // Visina menija je stalna (isti spisak stavki); dovoljno tačno za odluku dole/gore.
@@ -144,6 +144,7 @@ export default function TourRowMenu({
 
           <Group label="Deljenje" />
           <Item onClick={() => act('send')}>✉ Pošalji klijentu</Item>
+          <Item onClick={() => act('live')}>📡 Link za vođenje uživo</Item>
           <Item onClick={() => act('qr')}>▦ QR kod</Item>
           <Item onClick={() => act('video')} disabled={noPanorama}>🎬 Video</Item>
           <Item onClick={() => act('snapshot')} disabled={noPanorama}>📷 Snimak (slike)</Item>

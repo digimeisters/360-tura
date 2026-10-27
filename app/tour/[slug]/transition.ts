@@ -37,6 +37,16 @@ export const INFO_HFOV: HfovPair = { mobile: 50, desktop: 70 };
 export const scaledHfov = (mobile: number) =>
   isWideScreen() ? Math.round((mobile * DEFAULT_HFOV.desktop) / DEFAULT_HFOV.mobile) : mobile;
 
+/**
+ * Razgledanje uživo: zum ide kanalom u "telefonskoj" meri, da agent na
+ * računaru i kupac na telefonu vide isti kadar (100 na računaru = 65 na
+ * telefonu, kao DEFAULT_HFOV). Bez zaokruživanja - praćenje je glatko.
+ */
+export const hfovToMobile = (hfov: number) =>
+  isWideScreen() ? (hfov * DEFAULT_HFOV.mobile) / DEFAULT_HFOV.desktop : hfov;
+export const hfovFromMobile = (mobile: number) =>
+  isWideScreen() ? (mobile * DEFAULT_HFOV.desktop) / DEFAULT_HFOV.mobile : mobile;
+
 /** Okret i približavanje ka tački. */
 export const WALK_MS = 2500;
 /**

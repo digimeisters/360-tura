@@ -7,6 +7,7 @@ import { r2Client } from '@/app/lib/r2';
 import { geocodeAddress } from '@/app/lib/geocode';
 import { translateTexts, type TargetLang } from '@/app/lib/translateTexts';
 import { agencyReportToken } from '@/app/lib/agencyReport';
+import { liveGuideToken } from '@/app/lib/liveGuide';
 import { mobilePanoramaKey } from '@/app/lib/panoramaPreview';
 import { pingIndexNow } from '@/app/lib/indexNow';
 
@@ -223,7 +224,9 @@ export async function GET(req: Request) {
     tours: (tours ?? []).map((tour) => ({
       ...tour,
       rooms: roomCount.get(tour.slug)?.total ?? 0,
-      roomsWithPanorama: roomCount.get(tour.slug)?.withPanorama ?? 0
+      roomsWithPanorama: roomCount.get(tour.slug)?.withPanorama ?? 0,
+      // Agentov link za razgledanje uživo (lib/liveGuide.ts).
+      liveGuidePath: `/tour/${tour.slug}?agent=${liveGuideToken(tour.slug)}`
     })),
     agencyReports
   });

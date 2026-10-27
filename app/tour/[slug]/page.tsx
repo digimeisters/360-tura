@@ -22,6 +22,7 @@ import { TourModals } from './TourModals';
 import { AdminLoginModal, HotspotForm } from './TourAdminPanels';
 import { useTourData } from './useTourData';
 import { useAdminSession } from './useAdminSession';
+import { useLiveViewing } from './live/useLiveViewing';
 import { useHotspotEditor, type RefreshHotspots } from './useHotspotEditor';
 import { useRoomNavigation } from './useRoomNavigation';
 import { runRoomSequence } from './roomSequence';
@@ -342,6 +343,37 @@ export default function TourPage() {
     resumeAfterMute
   });
 
+  // Razgledanje uživo (?agent= / ?uzivo=) - sve je u live/, ovde samo spoj.
+  const live = useLiveViewing({
+    slug,
+    tour,
+    lang,
+    t,
+    rooms,
+    roomIdx,
+    viewerRef,
+    walkToRoom,
+    changeRoomById,
+    sceneReadyRef,
+    walkingRef,
+    tourStarted,
+    startTour,
+    adminMode,
+    coverUrl: pickCoverRoom(rooms)?.preview_url ?? null,
+    tourTitle: getLocalizedText(tour?.title_i18n, lang)
+  });
+  // Efekat sobe i klik na tačku su napravljeni ranije, pa čitaju kroz ref.
+  const liveBlocksRef = useRef(false);
+  const liveAnnounceWalkRef = useRef(live.announceWalk);
+  useEffect(() => {
+    liveBlocksRef.current = live.blocksAutoplay;
+    liveAnnounceWalkRef.current = live.announceWalk;
+  }, [live.blocksAutoplay, live.announceWalk]);
+  // Kupac koji prati agenta: žiroskop bi se borio sa agentovim pogledom.
+  useEffect(() => {
+    if (live.viewerFollowing && isGyroActive) toggleGyroscope();
+  }, [live.viewerFollowing, isGyroActive, toggleGyroscope]);
+
   useEffect(() => {
     externalPauseRef.current = () => {
       if (guideModeRef.current === 'auto') {
@@ -385,6 +417,7 @@ export default function TourPage() {
         if (adminModeRef.current) {
           handleStartEditWaypoint(index);
         } else if (isNav && wp.targetRoomId) {
+          liveAnnounceWalkRef.current(index);
           walkToRoom(wp);
         } else if (!isNav) {
           // Otvorena kartica "Ovakvu turu..." ustupa mesto opisu tačke.
@@ -639,7 +672,8 @@ export default function TourPage() {
     } else {
       setRoomLoading(true);
     }
-    sequenceActiveRef.current = true;
+    // Tokom razgledanja uživo nema glasa sobe ni animacije kamere - govori i vodi agent.
+    sequenceActiveRef.current = !liveBlocksRef.current;
     isInterruptedRef.current = false;
     setIsInfoboxManuallyClosed(false);
     setInfoBoxData(null);
@@ -937,7 +971,7 @@ export default function TourPage() {
     }, 1100);
   };
   const withIntro = (start: () => void) => () => {
-    if (!introAudioUrl || adminMode) return start();
+    if (!introAudioUrl || adminMode || live.blocksAutoplay) return start();
     // Audio se pravi i pušta u samom kliku - Safari inače ne pusti zvuk.
     const audio = new Audio(introAudioUrl);
     setIntro({ audio, start });
@@ -1071,7 +1105,7 @@ export default function TourPage() {
     <main style={{ position: 'relative', width: '100vw', height: '100dvh', backgroundColor: THEME.bg, overflow: 'hidden', fontFamily: THEME.fontBody }}>
       <TourGlobalStyles />
 
-      {!tourStarted && (
+      {!tourStarted && !live.skipWelcome && (
         <WelcomeScreen
           coverUrl={welcomeCoverUrl}
           agencyName={tour?.agency_name ?? null}
@@ -1085,7 +1119,8 @@ export default function TourPage() {
           // CTA. Organski posetilac sa turom koja ima putanju vodiča ("hoću
           // li sam da hodam ili da me neko vodi") dobija pravi izbor.
           guideChoice={
-            hasGuide && !guideRequested
+            // Agent (razgledanje uživo) vodi sam - automatski vodič se ne nudi.
+            hasGuide && !guideRequested && !live.blocksAutoplay
               ? {
                   guidedLabel: t.startGuidedTour,
                   guidedHint: t.startGuidedTourHint,
@@ -1187,12 +1222,14 @@ export default function TourPage() {
               />
             </div>
 
+            {live.topBar}
+
           <OverlayButtons
             isFullscreen={isFullscreen}
             canFullscreen={canFullscreen}
             onToggleFullscreen={toggleFullscreen}
             isGyroActive={isGyroActive}
-            canGyro={canGyro}
+            canGyro={canGyro && !live.viewerFollowing}
             onToggleGyroscope={toggleGyroscope}
             gyroLabels={{ on: t.gyroOn, off: t.gyroOff }}
             fullscreenLabels={{ on: t.fullscreenOn, off: t.fullscreenOff }}
@@ -1205,6 +1242,7 @@ export default function TourPage() {
             isGuidePaused={isGuidePaused}
             onTogglePauseGuide={togglePauseGuide}
           />
+          {live.sideButton}
           </div>
 
           {tour?.floorplan_url && !pendingCoords && (
@@ -1398,6 +1436,8 @@ export default function TourPage() {
           onClose={() => setShowViewing(false)}
         />
       )}
+
+      {live.ui}
     </main>
   );
 }
