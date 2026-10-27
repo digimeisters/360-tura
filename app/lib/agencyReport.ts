@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { fetchAllRows } from './fetchAllRows';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
+import { buildRoomHeat, type HeatRoom, type RoomHeat } from './roomHeat';
 
 /**
  * Mesečni izveštaj za agenciju (strana /izvestaj/[token]). SAMO SERVER.
@@ -19,7 +20,6 @@ import type { Database } from '@/types/supabase';
 
 const TOKEN_SIG_LENGTH = 24;
 const MAX_EVENTS = 50_000;
-const TOP_ROOMS = 3;
 // Jedno gledanje prostorije se računa najviše ovoliko: ostavljen otvoren tab
 // (tura u pozadini dok čovek radi nešto drugo) bi inače pokazao "120 min u
 // kupatilu" i razvukao prosek. Pet minuta je daleko iznad stvarnog gledanja.
@@ -126,8 +126,10 @@ export type TourReport = {
   enterRate: number;
   /** Prosečno vreme u turi po posetiocu koji je ušao, u sekundama. */
   avgSeconds: number;
-  /** Najgledanije prostorije, po ukupnom vremenu. */
-  topRooms: { title: string; avgSeconds: number }[];
+  /** Toplotna mapa po prostorijama (null kad je premalo posetilaca). */
+  heat: RoomHeat | null;
+  /** Tlocrt na koji se crta toplotna mapa (tačke soba su u % slike). */
+  floorplanUrl: string | null;
   /** Posetioci koji su turu gledali na stranom jeziku. */
   foreignVisitors: number;
   contactClicks: number;
@@ -184,6 +186,7 @@ type EventRow = {
   room_id: string | null;
   duration_ms: number | null;
   lang: string | null;
+  created_at: string;
 };
 
 async function readMonth(
@@ -197,7 +200,7 @@ async function readMonth(
       (a, b) =>
         supabase
           .from('tour_events')
-          .select('tour_slug, event_type, session_id, room_id, duration_ms, lang')
+          .select('tour_slug, event_type, session_id, room_id, duration_ms, lang, created_at')
           .in('tour_slug', slugs)
           .gte('created_at', from)
           .lt('created_at', to)
@@ -226,7 +229,7 @@ export async function buildAgencyReport(agency: string, month: MonthKey): Promis
 
   const { data: tours } = await supabase
     .from('tours')
-    .select('slug, title, title_i18n, status, published, created_at')
+    .select('slug, title, title_i18n, status, published, created_at, floorplan_url')
     .eq('agency_name', agency)
     .order('created_at', { ascending: true });
 
@@ -234,19 +237,30 @@ export async function buildAgencyReport(agency: string, month: MonthKey): Promis
   const slugs = tours.map((t) => t.slug);
 
   const [{ data: rooms }, current, previous] = await Promise.all([
-    supabase.from('rooms').select('id, title, title_i18n').in('tour_slug', slugs),
+    supabase.from('rooms').select('id, tour_slug, title, title_i18n, floorplan_x, floorplan_y, order_index').in('tour_slug', slugs),
     readMonth(supabase, slugs, month),
     readMonth(supabase, slugs, shiftMonth(month, -1))
   ]);
 
-  const roomTitles = new Map((rooms ?? []).map((r) => [String(r.id), pickSr(r.title_i18n, r.title)]));
+  const heatRooms = new Map<string, HeatRoom[]>();
+  for (const r of rooms ?? []) {
+    if (!r.tour_slug) continue;
+    const list = heatRooms.get(r.tour_slug) ?? [];
+    list.push({
+      id: String(r.id),
+      title: pickSr(r.title_i18n, r.title) || 'Prostorija',
+      x: r.floorplan_x,
+      y: r.floorplan_y,
+      order: r.order_index
+    });
+    heatRooms.set(r.tour_slug, list);
+  }
 
   const tourReports: TourReport[] = tours.map((tour) => {
     const rows = current.events.filter((e) => e.tour_slug === tour.slug);
     const sessions = new Set<string>();
     const entered = new Set<string>();
     const foreign = new Set<string>();
-    const roomTime = new Map<string, { ms: number; views: number }>();
     let totalMs = 0;
     let contactClicks = 0;
     let shares = 0;
@@ -258,12 +272,7 @@ export async function buildAgencyReport(agency: string, month: MonthKey): Promis
       else if (e.event_type === 'contact') contactClicks++;
       else if (e.event_type === 'share') shares++;
       else if (e.event_type === 'room_view' && e.room_id) {
-        const ms = Math.min(Math.max(e.duration_ms ?? 0, 0), ROOM_VIEW_CAP_MS);
-        totalMs += ms;
-        const r = roomTime.get(e.room_id) ?? { ms: 0, views: 0 };
-        r.ms += ms;
-        r.views++;
-        roomTime.set(e.room_id, r);
+        totalMs += Math.min(Math.max(e.duration_ms ?? 0, 0), ROOM_VIEW_CAP_MS);
       }
     }
 
@@ -276,10 +285,12 @@ export async function buildAgencyReport(agency: string, month: MonthKey): Promis
       entered: entered.size,
       enterRate: sessions.size ? Math.round((entered.size / sessions.size) * 100) : 0,
       avgSeconds: entered.size ? Math.round(totalMs / entered.size / 1000) : 0,
-      topRooms: [...roomTime.entries()]
-        .sort((a, b) => b[1].ms - a[1].ms)
-        .slice(0, TOP_ROOMS)
-        .map(([id, r]) => ({ title: roomTitles.get(id) || 'Prostorija', avgSeconds: Math.round(r.ms / r.views / 1000) })),
+      heat: buildRoomHeat(
+        rows.filter((e) => e.event_type === 'room_view'),
+        heatRooms.get(tour.slug) ?? [],
+        ROOM_VIEW_CAP_MS
+      ),
+      floorplanUrl: tour.floorplan_url,
       foreignVisitors: foreign.size,
       contactClicks,
       shares,

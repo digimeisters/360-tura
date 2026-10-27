@@ -12,6 +12,7 @@ import {
   type AgencyReport,
   type TourReport
 } from '../../lib/agencyReport';
+import type { HeatInsight, RoomHeat } from '../../lib/roomHeat';
 import { PrintButton } from './PrintButton';
 
 /**
@@ -59,6 +60,116 @@ function Change({ now, before, prevLabel }: { now: number; before: number | unde
       {pct > 0 ? '+' : ''}
       {pct}% u odnosu na {prevLabel}
     </span>
+  );
+}
+
+// Boja mrlje: malo pogledano (svetlo žuto) → svi pogledali (crveno).
+const HEAT_STOPS: [number, number, number][] = [
+  [253, 233, 168],
+  [245, 158, 11],
+  [220, 38, 38]
+];
+
+function heatColor(pct: number): string {
+  const p = Math.min(Math.max(pct, 0), 100) / 100;
+  const [a, b, k] = p < 0.5 ? [HEAT_STOPS[0], HEAT_STOPS[1], p * 2] : [HEAT_STOPS[1], HEAT_STOPS[2], (p - 0.5) * 2];
+  return a.map((v, i) => Math.round(v + (b[i] - v) * k)).join(',');
+}
+
+function insightText(i: HeatInsight): React.ReactNode {
+  if (i.kind === 'hidden-gem') {
+    return (
+      <>
+        <b>
+          {i.room}: vidi je samo {i.seenPct}% kupaca
+        </b>
+        , a oni koji je vide obično ostanu {formatDuration(i.typicalSeconds)}. Vredi je pokazati ranije u turi ili na
+        naslovnoj slici.
+      </>
+    );
+  }
+  return (
+    <>
+      <b>{i.exitPct}% kupaca zatvori turu već u prvoj prostoriji</b> ({i.room}). Jači prvi kadar ili druga početna
+      prostorija može da ih zadrži duže.
+    </>
+  );
+}
+
+/** "Kako kupci gledaju turu": tlocrt sa mrljama, tabela prostorija i zaključci. */
+function RoomHeatSection({ heat, floorplanUrl }: { heat: RoomHeat; floorplanUrl: string | null }) {
+  const spots = heat.rows.filter((r) => r.x !== null && r.y !== null && r.seenPct > 0);
+  return (
+    <section className="rep-heat">
+      <div className="rep-heat-head">
+        <h4>Kako kupci gledaju turu</h4>
+        <span className="rep-heat-legend">
+          malo <i aria-hidden="true" /> svi pogledali
+        </span>
+      </div>
+      {heat.insights.map((i) => (
+        <p key={i.kind} className="rep-insight">
+          {insightText(i)}
+        </p>
+      ))}
+      <div className={`rep-heat-body${floorplanUrl && spots.length ? '' : ' no-plan'}`}>
+        {floorplanUrl && spots.length > 0 && (
+          <div className="rep-plan">
+            {/* eslint-disable-next-line @next/next/no-img-element -- SVG tlocrt sa CDN-a, tačke su u % ove slike */}
+            <img src={floorplanUrl} alt="Tlocrt" />
+            {spots.map((r) => {
+              const c = heatColor(r.seenPct);
+              return (
+                <div
+                  key={r.id}
+                  className="rep-spot"
+                  style={{
+                    left: `${r.x}%`,
+                    top: `${r.y}%`,
+                    width: `${8 + r.seenPct * 0.09}%`,
+                    background: `radial-gradient(circle, rgba(${c},.85) 0%, rgba(${c},.55) 45%, rgba(${c},0) 72%)`
+                  }}
+                >
+                  <b>{r.seenPct}%</b>
+                  {r.id === heat.exitRoomId && <em>↩ ovde odustaje {r.exitPct}%</em>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <table className="rep-heat-table">
+          <thead>
+            <tr>
+              <th scope="col">Prostorija</th>
+              <th scope="col">Pogledalo</th>
+              <th scope="col">Prosečno</th>
+              <th scope="col">Izašli tu</th>
+            </tr>
+          </thead>
+          <tbody>
+            {heat.rows.map((r) => (
+              <tr key={r.id}>
+                <td>
+                  {r.title}
+                  <span className="rep-bar" aria-hidden="true">
+                    <i style={{ width: `${r.seenPct}%`, background: `rgb(${heatColor(r.seenPct)})` }} />
+                  </span>
+                </td>
+                <td>
+                  <b>{r.seenPct}%</b>
+                </td>
+                <td>{formatDuration(r.avgSeconds)}</td>
+                <td className={r.id === heat.exitRoomId ? 'exit' : undefined}>{r.exitPct}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="rep-heat-foot">
+        Na osnovu {heat.viewers} kupaca za koje imamo podatke o prostorijama. „Pogledalo“ je deo njih koji je otvorio
+        prostoriju, a „Izašli tu“ deo koji je baš tu zatvorio turu.
+      </p>
+    </section>
   );
 }
 
@@ -121,17 +232,7 @@ function TourCard({ tour }: { tour: TourReport }) {
               <dd>{tour.shares}</dd>
             </div>
           </dl>
-          {tour.topRooms.length > 0 && (
-            <p className="rep-rooms">
-              <span>Najduže gledano:</span>{' '}
-              {tour.topRooms.map((r, i) => (
-                <span key={r.title + i}>
-                  {i > 0 && ' · '}
-                  {r.title} <small>({formatDuration(r.avgSeconds)})</small>
-                </span>
-              ))}
-            </p>
-          )}
+          {tour.heat && <RoomHeatSection heat={tour.heat} floorplanUrl={tour.floorplanUrl} />}
         </>
       )}
     </article>
@@ -242,9 +343,30 @@ const STYLES = `
   .rep-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px 16px;margin:12px 0 0;}
   .rep-stats dt{font-size:12px;color:#5B5D63;}
   .rep-stats dd{margin:2px 0 0;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;}
-  .rep-stats small,.rep-rooms small{font-size:12px;font-weight:600;color:#8C8E93;}
-  .rep-rooms{margin:12px 0 0;font-size:13.5px;color:#111113;}
-  .rep-rooms > span:first-child{color:#5B5D63;}
+  .rep-stats small{font-size:12px;font-weight:600;color:#8C8E93;}
+  .rep-heat{margin-top:16px;padding-top:14px;border-top:1px solid #E4E4DE;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .rep-heat-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  .rep-heat-head h4{margin:0;font-family:var(--font-display);font-size:16px;}
+  .rep-heat-legend{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#5B5D63;}
+  .rep-heat-legend i{display:block;width:80px;height:8px;border-radius:99px;background:linear-gradient(90deg,#FDE9A8,#F59E0B,#DC2626);}
+  .rep-insight{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:#EEF4FC;font-size:13.5px;line-height:1.5;}
+  .rep-insight b{color:#1E5AA8;}
+  .rep-heat-body{display:grid;grid-template-columns:1fr;gap:14px;margin-top:12px;align-items:start;}
+  @media (min-width:720px){.rep-heat-body:not(.no-plan){grid-template-columns:1.05fr 1fr;}}
+  .rep-plan{position:relative;border:1px solid #E4E4DE;border-radius:12px;overflow:hidden;background:#fff;}
+  .rep-plan img{display:block;width:100%;height:auto;}
+  .rep-spot{position:absolute;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;}
+  .rep-spot b{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--font-display);font-weight:800;font-size:12px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.45);white-space:nowrap;}
+  .rep-spot em{position:absolute;left:50%;top:calc(50% + 11px);transform:translateX(-50%);font-style:normal;font-weight:700;font-size:10px;color:#fff;background:#111113;border-radius:99px;padding:1px 6px;white-space:nowrap;}
+  .rep-heat-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .rep-heat-table th{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8C8E93;text-align:right;padding:0 6px 6px;}
+  .rep-heat-table th:first-child,.rep-heat-table td:first-child{text-align:left;}
+  .rep-heat-table td{padding:7px 6px;border-top:1px solid #F0F0EA;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .rep-heat-table td:first-child{white-space:normal;}
+  .rep-heat-table td.exit{color:#b45309;font-weight:700;}
+  .rep-bar{display:block;position:relative;height:6px;border-radius:99px;background:#F1F1EC;margin-top:4px;}
+  .rep-bar i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;}
+  .rep-heat-foot{margin:10px 0 0;font-size:12px;line-height:1.5;color:#5B5D63;}
   .rep-foot{margin-top:28px;font-size:12.5px;line-height:1.55;color:#5B5D63;}
   .rep-foot p{margin:0 0 6px;}
   @media print{
