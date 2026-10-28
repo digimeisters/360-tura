@@ -1,5 +1,5 @@
 import { formatListingPrice } from '../listingPrice';
-import { COLORS, SANS, accentSpan, buttons, e, emailLayout, row } from './shell';
+import { COLORS, SANS, accentSpan, buttons, e, emailLayout, propertyCard, roomsLabel, row } from './shell';
 
 /**
  * Mejl agentu kad posetilac ture zakaže razgledanje (/api/viewing-request).
@@ -43,14 +43,7 @@ export function viewingRequestEmail(req: ViewingRequestEmail): { subject: string
   ].filter(Boolean);
   const priceHtml = price ? ` · <b style="color:${COLORS.ink};">${e(price.amount)}</b>${price.unit ? ` ${e(price.unit.replace('/ ', ''))}` : ''}` : '';
 
-  const property = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${COLORS.line};border-radius:14px;"><tr>
-  ${req.coverUrl ? `<td width="132" class="stack stack-gap" style="padding:10px;"><a href="${e(req.tourUrl)}"><img src="${e(req.coverUrl)}" width="120" height="84" alt="" style="display:block;width:120px;height:84px;object-fit:cover;border-radius:10px;border:0;"></a></td>` : ''}
-  <td class="stack" style="padding:10px 14px 10px ${req.coverUrl ? '4px' : '14px'};font-family:${SANS};">
-    <p style="margin:0;font-size:16px;font-weight:700;color:${COLORS.ink};line-height:1.3;">${e(req.title)}</p>
-    <p style="margin:4px 0 0;font-size:14px;color:${COLORS.soft};">${e(meta.join(' · ') || '360° tura')}${priceHtml}</p>
-    <p style="margin:6px 0 0;font-size:14px;"><a href="${e(req.tourUrl)}" style="font-weight:700;text-decoration:none;color:${COLORS.blue};">Otvori turu</a></p>
-  </td>
-</tr></table>`;
+  const property = propertyCard({ tourUrl: req.tourUrl, coverUrl: req.coverUrl, title: req.title, metaHtml: `${e(meta.join(' · ') || '360° tura')}${priceHtml}` });
 
   const factRow = (label: string, value: string, last = false) =>
     `<tr><td style="padding:10px 0;border-top:1px solid ${COLORS.line};${last ? `border-bottom:1px solid ${COLORS.line};` : ''}color:${COLORS.soft};width:38%;vertical-align:top;">${label}</td><td style="padding:10px 0;border-top:1px solid ${COLORS.line};${last ? `border-bottom:1px solid ${COLORS.line};` : ''}font-weight:700;color:${COLORS.ink};">${value}</td></tr>`;
@@ -104,12 +97,4 @@ ${req.message ? `<p style="margin:16px 0 0;padding:14px 16px;background:${COLORS
   ].join('\n');
 
   return { subject: `Razgledanje: ${req.title} - ${req.name}`, html, text };
-}
-
-/** "1 prostorija", "3 prostorije", "10 prostorija". */
-function roomsLabel(n: number): string {
-  const last = n % 10;
-  const lastTwo = n % 100;
-  const few = last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14);
-  return `${n} ${few ? 'prostorije' : 'prostorija'}`;
 }

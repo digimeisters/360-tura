@@ -30,6 +30,14 @@ export const COLORS = {
 export const SANS = 'Urbanist,Arial,Helvetica,sans-serif';
 const SERIF = 'Newsreader,Georgia,serif';
 
+/** "1 prostorija", "3 prostorije", "10 prostorija". */
+export function roomsLabel(n: number): string {
+  const last = n % 10;
+  const lastTwo = n % 100;
+  const few = last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14);
+  return `${n} ${few ? 'prostorije' : 'prostorija'}`;
+}
+
 /** Plava naglašena fraza u naslovu (kao em na sajtu), nikad prelomljena. */
 export function accentSpan(text: string): string {
   return `<span style="font-family:${SERIF};font-style:italic;font-weight:500;color:${COLORS.blue};white-space:nowrap;">${e(text)}</span>`;
@@ -42,6 +50,18 @@ export function buttons(primary: { href: string; label: string }, secondary?: { 
     ? `<td width="10"></td><td style="border:1.5px solid ${COLORS.lineStrong};border-radius:999px;"><a href="${e(secondary.href)}" style="display:inline-block;padding:12.5px 22px;font-family:${SANS};font-size:16px;font-weight:700;color:${COLORS.ink};text-decoration:none;">${e(secondary.label)}</a></td>`
     : '';
   return `<table role="presentation" cellpadding="0" cellspacing="0"><tr>${first}${second}</tr></table>`;
+}
+
+/** Nekretnina kao kartica ture: mala slika levo, naziv, podaci i "Otvori turu". */
+export function propertyCard(p: { tourUrl: string; coverUrl: string | null; title: string; /** Već escape-ovan HTML. */ metaHtml: string }): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${COLORS.line};border-radius:14px;"><tr>
+  ${p.coverUrl ? `<td width="132" class="stack stack-gap" style="padding:10px;"><a href="${e(p.tourUrl)}"><img src="${e(p.coverUrl)}" width="120" height="84" alt="" style="display:block;width:120px;height:84px;object-fit:cover;border-radius:10px;border:0;"></a></td>` : ''}
+  <td class="stack" style="padding:10px 14px 10px ${p.coverUrl ? '4px' : '14px'};font-family:${SANS};">
+    <p style="margin:0;font-size:16px;font-weight:700;color:${COLORS.ink};line-height:1.3;">${e(p.title)}</p>
+    <p style="margin:4px 0 0;font-size:14px;color:${COLORS.soft};">${p.metaHtml}</p>
+    <p style="margin:6px 0 0;font-size:14px;"><a href="${e(p.tourUrl)}" style="font-weight:700;text-decoration:none;color:${COLORS.blue};">Otvori turu</a></p>
+  </td>
+</tr></table>`;
 }
 
 /** Jedan red tabele sa unutrašnjim razmakom kartice. */

@@ -22,6 +22,8 @@ export const dynamic = 'force-dynamic';
  */
 
 const PLAN_NAME = 'floorplan-schematic';
+// PNG plana od 1200px je ~60-150 KB; granica čuva rutu od ogromnog tela.
+const MAX_PNG_BASE64 = 2_000_000;
 
 function pickSr(value: unknown, fallback: string | null): string {
   let parsed = value;
@@ -145,9 +147,23 @@ export async function POST(req: Request) {
 
   const { svg, bounds } = renderFloorplanSvg(layout);
   const version = Date.now();
+  // PNG istog plana, nacrtan u editoru (lib/floorplanImage.ts, mejl posetiocu).
+  const png = typeof body?.png === 'string' && body.png.length <= MAX_PNG_BASE64 ? body.png : '';
 
   try {
     await Promise.all([
+      ...(png
+        ? [
+            r2Client.send(
+              new PutObjectCommand({
+                Bucket: bucket,
+                Key: `${slug}/${PLAN_NAME}.png`,
+                Body: Buffer.from(png, 'base64'),
+                ContentType: 'image/png'
+              })
+            )
+          ]
+        : []),
       r2Client.send(
         new PutObjectCommand({ Bucket: bucket, Key: `${slug}/${PLAN_NAME}.svg`, Body: svg, ContentType: 'image/svg+xml' })
       ),

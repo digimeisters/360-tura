@@ -5,7 +5,11 @@ import { escapeHtml, sendTelegramMessage } from '@/app/lib/telegram';
 import { looksLikeEmail, sendEmail } from '@/app/lib/email';
 import { rateLimit, tooManyRequests } from '@/app/lib/rateLimit';
 import { overDailyBudget } from '@/app/lib/dailyBudget';
-import { SITE_URL } from '@/app/lib/site';
+import { CONTACT, SITE_URL } from '@/app/lib/site';
+import { getShowcaseTours } from '@/app/lib/showcaseTours';
+import { fetchFloorplanImage } from '@/app/lib/floorplanImage';
+import { tourContactEmail, type TourContactEmail } from '@/app/lib/emails/tourContact';
+import { visitorLinkPlanEmail } from '@/app/lib/emails/visitorLinkPlan';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +24,9 @@ export const dynamic = 'force-dynamic';
  *
  * Upis ide u istu tabelu kao "Zakaži razgledanje" (contact_requests,
  * source = "tour-capture:<slug>"), agent dobija email (ako ga ima), vlasnik
- * Telegram kopiju. Javna ruta, isto ograničenje kao ostale forme ture.
+ * Telegram kopiju. Ako je kontakt mejl adresa, posetilac odmah dobija link i
+ * tlocrt (emails/visitorLinkPlan.ts); za broj telefona link šalje agent.
+ * Javna ruta, isto ograničenje kao ostale forme ture.
  */
 
 const RATE_LIMIT = 8;
@@ -88,7 +94,7 @@ export async function POST(req: Request) {
 
   const { data: tour } = await supabase
     .from('tours')
-    .select('slug, title, title_i18n, category, agency_name, agent_name, agent_email, published, status')
+    .select('slug, title, title_i18n, category, agency_name, agent_name, agent_email, agent_phone, floorplan_url, published, status')
     .eq('slug', slug)
     .maybeSingle();
 
@@ -120,18 +126,62 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: 'save' }, { status: 500 });
   }
 
+  const contactIsEmail = looksLikeEmail(contact);
+  // Naslov, slika, sobe i tlocrt ture na jeziku posetioca (isti izvor kao sajt).
+  const shown = (await getShowcaseTours(lang).catch(() => null))?.find((t) => t.slug === slug) ?? null;
+
+  // Posetilac koji je ostavio mejl dobija link i tlocrt odmah (visitorLinkPlan.ts).
+  // Preko dnevne granice ne - adresu je mogao da upiše bilo ko.
+  let visitorEmailed = false;
+  let visitorStatus = '';
+  if (contactIsEmail) {
+    if (await overDailyBudget('visitorEmail')) {
+      visitorStatus = '⚠️ Mejl posetiocu NIJE poslat - dnevna granica (moguća zloupotreba).';
+    } else {
+      const plan = await fetchFloorplanImage(tour.floorplan_url, slug);
+      const visitor = visitorLinkPlanEmail({
+        lang,
+        title: shown?.title || title,
+        tourUrl,
+        coverUrl: shown?.coverUrl ?? null,
+        roomCount: shown?.roomCount ?? 0,
+        planImageUrl: plan?.url ?? null,
+        planIsSchematic: Boolean(tour.floorplan_url?.includes('/floorplan-schematic.')),
+        agentName: tour.agent_name,
+        agency: tour.agency_name,
+        agentPhone: tour.agent_phone
+      });
+      const sent = await sendEmail({
+        to: contact,
+        ...visitor,
+        // Odgovor posetioca ide agentu, a bez agentovog mejla na info@.
+        replyTo: looksLikeEmail(tour.agent_email) ? tour.agent_email.trim() : CONTACT.email,
+        attachments: plan ? [{ filename: plan.filename, content: plan.base64 }] : undefined
+      });
+      visitorEmailed = sent.ok;
+      visitorStatus = sent.ok
+        ? `📨 Posetiocu je poslat link${plan ? ' i tlocrt' : ''}.`
+        : '📨 Mejl posetiocu nije prošao - agent mu šalje link.';
+    }
+  }
+
   // Preko dnevne granice kontakt ostaje u bazi i na Telegramu, bez mejla agentu.
   const emailStatus = (await overDailyBudget('agentEmail'))
     ? '⚠️ Mejl agentu NIJE poslat - dnevna granica mejlova (moguća zloupotreba). Proslediti ručno ako je pravi kontakt.'
-    : await emailAgent({
-    to: tour.agent_email,
-    agentName: tour.agent_name,
-    title,
-    tourUrl,
-    contact,
-    whereLabel,
-    lang
-  });
+    : await emailAgent(tour.agent_email, {
+        agentName: tour.agent_name,
+        title,
+        tourUrl,
+        coverUrl: shown?.coverUrl ?? null,
+        areaSqm: shown?.areaSqm ?? null,
+        roomCount: shown?.roomCount ?? 0,
+        contact,
+        contactIsEmail,
+        where,
+        lang,
+        visitorEmailed,
+        hasPlan: Boolean(tour.floorplan_url)
+      });
 
   const lines = [
     '📩 <b>Ostavljen kontakt u turi</b>',
@@ -142,58 +192,21 @@ export async function POST(req: Request) {
     ...(lang !== 'sr' ? [`🌐 Posetilac je gledao turu na ${LANG_NAMES[lang] ?? lang} - odgovoriti na tom jeziku`] : []),
     '',
     `Agent: ${escapeHtml([tour.agent_name, tour.agency_name].filter(Boolean).join(' · ') || '—')}`,
-    emailStatus
+    emailStatus,
+    ...(visitorStatus ? [visitorStatus] : [])
   ];
   await sendTelegramMessage(lines.join('\n'));
 
-  return NextResponse.json({ success: true });
+  // `emailed` kaže turi koju poruku da prikaže: "poslali smo vam" ili "agent će vam poslati".
+  return NextResponse.json({ success: true, emailed: visitorEmailed });
 }
 
-/** Email agentu, kraća verzija od /api/viewing-request (bez termina). */
-async function emailAgent(req: {
-  to: string | null;
-  agentName: string | null;
-  title: string;
-  tourUrl: string;
-  contact: string;
-  whereLabel: string;
-  lang: string;
-}): Promise<string> {
-  if (!looksLikeEmail(req.to)) return '📧 Agent nema email u turi - prosledite mu kontakt.';
+/** Mejl agentu (emails/tourContact.ts); vraća red za Telegram. */
+async function emailAgent(to: string | null, data: TourContactEmail): Promise<string> {
+  if (!looksLikeEmail(to)) return '📧 Agent nema email u turi - prosledite mu kontakt.';
 
-  const langText = req.lang !== 'sr' ? `Posetilac je gledao turu na ${LANG_NAMES[req.lang] ?? req.lang} - odgovorite na tom jeziku.` : '';
-  const greeting = req.agentName ? `Zdravo, ${req.agentName}!` : 'Zdravo!';
-  const e = escapeHtml;
-
-  const text = [
-    greeting,
-    `Posetilac je ostavio kontakt u ${req.whereLabel}: ${req.title}`,
-    '',
-    `Kontakt: ${req.contact}`,
-    ...(langText ? [langText] : []),
-    '',
-    `Tura: ${req.tourUrl}`,
-    '',
-    'Kvadrat360'
-  ].join('\n');
-
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#0f172a;max-width:520px">
-  <p style="margin:0 0 12px">${e(greeting)}</p>
-  <p style="margin:0 0 4px;color:#1E5AA8;font-weight:700;letter-spacing:.04em;font-size:12px">OSTAVLJEN KONTAKT U TURI</p>
-  <h2 style="margin:0 0 16px;font-size:20px"><a href="${e(req.tourUrl)}" style="color:#0f172a">${e(req.title)}</a></h2>
-  <p style="margin:0 0 4px"><b>${e(req.contact)}</b></p>
-  <p style="margin:0 0 4px;color:#64748b;font-size:13px">Ostavljeno u: ${e(req.whereLabel)}</p>
-  ${langText ? `<p style="margin:8px 0 0">${e(langText)}</p>` : ''}
-  <p style="margin:20px 0 0;font-size:13px;color:#64748b">Posetilac nije tražio termin - samo je ostavio kontakt da sačuva link i tlocrt. Javite mu se kad vam odgovara.</p>
-</div>`;
-
-  const result = await sendEmail({
-    to: req.to.trim(),
-    subject: `Kontakt iz ture: ${req.title}`,
-    html,
-    text
-  });
-  if (result.ok) return `📧 Email je poslat agentu (${escapeHtml(req.to.trim())}).`;
+  const result = await sendEmail({ to: to.trim(), ...tourContactEmail(data) });
+  if (result.ok) return `📧 Email je poslat agentu (${escapeHtml(to.trim())}).`;
   return result.reason === 'not-configured'
     ? '📧 Email agentu nije podešen (RESEND_API_KEY) - prosledite mu kontakt.'
     : '📧 Email agentu nije prošao - prosledite mu kontakt.';

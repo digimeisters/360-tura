@@ -1,4 +1,4 @@
-import { COLORS, SANS, accentSpan, buttons, e, emailLayout, row } from './shell';
+import { COLORS, SANS, accentSpan, buttons, e, emailLayout, roomsLabel, row } from './shell';
 
 /**
  * Mejl "Vaša tura je gotova" - šalje se iz admina dugmetom "Pošalji
@@ -25,13 +25,6 @@ export type TourReadyEmail = {
   /** QR kod ide u prilogu mejla. */
   qrAttached: boolean;
 };
-
-function roomsLabel(n: number): string {
-  const last = n % 10;
-  const lastTwo = n % 100;
-  const few = last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14);
-  return `${n} ${few ? 'prostorije' : 'prostorija'}`;
-}
 
 export function tourReadyEmail(t: TourReadyEmail): { subject: string; html: string; text: string } {
   const greeting = t.name ? `Zdravo, ${t.name}!` : 'Zdravo!';

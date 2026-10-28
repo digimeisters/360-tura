@@ -13,6 +13,7 @@ import {
   layoutBounds,
   markerPoints,
   renderFloorplanBody,
+  renderFloorplanSvg,
   type FloorplanLayout,
   type PlanShape
 } from '../../../lib/floorplanLayout';
@@ -71,6 +72,26 @@ function viewBoxFor(layout: FloorplanLayout) {
   const b = layoutBounds(layout);
   const m = 90;
   return { x: b.x - m, y: b.y - m, w: b.w + 2 * m, h: b.h + 2 * m };
+}
+
+// Širina PNG-a za mejl: oštar na telefonu sa gustim ekranom, a mali prilog.
+const PLAN_PNG_WIDTH = 1200;
+
+/** Isti SVG koji server čuva, nacrtan u PNG (base64, bez "data:" prefiksa). */
+async function planPngBase64(layout: FloorplanLayout): Promise<string> {
+  const { svg, width, height } = renderFloorplanSvg(layout);
+  const img = new Image();
+  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  await img.decode();
+  const canvas = document.createElement('canvas');
+  canvas.width = PLAN_PNG_WIDTH;
+  canvas.height = Math.round((PLAN_PNG_WIDTH * height) / width);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas nije dostupan.');
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/png').replace(/^data:image\/png;base64,/, '');
 }
 
 export default function FloorplanEditorPage() {
@@ -374,10 +395,13 @@ export default function FloorplanEditorPage() {
     setSaving(true);
     setMessage(null);
     try {
+      // PNG za mejl posetiocu (Gmail ne prikazuje SVG). Pravi se ovde jer
+      // pregledač ima fontove za nazive soba, a server na Vercelu nema.
+      const png = await planPngBase64(layout).catch(() => '');
       const res = await fetch('/api/admin/floorplan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
-        body: JSON.stringify({ slug, layout, replaceCustom })
+        body: JSON.stringify({ slug, layout, replaceCustom, png })
       });
       const json = await res.json().catch(() => null);
       if (res.status === 409 && json?.needsConfirm) {

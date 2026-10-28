@@ -15,7 +15,9 @@ export const DAILY_LIMITS = {
   /** Pitanja AI pomoćniku u turi (Gemini). */
   tourAssistant: 300,
   /** Mejlovi agentu iz ture: zahtev za razgledanje i ostavljen kontakt (Resend). */
-  agentEmail: 50
+  agentEmail: 50,
+  /** Mejl "Link i tlocrt" posetiocu ture - adresu može da upiše bilo ko (Resend). */
+  visitorEmail: 50
 } as const;
 
 export async function overDailyBudget(route: keyof typeof DAILY_LIMITS): Promise<boolean> {

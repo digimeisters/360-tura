@@ -5,7 +5,8 @@ import { THEME, FILL_ACCENT } from './theme';
 import { IconMail, IconCheck } from './icons';
 
 export type CaptureWhere = 'plan' | 'info' | 'exit';
-export type CaptureStatus = 'idle' | 'sending' | 'sent' | 'error';
+// 'sent' = posetilac je dobio mejl; 'sentAgent' = ostavio je broj (ili mejl nije prošao), link šalje agent.
+export type CaptureStatus = 'idle' | 'sending' | 'sent' | 'sentAgent' | 'error';
 
 /**
  * "Pošaljite sebi link i tlocrt": niskog praga ponuda da posetilac ostavi
@@ -46,10 +47,10 @@ export function TourCaptureCard({
   onDismiss: () => void;
 }) {
   const [value, setValue] = useState('');
-  if (status === 'sent') {
+  if (status === 'sent' || status === 'sentAgent') {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: THEME.success, fontSize: '13px', fontWeight: 700, padding: '10px 2px' }}>
-        <IconCheck size={16} color={THEME.success} /> {t.captureSent}
+        <IconCheck size={16} color={THEME.success} /> {status === 'sent' ? t.captureSent : t.captureSentAgent}
       </div>
     );
   }
@@ -122,10 +123,10 @@ export function TourCaptureExitField({
   onSend: (value: string) => void;
 }) {
   const [value, setValue] = useState('');
-  if (status === 'sent') {
+  if (status === 'sent' || status === 'sentAgent') {
     return (
       <p style={{ margin: '0 0 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', color: THEME.success, fontSize: '13px', fontWeight: 700 }}>
-        <IconCheck size={15} color={THEME.success} /> {t.captureSent}
+        <IconCheck size={15} color={THEME.success} /> {status === 'sent' ? t.captureSent : t.captureSentAgent}
       </p>
     );
   }
@@ -209,7 +210,7 @@ export function useTourCaptureSend(slug: string | undefined) {
         body: JSON.stringify({ slug, contact: value, where, lang })
       });
       const json = await res.json().catch(() => null);
-      setStatus(json?.success ? 'sent' : 'error');
+      setStatus(!json?.success ? 'error' : json.emailed ? 'sent' : 'sentAgent');
     } catch {
       setStatus('error');
     }
