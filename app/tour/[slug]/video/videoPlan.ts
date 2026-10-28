@@ -5,7 +5,6 @@ import { toSubtitleCues } from '../subtitleCues';
 import { formatListingPrice } from '../../../lib/listingPrice';
 import { SITE_URL } from '../../../lib/site';
 import { phoneToE164 } from '../TourControls';
-import { ROTATE_RAMP_MS } from '../transition';
 import { chipsFor } from '../introChips';
 
 /**
@@ -41,31 +40,18 @@ export const OUTRO_S = 3.6;
 export const MAP_MIN_S = 6;
 const MAP_AFTER_VOICE_S = 0.8;
 /**
- * Kadar sobe u videu kreće od pogleda koji tura ima posle ovoliko sekundi
- * uvodne priče (vlasnik, 1. 10. 2026: početni kadar sobe mu nije odgovarao,
- * "neka bude na četvrtoj sekundi naracije"; šesta je probana i odbijena, ostaje četvrta).
+ * Kadar sobe u videu kreće iz početnog kadra sobe u turi (establish: smer i
+ * nagib) - vlasnik, 28. 10. 2026: "u turi je postavljen najbolji početni
+ * kadar". Ranije (1. 10.) je kretao od pogleda posle 4 s naracije.
  */
-export const KEY_NARRATION_S = 4;
-/**
- * Kruženje ture za vreme uvodne priče (roomSequence.ts: 250° za 15 s, kreće
- * od mirovanja i ubrzava ROTATE_RAMP_MS). Mora da prati turu, inače kadar u
- * videu ne bi bio isti kao u turi.
- */
-const TOUR_ROTATE_DEG_PER_S = 250 / 15;
 /**
  * Video klizi mirnije od ture (16,7°/s) - ovoliko stepeni u sekundi, u istom
  * smeru. Bilo 10; vlasnik je tražio "za nijansu brže".
  */
 const VIDEO_PAN_DEG_PER_S = 13;
 
-/** Za koliko stepeni se tura okrenula posle `seconds` sekundi priče. */
-function tourRotationAfter(seconds: number): number {
-  const ramp = ROTATE_RAMP_MS / 1000;
-  const v = TOUR_ROTATE_DEG_PER_S;
-  // Brzina raste kao 1-(1-k)^2 tokom ubrzavanja: put je v*(s^2/r - s^3/(3r^2)).
-  if (seconds <= ramp) return v * (seconds ** 2 / ramp - seconds ** 3 / (3 * ramp ** 2));
-  return v * ((2 * ramp) / 3 + (seconds - ramp));
-}
+/** Meko kretanje kamere: pola ravnomerno, pola sa usporenjem na krajevima (ne staje skroz, jer se sobe pretapaju). */
+export const softPan = (p: number) => 0.55 * p + 0.45 * p * p * (3 - 2 * p);
 
 /** Sa sobama od 6 s: najviše 6, da video ostane oko 45 s (granica pažnje za Reels). */
 export const MAX_ROOMS = 6;
@@ -82,6 +68,8 @@ export type VideoRoomShot = {
   /** Kamera klizi od fromYaw do toYaw (stepeni), zum od fromHfov do toHfov. */
   fromYaw: number;
   toYaw: number;
+  /** Nagib kamere iz početnog kadra sobe u turi. */
+  pitch: number;
   start: number;
   end: number;
   /** Položaj sobe na tlocrtu ture (procenat); null = soba nije obeležena. */
@@ -312,12 +300,12 @@ export function buildVideoPlan(
     // Posle mape kreće tek kad se mapa pretapa.
     const start = i === 0 ? (map ? introEnd - FADE_S : 0) : cursor - FADE_S;
     const duration = i === 0 && !map ? INTRO_S + ROOM_S - FADE_S : ROOM_S;
-    // Kadar u trenutku kad se soba prvi put vidi = pogled ture posle
-    // KEY_NARRATION_S sekundi priče (tura kruži smanjujući yaw). Prva soba se
-    // vidi tek kad se skloni uvodna kartica, pa do tada već klizi ka tom kadru.
-    const keyYaw = center - tourRotationAfter(KEY_NARRATION_S);
+    // Kadar u trenutku kad se soba prvi put vidi = početni kadar sobe u turi.
+    // Prva soba bez mape se vidi tek kad se skloni uvodna kartica, pa do tada
+    // već klizi ka tom kadru (softPan, isto kao videoFrame).
     const visibleAfter = i === 0 && !map ? INTRO_S - start : 0;
-    const fromYaw = keyYaw + VIDEO_PAN_DEG_PER_S * visibleAfter;
+    const span = VIDEO_PAN_DEG_PER_S * duration;
+    const fromYaw = center + span * softPan(visibleAfter / duration);
     shots.push({
       roomId: String(room.id),
       title: getLocalizedText(room.title_i18n, lang),
@@ -326,7 +314,8 @@ export function buildVideoPlan(
       // Isti smer kao kruženje u turi (Pannellum autoRotate smanjuje yaw) -
       // vlasnik, 1. 10. 2026: u prvoj verziji je video išao na suprotnu stranu.
       fromYaw,
-      toYaw: fromYaw - VIDEO_PAN_DEG_PER_S * duration,
+      toYaw: fromYaw - span,
+      pitch: establish.pitch ?? 0,
       start,
       end: start + duration,
       planX: typeof room.floorplan_x === 'number' ? room.floorplan_x : null,

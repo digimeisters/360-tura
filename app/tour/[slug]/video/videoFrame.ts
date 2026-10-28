@@ -1,4 +1,4 @@
-import { FADE_S, VIDEO_HEIGHT, VIDEO_WIDTH, type VideoPlan, type VideoRoomShot } from './videoPlan';
+import { FADE_S, softPan, VIDEO_HEIGHT, VIDEO_WIDTH, type VideoPlan, type VideoRoomShot } from './videoPlan';
 import type { PanoRenderer } from './panoRenderer';
 
 /** Mapa za početak videa (videoMap.ts) - platno za tekući kadar i tačka nekretnine. */
@@ -25,8 +25,6 @@ const HFOV_TO = 58;
 
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 const easeOut = (x: number) => 1 - (1 - x) * (1 - x);
-/** Meko kretanje kamere: pola ravnomerno, pola sa usporenjem na krajevima (ne staje skroz, jer se sobe pretapaju). */
-const softPan = (p: number) => 0.55 * p + 0.45 * p * p * (3 - 2 * p);
 /** Mali tlocrt gore desno: najveća širina i visina (px na 1080x1920). Vodoravni tlocrti su česti, pa je širina veća. */
 const PLAN_MAX_W = 340;
 const PLAN_MAX_H = 300;
@@ -107,7 +105,7 @@ export class VideoFrameRenderer {
     const p = clamp01((t - shot.start) / (shot.end - shot.start));
     return {
       yaw: shot.fromYaw + (shot.toYaw - shot.fromYaw) * softPan(p),
-      pitch: 0,
+      pitch: shot.pitch,
       hfov: HFOV_FROM + (HFOV_TO - HFOV_FROM) * p,
       alpha: 1
     };
@@ -259,7 +257,7 @@ export class VideoFrameRenderer {
     const { intro } = this.plan;
     const shot = this.plan.rooms[this.plan.coverIndex] ?? this.plan.rooms[0];
     if (shot) {
-      this.pano.render([{ url: shot.panoramaUrl, view: { yaw: shot.fromYaw, pitch: 0, hfov: 62, alpha: 1 } }]);
+      this.pano.render([{ url: shot.panoramaUrl, view: { yaw: shot.fromYaw, pitch: shot.pitch, hfov: 62, alpha: 1 } }]);
       ctx.drawImage(this.pano.canvas, 0, 0, W, H);
     } else {
       ctx.fillStyle = CARD_BG;
