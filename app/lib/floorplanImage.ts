@@ -8,6 +8,8 @@
  * sačuvani pre PNG-a ga nemaju) i imamo bajtove za prilog.
  */
 
+import type { PlanLang } from './floorplanLayout.ts';
+
 const MAX_BYTES = 3_000_000;
 const RASTER = /\.(png|jpe?g|webp)(\?|$)/i;
 
@@ -19,15 +21,37 @@ export type FloorplanImage = {
   filename: string;
 };
 
+const SCHEMATIC = '/floorplan-schematic.svg';
+const suffix = (lang: PlanLang) => (lang === 'sr' ? '' : `.${lang}`);
+
+/**
+ * Tlocrt na jeziku posetioca: šematski plan ima kopiju po jeziku ture
+ * (floorplan-schematic.en.svg...). Srpski i pravi tlocrt (slika) - isti URL.
+ * Stari planovi nemaju kopije; prikaz zato mora da padne na srpski.
+ */
+export function floorplanUrlFor(url: string | null | undefined, lang: PlanLang): string | null {
+  if (!url) return null;
+  return url.includes(SCHEMATIC) ? url.replace(SCHEMATIC, `/floorplan-schematic${suffix(lang)}.svg`) : url;
+}
+
 /** URL slike koju mejl može da prikaže, ili null (SVG bez PNG blizanca). */
-export function floorplanImageUrl(floorplanUrl: string | null | undefined): string | null {
+export function floorplanImageUrl(floorplanUrl: string | null | undefined, lang: PlanLang = 'sr'): string | null {
   if (!floorplanUrl) return null;
-  if (floorplanUrl.includes('/floorplan-schematic.svg')) return floorplanUrl.replace('/floorplan-schematic.svg', '/floorplan-schematic.png');
+  if (floorplanUrl.includes(SCHEMATIC)) return floorplanUrl.replace(SCHEMATIC, `/floorplan-schematic${suffix(lang)}.png`);
   return RASTER.test(floorplanUrl) ? floorplanUrl : null;
 }
 
-export async function fetchFloorplanImage(floorplanUrl: string | null | undefined, slug: string): Promise<FloorplanImage | null> {
-  const url = floorplanImageUrl(floorplanUrl);
+/** Slika tlocrta za mejl na jeziku posetioca; ako je nema - srpska. */
+export async function fetchFloorplanImage(
+  floorplanUrl: string | null | undefined,
+  slug: string,
+  lang: PlanLang = 'sr'
+): Promise<FloorplanImage | null> {
+  const own = lang !== 'sr' ? await fetchImage(floorplanImageUrl(floorplanUrl, lang), slug) : null;
+  return own ?? fetchImage(floorplanImageUrl(floorplanUrl), slug);
+}
+
+async function fetchImage(url: string | null, slug: string): Promise<FloorplanImage | null> {
   if (!url) return null;
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(4000) });

@@ -24,7 +24,7 @@
  * je uvek isti za iste ulaze (pretraga koristi seme iz ID-jeva soba).
  */
 
-import { PLAN_MIN_SHARED, sharedWall, type FloorplanLayout } from './floorplanLayout';
+import { PLAN_MIN_SHARED, sharedWall, type FloorplanLayout, type PlanDoor } from './floorplanLayout.ts';
 
 export type SchematicRoomInput = {
   id: string;
@@ -57,6 +57,21 @@ function kindOf(title: string): Kind {
 /** "Hodnik 1/2" -> "Hodnik": više snimaka iste prostorije nosi isti natpis. */
 function baseLabel(title: string): string {
   return title.replace(/\s*\d+\s*\/\s*\d+\s*$/, '').trim() || title;
+}
+
+const LIVING = /dnevn|boravak|living|wohn|гостин/i;
+const KITCHEN = /kuhinj|trpezar|kitchen|dining|küche|кухн/i;
+
+/**
+ * Vrata iz nacrta: obična vrata na sredini zida koja se otvaraju u manju
+ * prostoriju; između dnevne i kuhinje/trpezarije samo prolaz.
+ */
+function draftDoor(a: Space, b: Space, groupId: (key: string) => string): PlanDoor {
+  const ga = groupId(a.key);
+  const gb = groupId(b.key);
+  const openPlan = (LIVING.test(a.label) && KITCHEN.test(b.label)) || (LIVING.test(b.label) && KITCHEN.test(a.label));
+  if (openPlan) return { a: ga, b: gb, kind: 'opening' };
+  return { a: ga, b: gb, kind: 'door', at: 0.5, into: a.weight <= b.weight ? ga : gb, hinge: 'start' };
 }
 
 // ---------------------------------------------------------------------------
@@ -337,7 +352,7 @@ export function buildSchematicLayout(rooms: SchematicRoomInput[]): FloorplanLayo
     // Vrata: povezane prostorije koje u nacrtu dele dovoljno dug zid.
     doors: emb.links
       .filter(([a, b]) => (sharedWall(best.get(a)!, best.get(b)!)?.length ?? 0) >= PLAN_MIN_SHARED)
-      .map(([a, b]) => [groupId(a), groupId(b)] as [string, string]),
+      .map(([a, b]) => draftDoor(spaces.find((s) => s.key === a)!, spaces.find((s) => s.key === b)!, groupId)),
     rooms: rooms.map((r) => ({ roomId: r.id, group: groupId(spaceOf.get(r.id)!) }))
   };
 }

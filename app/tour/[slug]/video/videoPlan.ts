@@ -4,6 +4,7 @@ import { parseGuidePath, resolveGuidePath } from '../guidePath';
 import { toSubtitleCues } from '../subtitleCues';
 import { formatListingPrice } from '../../../lib/listingPrice';
 import { SITE_URL } from '../../../lib/site';
+import { floorplanUrlFor } from '../../../lib/floorplanImage';
 import { phoneToE164 } from '../TourControls';
 import { chipsFor } from '../introChips';
 
@@ -46,9 +47,9 @@ const MAP_AFTER_VOICE_S = 0.8;
  */
 /**
  * Video klizi mirnije od ture (16,7°/s) - ovoliko stepeni u sekundi, u istom
- * smeru. Bilo 10; vlasnik je tražio "za nijansu brže".
+ * smeru. Bilo 10, pa 13 ("za nijansu brže"); 28. 10. 2026 još 20% brže.
  */
-const VIDEO_PAN_DEG_PER_S = 13;
+const VIDEO_PAN_DEG_PER_S = 15.6;
 
 /** Meko kretanje kamere: pola ravnomerno, pola sa usporenjem na krajevima (ne staje skroz, jer se sobe pretapaju). */
 export const softPan = (p: number) => 0.55 * p + 0.45 * p * p * (3 - 2 * p);
@@ -94,8 +95,10 @@ export type VideoPlan = {
   voice: { url: string; seconds: number } | null;
   /** Logo agencije (agency_branding, migracija 027) za uvodnu i završnu karticu; null = samo naziv. */
   agencyLogoUrl: string | null;
-  /** Tlocrt ture za mali prikaz u uglu ("ovde ste"); null = tura nema tlocrt ili bar dve obeležene sobe. */
+  /** Tlocrt ture za mali prikaz u uglu ("ovde ste"), na jeziku videa; null = tura nema tlocrt ili bar dve obeležene sobe. */
   floorplanUrl: string | null;
+  /** Srpski tlocrt - rezerva kad plan nema kopiju na jeziku videa (sačuvan pre 28. 10. 2026). */
+  floorplanFallbackUrl: string | null;
   /** Soba za naslovnu sliku (indeks u rooms). */
   coverIndex: number;
   intro: {
@@ -329,7 +332,8 @@ export function buildVideoPlan(
   list.forEach((room, i) => {
     if (roomWeight(room) > roomWeight(list[coverIndex])) coverIndex = i;
   });
-  const floorplanUrl = tour.floorplan_url && marked >= 2 ? tour.floorplan_url : null;
+  const floorplanFallbackUrl = tour.floorplan_url && marked >= 2 ? tour.floorplan_url : null;
+  const floorplanUrl = floorplanUrlFor(floorplanFallbackUrl, lang);
 
   const outroStart = Math.max(introEnd, cursor - FADE_S);
   const url = `${SITE_URL}/tour/${tour.slug}`;
@@ -342,6 +346,7 @@ export function buildVideoPlan(
     voice,
     agencyLogoUrl: tour.agency_logo_url || null,
     floorplanUrl,
+    floorplanFallbackUrl,
     coverIndex,
     intro: {
       agency: tour.agency_name?.trim() || 'Kvadrat360',

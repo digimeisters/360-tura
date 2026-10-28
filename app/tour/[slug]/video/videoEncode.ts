@@ -132,8 +132,13 @@ export async function renderTourVideo(
 
     // Tlocrt za prikaz u uglu. Posebna adresa (?video): tura ga prikazuje kao
     // običnu sliku, pa bi pregledač vratio sačuvan odgovor bez CORS-a.
+    const forVideo = (url: string) => `${url}${url.includes('?') ? '&' : '?'}video`;
     const floorplan = plan.floorplanUrl
-      ? await loadImage(`${plan.floorplanUrl}${plan.floorplanUrl.includes('?') ? '&' : '?'}video`).catch(() => null)
+      ? await loadImage(forVideo(plan.floorplanUrl)).catch(() =>
+          plan.floorplanFallbackUrl && plan.floorplanFallbackUrl !== plan.floorplanUrl
+            ? loadImage(forVideo(plan.floorplanFallbackUrl)).catch(() => null)
+            : null
+        )
       : null;
 
     // 2) Kadar po kadar u MP4.

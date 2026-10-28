@@ -17,6 +17,12 @@
  *    x/y = mesto oznake koje je vlasnik ručno postavio (inače ispod natpisa).
  */
 
+import { DOOR_M, formatArea, groupAreaM2, totalAreaM2 } from './floorplanMeasure.ts';
+
+export type PlanLang = 'sr' | 'en' | 'de' | 'ru';
+export type ForeignLang = Exclude<PlanLang, 'sr'>;
+export const FOREIGN_LANGS: ForeignLang[] = ['en', 'de', 'ru'];
+
 export type PlanShape = {
   id: string;
   group: string;
@@ -24,27 +30,52 @@ export type PlanShape = {
   y: number;
   w: number;
   h: number;
+  /** Vlasnik je upisao mere ovog pravougaonika (metri = w / unitsPerMeter). */
+  measured?: boolean;
 };
 
 export type PlanGroup = {
   id: string;
+  /** Naziv na srpskom. */
   label: string;
   outdoor: boolean;
   /** Ručno pomeren natpis (sredina, u jedinicama plana); inače u sredini prostorije. */
   lx?: number;
   ly?: number;
+  /** Naziv na drugim jezicima ture (automatski ili ručno). */
+  labels?: Partial<Record<ForeignLang, string>>;
+  /** Jezici čiji je naziv vlasnik ručno upisao - automatika ih ne dira. */
+  labelsManual?: ForeignLang[];
 };
 
-export type DoorSpec = [string, string] | [string, string, number];
+/**
+ * Vrata između dve grupe. Stari planovi su čuvali niz [a, b] ili [a, b, zid]
+ * - to se čita kao prolaz na sredini zida (vidi normalizeDoor).
+ */
+export type PlanDoor = {
+  a: string;
+  b: string;
+  /** Koji zajednički zid kad ih ima više (0 = najduži). */
+  wall?: number;
+  /** Sredina vrata duž zida, 0..1 (podrazumevano 0.5). */
+  at?: number;
+  /** 'door' = krilo i luk; 'opening' = samo otvor (podrazumevano). */
+  kind?: 'door' | 'opening';
+  /** Grupa u koju se vrata otvaraju (a ili b). */
+  into?: string;
+  /** Šarka na početku (manja koordinata) ili na kraju otvora duž zida. */
+  hinge?: 'start' | 'end';
+};
 
 export type FloorplanLayout = {
   version: 1;
   groups: PlanGroup[];
   shapes: PlanShape[];
-  /** Parovi ID-jeva grupa sa vratima; opcioni treći broj = koji zajednički zid (0 = najduži). */
-  doors: DoorSpec[];
+  doors: PlanDoor[];
   /** ID sobe ture -> ID grupe (+ ručno postavljena oznaka). */
   rooms: PlanRoom[];
+  /** Merilo: jedinica plana po metru. Postoji tek kad je bar jedan pravougaonik izmeren. */
+  unitsPerMeter?: number;
 };
 
 export type PlanRoom = { roomId: string; group: string; x?: number; y?: number };
@@ -54,7 +85,6 @@ export const PLAN_PAD = 36;
 export const PLAN_FOOTER = 42;
 export const PLAN_DOOR = 34;
 export const PLAN_MIN_SHARED = PLAN_DOOR + 12;
-export const PLAN_NOTE = 'Šematski prikaz — nije u razmeri';
 
 type Rect = { x: number; y: number; w: number; h: number };
 
@@ -131,11 +161,28 @@ export function mainShape(layout: FloorplanLayout, group: string): PlanShape | u
 const MARKER_ROW = 44;
 const MARKER_GAP = 56;
 
-type LabelBox = { lines: string[]; size: number; vertical: boolean; cx: number; cy: number };
+type LabelBox = {
+  lines: string[];
+  size: number;
+  vertical: boolean;
+  cx: number;
+  cy: number;
+  /** Red sa kvadraturom ispod naziva (samo izmerena prostorija). */
+  area?: string;
+  /** Visina celog natpisa (nazivi + m²), za okvir i oznake ispod. */
+  block: number;
+};
+
+const AREA_SCALE = 0.72;
+
+/** Naziv prostorije na jeziku; bez prevoda - srpski. */
+export function groupLabel(group: PlanGroup, lang: PlanLang): string {
+  return (lang !== 'sr' && group.labels?.[lang]) || group.label;
+}
 
 /** Natpis u dva reda najviše, sitniji ako prostorija ne može da ga primi. */
-function labelBox(group: PlanGroup, r: Rect): LabelBox {
-  const label = group.label;
+function labelBox(group: PlanGroup, r: Rect, lang: PlanLang = 'sr', area?: string): LabelBox {
+  const label = groupLabel(group, lang);
   const words = label.split(/\s+/);
   let lines = [label];
   if (label.length > 12 && words.length > 1) {
@@ -153,9 +200,10 @@ function labelBox(group: PlanGroup, r: Rect): LabelBox {
     lines = best;
   }
   const longest = Math.max(...lines.map((l) => l.length));
+  const rows = lines.length + (area ? AREA_SCALE : 0);
   // Natpis malo iznad sredine - ispod njega ide red oznaka panorama.
   const fit = (along: number, across: number) =>
-    Math.max(12, Math.min(34, (along - 16) / (longest * 0.62), (across - 10 - (across > 2 * MARKER_ROW ? MARKER_ROW : 0)) / (lines.length * 1.35)));
+    Math.max(12, Math.min(34, (along - 16) / (longest * 0.62), (across - 10 - (across > 2 * MARKER_ROW ? MARKER_ROW : 0)) / (rows * 1.35)));
   // Uska, visoka prostorija (ostava, terasa): uspravan natpis ako tako staje osetno veći.
   const vertical = r.h > r.w * 1.2 && fit(r.h, r.w) > fit(r.w, r.h) * 1.25;
   const across = vertical ? r.w : r.h;
@@ -168,32 +216,147 @@ function labelBox(group: PlanGroup, r: Rect): LabelBox {
     size,
     vertical,
     cx: moved ? group.lx! : r.x + r.w / 2 - (vertical ? shift : 0),
-    cy: moved ? group.ly! : r.y + r.h / 2 - (vertical ? 0 : shift)
+    cy: moved ? group.ly! : r.y + r.h / 2 - (vertical ? 0 : shift),
+    area,
+    block: rows * size * 1.2
   };
 }
 
+/** Kvadratura za natpis prostorije ("14,1 m²") - samo kad je izmerena. */
+function areaText(layout: FloorplanLayout, groupId: string, lang: PlanLang): string | undefined {
+  const m2 = groupAreaM2(layout, groupId);
+  return m2 === null ? undefined : formatArea(m2, lang);
+}
+
 /** Okvir natpisa prostorije (za hvatanje mišem u editoru). */
-export function labelArea(layout: FloorplanLayout, groupId: string): Rect & { cx: number; cy: number } | null {
+export function labelArea(layout: FloorplanLayout, groupId: string, lang: PlanLang = 'sr'): Rect & { cx: number; cy: number } | null {
   const g = layout.groups.find((x) => x.id === groupId);
   const s = mainShape(layout, groupId);
   if (!g || !s) return null;
-  const { lines, size, vertical, cx, cy } = labelBox(g, s);
+  const { lines, size, vertical, cx, cy, block } = labelBox(g, s, lang, areaText(layout, groupId, lang));
   const along = Math.max(...lines.map((l) => l.length)) * size * 0.6 + 8;
-  const across = lines.length * size * 1.2 + 4;
+  const across = block + 4;
   const w = vertical ? across : along;
   const h = vertical ? along : across;
   return { x: cx - w / 2, y: cy - h / 2, w, h, cx, cy };
 }
 
-function labelSvg(group: PlanGroup, r: Rect): string {
-  const { lines, size, vertical, cx, cy } = labelBox(group, r);
+function labelSvg(group: PlanGroup, r: Rect, lang: PlanLang, area: string | undefined): string {
+  const { lines, size, vertical, cx, cy, block } = labelBox(group, r, lang, area);
   const rotate = vertical ? ` transform="rotate(-90 ${cx.toFixed(1)} ${cy.toFixed(1)})"` : '';
-  return lines
-    .map((l, i) => {
-      const offset = (i - (lines.length - 1) / 2) * size * 1.2;
-      return `<text x="${cx.toFixed(1)}" y="${(cy + offset).toFixed(1)}" font-size="${size.toFixed(1)}" text-anchor="middle" dominant-baseline="middle"${rotate}>${escapeXml(l)}</text>`;
-    })
-    .join('');
+  // Redovi se slažu odozgo; ceo blok (nazivi + m²) je centriran na cy.
+  const top = cy - block / 2;
+  const text = lines.map((l, i) => {
+    const y = top + (i + 0.5) * size * 1.2;
+    return `<text x="${cx.toFixed(1)}" y="${y.toFixed(1)}" font-size="${size.toFixed(1)}" text-anchor="middle" dominant-baseline="middle"${rotate}>${escapeXml(l)}</text>`;
+  });
+  if (area) {
+    const y = top + (lines.length + AREA_SCALE / 2) * size * 1.2;
+    text.push(
+      `<text x="${cx.toFixed(1)}" y="${y.toFixed(1)}" font-size="${(size * AREA_SCALE).toFixed(1)}" text-anchor="middle" dominant-baseline="middle" class="area"${rotate}>${escapeXml(area)}</text>`
+    );
+  }
+  return text.join('');
+}
+
+/** Širina vrata: stalna; sa merilom tačno 80 cm. */
+export function doorWidth(layout: FloorplanLayout): number {
+  return layout.unitsPerMeter ? DOOR_M * layout.unitsPerMeter : PLAN_DOOR;
+}
+
+export type DoorGeometry = {
+  vertical: boolean;
+  /** Koordinata zida (x za uspravan, y za vodoravan zid). */
+  at: number;
+  /** Početak i kraj zajedničkog zida duž zida. */
+  from: number;
+  to: number;
+  /** Sredina otvora duž zida. */
+  center: number;
+  width: number;
+};
+
+/** Zid na kom stoje vrata (izabrani zajednički zid, a ako je kraći od praga - najduži dodir). */
+function doorWall(layout: FloorplanLayout, door: PlanDoor) {
+  const walls = groupWalls(layout, door.a, door.b);
+  if (walls.length) return walls[(door.wall ?? 0) % walls.length];
+  const w = groupWall(layout, door.a, door.b);
+  return w && w.length > 2 * PLAN_WALL + 12 ? w : null;
+}
+
+/**
+ * Gde tačno stoje vrata: `at` duž zida, ograničeno tako da otvor ostane ceo
+ * na zidu. Kad je zid prekratak za punu širinu, vrata se stisnu na sredinu
+ * umesto da nestanu.
+ */
+export function doorGeometry(layout: FloorplanLayout, door: PlanDoor): DoorGeometry | null {
+  const w = doorWall(layout, door);
+  if (!w) return null;
+  const full = doorWidth(layout);
+  const length = w.to - w.from;
+  if (length < full + 2 * PLAN_WALL) {
+    return { vertical: w.vertical, at: w.at, from: w.from, to: w.to, center: (w.from + w.to) / 2, width: Math.max(12, length - 2 * PLAN_WALL) };
+  }
+  const lo = w.from + full / 2 + PLAN_WALL;
+  const hi = w.to - full / 2 - PLAN_WALL;
+  const center = Math.min(hi, Math.max(lo, w.from + (door.at ?? 0.5) * length));
+  return { vertical: w.vertical, at: w.at, from: w.from, to: w.to, center, width: full };
+}
+
+/** Položaj vrata (0..1 duž zida) za tačku pokazivača - prevlačenje u editoru. */
+export function doorAtFromPoint(layout: FloorplanLayout, door: PlanDoor, p: { x: number; y: number }): number {
+  const w = doorWall(layout, door);
+  if (!w || w.to <= w.from) return door.at ?? 0.5;
+  const along = w.vertical ? p.y : p.x;
+  return Math.min(1, Math.max(0, (along - w.from) / (w.to - w.from)));
+}
+
+const n = (v: number) => String(Math.round(v * 10) / 10);
+
+/** Otvor u zidu, a za prava vrata i krilo sa lukom otvaranja. */
+function doorSvg(layout: FloorplanLayout, door: PlanDoor): string {
+  const g = doorGeometry(layout, door);
+  if (!g) return '';
+  const half = g.width / 2;
+  // Tačka: (duž zida, preko zida) -> (x, y).
+  const xy = (along: number, across: number) => (g.vertical ? { x: n(across), y: n(along) } : { x: n(along), y: n(across) });
+  const a1 = xy(g.center - half, g.at);
+  const a2 = xy(g.center + half, g.at);
+  const gap = `<line x1="${a1.x}" y1="${a1.y}" x2="${a2.x}" y2="${a2.y}" class="door"/>`;
+  if (door.kind !== 'door') return gap;
+
+  const into = mainShape(layout, door.into ?? door.b);
+  if (!into) return gap;
+  const intoCenter = g.vertical ? into.x + into.w / 2 : into.y + into.h / 2;
+  const side = intoCenter >= g.at ? 1 : -1;
+  const hinge = door.hinge === 'end' ? g.center + half : g.center - half;
+  const other = door.hinge === 'end' ? g.center - half : g.center + half;
+  const dirOther = Math.sign(other - hinge);
+  const h = xy(hinge, g.at);
+  const leaf = xy(hinge, g.at + side * g.width);
+  const end = xy(other, g.at);
+  // Smer luka (SVG y raste nadole): za uspravan zid side·dir, za vodoravan obrnuto.
+  const sweep = (g.vertical ? side * dirOther : -side * dirOther) > 0 ? 1 : 0;
+  return (
+    gap +
+    `<line x1="${h.x}" y1="${h.y}" x2="${leaf.x}" y2="${leaf.y}" class="leaf"/>` +
+    `<path d="M${leaf.x} ${leaf.y} A${n(g.width)} ${n(g.width)} 0 0 ${sweep} ${end.x} ${end.y}" class="swing"/>`
+  );
+}
+
+const NOTES: Record<PlanLang, { none: string; scale: string; total: string }> = {
+  sr: { none: 'Šematski prikaz — nije u razmeri', scale: 'Mere su orijentacione', total: 'ukupno' },
+  en: { none: 'Schematic — not to scale', scale: 'Dimensions are approximate', total: 'total' },
+  de: { none: 'Schematische Darstellung — nicht maßstabsgetreu', scale: 'Maße sind ungefähr', total: 'gesamt' },
+  ru: { none: 'Схема — не в масштабе', scale: 'Размеры ориентировочные', total: 'всего' }
+};
+
+/** Napomena na dnu plana: bez merila "nije u razmeri", sa merilom ukupna kvadratura izmerenih prostorija. */
+export function planNote(layout: FloorplanLayout, lang: PlanLang): string {
+  const t = NOTES[lang];
+  if (!layout.unitsPerMeter) return t.none;
+  const total = totalAreaM2(layout);
+  return total === null ? t.scale : `${t.scale} · ${t.total} ${formatArea(total, lang)}`;
 }
 
 export type Bounds = { x: number; y: number; w: number; h: number };
@@ -211,7 +374,7 @@ export function layoutBounds(layout: FloorplanLayout): Bounds {
  * Unutrašnjost SVG-a (zidovi, vrata, natpisi) u koordinatama rasporeda.
  * Editor je crta ispod svojih ručica; renderFloorplanSvg je uokviruje.
  */
-export function renderFloorplanBody(layout: FloorplanLayout): string {
+export function renderFloorplanBody(layout: FloorplanLayout, lang: PlanLang = 'sr'): string {
   const groups = new Map(layout.groups.map((g) => [g.id, g]));
   const byOutdoor = [...layout.shapes].sort(
     (a, b) => Number(!groups.get(a.group)?.outdoor) - Number(!groups.get(b.group)?.outdoor)
@@ -254,22 +417,12 @@ export function renderFloorplanBody(layout: FloorplanLayout): string {
     }
   }
 
-  const doors = layout.doors
-    .map(([a, b, wallIndex]) => {
-      const walls = groupWalls(layout, a, b);
-      if (!walls.length) return '';
-      const w = walls[(wallIndex ?? 0) % walls.length];
-      const mid = (w.from + w.to) / 2;
-      return w.vertical
-        ? `<line x1="${w.at}" y1="${mid - PLAN_DOOR / 2}" x2="${w.at}" y2="${mid + PLAN_DOOR / 2}" class="door"/>`
-        : `<line x1="${mid - PLAN_DOOR / 2}" y1="${w.at}" x2="${mid + PLAN_DOOR / 2}" y2="${w.at}" class="door"/>`;
-    })
-    .join('');
+  const doors = layout.doors.map((d) => doorSvg(layout, d)).join('');
 
   const labels = layout.groups
     .map((g) => {
       const s = mainShape(layout, g.id);
-      return s ? labelSvg(g, s) : '';
+      return s ? labelSvg(g, s, lang, areaText(layout, g.id, lang)) : '';
     })
     .join('');
 
@@ -282,10 +435,12 @@ export const PLAN_STYLE = `.room{fill:#F7F7F4;stroke:#2B2D33;stroke-width:${PLAN
 .outdoor-seam{stroke:#EEF3F8}
 .door{stroke:#F7F7F4;stroke-width:${PLAN_WALL + 3};stroke-linecap:butt}
 text{font-family:Inter,Arial,Helvetica,sans-serif;fill:#2B2D33;font-weight:700}
-.note{font-size:15px;fill:#8C8E93;font-weight:500}`;
+.note{font-size:15px;fill:#8C8E93;font-weight:500}
+.area{fill:#6B6D73;font-weight:500}
+.leaf,.swing{fill:none;stroke:#2B2D33;stroke-width:1.5}`;
 
 /** Ceo, uokviren SVG plana - ono što ide u turu. */
-export function renderFloorplanSvg(layout: FloorplanLayout, note = PLAN_NOTE): { svg: string; width: number; height: number; bounds: Bounds } {
+export function renderFloorplanSvg(layout: FloorplanLayout, lang: PlanLang = 'sr'): { svg: string; width: number; height: number; bounds: Bounds } {
   const b = layoutBounds(layout);
   const vx = b.x - PLAN_PAD;
   const vy = b.y - PLAN_PAD;
@@ -296,8 +451,8 @@ export function renderFloorplanSvg(layout: FloorplanLayout, note = PLAN_NOTE): {
 ${PLAN_STYLE}
 </style>
 <rect x="${vx.toFixed(1)}" y="${vy.toFixed(1)}" width="${width}" height="${height}" fill="#FFFFFF"/>
-${renderFloorplanBody(layout)}
-<text x="${(vx + width / 2).toFixed(1)}" y="${(vy + height - PLAN_FOOTER / 2).toFixed(1)}" text-anchor="middle" dominant-baseline="middle" class="note">${escapeXml(note)}</text>
+${renderFloorplanBody(layout, lang)}
+<text x="${(vx + width / 2).toFixed(1)}" y="${(vy + height - PLAN_FOOTER / 2).toFixed(1)}" text-anchor="middle" dominant-baseline="middle" class="note">${escapeXml(planNote(layout, lang))}</text>
 </svg>`;
   return { svg, width, height, bounds: { x: vx, y: vy, w: width, h: height } };
 }
@@ -322,8 +477,10 @@ export function markerPoints(layout: FloorplanLayout): MarkerPoint[] {
     const s = mainShape(layout, group);
     const g = layout.groups.find((x) => x.id === group);
     if (!s || !g) continue;
-    const box = labelBox(g, s);
-    const half = (box.lines.length * box.size * 1.2) / 2;
+    // Oznake stoje isto na svim jezicima (floorplan_x/_y je jedan), pa se
+    // mesto računa od srpskog natpisa, sa redom m² ako ga ima.
+    const box = labelBox(g, s, 'sr', areaText(layout, group, 'sr'));
+    const half = box.block / 2;
     const auto = list.filter((r) => r.x === undefined || r.y === undefined);
     for (const r of list) {
       if (r.x !== undefined && r.y !== undefined) {
@@ -354,6 +511,30 @@ export function layoutMarkers(layout: FloorplanLayout, frame: Bounds): { roomId:
   }));
 }
 
+/**
+ * Vrata iz sačuvanog JSON-a: stari niz [a, b] / [a, b, zid] ili objekat.
+ * Null ako vrata vode u nepostojeću grupu; neispravna opciona polja se samo izostave.
+ */
+export function normalizeDoor(d: unknown, groupIds: Set<string>): PlanDoor | null {
+  let door: Record<string, unknown>;
+  if (Array.isArray(d)) {
+    if (d.length < 2 || d.length > 3) return null;
+    door = { a: d[0], b: d[1], wall: d[2] };
+  } else if (d && typeof d === 'object') {
+    door = d as Record<string, unknown>;
+  } else return null;
+  const a = String(door.a ?? '');
+  const b = String(door.b ?? '');
+  if (!groupIds.has(a) || !groupIds.has(b)) return null;
+  const out: PlanDoor = { a, b };
+  if (Number.isInteger(door.wall) && (door.wall as number) >= 0 && (door.wall as number) < 20) out.wall = door.wall as number;
+  if (typeof door.at === 'number' && door.at >= 0 && door.at <= 1) out.at = door.at;
+  if (door.kind === 'door' || door.kind === 'opening') out.kind = door.kind;
+  if (door.into === a || door.into === b) out.into = door.into as string;
+  if (door.hinge === 'start' || door.hinge === 'end') out.hinge = door.hinge;
+  return out;
+}
+
 /** Provera rasporeda koji stiže sa klijenta (API). Null ako nije ispravan. */
 export function parseLayout(input: unknown): FloorplanLayout | null {
   if (!input || typeof input !== 'object') return null;
@@ -371,6 +552,19 @@ export function parseLayout(input: unknown): FloorplanLayout | null {
       group.lx = g.lx as number;
       group.ly = g.ly as number;
     }
+    if (g.labels && typeof g.labels === 'object') {
+      const src = g.labels as Record<string, unknown>;
+      const labels: Partial<Record<ForeignLang, string>> = {};
+      for (const lang of FOREIGN_LANGS) {
+        const v = src[lang];
+        if (typeof v === 'string' && v.trim() && v.length <= 60) labels[lang] = v.trim();
+      }
+      if (Object.keys(labels).length) group.labels = labels;
+    }
+    if (Array.isArray(g.labelsManual)) {
+      const manual = FOREIGN_LANGS.filter((lang) => (g.labelsManual as unknown[]).includes(lang));
+      if (manual.length) group.labelsManual = manual;
+    }
     groups.push(group);
   }
   const groupIds = new Set(groups.map((g) => g.id));
@@ -378,13 +572,15 @@ export function parseLayout(input: unknown): FloorplanLayout | null {
   for (const s of l.shapes as Record<string, unknown>[]) {
     if (!str(s?.id) || !groupIds.has(String(s.group)) || ![s.x, s.y, s.w, s.h].every(num)) return null;
     if ((s.w as number) < 5 || (s.h as number) < 5) return null;
-    shapes.push({ id: String(s.id), group: String(s.group), x: s.x as number, y: s.y as number, w: s.w as number, h: s.h as number });
+    const shape: PlanShape = { id: String(s.id), group: String(s.group), x: s.x as number, y: s.y as number, w: s.w as number, h: s.h as number };
+    if (s.measured === true) shape.measured = true;
+    shapes.push(shape);
   }
-  const doors: DoorSpec[] = [];
+  const doors: PlanDoor[] = [];
   for (const d of l.doors as unknown[]) {
-    if (!Array.isArray(d) || d.length < 2 || d.length > 3 || !groupIds.has(String(d[0])) || !groupIds.has(String(d[1]))) return null;
-    const wall = d.length === 3 && Number.isInteger(d[2]) && (d[2] as number) >= 0 && (d[2] as number) < 20 ? (d[2] as number) : undefined;
-    doors.push(wall === undefined ? [String(d[0]), String(d[1])] : [String(d[0]), String(d[1]), wall]);
+    const door = normalizeDoor(d, groupIds);
+    if (!door) return null;
+    doors.push(door);
   }
   const rooms: PlanRoom[] = [];
   for (const r of l.rooms as Record<string, unknown>[]) {
@@ -397,5 +593,9 @@ export function parseLayout(input: unknown): FloorplanLayout | null {
     rooms.push(room);
   }
   if (!shapes.length) return null;
-  return { version: 1, groups, shapes, doors, rooms };
+  const layout: FloorplanLayout = { version: 1, groups, shapes, doors, rooms };
+  const upm = l.unitsPerMeter;
+  // Merilo bez ijednog izmerenog dela (npr. obrisana jedina izmerena prostorija) ne važi.
+  if (typeof upm === 'number' && Number.isFinite(upm) && upm >= 0.5 && upm <= 2000 && shapes.some((s) => s.measured)) layout.unitsPerMeter = upm;
+  return layout;
 }

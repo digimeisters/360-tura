@@ -5,6 +5,7 @@ import { THEME } from './theme';
 import { getLocalizedText } from './utils';
 import { IconExpand } from './icons';
 import { ViewCone, type ViewReader } from './ViewCone';
+import { usePlanSrc } from './usePlanSrc';
 
 type FloorplanMiniMapProps = {
   floorplanUrl: string;
@@ -39,6 +40,7 @@ export function FloorplanMiniMap({
   labels
 }: FloorplanMiniMapProps) {
   const marked = rooms.filter((r) => typeof r.floorplan_x === 'number' && typeof r.floorplan_y === 'number');
+  const plan = usePlanSrc(floorplanUrl, lang);
   if (!marked.length) return null;
 
   return (
@@ -87,7 +89,7 @@ export function FloorplanMiniMap({
       <div className="k360-minimap__planwrap">
       <div className="k360-minimap__plan">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={floorplanUrl} alt="" />
+        <img src={plan.src} onError={plan.onError} alt="" />
         <ViewCone rooms={rooms} currentRoomId={currentRoomId} getView={getView} />
         {marked.map((room) => {
           const isCurrent = String(room.id) === String(currentRoomId);

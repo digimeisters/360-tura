@@ -7,6 +7,8 @@ import { FORM, FormThemeStyle, formBtnStyle } from '../../../lib/formTheme';
 import {
   PLAN_STYLE,
   adjacentGroups,
+  doorAtFromPoint,
+  doorGeometry,
   doorKey,
   groupWalls,
   labelArea,
@@ -15,8 +17,14 @@ import {
   renderFloorplanBody,
   renderFloorplanSvg,
   type FloorplanLayout,
+  type ForeignLang,
+  type PlanDoor,
+  type PlanLang,
   type PlanShape
 } from '../../../lib/floorplanLayout';
+import { applyMeters, clearMeters, withoutUnusedScale } from '../../../lib/floorplanMeasure';
+import { fillAutoLabels, renameGroup, setManualLabel, type RoomTitles } from '../../../lib/roomNames';
+import { DoorPanel, LabelLanguages, MetersFields } from './PlanSidePanels';
 
 /**
  * Editor šematskog tlocrta ture: /admin/plan/[slug]
@@ -24,17 +32,18 @@ import {
  * Otvara se sa automatskim nacrtom (ili ranije sačuvanim planom). Vlasnik
  * povlači prostorije (pomeranje) i kružiće na ivicama (veličina); ivice se
  * lepe za zidove susednih prostorija i za mrežu. Za izabranu prostoriju:
- * naziv, "spoljni prostor", vrata ka susedima, dodatni deo (L-oblik) i
- * brisanje. "Sačuvaj" crta plan istom funkcijom kao ovde i postavlja ga u
+ * naziv (i prevodi na jezike ture), mere, "spoljni prostor", vrata ka
+ * susedima, dodatni deo (L-oblik) i brisanje. Vrata se biraju klikom i
+ * prevlače duž zida (vrsta, strana otvaranja u panelu "Izabrana vrata"). "Sačuvaj" crta plan istom funkcijom kao ovde i postavlja ga u
  * turu (api/admin/floorplan).
  */
 
-type RoomInfo = { id: string; title: string; links: string[] };
-type TourInfo = { slug: string; title: string; floorplanUrl: string | null; hasCustomPlan: boolean };
+type RoomInfo = { id: string; title: string; titles: Partial<Record<PlanLang, string>>; links: string[] };
+type TourInfo = { slug: string; title: string; floorplanUrl: string | null; hasCustomPlan: boolean; languages: ForeignLang[] };
 
 type Drag = {
-  mode: 'move' | 'resize' | 'marker' | 'label';
-  /** Prostorija koja se pomera, soba ture čija se oznaka pomera, ili grupa čiji se natpis pomera. */
+  mode: 'move' | 'resize' | 'marker' | 'label' | 'door';
+  /** Prostorija koja se pomera, soba ture čija se oznaka pomera, grupa čiji se natpis pomera, ili ključ vrata (doorKey). */
   shapeId: string;
   /** Ručno postavljene oznake u prostoriji koja se pomera - idu zajedno sa njom. */
   carried: { roomId: string; x: number; y: number }[];
@@ -78,8 +87,8 @@ function viewBoxFor(layout: FloorplanLayout) {
 const PLAN_PNG_WIDTH = 1200;
 
 /** Isti SVG koji server čuva, nacrtan u PNG (base64, bez "data:" prefiksa). */
-async function planPngBase64(layout: FloorplanLayout): Promise<string> {
-  const { svg, width, height } = renderFloorplanSvg(layout);
+async function planPngBase64(layout: FloorplanLayout, lang: PlanLang = 'sr'): Promise<string> {
+  const { svg, width, height } = renderFloorplanSvg(layout, lang);
   const img = new Image();
   img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   await img.decode();
@@ -105,6 +114,8 @@ export default function FloorplanEditorPage() {
   const [fromSaved, setFromSaved] = useState(false);
   const [vb, setVb] = useState({ x: 0, y: 0, w: 1000, h: 800 });
   const [selected, setSelected] = useState<string | null>(null);
+  // Izabrana vrata (doorKey) - isključuje izbor prostorije.
+  const [selectedDoor, setSelectedDoor] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -128,10 +139,14 @@ export default function FloorplanEditorPage() {
       }
       setTour(json.tour);
       setRooms(json.rooms);
-      setDraft(json.draft);
       setFromSaved(json.fromSaved);
+      // Prevodi naziva koji fale popunjavaju se odmah (naslovi soba ture, rečnik).
+      const titles: RoomTitles = new Map((json.rooms as RoomInfo[]).map((r) => [r.id, r.titles ?? {}]));
+      const langs: ForeignLang[] = json.tour?.languages ?? [];
+      const filled = (l: FloorplanLayout) => fillAutoLabels(l, titles, langs).layout;
+      if (json.draft) setDraft(filled(json.draft));
       if (json.layout) {
-        setLayout(json.layout);
+        setLayout(filled(json.layout));
         setVb(viewBoxFor(json.layout));
       }
     })();
@@ -155,7 +170,11 @@ export default function FloorplanEditorPage() {
     return () => window.removeEventListener('beforeunload', onLeave);
   }, [dirty]);
 
+  // Za vreme čuvanja editor ne prima izmene: čuva se snimak sa početka
+  // čuvanja (posle AI prevoda), pa bi izmena napravljena u međuvremenu nestala.
+  const savingRef = useRef(false);
   const change = useCallback((fn: (l: FloorplanLayout) => FloorplanLayout) => {
+    if (savingRef.current) return;
     setLayout((l) => (l ? fn(l) : l));
     setDirty(true);
     setMessage(null);
@@ -165,6 +184,17 @@ export default function FloorplanEditorPage() {
   const markers = useMemo(() => (layout ? markerPoints(layout) : []), [layout]);
   const roomTitle = useMemo(() => new Map(rooms.map((r) => [r.id, r.title])), [rooms]);
   const roomNumber = useMemo(() => new Map(rooms.map((r, i) => [r.id, i + 1])), [rooms]);
+  const titles: RoomTitles = useMemo(() => new Map(rooms.map((r) => [r.id, r.titles ?? {}])), [rooms]);
+  const languages = useMemo(() => tour?.languages ?? [], [tour]);
+  const doors = useMemo(
+    () =>
+      (layout?.doors ?? []).flatMap((d) => {
+        const g = layout ? doorGeometry(layout, d) : null;
+        return g ? [{ key: doorKey(d.a, d.b), door: d, g }] : [];
+      }),
+    [layout]
+  );
+  const activeDoor = doors.find((d) => d.key === selectedDoor) ?? null;
   const selectedShape = layout?.shapes.find((s) => s.id === selected) ?? null;
   const selectedGroup = selectedShape ? layout!.groups.find((g) => g.id === selectedShape.group) ?? null : null;
 
@@ -181,9 +211,11 @@ export default function FloorplanEditorPage() {
 
   const startDrag = (e: React.PointerEvent, shape: PlanShape, mode: Drag['mode'], edges: Drag['edges'] = { l: false, r: false, t: false, b: false }) => {
     e.stopPropagation();
+    if (savingRef.current) return;
     e.preventDefault();
     svgRef.current?.setPointerCapture(e.pointerId);
     setSelected(shape.id);
+    setSelectedDoor(null);
     const inside = (r: { x?: number; y?: number }) =>
       r.x !== undefined && r.y !== undefined && r.x >= shape.x && r.x <= shape.x + shape.w && r.y >= shape.y && r.y <= shape.y + shape.h;
     const carried =
@@ -196,9 +228,31 @@ export default function FloorplanEditorPage() {
     setDragging(true);
   };
 
+  // Vrata: klik ih bira, prevlačenje ih pomera duž zida.
+  const startDoorDrag = (e: React.PointerEvent, key: string) => {
+    e.stopPropagation();
+    if (savingRef.current) return;
+    e.preventDefault();
+    svgRef.current?.setPointerCapture(e.pointerId);
+    setSelectedDoor(key);
+    setSelected(null);
+    dragRef.current = {
+      mode: 'door',
+      shapeId: key,
+      carried: [],
+      carriedLabel: null,
+      edges: { l: false, r: false, t: false, b: false },
+      start: toPlan(e),
+      orig: { id: key, group: '', x: 0, y: 0, w: 0, h: 0 },
+      changed: false
+    };
+    setDragging(true);
+  };
+
   // Oznaka panorame ili natpis prostorije: slobodno se prevlači, pamti se ručno mesto.
   const startPointDrag = (e: React.PointerEvent, mode: 'marker' | 'label', id: string, x: number, y: number) => {
     e.stopPropagation();
+    if (savingRef.current) return;
     e.preventDefault();
     svgRef.current?.setPointerCapture(e.pointerId);
     dragRef.current = {
@@ -220,6 +274,22 @@ export default function FloorplanEditorPage() {
     const p = toPlan(e);
     const dx = p.x - drag.start.x;
     const dy = p.y - drag.start.y;
+
+    if (drag.mode === 'door') {
+      setLayout((lay) => {
+        if (!lay) return lay;
+        return {
+          ...lay,
+          doors: lay.doors.map((d) => {
+            if (doorKey(d.a, d.b) !== drag.shapeId) return d;
+            const at = Math.round(doorAtFromPoint(lay, d, p) * 100) / 100;
+            if (at !== (d.at ?? 0.5)) drag.changed = true;
+            return { ...d, at };
+          })
+        };
+      });
+      return;
+    }
 
     if (drag.mode === 'marker' || drag.mode === 'label') {
       const x = Math.round(drag.orig.x + dx);
@@ -298,8 +368,24 @@ export default function FloorplanEditorPage() {
 
   // ---- Radnje nad prostorijom -------------------------------------------
 
+  // Novi srpski naziv: automatski prevodi se brišu i ponovo popune (ručni ostaju).
   const setLabel = (label: string) =>
-    selectedGroup && change((l) => ({ ...l, groups: l.groups.map((g) => (g.id === selectedGroup.id ? { ...g, label } : g)) }));
+    selectedGroup &&
+    change((l) => fillAutoLabels({ ...l, groups: l.groups.map((g) => (g.id === selectedGroup.id ? renameGroup(g, label) : g)) }, titles, languages).layout);
+
+  // Ručni prevod; prazno polje se pri čuvanju ponovo popuni automatski.
+  const setLangLabel = (lang: ForeignLang, text: string) =>
+    selectedGroup && change((l) => ({ ...l, groups: l.groups.map((g) => (g.id === selectedGroup.id ? setManualLabel(g, lang, text) : g)) }));
+
+  const setMeters = (wM: number, hM: number) => selectedShape && change((l) => applyMeters(l, selectedShape.id, wM, hM));
+  const removeMeters = () => selectedShape && change((l) => clearMeters(l, selectedShape.id));
+
+  const updateDoor = (door: PlanDoor) =>
+    change((l) => ({ ...l, doors: l.doors.map((d) => (doorKey(d.a, d.b) === doorKey(door.a, door.b) ? door : d)) }));
+  const deleteDoor = (door: PlanDoor) => {
+    change((l) => ({ ...l, doors: l.doors.filter((d) => doorKey(d.a, d.b) !== doorKey(door.a, door.b)) }));
+    setSelectedDoor(null);
+  };
 
   const setOutdoor = (outdoor: boolean) =>
     selectedGroup && change((l) => ({ ...l, groups: l.groups.map((g) => (g.id === selectedGroup.id ? { ...g, outdoor } : g)) }));
@@ -308,8 +394,9 @@ export default function FloorplanEditorPage() {
     selectedGroup &&
     change((l) => {
       const key = doorKey(selectedGroup.id, other);
-      const doors = l.doors.filter(([a, b]) => doorKey(a, b) !== key);
-      return { ...l, doors: on ? [...doors, [selectedGroup.id, other]] : doors };
+      const doors = l.doors.filter((d) => doorKey(d.a, d.b) !== key);
+      const added: PlanDoor = { a: selectedGroup.id, b: other, kind: 'door', at: 0.5, into: other, hinge: 'start' };
+      return { ...l, doors: on ? [...doors, added] : doors };
     });
 
   // Vrata na drugi zajednički zid (kad ih prostorije dele više - npr. L-hodnik).
@@ -318,7 +405,7 @@ export default function FloorplanEditorPage() {
     change((l) => ({
       ...l,
       doors: l.doors.map((d) =>
-        doorKey(d[0], d[1]) === doorKey(selectedGroup.id, other) ? [d[0], d[1], ((d[2] ?? 0) + 1) % 20] : d
+        doorKey(d.a, d.b) === doorKey(selectedGroup.id, other) ? { ...d, wall: ((d.wall ?? 0) + 1) % 20 } : d
       )
     }));
 
@@ -340,17 +427,19 @@ export default function FloorplanEditorPage() {
     if (!selectedShape || !layout) return;
     const parts = layout.shapes.filter((s) => s.group === selectedShape.group);
     if (parts.length > 1) {
-      change((l) => ({ ...l, shapes: l.shapes.filter((s) => s.id !== selectedShape.id) }));
+      change((l) => withoutUnusedScale({ ...l, shapes: l.shapes.filter((s) => s.id !== selectedShape.id) }));
     } else {
       if (!confirm(`Obrisati prostoriju "${selectedGroup?.label}"? Panorame u njoj ostaju bez oznake na planu.`)) return;
       const g = selectedShape.group;
-      change((l) => ({
+      change((l) =>
+        withoutUnusedScale({
         ...l,
         groups: l.groups.filter((x) => x.id !== g),
         shapes: l.shapes.filter((s) => s.group !== g),
-        doors: l.doors.filter(([a, b]) => a !== g && b !== g),
+        doors: l.doors.filter((d) => d.a !== g && d.b !== g),
         rooms: l.rooms.filter((r) => r.group !== g)
-      }));
+        })
+      );
     }
     setSelected(null);
   };
@@ -380,7 +469,16 @@ export default function FloorplanEditorPage() {
 
   const resetLabel = () =>
     selectedGroup &&
-    change((l) => ({ ...l, groups: l.groups.map((g) => (g.id === selectedGroup.id ? { id: g.id, label: g.label, outdoor: g.outdoor } : g)) }));
+    change((l) => ({
+      ...l,
+      groups: l.groups.map((g) => {
+        if (g.id !== selectedGroup.id) return g;
+        const rest = { ...g };
+        delete rest.lx;
+        delete rest.ly;
+        return rest;
+      })
+    }));
 
   const resetToDraft = () => {
     if (!draft || !confirm('Zameniti trenutni raspored novim automatskim nacrtom? Izmene koje niste sačuvali se gube.')) return;
@@ -390,18 +488,54 @@ export default function FloorplanEditorPage() {
     setDirty(true);
   };
 
+  /** Nazivi koje ne znaju ni tura ni rečnik idu na AI prevod; ako ne uspe, ostaju na srpskom. */
+  const translateMissing = async (l: FloorplanLayout): Promise<{ layout: FloorplanLayout; untranslated: number }> => {
+    const { layout: filled, missing } = fillAutoLabels(l, titles, languages);
+    if (!missing.length) return { layout: filled, untranslated: 0 };
+    try {
+      const res = await fetch('/api/admin/floorplan/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
+        body: JSON.stringify({ names: [...new Set(missing.map((m) => m.sr))], langs: [...new Set(missing.map((m) => m.lang))] })
+      });
+      const json = await res.json().catch(() => null);
+      const tr: Record<string, Partial<Record<ForeignLang, string>>> = json?.success ? json.translations : {};
+      let untranslated = 0;
+      const groups = filled.groups.map((g) => {
+        const own = missing.filter((m) => m.groupId === g.id);
+        if (!own.length) return g;
+        const labels = { ...g.labels };
+        for (const m of own) {
+          const t = tr[m.sr]?.[m.lang];
+          if (t) labels[m.lang] = t;
+          else untranslated++;
+        }
+        return { ...g, labels };
+      });
+      return { layout: { ...filled, groups }, untranslated };
+    } catch {
+      return { layout: filled, untranslated: missing.length };
+    }
+  };
+
   const save = async (replaceCustom = false) => {
     if (!layout) return;
     setSaving(true);
+    savingRef.current = true;
     setMessage(null);
     try {
-      // PNG za mejl posetiocu (Gmail ne prikazuje SVG). Pravi se ovde jer
-      // pregledač ima fontove za nazive soba, a server na Vercelu nema.
-      const png = await planPngBase64(layout).catch(() => '');
+      const { layout: toSave, untranslated } = await translateMissing(layout);
+      setLayout(toSave);
+      // PNG za mejl posetiocu (Gmail ne prikazuje SVG), po jedan za svaki jezik.
+      // Pravi se ovde jer pregledač ima fontove za nazive soba, a server na Vercelu nema.
+      const pngs: Partial<Record<PlanLang, string>> = {};
+      for (const lang of ['sr', 'en', 'de', 'ru'] as PlanLang[]) {
+        pngs[lang] = await planPngBase64(toSave, lang).catch(() => '');
+      }
       const res = await fetch('/api/admin/floorplan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
-        body: JSON.stringify({ slug, layout, replaceCustom, png })
+        body: JSON.stringify({ slug, layout: toSave, replaceCustom, pngs })
       });
       const json = await res.json().catch(() => null);
       if (res.status === 409 && json?.needsConfirm) {
@@ -416,14 +550,19 @@ export default function FloorplanEditorPage() {
       setDirty(false);
       setFromSaved(true);
       setTour((t) => (t ? { ...t, floorplanUrl: json.floorplanUrl, hasCustomPlan: false } : t));
+      const notes = [
+        json.markersFailed ? `${json.markersFailed} oznaka nije upisano` : '',
+        untranslated ? `${untranslated} naziva nije prevedeno - prikazaće se na srpskom` : ''
+      ].filter(Boolean);
       setMessage({
         ok: true,
-        text: json.markersFailed ? `Plan je sačuvan, ali ${json.markersFailed} oznaka nije upisano.` : 'Plan je sačuvan i postavljen u turu.'
+        text: notes.length ? `Plan je sačuvan, ali: ${notes.join('; ')}.` : 'Plan je sačuvan i postavljen u turu.'
       });
     } catch {
       setMessage({ ok: false, text: 'Nema veze sa serverom.' });
     } finally {
       setSaving(false);
+      savingRef.current = false;
     }
   };
 
@@ -487,7 +626,10 @@ export default function FloorplanEditorPage() {
                 onPointerMove={onPointerMove}
                 onPointerUp={endDrag}
                 onPointerCancel={endDrag}
-                onPointerDown={() => setSelected(null)}
+                onPointerDown={() => {
+                  setSelected(null);
+                  setSelectedDoor(null);
+                }}
               >
                 <defs>
                   <pattern id="grid" width={GRID * 2} height={GRID * 2} patternUnits="userSpaceOnUse">
@@ -510,6 +652,35 @@ export default function FloorplanEditorPage() {
                     onPointerDown={(e) => startDrag(e, s, 'move')}
                   />
                 ))}
+
+                {/* Vrata - klik bira, prevlačenje pomera duž zida. */}
+                {doors.map(({ key, g }) => {
+                  const along = g.width + 8 * unit;
+                  const across = Math.max(24, 18 * unit);
+                  const w = g.vertical ? across : along;
+                  const h = g.vertical ? along : across;
+                  const cx = g.vertical ? g.at : g.center;
+                  const cy = g.vertical ? g.center : g.at;
+                  const active = key === selectedDoor;
+                  return (
+                    <rect
+                      key={key}
+                      x={cx - w / 2}
+                      y={cy - h / 2}
+                      width={w}
+                      height={h}
+                      rx={4 * unit}
+                      fill={active ? 'rgba(30, 90, 168, 0.12)' : 'transparent'}
+                      stroke={active ? '#1E5AA8' : 'transparent'}
+                      strokeWidth={2 * unit}
+                      strokeDasharray={`${5 * unit} ${3 * unit}`}
+                      style={{ cursor: g.vertical ? 'ns-resize' : 'ew-resize' }}
+                      onPointerDown={(e) => startDoorDrag(e, key)}
+                    >
+                      <title>Vrata - kliknite ili prevucite duž zida</title>
+                    </rect>
+                  );
+                })}
 
                 {selectedShape && (
                   <g>
@@ -619,6 +790,8 @@ export default function FloorplanEditorPage() {
                         style={{ padding: '9px 10px', fontSize: '15px', borderRadius: '10px', border: `1px solid ${FORM.borderStrong}`, background: FORM.surface, color: FORM.textPrimary }}
                       />
                     </label>
+                    <LabelLanguages group={selectedGroup} languages={languages} onChange={setLangLabel} />
+                    <MetersFields key={selectedShape.id} layout={layout} shape={selectedShape} onApply={setMeters} onClear={removeMeters} />
                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
                       <input type="checkbox" checked={selectedGroup.outdoor} onChange={(e) => setOutdoor(e.target.checked)} />
                       Spoljni prostor (terasa, balkon)
@@ -629,7 +802,7 @@ export default function FloorplanEditorPage() {
                     ) : (
                       adjacentGroups(layout, selectedGroup.id).map((gid) => {
                         const g = layout.groups.find((x) => x.id === gid)!;
-                        const on = layout.doors.some(([a, b]) => doorKey(a, b) === doorKey(selectedGroup.id, gid));
+                        const on = layout.doors.some((d) => doorKey(d.a, d.b) === doorKey(selectedGroup.id, gid));
                         const manyWalls = groupWalls(layout, selectedGroup.id, gid).length > 1;
                         return (
                           <div key={gid} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
@@ -662,6 +835,13 @@ export default function FloorplanEditorPage() {
                   </>
                 )}
               </section>
+
+              {activeDoor && (
+                <section style={panel}>
+                  <h2 style={{ fontSize: '14.5px', margin: 0 }}>Izabrana vrata</h2>
+                  <DoorPanel layout={layout} door={activeDoor.door} onChange={updateDoor} onDelete={() => deleteDoor(activeDoor.door)} />
+                </section>
+              )}
 
               <section style={panel}>
                 <h2 style={{ fontSize: '14.5px', margin: 0 }}>Panorame na planu</h2>

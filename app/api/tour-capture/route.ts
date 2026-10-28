@@ -8,6 +8,7 @@ import { overDailyBudget } from '@/app/lib/dailyBudget';
 import { CONTACT, SITE_URL } from '@/app/lib/site';
 import { getShowcaseTours } from '@/app/lib/showcaseTours';
 import { fetchFloorplanImage } from '@/app/lib/floorplanImage';
+import type { PlanLang } from '@/app/lib/floorplanLayout';
 import { tourContactEmail, type TourContactEmail } from '@/app/lib/emails/tourContact';
 import { visitorLinkPlanEmail } from '@/app/lib/emails/visitorLinkPlan';
 
@@ -138,7 +139,7 @@ export async function POST(req: Request) {
     if (await overDailyBudget('visitorEmail')) {
       visitorStatus = '⚠️ Mejl posetiocu NIJE poslat - dnevna granica (moguća zloupotreba).';
     } else {
-      const plan = await fetchFloorplanImage(tour.floorplan_url, slug);
+      const plan = await fetchFloorplanImage(tour.floorplan_url, slug, lang as PlanLang);
       const visitor = visitorLinkPlanEmail({
         lang,
         title: shown?.title || title,

@@ -3,7 +3,8 @@ import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { requireAdmin } from '@/app/lib/adminAuth';
 import { r2Client } from '@/app/lib/r2';
 import { buildSchematicLayout, type SchematicRoomInput } from '@/app/lib/schematicFloorplan';
-import { layoutMarkers, parseLayout, renderFloorplanSvg, type FloorplanLayout } from '@/app/lib/floorplanLayout';
+import { layoutMarkers, parseLayout, renderFloorplanSvg, type FloorplanLayout, type PlanLang } from '@/app/lib/floorplanLayout';
+import { planLanguages } from '@/app/lib/roomNames';
 import { refreshPublicPages } from '@/app/lib/revalidatePublic';
 
 export const dynamic = 'force-dynamic';
@@ -24,6 +25,29 @@ export const dynamic = 'force-dynamic';
 const PLAN_NAME = 'floorplan-schematic';
 // PNG plana od 1200px je ~60-150 KB; granica čuva rutu od ogromnog tela.
 const MAX_PNG_BASE64 = 2_000_000;
+
+/** title_i18n (objekat ili JSON string) -> naslovi po jezicima ture. */
+function titlesOf(value: unknown): Partial<Record<PlanLang, string>> {
+  let parsed = value;
+  if (typeof value === 'string') {
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      return {};
+    }
+  }
+  const out: Partial<Record<PlanLang, string>> = {};
+  if (parsed && typeof parsed === 'object') {
+    for (const lang of ['sr', 'en', 'de', 'ru'] as const) {
+      const v = (parsed as Record<string, unknown>)[lang];
+      if (typeof v === 'string' && v.trim()) out[lang] = v.trim();
+    }
+  }
+  return out;
+}
+
+/** "floorplan-schematic.svg" za srpski, "floorplan-schematic.en.svg" za ostale. */
+const planKey = (slug: string, lang: PlanLang, ext: 'svg' | 'png') => `${slug}/${PLAN_NAME}${lang === 'sr' ? '' : '.' + lang}.${ext}`;
 
 function pickSr(value: unknown, fallback: string | null): string {
   let parsed = value;
@@ -76,7 +100,7 @@ export async function GET(req: Request) {
   const slug = new URL(req.url).searchParams.get('slug') || '';
   const { data: tour } = await ctx.supabase
     .from('tours')
-    .select('slug, title, title_i18n, floorplan_url')
+    .select('slug, title, title_i18n, floorplan_url, target_languages')
     .eq('slug', slug)
     .maybeSingle();
   if (!tour) return NextResponse.json({ success: false, error: 'Tura nije pronađena.' }, { status: 404 });
@@ -105,9 +129,16 @@ export async function GET(req: Request) {
       title: pickSr(tour.title_i18n, tour.title) || tour.slug,
       floorplanUrl: tour.floorplan_url,
       // Tura ima pravi tlocrt (sliku), ne šematski - čuvanje traži potvrdu.
-      hasCustomPlan: Boolean(tour.floorplan_url) && !isSchematic(tour.floorplan_url)
+      hasCustomPlan: Boolean(tour.floorplan_url) && !isSchematic(tour.floorplan_url),
+      // Jezici na kojima se pravi tlocrt (pored srpskog).
+      languages: planLanguages(tour.target_languages, (roomRows ?? []).map((r) => r.title_i18n))
     },
-    rooms: rooms.map((r) => ({ id: r.id, title: r.title, links: [...new Set(r.doors.map((d) => d.targetId))] })),
+    rooms: rooms.map((r, i) => ({
+      id: r.id,
+      title: r.title,
+      titles: { ...titlesOf(roomRows?.[i]?.title_i18n), sr: r.title },
+      links: [...new Set(r.doors.map((d) => d.targetId))]
+    })),
     layout: saved ?? draft,
     draft,
     fromSaved: Boolean(saved)
@@ -145,28 +176,33 @@ export async function POST(req: Request) {
   const ownRooms = new Set((roomRows ?? []).map((r) => String(r.id)));
   layout.rooms = layout.rooms.filter((r) => ownRooms.has(r.roomId));
 
-  const { svg, bounds } = renderFloorplanSvg(layout);
+  // Po jedan tlocrt za svaki jezik (nazivi i napomena na tom jeziku); srpski
+  // ostaje na staroj adresi. Uvek sva četiri: tura nudi jezik i po glasu, a
+  // kopija jezika koji se ovde preskoči ostala bi stara uz nove oznake soba.
+  const langs: PlanLang[] = ['sr', 'en', 'de', 'ru'];
+  const { bounds } = renderFloorplanSvg(layout);
   const version = Date.now();
-  // PNG istog plana, nacrtan u editoru (lib/floorplanImage.ts, mejl posetiocu).
-  const png = typeof body?.png === 'string' && body.png.length <= MAX_PNG_BASE64 ? body.png : '';
+  // PNG-ovi istog plana, nacrtani u editoru (lib/floorplanImage.ts, mejl posetiocu).
+  // Stari editor šalje samo `png` (srpski).
+  const pngIn: Record<string, unknown> = body?.pngs && typeof body.pngs === 'object' ? body.pngs : { sr: body?.png };
+  const pngOf = (lang: PlanLang) => {
+    const v = pngIn[lang];
+    return typeof v === 'string' && v && v.length <= MAX_PNG_BASE64 ? v : '';
+  };
 
   try {
     await Promise.all([
-      ...(png
-        ? [
-            r2Client.send(
-              new PutObjectCommand({
-                Bucket: bucket,
-                Key: `${slug}/${PLAN_NAME}.png`,
-                Body: Buffer.from(png, 'base64'),
-                ContentType: 'image/png'
-              })
-            )
-          ]
-        : []),
-      r2Client.send(
-        new PutObjectCommand({ Bucket: bucket, Key: `${slug}/${PLAN_NAME}.svg`, Body: svg, ContentType: 'image/svg+xml' })
-      ),
+      ...langs.flatMap((lang) => {
+        const png = pngOf(lang);
+        return [
+          r2Client.send(
+            new PutObjectCommand({ Bucket: bucket, Key: planKey(slug, lang, 'svg'), Body: renderFloorplanSvg(layout, lang).svg, ContentType: 'image/svg+xml' })
+          ),
+          ...(png
+            ? [r2Client.send(new PutObjectCommand({ Bucket: bucket, Key: planKey(slug, lang, 'png'), Body: Buffer.from(png, 'base64'), ContentType: 'image/png' }))]
+            : [])
+        ];
+      }),
       r2Client.send(
         new PutObjectCommand({
           Bucket: bucket,

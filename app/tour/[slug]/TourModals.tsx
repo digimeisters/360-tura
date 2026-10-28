@@ -40,6 +40,7 @@ import { AssistantAskBar, AssistantChat, type AgentLink } from './TourAssistant'
 import { useTourAssistant } from './useTourAssistant';
 import { phoneToE164 } from './TourControls';
 import { ViewCone, type ViewReader } from './ViewCone';
+import { usePlanSrc } from './usePlanSrc';
 import { formatListingPrice } from '../../lib/listingPrice';
 import { NEARBY_ICONS, NEARBY_LABELS, TOUR_NEARBY_SUMMARY, nearestByCategory, parseNearby, walkMinutes } from '../../lib/nearby';
 import NearbyExplorer from './NearbyExplorer';
@@ -315,6 +316,8 @@ export function TourModals({
   useEffect(() => {
     if (askView === 'chat') askEndRef.current?.scrollIntoView({ block: 'end' });
   }, [askView, chatLength, assistant.loading]);
+  // Tlocrt na jeziku ture (sa rezervom na srpski) - hook pre ranog izlaska.
+  const planImg = usePlanSrc(tour?.floorplan_url ?? '', lang);
   if (!activeModal) return null;
 
   const schematic = Boolean(tour?.floorplan_url?.includes('/floorplan-schematic.svg'));
@@ -575,7 +578,8 @@ export function TourModals({
                   <div style={{ position: 'relative', lineHeight: 0 }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={tour.floorplan_url}
+                      src={planImg.src}
+                      onError={planImg.onError}
                       alt="Floorplan"
                       onClick={
                         placeMode
