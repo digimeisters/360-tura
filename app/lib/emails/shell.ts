@@ -109,6 +109,8 @@ export function emailLayout({
     .stack{display:block !important;width:100% !important;box-sizing:border-box !important;}
     .stack-gap{padding:0 0 10px 0 !important;}
     .stack-r{text-align:left !important;padding-top:0 !important;}
+    .kpi{display:block !important;width:100% !important;box-sizing:border-box !important;padding:0 0 10px 0 !important;}
+    .num{font-size:30px !important;}
   }
 </style>
 </head>

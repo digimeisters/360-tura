@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { FORM, formBtnStyle } from '../../lib/formTheme';
 import { SITE_URL } from '../../lib/site';
 import AgencyLogoButton from '../ture/AgencyLogoButton';
+import SendReportDialog from './SendReportDialog';
 
 /**
  * Tabela agencija na strani "Agencije" (spec 2026-10-24-admin-okvir): logo u
@@ -32,6 +33,8 @@ function toursLabel(n: number): string {
 
 export default function AgencyTable({ reports, onLogoChanged }: { reports: AgencyReport[]; onLogoChanged: () => void }) {
   const [copied, setCopied] = useState<string | null>(null);
+  // Agencija čiji je prozor "Pošalji izveštaj" otvoren.
+  const [sendFor, setSendFor] = useState<string | null>(null);
 
   const copyLink = async (r: AgencyReport) => {
     const link = `${SITE_URL}${r.path}`;
@@ -101,9 +104,16 @@ export default function AgencyTable({ reports, onLogoChanged }: { reports: Agenc
                   >
                     {copied === r.agency ? 'Kopirano ✓' : 'Kopiraj link'}
                   </button>
-                  <a href={r.path} target="_blank" rel="noreferrer" style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', textDecoration: 'none' }}>
+                  <a href={r.path} target="_blank" rel="noreferrer" style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', textDecoration: 'none', marginRight: '6px' }}>
                     Otvori izveštaj ↗
                   </a>
+                  <button
+                    type="button"
+                    onClick={() => setSendFor(r.agency)}
+                    style={{ ...formBtnStyle, padding: '6px 12px', fontSize: '12.5px', background: FORM.accent, color: FORM.onAccent, borderColor: FORM.accent }}
+                  >
+                    ✉ Pošalji izveštaj
+                  </button>
                 </td>
               </tr>
             ))}
@@ -112,8 +122,10 @@ export default function AgencyTable({ reports, onLogoChanged }: { reports: Agenc
       </div>
       <p style={{ margin: '14px 0 0', padding: '12px 14px', background: FORM.accentSoft, borderRadius: '12px', fontSize: '13px', lineHeight: 1.55, color: FORM.textPrimary }}>
         <b>Kako radi:</b> link izveštaja pošaljite agenciji porukom ili mejlom. Agencija vidi samo svoje ture, posete po mesecima, bez prijave, i link ne ističe.
-        Agencija se ovde pojavi čim joj dodelite prvu turu (polje „Agencija“ u formi ture).
+        Agencija se ovde pojavi čim joj dodelite prvu turu (polje „Agencija“ u formi ture). Prvog u mesecu stiže podsetnik na Telegram: „✉ Pošalji izveštaj“
+        pokazuje mejl za prošli mesec pre slanja.
       </p>
+      {sendFor && <SendReportDialog agency={sendFor} onClose={() => setSendFor(null)} />}
     </>
   );
 }
