@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import { FORM } from '../../lib/formTheme';
+import { FORM, formBtnStyle } from '../../lib/formTheme';
 import AgencyTable, { type AgencyReport } from './AgencyTable';
+import SendOfferDialog from './SendOfferDialog';
 
 /**
  * Strana "Agencije" u adminu: logo agencije u turama i link mesečnog
@@ -13,6 +14,7 @@ import AgencyTable, { type AgencyReport } from './AgencyTable';
 export default function AgenciesAdminPage() {
   const [reports, setReports] = useState<AgencyReport[] | null>(null);
   const [error, setError] = useState('');
+  const [offerOpen, setOfferOpen] = useState(false);
 
   const load = useCallback(async () => {
     setError('');
@@ -42,14 +44,21 @@ export default function AgenciesAdminPage() {
   return (
     <main className="k-form" style={{ minHeight: '100dvh', background: FORM.bg, color: FORM.textPrimary, fontFamily: FORM.fontBody, padding: '24px 20px 64px' }}>
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        <header style={{ marginBottom: '16px' }}>
-          <h1 style={{ fontSize: '20px', margin: 0, fontFamily: FORM.fontDisplay }}>Agencije</h1>
-          {reports && (
-            <p style={{ margin: '2px 0 0', fontSize: '13px', color: FORM.textSecondary }}>
-              {count} {count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 12 || count % 100 > 14) ? 'agencije' : 'agencija'} · mesečni izveštaj i logo u turama
-            </p>
-          )}
+        <header style={{ marginBottom: '16px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+          <div>
+            <h1 style={{ fontSize: '20px', margin: 0, fontFamily: FORM.fontDisplay }}>Agencije</h1>
+            {reports && (
+              <p style={{ margin: '2px 0 0', fontSize: '13px', color: FORM.textSecondary }}>
+                {count} {count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 12 || count % 100 > 14) ? 'agencije' : 'agencija'} · mesečni izveštaj i logo u turama
+              </p>
+            )}
+          </div>
+          {/* Ponuda ide agenciji koja još nema ture, pa je dugme ovde, ne u redu tabele. */}
+          <button type="button" onClick={() => setOfferOpen(true)} style={{ ...formBtnStyle, background: FORM.accent, color: FORM.onAccent, borderColor: FORM.accent }}>
+            ✉ Pošalji ponudu
+          </button>
         </header>
+        {offerOpen && <SendOfferDialog onClose={() => setOfferOpen(false)} />}
         {error && <p style={{ margin: '0 0 12px', color: FORM.danger, fontSize: '13.5px' }}>{error}</p>}
         {!reports && !error && <p style={{ color: FORM.textSecondary }}>Učitavanje…</p>}
         {reports && <AgencyTable reports={reports} onLogoChanged={() => void load()} />}
