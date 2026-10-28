@@ -13,6 +13,7 @@ import { formatPrice } from '../lib/projectI18n';
 import { SITE_NAME, SITE_URL } from '../lib/site';
 import { serializeJsonLd } from '../lib/structuredData';
 import { VALUATION_HREF, VALUATION_LIVE } from './toolsNav';
+import { cityAverage, CITY_ROW, getAreaPrices } from '../lib/valuation/areaPrices';
 
 /**
  * „Alati" (/alati): ulaz u besplatne alate - kalkulator kredita i troškova
@@ -26,8 +27,29 @@ const PATH = '/alati';
 const CALC_HREF = '/alati/kalkulator-kredita';
 const PRICES_HREF = '/alati/cene-nekretnina-kragujevac';
 
-// Statična strana: VALUATION_LIVE (toolsNav) se proverava pri build-u.
+// Statična strana: VALUATION_LIVE (toolsNav) se proverava pri build-u. Primer
+// procene čita naše cene po naseljima, pa se strana osvežava jednom dnevno.
 export const dynamic = 'force-static';
+export const revalidate = 86400;
+
+/** Primer procene u vrhu: stan od ovoliko m², prodaja, prosek Kragujevca. */
+const SAMPLE_AREA = 50;
+
+/** Raspon za primer iz pravih cena (isto kao /alati/cene-nekretnina-kragujevac); null = bez brojeva. */
+async function sampleRange(): Promise<{ low: number; high: number } | null> {
+  try {
+    const rows = await getAreaPrices();
+    const split = rows.some((r) => r.build === 'new') && rows.some((r) => r.build === 'old');
+    const build = split ? 'old' : 'any';
+    const city = rows.find((r) => r.neighborhood === CITY_ROW && r.type === 'apartment' && r.kind === 'sale' && r.build === build);
+    const avg = city ?? cityAverage(rows.filter((r) => r.neighborhood !== CITY_ROW && r.type === 'apartment' && r.kind === 'sale' && r.build === build));
+    if (!avg) return null;
+    const round = (n: number) => Math.round((n * SAMPLE_AREA) / 1000) * 1000;
+    return { low: round(avg.low), high: round(avg.high) };
+  } catch {
+    return null;
+  }
+}
 
 // Primer u kartici i slici u vrhu: izmišljen stan, isti obračun kao kalkulator.
 const SAMPLE = computePlan({
@@ -151,7 +173,8 @@ export const metadata: Metadata = {
   }
 };
 
-export default function ToolsPage() {
+export default async function ToolsPage() {
+  const range = await sampleRange();
   const tools = [
     { url: CALC_HREF, name: COPY.calc.title },
     ...(VALUATION_LIVE ? [{ url: VALUATION_HREF, name: COPY.valuation.title }] : []),
@@ -185,15 +208,6 @@ export default function ToolsPage() {
       <span className="tl-who">{COPY.valuation.who}</span>
       <h3>{COPY.valuation.title}</h3>
       <p>{COPY.valuation.text}</p>
-      {/* Ilustracija rezultata (raspon), bez izmišljenih cena. */}
-      <div className="tl-preview" aria-hidden="true">
-        <div className="tl-pv-row">
-          <span>Najniža</span>
-          <b>Procena</b>
-          <span>Najviša</span>
-        </div>
-        <div className="tl-pv-range" data-reveal-group />
-      </div>
       <ul>
         {COPY.valuation.points.map((p) => (
           <li key={p} data-reveal="list">{p}</li>
@@ -262,12 +276,22 @@ export default function ToolsPage() {
                 </div>
               </div>
               <div className="tl-vcard is-value">
-                <small>Procena · raspon po naselju</small>
+                <small>{range ? `Procena · primer, stan ${SAMPLE_AREA} m²` : 'Procena · raspon po naselju'}</small>
                 <div className="tl-pv-range" />
                 <div className="tl-pv-row">
-                  <span>Najniža</span>
-                  <b>Procena</b>
-                  <span>Najviša</span>
+                  {range ? (
+                    <>
+                      <b data-count>{formatPrice(range.low, 'sr')}</b>
+                      <span>prosek Kragujevca</span>
+                      <b data-count>{formatPrice(range.high, 'sr')}</b>
+                    </>
+                  ) : (
+                    <>
+                      <span>Najniža</span>
+                      <b>Procena</b>
+                      <span>Najviša</span>
+                    </>
+                  )}
                 </div>
               </div>
               <span className="tl-visual-tag">Kragujevac</span>
@@ -287,22 +311,6 @@ export default function ToolsPage() {
                 <span className="tl-who">{COPY.calc.who}</span>
                 <h3>{COPY.calc.title}</h3>
                 <p>{COPY.calc.text}</p>
-                <div className="tl-preview" aria-hidden="true">
-                  <div className="tl-pv-big">
-                    <small>25 god. · 4,5%</small>
-                    <b>
-                      <span data-count>{formatPrice(SAMPLE.monthly, 'sr')}</span> <em>mesečno</em>
-                    </b>
-                  </div>
-                  <div className="tl-pv-row">
-                    <span>Odmah: učešće + troškovi</span>
-                    <b data-count>{formatPrice(SAMPLE.upfront, 'sr')}</b>
-                  </div>
-                  <div className="tl-pv-green">
-                    <span>Povrat PDV-a za prvi stan</span>
-                    <span data-count>{formatPrice(SAMPLE.vatRefund, 'sr')}</span>
-                  </div>
-                </div>
                 <ul>
                   {COPY.calc.points.map((p) => (
                     <li key={p} data-reveal="list">{p}</li>

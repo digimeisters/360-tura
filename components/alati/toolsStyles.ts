@@ -99,6 +99,11 @@ export const TOOLS_STYLES = `
   .tl-costs li small{display:block; color:var(--ink-faint); font-size:.72rem;}
   .tl-costs li b{color:var(--ink); white-space:nowrap;}
   .tl-btns{display:grid; gap:8px; margin-top:14px;}
+  .vl-tour{margin-top:14px; padding:14px; border-radius:16px; background:color-mix(in srgb, var(--accent) 7%, var(--surface)); border:1px solid color-mix(in srgb, var(--accent) 25%, transparent);}
+  .vl-tour b{display:block; font-family:var(--font-display); font-size:1.05rem; line-height:1.3;}
+  .vl-tour p{margin:6px 0 0; font-size:.9rem; color:var(--ink-soft);}
+  .vl-tour small{display:block; margin-top:4px; font-size:.8rem; font-weight:700; color:var(--accent);}
+  .vl-tour .tl-btns{margin-top:12px;}
   .tl-btn{display:flex; align-items:center; justify-content:center; gap:8px; min-height:46px; border-radius:14px; font:inherit; font-weight:700; font-size:.92rem; text-decoration:none; border:0; cursor:pointer;}
   .tl-btn.is-dark{background:#111113; color:#FFFFFF;}
   .tl-btn.is-dark span{background:#FFFFFF; color:#111113; border-radius:4px; padding:1px 5px; font-size:.68rem; font-weight:800;}

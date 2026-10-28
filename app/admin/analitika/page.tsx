@@ -34,6 +34,8 @@ type SiteStat = {
   conversionRate: number;
   mobileShare: number;
   sources: { source: string; visitors: number }[];
+  /** Posetioci po strani (od 28. 10. 2026). */
+  pages?: { path: string; visitors: number }[];
   clicks: { target: string; count: number }[];
   truncated: boolean;
 };
@@ -66,6 +68,8 @@ const TARGET_LABELS: Record<string, string> = {
   viber: 'Viber',
   whatsapp: 'WhatsApp',
   viber_bubble: 'Viber (krug na telefonu)',
+  tools_calc_used: 'Alati: kalkulator kredita korišćen (promenjen broj)',
+  valuation_book_tour: 'Procena: „Zakažite snimanje“ posle rezultata',
   whatsapp_bubble: 'WhatsApp (krug na telefonu, EN)',
   email: 'Mejl',
   map: 'Adresa na mapi'
@@ -478,6 +482,11 @@ export default function AnalyticsPage() {
                       title="Klikovi"
                       empty="Još nema klikova."
                       items={site.clicks.map((c) => ({ label: targetLabel(c.target), value: c.count }))}
+                    />
+                    <BarCard
+                      title="Najposećenije strane"
+                      empty="Adrese strana se beleže od 28. 10. 2026."
+                      items={(site.pages ?? []).map((p) => ({ label: p.path === '/' ? 'Početna' : p.path, value: p.visitors }))}
                     />
                     <BarCard
                       title="Odakle dolaze posetioci"

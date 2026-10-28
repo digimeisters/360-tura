@@ -110,12 +110,26 @@ function visitSource(): string | null {
  */
 let firstPageView = true;
 
+/** Adresa strane za page_view: mala slova, bez kvačica, samo [a-z0-9/_-] (isto proverava /api/track). */
+function pagePath(): string {
+  const path = window.location.pathname
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'dj')
+    .replace(/[^a-z0-9/_-]/g, '-')
+    .slice(0, 80);
+  return path || '/';
+}
+
 export function trackSiteEvent(eventType: SiteEventType, target?: string): void {
   if (typeof window === 'undefined' || isAdminBrowser() || isOwnerDevice()) return;
 
   const payload: Record<string, unknown> = { scope: 'site', eventType };
   if (target) payload.target = target;
   if (eventType === 'page_view') {
+    // Koja strana je otvorena (od 28. 10. 2026; stariji zapisi nemaju adresu).
+    payload.target = target ?? pagePath();
     payload.device = window.matchMedia('(max-width: 760px)').matches ? 'mobile' : 'desktop';
     payload.source = firstPageView ? visitSource() : null;
     firstPageView = false;

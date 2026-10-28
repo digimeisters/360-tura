@@ -31,6 +31,7 @@ type SiteRow = {
 const MISSING_TABLE_CODES = new Set(['42P01', 'PGRST205']);
 
 const TOP_SOURCES = 6;
+const TOP_PAGES = 10;
 
 function summarizeSite(rows: SiteRow[]) {
   const visitors = new Set<string>();
@@ -38,6 +39,7 @@ function summarizeSite(rows: SiteRow[]) {
   const deviceBySession = new Map<string, string>();
   const sourceVisitors = new Map<string, Set<string>>();
   const clicks = new Map<string, number>();
+  const pageVisitors = new Map<string, Set<string>>();
   let pageViews = 0;
   let formSubmits = 0;
 
@@ -50,6 +52,12 @@ function summarizeSite(rows: SiteRow[]) {
       const set = sourceVisitors.get(source) ?? new Set<string>();
       set.add(row.session_id);
       sourceVisitors.set(source, set);
+      // Posetioci po strani (zapisi pre 28. 10. 2026 nemaju adresu).
+      if (row.target) {
+        const pv = pageVisitors.get(row.target) ?? new Set<string>();
+        pv.add(row.session_id);
+        pageVisitors.set(row.target, pv);
+      }
     } else if (row.event_type === 'form_submit') {
       formSubmits++;
       formSessions.add(row.session_id);
@@ -75,6 +83,10 @@ function summarizeSite(rows: SiteRow[]) {
       .map(([source, set]) => ({ source, visitors: set.size }))
       .sort((a, b) => b.visitors - a.visitors)
       .slice(0, TOP_SOURCES),
+    pages: [...pageVisitors.entries()]
+      .map(([path, set]) => ({ path, visitors: set.size }))
+      .sort((a, b) => b.visitors - a.visitors)
+      .slice(0, TOP_PAGES),
     clicks: [...clicks.entries()]
       .map(([target, count]) => ({ target, count }))
       .sort((a, b) => b.count - a.count)

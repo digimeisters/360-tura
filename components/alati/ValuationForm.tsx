@@ -53,7 +53,7 @@ const FURNISHING_OPTIONS: { value: ValuationFurnishing; label: string }[] = [
 /** Tekstovi rezultata koji zavise od toga da li se prodaje ili izdaje. */
 const RESULT_COPY: Record<
   ValuationListingType,
-  { label: string; suffix: string; pending: string; ctaTitle: string; ctaText: string; upsell: string }
+  { label: string; suffix: string; pending: string; ctaTitle: string; ctaText: string; upsell: string; tourTitle: string }
 > = {
   sale: {
     label: 'Procenjena prodajna cena',
@@ -61,7 +61,8 @@ const RESULT_COPY: Record<
     pending: 'Procenu šaljemo u roku od 24h',
     ctaTitle: 'Tačna procena i plan prodaje — besplatno',
     ctaText: 'Za tačnu procenu i analizu kako da nekretninu prodate po vrhu raspona, javljamo vam se u roku od 24h.',
-    upsell: 'Nekretnine sa 360° turom privlače ozbiljnije kupce i prodaju se brže.'
+    upsell: 'Nekretnine sa 360° turom privlače ozbiljnije kupce i prodaju se brže.',
+    tourTitle: 'Prodajete? Pokažite nekretninu 360° turom'
   },
   rent: {
     label: 'Procenjena kirija',
@@ -69,7 +70,8 @@ const RESULT_COPY: Record<
     pending: 'Procenu kirije šaljemo u roku od 24h',
     ctaTitle: 'Tačna kirija i plan izdavanja — besplatno',
     ctaText: 'Za tačniju procenu i savet kako da nekretninu izdate brže i po vrhu raspona, javljamo vam se u roku od 24h.',
-    upsell: 'Sa 360° turom zakupci pregledaju stan pre poziva — na razgledanje dolaze samo zainteresovani.'
+    upsell: 'Sa 360° turom zakupci pregledaju stan pre poziva — na razgledanje dolaze samo zainteresovani.',
+    tourTitle: 'Izdajete? Pokažite nekretninu 360° turom'
   }
 };
 
@@ -558,12 +560,22 @@ export default function ValuationForm({
             </div>
           )}
 
-          <div className="tl-btns">
-            <p className="vl-upsell">{copy.upsell}</p>
-            <Link className="tl-btn is-line" href={demoTourHref} data-track="cta:valuation_demo_tour">
-              Pogledajte primer 360° ture →
-            </Link>
-          </div>
+          {/* Tek posle rezultata: vlasnik koji je video raspon je najbliži odluci o turi. */}
+          {!locked && (
+            <div className="vl-tour">
+              <b>{copy.tourTitle}</b>
+              <p>{copy.upsell}</p>
+              <small>Tura je gotova za 24–48h od snimanja.</small>
+              <div className="tl-btns">
+                <Link className="tl-btn is-dark" href="/#kontakt" data-track="cta:valuation_book_tour">
+                  Zakažite snimanje
+                </Link>
+                <Link className="tl-btn is-line" href={demoTourHref} data-track="cta:valuation_demo_tour">
+                  Pogledajte primer ture →
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </aside>
     </section>

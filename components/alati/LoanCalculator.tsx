@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { trackSiteEvent } from '../../app/lib/track';
 import { formatArea, formatPrice, PROJECT_TEXT } from '../../app/lib/projectI18n';
 import {
   computePlan,
@@ -45,6 +46,15 @@ export default function LoanCalculator({ newBuildHref }: { newBuildHref: string 
   const [rate, setRate] = useState(String(DEFAULT_RATE).replace('.', ','));
   const [firstHome, setFirstHome] = useState<boolean | null>(null);
   const [members, setMembers] = useState(0);
+  // „Koristio kalkulator": prva promena broja ili izbora, jednom po otvaranju strane.
+  const used = useRef(false);
+  const markUsed = (e: React.SyntheticEvent) => {
+    if (used.current) return;
+    const el = e.target as HTMLElement;
+    if (e.type === 'click' && !el.closest('button')) return;
+    used.current = true;
+    trackSiteEvent('cta_click', 'tools_calc_used');
+  };
 
   // Decimale posle zareza se odbacuju: '85.000,00' je 85.000 €, ne 8.500.000 €.
   const price = digits(priceText.split(',')[0]);
@@ -71,7 +81,7 @@ export default function LoanCalculator({ newBuildHref }: { newBuildHref: string 
   const money = (n: number) => (valid ? formatPrice(n, 'sr') : '—');
 
   return (
-    <section className="tl-calc" aria-label="Kalkulator kredita i troškova kupovine">
+    <section className="tl-calc" aria-label="Kalkulator kredita i troškova kupovine" onInputCapture={markUsed} onClickCapture={markUsed}>
       <div className="tl-card">
         <div className="tl-sec">
           <h2>
