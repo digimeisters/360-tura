@@ -24,6 +24,11 @@ type Props = {
   onSent: (to: string) => void;
 };
 
+/** HTML mejla za pregled u adminu: svaka veza otvara novu karticu, ne sam okvir pregleda. */
+export function previewInNewTab(html: string): string {
+  return html.replace('<head>', '<head><base target="_blank">');
+}
+
 function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -201,7 +206,9 @@ export default function SendToClientDialog({ slug, title, published, defaultTo, 
         {published && (
           <div style={{ flex: '1 1 420px', background: '#F1F1EC', minHeight: '520px', borderLeft: '1px solid ' + FORM.border }}>
             {previewHtml ? (
-              <iframe title="Pregled mejla" sandbox="" srcDoc={previewHtml} style={{ width: '100%', height: '100%', minHeight: '520px', border: 0, display: 'block' }} />
+              // Pregled je bez skripti (sandbox), pa se tura u njemu ne bi
+              // učitala - veze iz mejla zato otvaraju novu karticu.
+              <iframe title="Pregled mejla" sandbox="allow-popups allow-popups-to-escape-sandbox" srcDoc={previewInNewTab(previewHtml)} style={{ width: '100%', height: '100%', minHeight: '520px', border: 0, display: 'block' }} />
             ) : (
               <p style={{ padding: '20px', fontSize: '13px', color: FORM.textSecondary }}>{error ? '' : 'Pravim pregled…'}</p>
             )}

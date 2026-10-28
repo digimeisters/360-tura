@@ -6,6 +6,7 @@ import { FORM, formBtnStyle } from '../../lib/formTheme';
 import { embedSnippet } from '../../lib/embedCode';
 import TourQrDialog from './TourQrDialog';
 import SendToClientDialog from './SendToClientDialog';
+import SendLiveLinkDialog from './SendLiveLinkDialog';
 import TourVideoLauncher from './TourVideoLauncher';
 import TourSnapshotModal from './TourSnapshotModal';
 import TourIntroModal from './TourIntroModal';
@@ -130,6 +131,8 @@ export default function ToursAdminPage() {
   // Tura čiji je QR prozor otvoren (Premium: QR kod za oglas, letak i izlog).
   const [qrTour, setQrTour] = useState<TourRow | null>(null);
   const [sendTour, setSendTour] = useState<TourRow | null>(null);
+  // Tura čiji je prozor "Link za vođenje uživo" otvoren (mejl agentu ili kopiranje).
+  const [liveTour, setLiveTour] = useState<TourRow | null>(null);
   // Tura za koju se pravi kratak video za Instagram/Facebook (Premium).
   const [videoSlug, setVideoSlug] = useState<string | null>(null);
   // Snimak iz ture: slika kadra za oglas/mreže sa bedžom i linkom (TourSnapshotModal).
@@ -239,7 +242,7 @@ export default function ToursAdminPage() {
     else if (action === 'video') setVideoSlug(tour.slug);
     else if (action === 'snapshot') setSnapshotSlug(tour.slug);
     else if (action === 'embed') void copyEmbedCode(tour);
-    else if (action === 'live') void copyLiveGuideLink(tour);
+    else if (action === 'live') setLiveTour(tour);
     else if (action === 'nearby') void refreshNearby(tour);
     else if (action === 'delete') void deleteTour(tour);
   };
@@ -390,16 +393,6 @@ export default function ToursAdminPage() {
       setNotice('');
       setError('Nema veze sa serverom.');
     }
-  };
-
-  const copyLiveGuideLink = async (tour: TourRow) => {
-    const url = window.location.origin + tour.liveGuidePath;
-    try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      window.prompt('Link za vođenje uživo (Ctrl+C, pa Enter):', url);
-    }
-    setNotice(`Link za vođenje uživo je kopiran (${pickTitle(tour)}). Pošaljite ga agentu - samo on treba da ga ima.`);
   };
 
   const startEdit = (tour: TourRow) => {
@@ -664,6 +657,21 @@ export default function ToursAdminPage() {
             // Prozor ostaje otvoren i sam prikazuje "Poslato" - ovde samo trag na vrhu strane.
             setError('');
             setNotice(`Mejl „Vaša tura je gotova“ je poslat na ${to}.`);
+          }}
+        />
+      )}
+      {liveTour && (
+        <SendLiveLinkDialog
+          slug={liveTour.slug}
+          title={pickTitle(liveTour)}
+          published={Boolean(liveTour.published) && liveTour.status === 'active'}
+          guidePath={liveTour.liveGuidePath}
+          defaultTo={liveTour.agent_email || ''}
+          defaultName={(liveTour.agent_name || '').split(/\s+/)[0] || ''}
+          onClose={() => setLiveTour(null)}
+          onSent={(to) => {
+            setError('');
+            setNotice(`Link za vođenje uživo je poslat na ${to}.`);
           }}
         />
       )}
