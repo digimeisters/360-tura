@@ -67,7 +67,7 @@ export default function UnitPage({
             lang={lang}
             unit={unit}
             floor={floor}
-            data={{ units, floors, buildings, demoMedia: data.demoMedia, project: { slug: project.slug, title, city: project.city } }}
+            data={{ units, floors, buildings, demoMedia: data.demoMedia, project: { slug: project.slug, title, srTitle: project.title, city: project.city } }}
           />
         </div>
       </main>

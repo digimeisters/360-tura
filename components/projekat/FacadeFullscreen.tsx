@@ -542,7 +542,7 @@ export default function FacadeFullscreen({
         <UnitInquiry
           key={`fs-inq-${unit.id}`}
           slug={project.slug}
-          projectTitle={project.title}
+          projectTitle={project.srTitle ?? project.title}
           unitId={unit.id}
           code={unit.code}
           status={unit.status}

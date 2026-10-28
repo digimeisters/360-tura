@@ -99,7 +99,7 @@ const UNIT_SCREEN_STYLES = `
 `;
 
 export type UnitScreenData = Pick<ProjectPageData, 'units' | 'floors' | 'buildings' | 'demoMedia'> & {
-  project: { slug: string; title: string; city: string | null };
+  project: { slug: string; title: string; srTitle?: string; city: string | null };
 };
 
 function SimilarLink({ inline, href, onPick, children }: { inline: boolean; href: string; onPick: () => void; children: React.ReactNode }) {
@@ -350,7 +350,7 @@ export default function UnitScreen({
           {sold && (
             <UnitInquiry
               slug={project.slug}
-              projectTitle={project.title}
+              projectTitle={project.srTitle ?? project.title}
               unitId={unit.id}
               code={unit.code}
               status={unit.status}
@@ -365,7 +365,7 @@ export default function UnitScreen({
               <p>{t.askNote}</p>
               <UnitInquiry
                 slug={project.slug}
-                projectTitle={project.title}
+                projectTitle={project.srTitle ?? project.title}
                 unitId={unit.id}
                 code={unit.code}
                 status={unit.status}
@@ -416,7 +416,7 @@ export default function UnitScreen({
             }}
             data-track="cta:unit_bar_ask"
           >
-            {unit.price ? t.askCta : t.askPriceCta}
+            {unit.status === 'reserved' ? t.notifyMe : unit.price ? t.askCta : t.askPriceCta}
           </a>
         </div>
       )}

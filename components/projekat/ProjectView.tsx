@@ -121,6 +121,7 @@ export function selectorProject(data: ProjectPageData, lang: ProjectLang) {
   return {
     slug: project.slug,
     title: projectTitle(data, lang),
+    srTitle: project.title,
     developer: project.developer_name,
     address: project.address,
     city: project.city,
@@ -345,7 +346,7 @@ export default function ProjectView({
               <ProjectContact
                 lang={lang}
                 slug={project.slug}
-                projectTitle={title}
+                projectTitle={data.project.title}
                 phone={project.contact_phone}
                 email={project.contact_email}
                 units={units

@@ -108,6 +108,8 @@ export type SelectorProject = {
   address: string | null;
   city: string | null;
   moveIn: string | null;
+  /** Srpski naziv za upite prodaji (title je na jeziku strane). */
+  srTitle?: string;
   /** 3D render i video projekta (migracija 040): prekidač iznad slike zgrade. */
   renderUrl?: string | null;
   videoUrl?: string | null;
@@ -265,7 +267,10 @@ export default function ProjectSelector({
   // „#lista" u adresi (dugme „Lista svih stanova" u vrhu strane) otvara listu.
   useEffect(() => {
     const sync = () => {
-      if (window.location.hash === '#lista') setMode('list');
+      if (window.location.hash === '#lista') {
+        setMode('list');
+        setUnitId(null);
+      }
     };
     sync();
     window.addEventListener('hashchange', sync);
@@ -509,7 +514,8 @@ export default function ProjectSelector({
     const sync = () => {
       const code = new URLSearchParams(window.location.search).get('stan');
       const u = code ? units.find((x) => x.code === code) : null;
-      if (u) openUnitById(u.id);
+      // Klik na #lista takođe javlja popstate - tada lista ima prednost (stan se zatvara).
+      if (u && window.location.hash !== '#lista') openUnitById(u.id);
       else setUnitId(null);
     };
     // Pri učitavanju samo kad adresa ima stan; nepostojeća oznaka ne radi ništa.
@@ -1526,7 +1532,7 @@ export default function ProjectSelector({
         <UnitInquiry
           key={`inq-${unit.id}`}
           slug={project.slug}
-          projectTitle={project.title}
+          projectTitle={project.srTitle ?? project.title}
           unitId={unit.id}
           code={unit.code}
           status={unit.status}
@@ -1721,7 +1727,7 @@ export default function ProjectSelector({
           unit={unit}
           floor={floor}
           embedded={embedded}
-          data={{ units, floors, buildings, demoMedia, project: { slug: project.slug, title: project.title, city: project.city } }}
+          data={{ units, floors, buildings, demoMedia, project: { slug: project.slug, title: project.title, srTitle: project.srTitle, city: project.city } }}
           onPick={openUnitById}
           onBack={closeUnitScreen}
         />
