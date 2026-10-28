@@ -9,6 +9,9 @@ export type MapFrameSource = { canvas: HTMLCanvasElement; pinPoint: () => { x: n
  * panorame (WebGL, PanoRenderer) + kartice i titlovi preko njih. Izgled prati
  * skicu koju je vlasnik odobrio: tamnoplava kartica na početku i kraju,
  * crna oznaka sa nazivom sobe gore, titl na tamnoj traci dole.
+ *
+ * Od 28. 10. 2026: mali tlocrt gore desno sa tačkom „ovde ste", kamera kreće
+ * i staje mekše, završna kartica bez QR koda, i naslovna slika (drawCover).
  */
 
 const W = VIDEO_WIDTH;
@@ -22,6 +25,11 @@ const HFOV_TO = 58;
 
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 const easeOut = (x: number) => 1 - (1 - x) * (1 - x);
+/** Meko kretanje kamere: pola ravnomerno, pola sa usporenjem na krajevima (ne staje skroz, jer se sobe pretapaju). */
+const softPan = (p: number) => 0.55 * p + 0.45 * p * p * (3 - 2 * p);
+/** Mali tlocrt gore desno: najveća širina i visina (px na 1080x1920). Vodoravni tlocrti su česti, pa je širina veća. */
+const PLAN_MAX_W = 340;
+const PLAN_MAX_H = 300;
 
 /** Providnost koja raste od `from` do `from + dur` (0 -> 1). */
 const rise = (t: number, from: number, dur: number) => clamp01((t - from) / dur);
@@ -58,10 +66,11 @@ export class VideoFrameRenderer {
   constructor(
     private plan: VideoPlan,
     private pano: PanoRenderer,
-    private qr: HTMLCanvasElement | null,
     /** Logo agencije (agency_branding); null = kartice nose samo naziv agencije. */
     private logo: HTMLImageElement | null = null,
-    private mapFrames: MapFrameSource | null = null
+    private mapFrames: MapFrameSource | null = null,
+    /** Tlocrt ture (plan.floorplanUrl); null = bez prikaza u uglu. */
+    private floorplan: HTMLImageElement | null = null
   ) {
     this.display = cssFont('--font-urbanist', 'system-ui, sans-serif');
     this.body = cssFont('--font-inter', 'system-ui, sans-serif');
@@ -93,11 +102,11 @@ export class VideoFrameRenderer {
     ctx.drawImage(logo, left + (badgeW - logoW) / 2, y + (height - logoH) / 2, logoW, logoH);
   }
 
-  /** Pogled kamere u sobi u trenutku t: ravnomerno klizi i lagano se primiče. */
+  /** Pogled kamere u sobi u trenutku t: meko klizi i lagano se primiče. */
   private viewFor(shot: VideoRoomShot, t: number) {
     const p = clamp01((t - shot.start) / (shot.end - shot.start));
     return {
-      yaw: shot.fromYaw + (shot.toYaw - shot.fromYaw) * p,
+      yaw: shot.fromYaw + (shot.toYaw - shot.fromYaw) * softPan(p),
       pitch: 0,
       hfov: HFOV_FROM + (HFOV_TO - HFOV_FROM) * p,
       alpha: 1
@@ -118,8 +127,9 @@ export class VideoFrameRenderer {
     ctx.clearRect(0, 0, W, H);
     ctx.drawImage(this.pano.canvas, 0, 0, W, H);
 
-    // Nazivi i titlovi soba (ispod kartica).
+    // Nazivi i titlovi soba (ispod kartica), tlocrt sa tačkom sobe.
     for (const shot of visible) this.drawRoomText(ctx, shot, t);
+    for (const shot of visible) this.drawPlan(ctx, shot, t);
     this.drawBrand(ctx, t);
 
     const introAlpha = 1 - rise(t, plan.intro.end - FADE_S, FADE_S);
@@ -190,6 +200,114 @@ export class VideoFrameRenderer {
       });
       ctx.restore();
     }
+  }
+
+  /** Koliko se vidi tekst/tlocrt sobe u trenutku t (isti ulaz i izlaz kao oznaka sobe). */
+  private roomAlpha(shot: VideoRoomShot, t: number, delay = 0): number {
+    const shownFrom = Math.max(shot.start + FADE_S, shot === this.plan.rooms[0] ? this.plan.intro.end : 0);
+    const fadeOut = 1 - rise(t, shot.end - FADE_S * 0.6, 0.3);
+    return Math.min(rise(t, shownFrom - 0.2 + delay, 0.35), fadeOut);
+  }
+
+  /** Mali tlocrt gore desno; tačka pokazuje sobu koja se gleda. */
+  private drawPlan(ctx: CanvasRenderingContext2D, shot: VideoRoomShot, t: number): void {
+    const img = this.floorplan;
+    if (!img || shot.planX === null || shot.planY === null) return;
+    const alpha = this.roomAlpha(shot, t, 0.15);
+    if (alpha <= 0) return;
+    const ratio = (img.naturalWidth || 1) / (img.naturalHeight || 1);
+    const w = Math.min(PLAN_MAX_W, PLAN_MAX_H * ratio);
+    const h = w / ratio;
+    const pad = 14;
+    const x = W - 64 - w - pad * 2;
+    // Ispod reda sa oznakom sobe (gore levo), da se dug naziv ne preklopi sa tlocrtom.
+    const y = 214;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.94)';
+    ctx.beginPath();
+    ctx.roundRect(x, y, w + pad * 2, h + pad * 2, 24);
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+    ctx.drawImage(img, x + pad, y + pad, w, h);
+    // Tačka "ovde ste" sa talasom koji se širi.
+    const dx = x + pad + (w * shot.planX) / 100;
+    const dy = y + pad + (h * shot.planY) / 100;
+    const wave = ((t - shot.start) % 1.4) / 1.4;
+    ctx.fillStyle = `rgba(30, 90, 168, ${0.35 * (1 - wave)})`;
+    ctx.beginPath();
+    ctx.arc(dx, dy, 12 + 22 * wave, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(dx, dy, 13, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#1E5AA8';
+    ctx.beginPath();
+    ctx.arc(dx, dy, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /**
+   * Naslovna slika (Instagram cover, Facebook): prva soba u njenom kadru,
+   * gore oznaka "360° tura", dole tamna kartica sa vrstom, naslovom i cenom.
+   */
+  drawCover(ctx: CanvasRenderingContext2D): void {
+    const { intro } = this.plan;
+    const shot = this.plan.rooms[this.plan.coverIndex] ?? this.plan.rooms[0];
+    if (shot) {
+      this.pano.render([{ url: shot.panoramaUrl, view: { yaw: shot.fromYaw, pitch: 0, hfov: 62, alpha: 1 } }]);
+      ctx.drawImage(this.pano.canvas, 0, 0, W, H);
+    } else {
+      ctx.fillStyle = CARD_BG;
+      ctx.fillRect(0, 0, W, H);
+    }
+    const shade = ctx.createLinearGradient(0, H * 0.45, 0, H);
+    shade.addColorStop(0, 'rgba(14, 32, 64, 0)');
+    shade.addColorStop(1, 'rgba(14, 32, 64, 0.92)');
+    ctx.fillStyle = shade;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.save();
+    ctx.font = `800 40px ${this.body}`;
+    ctx.letterSpacing = '4px';
+    const pill = '360° TURA';
+    const pw = ctx.measureText(pill).width + 64;
+    ctx.fillStyle = '#1E5AA8';
+    ctx.beginPath();
+    ctx.roundRect(64, 120, pw, 84, 42);
+    ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(pill, 96, 164);
+    ctx.restore();
+
+    const maxW = W - PAD * 2;
+    ctx.save();
+    ctx.font = `700 100px ${this.display}`;
+    const lines = wrap(ctx, intro.title, maxW).slice(0, 4);
+    let y = H - 330 - (lines.length - 1) * 112 - (intro.price ? 110 : 0);
+    if (intro.eyebrow) {
+      ctx.font = `700 40px ${this.body}`;
+      ctx.letterSpacing = '4px';
+      ctx.fillStyle = ACCENT;
+      ctx.fillText(intro.eyebrow, PAD, y - 112, maxW);
+      ctx.letterSpacing = '0px';
+    }
+    ctx.font = `700 100px ${this.display}`;
+    ctx.fillStyle = '#FFFFFF';
+    lines.forEach((line, i) => ctx.fillText(line, PAD, y + i * 112));
+    y += (lines.length - 1) * 112;
+    if (intro.price) {
+      ctx.font = `800 96px ${this.display}`;
+      ctx.fillText(intro.price, PAD, y + 120);
+    }
+    ctx.restore();
+    if (this.logo) this.drawLogoBadge(ctx, PAD, H - 200, 110, 460, false);
+    else this.drawBrand(ctx, 0);
   }
 
   private drawIntro(ctx: CanvasRenderingContext2D, t: number, alpha: number): void {
@@ -479,43 +597,45 @@ export class VideoFrameRenderer {
     ctx.globalAlpha = alpha * enter;
     ctx.textAlign = 'center';
 
-    let y = 430 + (1 - enter) * 40;
-    ctx.font = `700 88px ${this.display}`;
+    // Bez QR koda (vlasnik, 28. 10. 2026): naslov, link na beloj pločici,
+    // gde je link (opis objave), agencija i kontakt.
+    let y = 700 + (1 - enter) * 40;
+    ctx.font = `700 96px ${this.display}`;
     ctx.fillStyle = '#FFFFFF';
-    ctx.fillText(outro.title, W / 2, y);
-    y += 78;
+    const titleLines = wrap(ctx, outro.title, W - PAD * 2);
+    titleLines.forEach((line, i) => ctx.fillText(line, W / 2, y + i * 108));
+    y += (titleLines.length - 1) * 108 + 90;
+
+    ctx.font = `700 44px ${this.body}`;
+    const linkW = Math.min(W - PAD * 2, ctx.measureText(outro.shortUrl).width + 80);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.roundRect(W / 2 - linkW / 2, y, linkW, 104, 52);
+    ctx.fill();
+    ctx.fillStyle = '#0E2040';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(outro.shortUrl, W / 2, y + 54, linkW - 60);
+    ctx.textBaseline = 'alphabetic';
+    y += 104 + 78;
     ctx.font = `500 42px ${this.body}`;
     ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
     ctx.fillText(outro.note, W / 2, y);
 
-    y += 80;
-    const box = 540;
-    ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath();
-    ctx.roundRect(W / 2 - box / 2, y, box, box, 40);
-    ctx.fill();
-    if (this.qr) ctx.drawImage(this.qr, W / 2 - 235, y + 35, 470, 470);
-    y += box + 100;
-
+    y += 150;
     if (this.logo) {
-      // Logo agencije umesto naziva (pločica 150 px, ispod QR koda).
       this.drawLogoBadge(ctx, W / 2, y - 60, 150, 640, true);
-      y += 90;
+      y += 120;
     } else {
       ctx.font = `700 56px ${this.display}`;
       ctx.fillStyle = '#FFFFFF';
       ctx.fillText(outro.agency, W / 2, y);
     }
     if (outro.contact) {
-      y += 72;
+      y += 76;
       ctx.font = `600 46px ${this.body}`;
       ctx.fillStyle = ACCENT;
       ctx.fillText(outro.contact, W / 2, y);
     }
-    y += 76;
-    ctx.font = `500 36px ${this.body}`;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-    ctx.fillText(outro.shortUrl, W / 2, y, W - PAD * 2);
     ctx.restore();
   }
 }

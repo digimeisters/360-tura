@@ -1,4 +1,3 @@
-import QRCode from 'qrcode';
 import { AudioBufferSource, BufferTarget, CanvasSource, Mp4OutputFormat, Output, QUALITY_HIGH, canEncodeAudio, canEncodeVideo } from 'mediabunny';
 import { VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH, type VideoPlan } from './videoPlan';
 import { PanoRenderer } from './panoRenderer';
@@ -95,7 +94,7 @@ export async function renderTourVideo(
     /** Muzika ispod videa (fajl sa agentovog računara); null = bez muzike. */
     music?: File | null;
   }
-): Promise<Blob> {
+): Promise<{ video: Blob; cover: Blob | null }> {
   if (typeof VideoEncoder === 'undefined') {
     throw new Error('Ovaj pregledač ne ume da pravi video. Otvorite turu u Chrome-u na računaru.');
   }
@@ -131,8 +130,11 @@ export async function renderTourVideo(
     const audioCodec = !audio ? null : (await canEncodeAudio('aac')) ? 'aac' : (await canEncodeAudio('opus')) ? 'opus' : null;
     if (audio && !audioCodec) throw new Error('Pregledač ne ume da upiše zvuk u video. Probajte u Chrome-u na računaru.');
 
-    const qr = document.createElement('canvas');
-    await QRCode.toCanvas(qr, plan.outro.url, { width: 400, margin: 1, color: { dark: '#0E2040', light: '#FFFFFF' } });
+    // Tlocrt za prikaz u uglu. Posebna adresa (?video): tura ga prikazuje kao
+    // običnu sliku, pa bi pregledač vratio sačuvan odgovor bez CORS-a.
+    const floorplan = plan.floorplanUrl
+      ? await loadImage(`${plan.floorplanUrl}${plan.floorplanUrl.includes('?') ? '&' : '?'}video`).catch(() => null)
+      : null;
 
     // 2) Kadar po kadar u MP4.
     const canvas = document.createElement('canvas');
@@ -140,7 +142,7 @@ export async function renderTourVideo(
     canvas.height = VIDEO_HEIGHT;
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('2D platno nije dostupno.');
-    const frames = new VideoFrameRenderer(plan, pano, qr, logo, mapFrames);
+    const frames = new VideoFrameRenderer(plan, pano, logo, mapFrames, floorplan);
 
     const output = new Output({ format: new Mp4OutputFormat({ fastStart: 'in-memory' }), target: new BufferTarget() });
     const source = new CanvasSource(canvas, { codec: 'avc', quality: QUALITY_HIGH, keyFrameInterval: 1 });
@@ -171,7 +173,11 @@ export async function renderTourVideo(
     await output.finalize();
     const buffer = output.target.buffer;
     if (!buffer) throw new Error('Video je prazan.');
-    return new Blob([buffer], { type: 'video/mp4' });
+
+    // Naslovna slika (JPG) iz istih panorama, dok su još učitane.
+    frames.drawCover(ctx);
+    const cover = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+    return { video: new Blob([buffer], { type: 'video/mp4' }), cover };
   } finally {
     pano.dispose();
     mapFrames?.dispose();

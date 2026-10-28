@@ -21,7 +21,7 @@ const LANGS: Language[] = ['sr', 'en', 'de', 'ru'];
 type Phase =
   | { kind: 'idle' }
   | { kind: 'working'; progress: VideoProgress }
-  | { kind: 'done'; url: string; sizeMb: number }
+  | { kind: 'done'; url: string; sizeMb: number; coverUrl: string | null }
   | { kind: 'error'; message: string };
 
 export default function TourVideoModal({
@@ -66,7 +66,9 @@ export default function TourVideoModal({
 
   // Oslobodi gotov video iz memorije kad se prozor zatvori ili napravi novi.
   const doneUrl = phase.kind === 'done' ? phase.url : null;
+  const coverUrl = phase.kind === 'done' ? phase.coverUrl : null;
   useEffect(() => () => { if (doneUrl) URL.revokeObjectURL(doneUrl); }, [doneUrl]);
+  useEffect(() => () => { if (coverUrl) URL.revokeObjectURL(coverUrl); }, [coverUrl]);
   useEffect(() => () => abortRef.current?.abort(), []);
 
   const start = async () => {
@@ -76,13 +78,13 @@ export default function TourVideoModal({
     try {
       // Biblioteka za MP4 je velika - učitava se tek kad zatreba.
       const { renderTourVideo } = await import('./videoEncode');
-      const blob = await renderTourVideo(plan, {
+      const { video: blob, cover } = await renderTourVideo(plan, {
         onProgress: (progress) => setPhase({ kind: 'working', progress }),
         getPreview: () => previewRef.current,
         signal: controller.signal,
         music
       });
-      setPhase({ kind: 'done', url: URL.createObjectURL(blob), sizeMb: blob.size / 1024 / 1024 });
+      setPhase({ kind: 'done', url: URL.createObjectURL(blob), sizeMb: blob.size / 1024 / 1024, coverUrl: cover ? URL.createObjectURL(cover) : null });
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
         setPhase({ kind: 'idle' });
@@ -181,11 +183,11 @@ export default function TourVideoModal({
                 {plan.rooms.map((shot) => (
                   <li key={shot.roomId}>{shot.title || 'Soba bez naziva'}</li>
                 ))}
-                <li>Završna kartica sa QR kodom ka turi</li>
+                <li>Završna kartica: link ture, agencija i kontakt</li>
               </ol>
               {skipped > 0 && (
                 <div style={{ fontSize: '12px', marginTop: '6px' }}>
-                  Bez {skipped} {skipped % 10 >= 1 && skipped % 10 <= 4 && (skipped % 100 < 12 || skipped % 100 > 14) ? 'sobe' : 'soba'} ({plan.map ? 'video sa mapom ostaje do ~40 s' : `najviše ${MAX_ROOMS}`}, redom putanje vodiča; sobe bez panorame se preskaču).
+                  Bez {skipped} {skipped % 10 >= 1 && skipped % 10 <= 4 && (skipped % 100 < 12 || skipped % 100 > 14) ? 'sobe' : 'soba'} ({plan.map ? 'video sa mapom ostaje do ~45 s' : `najviše ${MAX_ROOMS}`}, prednost imaju dnevni boravak, kuhinja i sobe, a hodnik i ostava poslednji; sobe bez panorame se preskaču).
                 </div>
               )}
             </div>
@@ -247,6 +249,15 @@ export default function TourVideoModal({
                   style={{ ...btn, background: THEME.success, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
                 >
                   Preuzmi MP4 ({phase.sizeMb.toFixed(1)} MB)
+                </a>
+              )}
+              {phase.kind === 'done' && phase.coverUrl && (
+                <a
+                  href={phase.coverUrl}
+                  download={`${tour.slug}-${lang}-naslovna.jpg`}
+                  style={{ ...btn, background: THEME.accent, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+                >
+                  Naslovna slika (JPG)
                 </a>
               )}
             </div>

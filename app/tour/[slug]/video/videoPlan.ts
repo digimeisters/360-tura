@@ -11,7 +11,8 @@ import { chipsFor } from '../introChips';
 /**
  * Plan kratkog uspravnog videa iz ture (za Instagram/Facebook, Premium):
  * uvodna kartica -> prolazak kroz prostorije sa titlom -> završna kartica sa
- * QR kodom. Sve se uzima iz podataka ture koji već postoje (Info, uvod sobe,
+ * linkom ture (QR kod izbačen 28. 10. 2026 - na Instagramu/TikToku se link
+ * čita iz opisa objave). Sve se uzima iz podataka ture koji već postoje (Info, uvod sobe,
  * putanja vodiča), pa agent ništa ne piše posebno. Vlasnik je odobrio izgled
  * 1. 10. 2026 (uvodna kartica "za nijansu detaljnija": agencija, tri polja,
  * do tri prednosti).
@@ -31,10 +32,11 @@ export const VIDEO_FPS = 30;
 
 /** Trajanja u sekundama. Susedni delovi se preklapaju za FADE (pretapanje). */
 export const INTRO_S = 4;
-// Soba traje dovoljno da se pročita jedna rečenica titla (~2,5 s čistog teksta).
-export const ROOM_S = 4.2;
+// Soba traje 6 s (vlasnik, 28. 10. 2026: "malo duže predstavljanje panorame";
+// bilo 4,2 s) - kamera pređe skoro trećinu kruga, a titl se stigne pročitati.
+export const ROOM_S = 6;
 export const FADE_S = 0.7;
-export const OUTRO_S = 3.2;
+export const OUTRO_S = 3.6;
 /** Mapa na početku traje bar ovoliko; sa glasom uvoda - koliko glas plus predah. */
 export const MAP_MIN_S = 6;
 const MAP_AFTER_VOICE_S = 0.8;
@@ -65,10 +67,10 @@ function tourRotationAfter(seconds: number): number {
   return v * ((2 * ramp) / 3 + (seconds - ramp));
 }
 
-/** Više soba bi video učinilo dužim od 35 s - za Reels je to granica pažnje. */
-export const MAX_ROOMS = 8;
-/** Sa mapom i glasom na početku: soba manje, da ceo video ostane oko 40 s. */
-const TARGET_WITH_MAP_S = 40;
+/** Sa sobama od 6 s: najviše 6, da video ostane oko 45 s (granica pažnje za Reels). */
+export const MAX_ROOMS = 6;
+/** Sa mapom i glasom na početku: soba manje, da ceo video ostane oko 45 s. */
+const TARGET_WITH_MAP_S = 45;
 const MIN_ROOMS_WITH_MAP = 4;
 
 export type VideoRoomShot = {
@@ -82,6 +84,9 @@ export type VideoRoomShot = {
   toYaw: number;
   start: number;
   end: number;
+  /** Položaj sobe na tlocrtu ture (procenat); null = soba nije obeležena. */
+  planX: number | null;
+  planY: number | null;
 };
 
 export type VideoMapScene = {
@@ -101,6 +106,10 @@ export type VideoPlan = {
   voice: { url: string; seconds: number } | null;
   /** Logo agencije (agency_branding, migracija 027) za uvodnu i završnu karticu; null = samo naziv. */
   agencyLogoUrl: string | null;
+  /** Tlocrt ture za mali prikaz u uglu ("ovde ste"); null = tura nema tlocrt ili bar dve obeležene sobe. */
+  floorplanUrl: string | null;
+  /** Soba za naslovnu sliku (indeks u rooms). */
+  coverIndex: number;
   intro: {
     agency: string;
     eyebrow: string;
@@ -135,25 +144,25 @@ const TEXT: Record<Language, {
     categories: { sale: 'Prodaja', rent: 'Izdavanje', booking: 'Stan na dan' },
     tagline: 'Prošetajte kroz nekretninu u 360°',
     outroTitle: 'Pogledajte celu turu',
-    outroNote: 'Skenirajte kod ili otvorite link'
+    outroNote: 'Link je u opisu objave'
   },
   en: {
     categories: { sale: 'For sale', rent: 'For rent', booking: 'Short stay' },
     tagline: 'Walk through the property in 360°',
     outroTitle: 'See the full tour',
-    outroNote: 'Scan the code or open the link'
+    outroNote: 'Link in the description'
   },
   de: {
     categories: { sale: 'Zu verkaufen', rent: 'Zu vermieten', booking: 'Kurzaufenthalt' },
     tagline: 'Gehen Sie in 360° durch die Immobilie',
     outroTitle: 'Die ganze Tour ansehen',
-    outroNote: 'Code scannen oder Link öffnen'
+    outroNote: 'Link in der Beschreibung'
   },
   ru: {
     categories: { sale: 'Продажа', rent: 'Аренда', booking: 'Посуточно' },
     tagline: 'Прогуляйтесь по объекту в 360°',
     outroTitle: 'Смотрите весь тур',
-    outroNote: 'Отсканируйте код или откройте ссылку'
+    outroNote: 'Ссылка в описании'
   }
 };
 
@@ -191,6 +200,38 @@ function orderedRooms(tour: Tour, rooms: Room[]): Room[] {
   }
   if (fromGuide.length > 0) return fromGuide;
   return [...rooms].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+}
+
+/**
+ * Koliko je soba važna za video, po nazivu (vlasnik, 28. 10. 2026: u videu
+ * Maglićke su bila dva hodnika, a dnevnog boravka nije bilo). Kad sve sobe ne
+ * staju, ostaju najvažnije; redosled i dalje prati putanju vodiča.
+ */
+const ROOM_WEIGHTS: [RegExp, number][] = [
+  [/dnevn|boravak|living|wohn|гостин/i, 5],
+  [/kuhinj|trpezar|kitchen|dining|küche|кухн/i, 4],
+  [/spava|soba|bedroom|schlaf|спальн|комнат/i, 3],
+  [/teras|balkon|lođ|lodj|terrace|balcony|двор|garden|bašt|dvori/i, 3],
+  [/kupatil|toalet|wc|bath|bad|ванн/i, 2],
+  [/hodnik|ulaz|predsob|ostav|hall|entr|storage|flur|корид|прихож/i, 0]
+];
+
+function roomWeight(room: Room): number {
+  const name = `${getLocalizedText(room.title_i18n, 'sr')} ${getLocalizedText(room.title_i18n, 'en')}`;
+  return ROOM_WEIGHTS.find(([re]) => re.test(name))?.[1] ?? 2;
+}
+
+/** Najviše `max` soba: najvažnije (kod iste važnosti ranije na putanji), u redu putanje. */
+function pickRooms(list: Room[], max: number): Room[] {
+  if (list.length <= max) return list;
+  const keep = new Set(
+    list
+      .map((room, i) => ({ room, i, w: roomWeight(room) }))
+      .sort((a, b) => b.w - a.w || a.i - b.i)
+      .slice(0, max)
+      .map((x) => x.room)
+  );
+  return list.filter((room) => keep.has(room));
 }
 
 /** Telefoni i ovaj alat dobijaju kopiju od 6000 px - dovoljno oštra za 1080 px širine videa. */
@@ -257,7 +298,10 @@ export function buildVideoPlan(
   const maxRooms = map
     ? Math.max(MIN_ROOMS_WITH_MAP, Math.min(MAX_ROOMS, Math.floor((TARGET_WITH_MAP_S - introEnd - OUTRO_S + FADE_S) / (ROOM_S - FADE_S))))
     : MAX_ROOMS;
-  const list = orderedRooms(tour, rooms).filter((room) => videoPanoramaUrl(room)).slice(0, maxRooms);
+  const list = pickRooms(
+    orderedRooms(tour, rooms).filter((room) => videoPanoramaUrl(room)),
+    maxRooms
+  );
   let cursor = 0;
   list.forEach((room, i) => {
     const establish = parseEstablish(room.establish_i18n);
@@ -284,10 +328,19 @@ export function buildVideoPlan(
       fromYaw,
       toYaw: fromYaw - VIDEO_PAN_DEG_PER_S * duration,
       start,
-      end: start + duration
+      end: start + duration,
+      planX: typeof room.floorplan_x === 'number' ? room.floorplan_x : null,
+      planY: typeof room.floorplan_y === 'number' ? room.floorplan_y : null
     });
     cursor = start + duration;
   });
+  const marked = shots.filter((shot) => shot.planX !== null && shot.planY !== null).length;
+  // Naslovna slika: najvažnija soba u videu (kod iste važnosti - ranija).
+  let coverIndex = 0;
+  list.forEach((room, i) => {
+    if (roomWeight(room) > roomWeight(list[coverIndex])) coverIndex = i;
+  });
+  const floorplanUrl = tour.floorplan_url && marked >= 2 ? tour.floorplan_url : null;
 
   const outroStart = Math.max(introEnd, cursor - FADE_S);
   const url = `${SITE_URL}/tour/${tour.slug}`;
@@ -299,6 +352,8 @@ export function buildVideoPlan(
     map,
     voice,
     agencyLogoUrl: tour.agency_logo_url || null,
+    floorplanUrl,
+    coverIndex,
     intro: {
       agency: tour.agency_name?.trim() || 'Kvadrat360',
       eyebrow: [category, place].filter(Boolean).join(' · ').toUpperCase(),
