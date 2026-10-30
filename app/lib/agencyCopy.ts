@@ -266,6 +266,11 @@ export const AGENCY_COPY: AgencyCopy = {
           'Ne mora — dovoljno je da nam neko otvori vrata. Snimanje traje 30–60 minuta i tokom njega u prostoriji ne treba da bude nikoga, jer 360° kamera vidi ceo prostor. Pomaže ako su pre toga upaljena svetla, razgrnute zavese i sklonjene lične stvari.'
       },
       {
+        question: 'Mogu li lično da provedem kupca kroz turu, uživo?',
+        answer:
+          'Da. U turi dodirnete „● Uživo“ i pošaljete kupcu link (Viber ili kopiranje). Kupac ga otvori na svom telefonu, pridruži se jednim dodirom i prati tačno ono što vi gledate dok se krećete kroz prostorije — bez instalacije i bez prijave, na oba telefona.'
+      },
+      {
         question: 'Kako dobijamo mesečni izveštaj?',
         answer:
           'Šaljemo vam jedan link koji otvara izveštaj za sve ture vaše agencije — bez prijave i lozinke. Link je zaštićen: niko drugi ne može da vidi vaše brojke, a izmenom linka ne mogu se otvoriti ni brojke druge agencije. Izveštaj možete sačuvati kao PDF i poslati vlasniku nekretnine.'

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { isRecentlyAdded } from '../app/lib/recentBadge';
 
 /**
  * Glavni meni sajta (srpske strane): isti na svakoj strani, umesto da svaka
@@ -26,7 +27,8 @@ type Item = {
   label: string;
   note: string;
   icon: keyof typeof ICONS;
-  isNew?: boolean;
+  /** Datum ulaska u meni (YYYY-MM-DD) - oznaka "Novo" sama nestaje posle RECENT_BADGE_DAYS (lib/recentBadge.ts). */
+  since?: string;
 };
 
 const SERVICES: Item[] = [
@@ -47,7 +49,7 @@ const SERVICES: Item[] = [
     label: 'Za investitore',
     note: 'Izbor stana na zgradi za novogradnju',
     icon: 'building',
-    isNew: true
+    since: '2026-10-15'
   }
 ];
 
@@ -69,7 +71,7 @@ const TOOLS: Item[] = [
     label: 'Cene po naseljima',
     note: 'Cena kvadrata u Kragujevcu',
     icon: 'chart',
-    isNew: true
+    since: '2026-10-15'
   }
 ];
 
@@ -102,7 +104,7 @@ function Entry({ item, onClick, current }: { item: Item; onClick: () => void; cu
       <span>
         <b>
           {item.label}
-          {item.isNew && <span className="mm-new">Novo</span>}
+          {item.since && isRecentlyAdded(item.since) && <span className="mm-new">Novo</span>}
         </b>
         <small>{item.note}</small>
       </span>
