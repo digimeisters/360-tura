@@ -1,6 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { escapeHtml, sendTelegramMessage } from '@/app/lib/telegram';
+import { looksLikeEmail, sendEmail } from '@/app/lib/email';
+import { overDailyBudget } from '@/app/lib/dailyBudget';
+import { contactReceivedEmail } from '@/app/lib/emails/contactReceived';
+import { HERO_TOUR_SLUG, getShowcaseTours } from '@/app/lib/showcaseTours';
+import { CONTACT, SITE_URL } from '@/app/lib/site';
 import { rateLimit, tooManyRequests } from '@/app/lib/rateLimit';
 import { describeSlot } from '@/app/lib/shootSlot';
 import { GENERAL_INQUIRY_CODE } from '@/app/lib/projects';
@@ -195,6 +200,28 @@ export async function POST(req: Request) {
     if (size) lines.push(`📐 ${escapeHtml(size)} m²`);
     if (slot) lines.push(`🗓 ${escapeHtml(slot)}`);
     if (message) lines.push('', `💬 ${escapeHtml(message)}`);
+
+    // Potvrda pošiljaocu (emails/contactReceived.ts): samo kad je kontakt mejl
+    // i upit je za nas - na upit za stan u novogradnji odgovara investitor, a
+    // kratka forma iz primera ture traži samo broj.
+    const ownInquiry = !fromProjectPage && !tourSlug;
+    const emailed = ownInquiry && looksLikeEmail(contact) && !(await overDailyBudget('visitorEmail'));
+    if (emailed) {
+      after(async () => {
+        const hero = (await getShowcaseTours('sr').catch(() => null))?.find((t) => t.slug === HERO_TOUR_SLUG) ?? null;
+        const email = contactReceivedEmail({
+          lang: fromEnglish ? 'en' : 'sr',
+          name,
+          message: message || null,
+          choice: [pkg, slot].filter(Boolean).join(' · ') || null,
+          tourUrl: `${SITE_URL}/tour/${HERO_TOUR_SLUG}?utm_source=potvrda-mejl${fromEnglish ? '&lang=en' : ''}`,
+          coverUrl: hero?.coverUrl ?? null
+        });
+        const sent = await sendEmail({ to: contact, ...email, replyTo: CONTACT.email });
+        if (!sent.ok) console.error('[api/contact] potvrda nije poslata:', sent.reason);
+      });
+      lines.push('', '📨 Pošiljalac dobija potvrdu mejlom.');
+    }
 
     await sendTelegramMessage(lines.join('\n'));
 

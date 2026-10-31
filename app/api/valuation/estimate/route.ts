@@ -1,5 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { sendEmail } from '@/app/lib/email';
+import { overDailyBudget } from '@/app/lib/dailyBudget';
+import { valuationResultEmail } from '@/app/lib/emails/valuationResult';
+import { HERO_TOUR_SLUG, getShowcaseTours } from '@/app/lib/showcaseTours';
+import { CONTACT, SITE_URL } from '@/app/lib/site';
 import { escapeHtml, sendTelegramMessage } from '@/app/lib/telegram';
 import { rateLimit, tooManyRequests } from '@/app/lib/rateLimit';
 import { callbackToken } from '@/app/lib/valuation/callbackToken';
@@ -311,7 +316,39 @@ export async function POST(req: Request) {
     const notified = await sendTelegramMessage(lines.join('\n'));
     if (!notified) console.error('[api/valuation] Telegram nije javio novi zahtev za procenu, lead:', lead.id);
 
-    // --- 6. Odgovor ---
+    // --- 6. Mejl "Vaša procena" (posle odgovora, da ne usporava ekran) ---
+    if (contactEmail) {
+      const leadId = lead.id;
+      after(async () => {
+        // Adresu je mogao da upiše bilo ko - ista dnevna granica kao mejlovi posetiocima.
+        if (await overDailyBudget('visitorEmail')) return;
+        const hero = (await getShowcaseTours('sr').catch(() => null))?.find((t) => t.slug === HERO_TOUR_SLUG) ?? null;
+        const email = valuationResultEmail({
+          name: contactName,
+          phone: contactPhone,
+          listingType,
+          propertyType,
+          city,
+          neighborhood,
+          sqm,
+          rooms,
+          floorNumber,
+          hasElevator,
+          condition,
+          furnishing: furnishing ?? null,
+          hasParking,
+          hasTerrace,
+          estimate: estimate ? { low: estimate.low, high: estimate.high } : null,
+          callbackUrl: `${SITE_URL}/alati/procena-vrednosti/poziv?z=${leadId}&t=${callbackToken(leadId)}`,
+          tourUrl: `${SITE_URL}/tour/${HERO_TOUR_SLUG}?utm_source=procena-mejl`,
+          coverUrl: hero?.coverUrl ?? null
+        });
+        const sent = await sendEmail({ to: contactEmail, ...email, replyTo: CONTACT.email });
+        if (!sent.ok) console.error('[api/valuation] mejl "Vaša procena" nije poslat, lead:', leadId, sent.reason);
+      });
+    }
+
+    // --- 7. Odgovor ---
     return NextResponse.json<EstimateResponse>({ success: true, estimate, leadId: lead.id, callbackToken: callbackToken(lead.id) });
   } catch (err) {
     console.error('[api/valuation] unexpected error:', err);
