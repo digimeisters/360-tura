@@ -24,6 +24,7 @@ type NavItem = { href: string; label: string; icon: keyof typeof ICONS };
 const ITEMS: NavItem[] = [
   { href: '/admin/ture', label: 'Ture', icon: 'tour' },
   { href: '/admin/agencije', label: 'Agencije', icon: 'agency' },
+  { href: '/admin/procene', label: 'Procene', icon: 'valuation' },
   { href: '/admin/analitika', label: 'Analitika', icon: 'chart' },
   { href: '/admin/projekti', label: 'Novogradnja', icon: 'building' }
 ];
@@ -32,6 +33,7 @@ const ICONS = {
   tour: <path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm-2 5.5 5.5 3.5-5.5 3.5v-7Z" />,
   agency: <path d="M4 20V8l8-4 8 4v12M9 20v-5h6v5M8 10h.01M12 10h.01M16 10h.01" />,
   chart: <path d="M4 20h16M7 16V9M12 16V5M17 16v-4" />,
+  valuation: <path d="M4 10 12 4l8 6v10H4V10ZM10 20v-5h4v5M9 11h6" />,
   building: <path d="M6 20V4h9v16M15 9h3v11M9 8h3M9 12h3M9 16h3M4 20h16" />,
   logout: <path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10" />
 };
