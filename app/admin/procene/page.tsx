@@ -122,12 +122,14 @@ export default function ValuationLeadsPage() {
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
+    // Na vrhu: novi koji su sami tražili poziv posle procene (najtopliji).
+    const hot = (l: ValuationLead) => (l.status === 'new' && l.callback_requested_at ? 1 : 0);
     return (leads ?? []).filter(
       (l) =>
         (filter === 'all' || l.status === filter) &&
         (kind === 'all' || (kind === 'rent' ? l.listing_type === 'rent' : l.listing_type !== 'rent')) &&
         (!q || [l.contact_name, l.contact_phone, l.contact_email, l.neighborhood, l.city].some((v) => v?.toLowerCase().includes(q)))
-    );
+    ).sort((a, b) => hot(b) - hot(a));
   }, [leads, filter, kind, query]);
 
   const setStatus = async (lead: ValuationLead, status: LeadStatus) => {
@@ -268,6 +270,11 @@ export default function ValuationLeadsPage() {
                       <td style={{ padding: 12, borderBottom: `1px solid ${FORM.border}`, whiteSpace: 'nowrap', verticalAlign: 'top' }}>
                         {when(l.created_at)}
                         {l.status === 'new' && <div style={{ fontSize: 12, color: FORM.danger, fontWeight: 700 }}>{waiting(l.created_at, now)}</div>}
+                        {l.callback_requested_at && (
+                          <div title="Posle procene je kliknuo „Da, pozovite me za snimanje“" style={{ fontSize: 12, color: '#b45309', fontWeight: 800 }}>
+                            🔥 traži poziv
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: 12, borderBottom: `1px solid ${FORM.border}`, verticalAlign: 'top' }}>
                         <b style={{ display: 'block' }}>{l.contact_name || '—'}</b>
@@ -323,6 +330,9 @@ export default function ValuationLeadsPage() {
             <div>
               <h2 style={{ margin: 0, fontFamily: FORM.fontDisplay, fontSize: 21 }}>{open.contact_name || 'Bez imena'}</h2>
               <p style={{ margin: '2px 0 0', fontSize: 13, color: FORM.textMuted }}>
+                {open.callback_requested_at && (
+                  <b style={{ display: 'block', color: '#b45309' }}>🔥 Traži poziv za snimanje ({when(open.callback_requested_at)})</b>
+                )}
                 Procena tražena {when(open.created_at)}
                 {open.source && open.source !== 'organic' ? ` · izvor ${normalizeSource(open.source).label}` : ''}
               </p>

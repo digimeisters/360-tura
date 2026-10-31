@@ -51,6 +51,8 @@ export type ValuationLead = {
   utm_campaign: string | null;
   listing_type: string | null;
   furnishing: string | null;
+  /** Vlasnik je posle procene kliknuo "Da, pozovite me za snimanje" (migracija 043). */
+  callback_requested_at: string | null;
 };
 
 const eur = (n: number) => `${Math.round(n).toLocaleString('sr-RS')} €`;

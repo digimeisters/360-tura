@@ -177,7 +177,14 @@ export default function ValuationForm({
   });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{ estimate: EstimateResult | null; listingType: ValuationListingType } | null>(null);
+  const [result, setResult] = useState<{
+    estimate: EstimateResult | null;
+    listingType: ValuationListingType;
+    leadId: string;
+    callbackToken: string;
+  } | null>(null);
+  // "Da, pozovite me za snimanje": poziv ide na već ostavljen telefon - ništa se ne kuca ponovo.
+  const [callback, setCallback] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
 
   const isRent = form.listingType === 'rent';
   const neighbourhoods = neighbourhoodsFor(form.city);
@@ -220,6 +227,7 @@ export default function ValuationForm({
 
   function startOver() {
     setResult(null);
+    setCallback('idle');
     setError('');
     setStep(1);
     // Kontakt ostaje upisan - druga procena istog vlasnika ne traži ponovno kucanje.
@@ -270,7 +278,8 @@ export default function ValuationForm({
         setError(data.error);
         return;
       }
-      setResult({ estimate: data.estimate, listingType: form.listingType });
+      setResult({ estimate: data.estimate, listingType: form.listingType, leadId: data.leadId, callbackToken: data.callbackToken });
+      setCallback('idle');
       // Uspešna procena je kontakt (kao ostali formulari) - klik na dugme se broji i kad ne prođe.
       trackSiteEvent('form_submit', `valuation_${form.listingType}`);
       // Na telefonu je rezultat ispod forme - skrol do njega.
@@ -279,6 +288,27 @@ export default function ValuationForm({
       setError('Veza nije uspela. Proverite internet i pokušajte ponovo.');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function requestCallback() {
+    if (!result) return;
+    setCallback('sending');
+    try {
+      const res = await fetch('/api/valuation/callback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId: result.leadId, token: result.callbackToken })
+      });
+      const json = (await res.json().catch(() => null)) as { success?: boolean } | null;
+      if (!res.ok || !json?.success) {
+        setCallback('error');
+        return;
+      }
+      setCallback('done');
+      trackSiteEvent('form_submit', 'valuation_callback');
+    } catch {
+      setCallback('error');
     }
   }
 
@@ -570,10 +600,27 @@ export default function ValuationForm({
               <b>{copy.tourTitle}</b>
               <p>{copy.upsell}</p>
               <small>Tura je gotova za 24–48h od snimanja.</small>
+              {callback === 'error' && (
+                <small className="vl-called-err">
+                  Zahtev nije prošao - pozovite nas ili <Link href="/#kontakt">pišite preko kontakt forme</Link>.
+                </small>
+              )}
               <div className="tl-btns">
-                <Link className="tl-btn is-dark" href="/#kontakt" data-track="cta:valuation_book_tour">
-                  Zakažite snimanje
-                </Link>
+                {callback === 'done' ? (
+                  <p className="vl-called" role="status">
+                    ✓ Hvala! Javićemo vam se danas{form.contactPhone.trim() ? ` na ${form.contactPhone.trim()}` : ''} da dogovorimo termin.
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    className="tl-btn is-dark"
+                    disabled={callback === 'sending' || !result}
+                    onClick={() => void requestCallback()}
+                    data-track="cta:valuation_callback"
+                  >
+                    {callback === 'sending' ? 'Šaljem…' : 'Da, pozovite me za snimanje'}
+                  </button>
+                )}
                 <Link className="tl-btn is-line" href={demoTourHref} data-track="cta:valuation_demo_tour">
                   Pogledajte primer ture
                 </Link>

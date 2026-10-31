@@ -771,6 +771,7 @@ export type Database = {
           agent_note: string | null
           baseline_source: string | null
           build_year: number | null
+          callback_requested_at: string | null
           city: string
           condition: string
           contact_email: string | null
@@ -800,6 +801,7 @@ export type Database = {
           agent_note?: string | null
           baseline_source?: string | null
           build_year?: number | null
+          callback_requested_at?: string | null
           city: string
           condition: string
           contact_email?: string | null
@@ -829,6 +831,7 @@ export type Database = {
           agent_note?: string | null
           baseline_source?: string | null
           build_year?: number | null
+          callback_requested_at?: string | null
           city?: string
           condition?: string
           contact_email?: string | null

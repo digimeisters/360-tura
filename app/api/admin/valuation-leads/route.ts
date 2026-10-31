@@ -23,7 +23,7 @@ export const dynamic = 'force-dynamic';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const COLUMNS =
-  'id, created_at, city, neighborhood, property_type, sqm, rooms, floor_number, has_elevator, build_year, condition, has_parking, has_terrace, contact_name, contact_phone, contact_email, estimated_low, estimated_high, price_per_sqm_used_low, price_per_sqm_used_high, baseline_source, status, agent_note, source, utm_campaign, listing_type, furnishing';
+  'id, created_at, city, neighborhood, property_type, sqm, rooms, floor_number, has_elevator, build_year, condition, has_parking, has_terrace, contact_name, contact_phone, contact_email, estimated_low, estimated_high, price_per_sqm_used_low, price_per_sqm_used_high, baseline_source, status, agent_note, source, utm_campaign, listing_type, furnishing, callback_requested_at';
 
 export async function GET(req: Request) {
   const ctx = await requireAdmin(req);

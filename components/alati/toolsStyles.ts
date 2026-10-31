@@ -104,6 +104,10 @@ export const TOOLS_STYLES = `
   .vl-tour p{margin:6px 0 0; font-size:.9rem; color:var(--ink-soft);}
   .vl-tour small{display:block; margin-top:4px; font-size:.8rem; font-weight:700; color:var(--accent);}
   .vl-tour .tl-btns{margin-top:12px;}
+  .vl-tour p.vl-called{margin:0; display:flex; align-items:center; min-height:46px; padding:0 12px; border-radius:14px; background:#DCFCE7; color:#15803d; font-weight:700; font-size:.9rem;}
+  .vl-tour small.vl-called-err{color:#b91c1c; font-weight:600;}
+  .vl-tour small.vl-called-err a{color:inherit;}
+  .tl-btn:disabled{opacity:.6; cursor:default;}
   .tl-btn{display:flex; align-items:center; justify-content:center; gap:8px; min-height:46px; border-radius:14px; font:inherit; font-weight:700; font-size:.92rem; text-decoration:none; border:0; cursor:pointer;}
   .tl-btn.is-dark{background:#111113; color:#FFFFFF;}
   .tl-btn.is-dark span{background:#FFFFFF; color:#111113; border-radius:4px; padding:1px 5px; font-size:.68rem; font-weight:800;}

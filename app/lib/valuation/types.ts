@@ -93,5 +93,7 @@ export type EstimateResponse =
       /** null kad za lokaciju nema upisanih cena - lead je ipak sačuvan. */
       estimate: EstimateResult | null;
       leadId: string;
+      /** Potpis za "Pozovite me za snimanje" (api/valuation/callback). */
+      callbackToken: string;
     }
   | { success: false; error: string };

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { escapeHtml, sendTelegramMessage } from '@/app/lib/telegram';
 import { rateLimit, tooManyRequests } from '@/app/lib/rateLimit';
+import { callbackToken } from '@/app/lib/valuation/callbackToken';
 import {
   PRICE_MAX_AGE_DAYS,
   calculateEstimate,
@@ -311,7 +312,7 @@ export async function POST(req: Request) {
     if (!notified) console.error('[api/valuation] Telegram nije javio novi zahtev za procenu, lead:', lead.id);
 
     // --- 6. Odgovor ---
-    return NextResponse.json<EstimateResponse>({ success: true, estimate, leadId: lead.id });
+    return NextResponse.json<EstimateResponse>({ success: true, estimate, leadId: lead.id, callbackToken: callbackToken(lead.id) });
   } catch (err) {
     console.error('[api/valuation] unexpected error:', err);
     return fail(500, 'Neočekivana greška. Pokušajte ponovo.');
