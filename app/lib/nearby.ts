@@ -112,9 +112,9 @@ const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter'
 ];
 const PER_CATEGORY = 3;
-const PER_ENDPOINT_MS = 18_000;
-// Server koji ne stiže bar ovoliko vremena se ni ne pita.
-const MIN_ENDPOINT_MS = 4_000;
+// Najduže čekanje bez zadatog roka. 31. 10. 2026 za gust Dorćol: glavni server
+// 504 posle 43 s, maps.mail.ru tačan odgovor posle 27 s.
+const DEFAULT_WAIT_MS = 40_000;
 
 /** Minuti hoda (≈80 m u minuti), najmanje 1. */
 export const walkMinutes = (m: number) => Math.max(1, Math.round(m / 80));
@@ -166,11 +166,16 @@ type OverpassElement ={ lat?: number; lon?: number; center?: { lat: number; lon:
  * samo stajališta i parkovi (tada piše samo kategorija) - neimenovana škola
  * ili prodavnica u OSM-u je obično greška u podacima.
  *
- * `budgetMs`: ukupan rok za sve servere zajedno (ture: funkcija ima ograničeno
- * vreme). Bez njega svaki server dobija po PER_ENDPOINT_MS, kao do sada.
+ * Svi serveri se pitaju odjednom i pobeđuje prvi tačan odgovor; ostali se
+ * prekidaju. `budgetMs` je ukupan rok (ture: funkcija ima ograničeno vreme),
+ * bez njega DEFAULT_WAIT_MS. `fetchImpl` je samo za testove.
  */
-export async function fetchNearby(lat: number, lng: number, opts: { budgetMs?: number } = {}): Promise<NearbyPlace[]> {
-  const deadline = opts.budgetMs ? Date.now() + opts.budgetMs : Infinity;
+export async function fetchNearby(
+  lat: number,
+  lng: number,
+  opts: { budgetMs?: number; fetchImpl?: typeof fetch } = {}
+): Promise<NearbyPlace[]> {
+  const doFetch = opts.fetchImpl ?? fetch;
   const around = `(around:${RADIUS_M},${lat},${lng})`;
   const query = `[out:json][timeout:25];
 (
@@ -181,37 +186,39 @@ export async function fetchNearby(lat: number, lng: number, opts: { budgetMs?: n
 );
 out center tags;`;
 
-  // Javni Overpass serveri umeju da budu preopterećeni (504) - redom se
-  // probaju glavni i dva ogledala, prvi koji odgovori pobeđuje.
-  let json: { elements?: OverpassElement[] } | null = null;
-  let lastError = '';
-  for (const endpoint of OVERPASS_ENDPOINTS) {
-    const left = deadline - Date.now();
-    if (left < MIN_ENDPOINT_MS) {
-      lastError = lastError || 'rok istekao';
-      break;
-    }
+  // Javni Overpass serveri umeju da budu preopterećeni (504, red čekanja pun)
+  // ili spori za gust kraj - zato svi odjednom, umesto jedan za drugim.
+  const stop = new AbortController();
+  const timeout = AbortSignal.timeout(opts.budgetMs ?? DEFAULT_WAIT_MS);
+  const signal = AbortSignal.any([stop.signal, timeout]);
+  const ask = async (endpoint: string) => {
+    const host = new URL(endpoint).host;
     try {
-      const res = await fetch(endpoint, {
+      const res = await doFetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'User-Agent': 'Kvadrat360/1.0 (https://kvadrat360.com; info@kvadrat360.com)'
         },
         body: `data=${encodeURIComponent(query)}`,
-        signal: AbortSignal.timeout(Math.min(PER_ENDPOINT_MS, left))
+        signal
       });
-      if (!res.ok) {
-        lastError = `${endpoint} ${res.status}`;
-        continue;
-      }
-      json = (await res.json()) as { elements?: OverpassElement[] };
-      break;
+      if (!res.ok) throw new Error(`${host} ${res.status}`);
+      return (await res.json()) as { elements?: OverpassElement[] };
     } catch (err) {
-      lastError = `${endpoint} ${err instanceof Error ? err.message : 'greška'}`;
+      if (timeout.aborted) throw new Error(`${host} rok istekao`);
+      throw err instanceof Error && err.message.startsWith(host) ? err : new Error(`${host} ${err instanceof Error ? err.message : 'greška'}`);
     }
+  };
+  let json: { elements?: OverpassElement[] };
+  try {
+    json = await Promise.any(OVERPASS_ENDPOINTS.map(ask));
+  } catch (err) {
+    const reasons = err instanceof AggregateError ? err.errors.map((e) => (e instanceof Error ? e.message : String(e))) : [String(err)];
+    throw new Error(`Overpass: ${reasons.join('; ')}`);
+  } finally {
+    stop.abort();
   }
-  if (!json) throw new Error(`Overpass: ${lastError}`);
 
   const byCat = new Map<NearbyCategory, NearbyPlace[]>();
   const seen = new Set<string>();

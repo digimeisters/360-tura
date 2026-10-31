@@ -25,8 +25,9 @@ export const maxDuration = 60;
  * "Osveži okolinu" je čeka i javlja rezultat.
  */
 // Rok za OpenStreetMap: funkcija ima maxDuration 60 s, a pre after() su
-// možda već prošli geokodiranje i prevod pitanja.
-const NEARBY_BUDGET_MS = 30_000;
+// možda već prošli geokodiranje i prevod pitanja. Gust kraj zna da traje i
+// 27 s (Dorćol, 31. 10. 2026), pa 40 s.
+const NEARBY_BUDGET_MS = 40_000;
 
 async function fillTourNearby(db: SupabaseClient<Database>, slug: string, lat: number, lng: number): Promise<NearbyPlace[]> {
   const places = await fetchNearby(lat, lng, { budgetMs: NEARBY_BUDGET_MS });
