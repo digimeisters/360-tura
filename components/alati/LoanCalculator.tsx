@@ -57,7 +57,9 @@ export default function LoanCalculator({ newBuildHref }: { newBuildHref: string 
   };
 
   // Decimale posle zareza se odbacuju: '85.000,00' je 85.000 €, ne 8.500.000 €.
-  const price = digits(priceText.split(',')[0]);
+  // Decimale se odbacuju i sa zarezom i sa tačkom posle koje idu tačno 1-2 cifre:
+  // '85.000,00' i '85000.00' su 85.000 €, a '85.000' (tačka hiljada) ostaje 85.000 €.
+  const price = digits(priceText.split(',')[0].replace(/\.\d{1,2}$/, ''));
   const area = decimal(areaText);
   const ratePct = Math.min(20, Math.max(0, decimal(rate)));
   const valid = price > 0;
@@ -200,7 +202,7 @@ export default function LoanCalculator({ newBuildHref }: { newBuildHref: string 
           </h2>
           <div className="tl-q">
             <span>{t.payFirstHome}</span>
-            <span className="tl-yn">
+            <span className="tl-yn" role="group" aria-label={t.payFirstHome}>
               <button type="button" aria-pressed={firstHome === true} onClick={() => setFirstHome(true)}>
                 {t.payYes}
               </button>
@@ -229,7 +231,7 @@ export default function LoanCalculator({ newBuildHref }: { newBuildHref: string 
                 ) : newBuild ? (
                   <>
                     Država vraća PDV za <b>{nbsp(formatArea(r.vatSqm, 'sr'))}</b> od {nbsp(formatArea(area, 'sr'))} ({VAT_BUYER_SQM}
-                    {' '}m² za vas{members ? ` + ${members * VAT_MEMBER_SQM} m² za domaćinstvo` : ''}): <b>{formatPrice(r.vatRefund, 'sr')}</b>.
+                    {' '}m² za vas{members ? ` + ${members * VAT_MEMBER_SQM} m² za domaćinstvo` : ''}): <b>{money(r.vatRefund)}</b>.
                   </>
                 ) : (
                   <>

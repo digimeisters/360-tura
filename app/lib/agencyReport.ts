@@ -132,9 +132,12 @@ export type TourReport = {
   floorplanUrl: string | null;
   /** Posetioci koji su turu gledali na stranom jeziku. */
   foreignVisitors: number;
+  /** Različiti posetioci koji su otvorili kontakt (ljudi, ne klikovi). */
   contactClicks: number;
   shares: number;
   viewingRequests: number;
+  /** "Pošaljite sebi link i tlocrt" - kupac ostavio mejl/telefon u turi. */
+  capturedLeads: number;
 };
 
 export type AgencyReport = {
@@ -148,9 +151,10 @@ export type AgencyReport = {
     foreignVisitors: number;
     contactClicks: number;
     viewingRequests: number;
+    capturedLeads: number;
   };
   /** Isto za prethodni mesec, za poređenje (null ako tada nije bilo tura). */
-  previous: { visitors: number; contactClicks: number; viewingRequests: number } | null;
+  previous: { visitors: number; contactClicks: number; viewingRequests: number; capturedLeads: number } | null;
   /** Najraniji mesec za koji ima smisla izveštaj (kad je nastala prva tura). */
   firstMonth: MonthKey;
   truncated: boolean;
@@ -211,10 +215,8 @@ async function readMonth(
     supabase
       .from('contact_requests')
       .select('source')
-      .in(
-        'source',
-        slugs.map((s) => `tour:${s}`)
-      )
+      // Zahtevi za razgledanje (tour:) i ostavljeni kontakti iz ture (tour-capture:).
+      .in('source', [...slugs.map((s) => `tour:${s}`), ...slugs.map((s) => `tour-capture:${s}`)])
       .gte('created_at', from)
       .lt('created_at', to)
   ]);
@@ -262,14 +264,14 @@ export async function buildAgencyReport(agency: string, month: MonthKey): Promis
     const entered = new Set<string>();
     const foreign = new Set<string>();
     let totalMs = 0;
-    let contactClicks = 0;
+    const contacts = new Set<string>();
     let shares = 0;
 
     for (const e of rows) {
       sessions.add(e.session_id);
       if (e.lang && e.lang !== 'sr') foreign.add(e.session_id);
       if (e.event_type === 'start') entered.add(e.session_id);
-      else if (e.event_type === 'contact') contactClicks++;
+      else if (e.event_type === 'contact') contacts.add(e.session_id);
       else if (e.event_type === 'share') shares++;
       else if (e.event_type === 'room_view' && e.room_id) {
         totalMs += Math.min(Math.max(e.duration_ms ?? 0, 0), ROOM_VIEW_CAP_MS);
@@ -292,9 +294,10 @@ export async function buildAgencyReport(agency: string, month: MonthKey): Promis
       ),
       floorplanUrl: tour.floorplan_url,
       foreignVisitors: foreign.size,
-      contactClicks,
+      contactClicks: contacts.size,
       shares,
-      viewingRequests: current.requests.filter((r) => r.source === `tour:${tour.slug}`).length
+      viewingRequests: current.requests.filter((r) => r.source === `tour:${tour.slug}`).length,
+      capturedLeads: current.requests.filter((r) => r.source === `tour-capture:${tour.slug}`).length
     };
   });
 
@@ -316,14 +319,16 @@ export async function buildAgencyReport(agency: string, month: MonthKey): Promis
       avgSeconds: enteredTotal ? Math.round(weightedSeconds / enteredTotal) : 0,
       foreignVisitors: sum((t) => t.foreignVisitors),
       contactClicks: sum((t) => t.contactClicks),
-      viewingRequests: sum((t) => t.viewingRequests)
+      viewingRequests: sum((t) => t.viewingRequests),
+      capturedLeads: sum((t) => t.capturedLeads)
     },
     previous:
       previousKey >= firstCreated
         ? {
             visitors: prevVisitors,
-            contactClicks: previous.events.filter((e) => e.event_type === 'contact').length,
-            viewingRequests: previous.requests.length
+            contactClicks: new Set(previous.events.filter((e) => e.event_type === 'contact').map((e) => `${e.tour_slug}|${e.session_id}`)).size,
+            viewingRequests: previous.requests.filter((r) => r.source?.startsWith('tour:')).length,
+            capturedLeads: previous.requests.filter((r) => r.source?.startsWith('tour-capture:')).length
           }
         : null,
     firstMonth: firstCreated,

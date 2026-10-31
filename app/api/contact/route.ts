@@ -127,7 +127,11 @@ export async function POST(req: Request) {
     let projectInquiry = false;
     if (fromProjectPage && typeof body.unitId === 'string' && /^[0-9a-f-]{36}$/i.test(body.unitId)) {
       const { data: unitRow } = await supabase.from('project_units').select('id, code, project_id').eq('id', body.unitId).maybeSingle();
-      if (unitRow) {
+      // Samo stan objavljenog projekta (isto pravilo kao opšti upit ispod).
+      const { data: unitProject } = unitRow
+        ? await supabase.from('projects').select('id').eq('id', unitRow.project_id).eq('published', true).maybeSingle()
+        : { data: null };
+      if (unitRow && unitProject) {
         const { error: inqError } = await supabase.from('project_inquiries').insert({
           project_id: unitRow.project_id,
           unit_id: unitRow.id,

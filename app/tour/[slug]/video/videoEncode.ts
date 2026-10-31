@@ -1,4 +1,13 @@
-import { AudioBufferSource, BufferTarget, CanvasSource, Mp4OutputFormat, Output, QUALITY_HIGH, canEncodeAudio, canEncodeVideo } from 'mediabunny';
+import {
+  AudioBufferSource,
+  BufferTarget,
+  CanvasSource,
+  Mp4OutputFormat,
+  Output,
+  QUALITY_HIGH,
+  canEncodeAudio,
+  canEncodeVideo
+} from 'mediabunny';
 import { VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH, type VideoPlan } from './videoPlan';
 import { PanoRenderer } from './panoRenderer';
 import { VideoFrameRenderer } from './videoFrame';
@@ -70,9 +79,7 @@ async function mixAudio(plan: VideoPlan, music: File | null): Promise<AudioBuffe
 }
 
 export type VideoProgress =
-  | { stage: 'loading'; done: number; total: number }
-  | { stage: 'encoding'; done: number; total: number }
-  | { stage: 'finishing' };
+  { stage: 'loading'; done: number; total: number } | { stage: 'encoding'; done: number; total: number } | { stage: 'finishing' };
 
 function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -116,12 +123,23 @@ export async function renderTourVideo(
       options.onProgress({ stage: 'loading', done: loaded, total: urls.length });
     }
 
-    // Fontovi sajta moraju biti spremni pre prvog kadra.
+    // Fontovi moraju biti učitani pre prvog kadra. fonts.ready nije dovoljno:
+    // Urbanist se ne učitava unapred i na admin strani ga ništa ne koristi, pa bi
+    // naslov na prvim kadrovima bio drugim fontom. Zato se traže baš ove debljine.
+    const css = getComputedStyle(document.documentElement);
+    const display = css.getPropertyValue('--font-urbanist').trim();
+    const body = css.getPropertyValue('--font-inter').trim();
+    await Promise.all([
+      ...(display ? ['700', '800'].map((w) => document.fonts.load(`${w} 96px ${display}`)) : []),
+      ...(body ? ['500', '600', '700', '800'].map((w) => document.fonts.load(`${w} 40px ${body}`)) : [])
+    ]).catch(() => undefined);
     await document.fonts.ready;
 
-    // Logo agencije: CDN šalje CORS zaglavlja (isto kao za panorame), pa platno
-    // ostaje čisto za kodiranje. Ako se ne učita, kartice idu samo sa nazivom.
-    const logo = plan.agencyLogoUrl ? await loadImage(plan.agencyLogoUrl).catch(() => null) : null;
+    // Posebna adresa (?video): logo i tlocrt tura/admin prikazuju kao običnu
+    // sliku, pa bi pregledač vratio sačuvan odgovor bez CORS-a i platno bi se
+    // "zaprljalo" - logo bi tiho nestao iz videa.
+    const forVideo = (url: string) => `${url}${url.includes('?') ? '&' : '?'}video`;
+    const logo = plan.agencyLogoUrl ? await loadImage(forVideo(plan.agencyLogoUrl)).catch(() => null) : null;
 
     // Mapa za početak (tura sa lokacijom) - učita se pre prvog kadra.
     if (plan.map) mapFrames = await VideoMapFrames.create(plan.map);
@@ -130,9 +148,7 @@ export async function renderTourVideo(
     const audioCodec = !audio ? null : (await canEncodeAudio('aac')) ? 'aac' : (await canEncodeAudio('opus')) ? 'opus' : null;
     if (audio && !audioCodec) throw new Error('Pregledač ne ume da upiše zvuk u video. Probajte u Chrome-u na računaru.');
 
-    // Tlocrt za prikaz u uglu. Posebna adresa (?video): tura ga prikazuje kao
-    // običnu sliku, pa bi pregledač vratio sačuvan odgovor bez CORS-a.
-    const forVideo = (url: string) => `${url}${url.includes('?') ? '&' : '?'}video`;
+    // Tlocrt za prikaz u uglu (ista posebna adresa kao logo).
     const floorplan = plan.floorplanUrl
       ? await loadImage(forVideo(plan.floorplanUrl)).catch(() =>
           plan.floorplanFallbackUrl && plan.floorplanFallbackUrl !== plan.floorplanUrl
@@ -158,20 +174,26 @@ export async function renderTourVideo(
     if (audioSource && audio) await audioSource.add(audio);
 
     const total = Math.ceil(plan.duration * VIDEO_FPS);
-    for (let i = 0; i < total; i++) {
-      if (options.signal?.aborted) {
-        await output.cancel();
-        throw new DOMException('Prekinuto', 'AbortError');
+    try {
+      for (let i = 0; i < total; i++) {
+        if (options.signal?.aborted) {
+          await output.cancel();
+          throw new DOMException('Prekinuto', 'AbortError');
+        }
+        const t = i / VIDEO_FPS;
+        if (mapFrames && plan.map && t <= plan.map.end) await mapFrames.renderAt(t);
+        frames.draw(ctx, t);
+        await source.add(t, 1 / VIDEO_FPS);
+        const preview = i % 3 === 0 ? options.getPreview?.() : null;
+        if (preview) preview.getContext('2d')?.drawImage(canvas, 0, 0, preview.width, preview.height);
+        if (i % 5 === 0) options.onProgress({ stage: 'encoding', done: i, total });
+        // Povremeno pusti pregledač da osveži ekran (napredak, pregled).
+        if (i % 10 === 0) await new Promise((r) => setTimeout(r, 0));
       }
-      const t = i / VIDEO_FPS;
-      if (mapFrames && plan.map && t <= plan.map.end) await mapFrames.renderAt(t);
-      frames.draw(ctx, t);
-      await source.add(t, 1 / VIDEO_FPS);
-      const preview = i % 3 === 0 ? options.getPreview?.() : null;
-      if (preview) preview.getContext('2d')?.drawImage(canvas, 0, 0, preview.width, preview.height);
-      if (i % 5 === 0) options.onProgress({ stage: 'encoding', done: i, total });
-      // Povremeno pusti pregledač da osveži ekran (napredak, pregled).
-      if (i % 10 === 0) await new Promise((r) => setTimeout(r, 0));
+    } catch (err) {
+      // Greška usred kadrova (ne samo prekid) - enkoder se zatvara, ne ostaje otvoren.
+      if (!(err instanceof DOMException && err.name === 'AbortError')) await output.cancel().catch(() => undefined);
+      throw err;
     }
 
     options.onProgress({ stage: 'finishing' });

@@ -14,4 +14,7 @@ export function revalidateProject(slug: string | null | undefined): void {
     // PDF letci svih stanova (/stan/[oznaka]/letak) - 'layout' osvežava i ugnežđene adrese.
     revalidatePath(base, 'layout');
   }
+  // Cenovnik projekta ulazi u cene po naseljima (strana je inače keširana dan) -
+  // nova cena se vidi odmah, isto kao u proceni.
+  revalidatePath('/alati/cene-nekretnina-kragujevac');
 }

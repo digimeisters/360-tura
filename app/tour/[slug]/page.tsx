@@ -524,7 +524,10 @@ export default function TourPage() {
   }, [stopAudio, stopCurrentAnimation]);
 
   // Merenje poseta i unapred skidanje susednih soba - vidi useTourAnalytics.ts.
-  useTourAnalytics({ slug, tour, adminMode, tourStarted, rooms, roomIdx, lang, langRef, activeModal });
+  // Agent koji vodi razgledanje uživo (?agent=) nije kupac - ne broji se u
+  // posetioce ni u toplotnu mapu soba (inače svako razgledanje doda lažnog
+  // posetioca koji je video sve sobe).
+  useTourAnalytics({ slug, tour, adminMode: adminMode || live.role === 'guide', tourStarted, rooms, roomIdx, lang, langRef, activeModal });
   useNeighbourPreload(tourStarted, rooms, roomIdx);
   // "Prevucite prstom da razgledate" pri prvom ulasku - vidi TourOverlays.tsx.
   const showDragHint = useFirstTimeDragHint(tourStarted);

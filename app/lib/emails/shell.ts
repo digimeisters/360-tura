@@ -78,7 +78,8 @@ export function emailLayout({
   title,
   preheader,
   body,
-  footer
+  footer,
+  lang = 'sr'
 }: {
   title: string;
   preheader: string;
@@ -86,12 +87,14 @@ export function emailLayout({
   body: string;
   /** Rečenica iznad adrese firme (već escape-ovan HTML). */
   footer: string;
+  /** Jezik mejla (lang na <html>) - mejl posetiocu ide i na EN/DE/RU. */
+  lang?: string;
 }): string {
   const logo = `${SITE_URL}/brand/kvadrat360-logo-light.png`;
   const company = `Kvadrat360 · ${e(CONTACT.street)}, ${e(CONTACT.city)} · ${e(CONTACT.phoneDisplay)}`;
 
   return `<!doctype html>
-<html lang="sr">
+<html lang="${lang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

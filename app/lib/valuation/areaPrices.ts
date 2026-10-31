@@ -76,9 +76,10 @@ export async function getAreaPrices(city = 'Kragujevac'): Promise<AreaPrice[]> {
   // Cenovnici naših projekata (bar 2 u naselju) zamenjuju oglase za novogradnju stanova.
   const fromProjects = await getProjectAreaPrices(db, city);
   if (!fromProjects.length) return fromAds;
-  const own = new Set(fromProjects.map((p) => p.neighborhood));
+  // Poređenje bez obzira na velika/mala slova - isto kao procena (api/valuation/estimate).
+  const own = new Set(fromProjects.map((p) => p.neighborhood.toLowerCase()));
   return [
-    ...fromAds.filter((r) => !(r.type === 'apartment' && r.kind === 'sale' && r.build === 'new' && own.has(r.neighborhood))),
+    ...fromAds.filter((r) => !(r.type === 'apartment' && r.kind === 'sale' && r.build === 'new' && own.has(r.neighborhood.toLowerCase()))),
     ...fromProjects.map((p) => ({
       source: 'projects' as const,
       neighborhood: p.neighborhood,

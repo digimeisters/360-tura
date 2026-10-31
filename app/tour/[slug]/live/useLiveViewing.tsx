@@ -157,9 +157,20 @@ export function useLiveViewing({
   useEffect(() => {
     if (role !== 'guide' || !agentToken) return;
     let cancelled = false;
-    void requestLiveCode(slug, agentToken).then((code) => {
+    void (async () => {
+      await Promise.resolve();
+      // Agent se vratio u istu karticu (npr. iz Vibera, pa je telefon osvežio
+      // stranu): nastavlja ISTO razgledanje - kupac je i dalje na starom kodu.
+      const saved = readSavedLive(slug);
+      if (saved) {
+        if (cancelled) return;
+        setGuideCode(saved);
+        setShareUrl(`${window.location.origin}/tour/${slug}?uzivo=${saved}`);
+        return;
+      }
+      const code = await requestLiveCode(slug, agentToken);
       if (!cancelled) setNextCode(code);
-    });
+    })();
     return () => {
       cancelled = true;
     };
@@ -175,6 +186,24 @@ export function useLiveViewing({
   const agentName = tour?.agent_name?.trim() || t.liveAgentFallback;
 
   const guideActive = role === 'guide' && guideCode !== null && !terminal;
+
+  // Razgledanje je gotovo ili veza nije uspela: zapamćeni kod se briše, a agent
+  // odmah dobija nov kod (dugme "Uživo"), bez ponovnog učitavanja strane.
+  useEffect(() => {
+    if (role !== 'guide' || !agentToken || !terminal || !guideCode) return;
+    forgetSavedLive(slug);
+    let cancelled = false;
+    void (async () => {
+      await Promise.resolve();
+      if (cancelled) return;
+      setGuideCode(null);
+      const code = await requestLiveCode(slug, agentToken);
+      if (!cancelled) setNextCode(code);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [role, agentToken, terminal, guideCode, slug]);
   const viewerActive = role === 'viewer' && joined && !dismissed && !terminal;
 
   const guide = useLiveGuide({ session, active: guideActive, viewerRef, rooms, roomIdx, changeRoomById });
@@ -226,6 +255,7 @@ export function useLiveViewing({
 
   const startLive = () => {
     if (!nextCode) return;
+    saveLive(slug, nextCode);
     setGuideCode(nextCode);
     setShareUrl(`${window.location.origin}/tour/${slug}?uzivo=${nextCode}`);
     setShareOpen(true);
@@ -233,6 +263,7 @@ export function useLiveViewing({
   };
 
   const endLive = () => {
+    forgetSavedLive(slug);
     session.end();
     setGuideCode(null);
     setShareOpen(false);
@@ -348,4 +379,32 @@ export function useLiveViewing({
     sideButton,
     ui
   };
+}
+
+/** Kod razgledanja koje agent vodi, zapamćen u ovoj kartici pregledača (do 2 h). */
+const LIVE_SAVE_MAX_MS = 2 * 60 * 60 * 1000;
+const liveKey = (slug: string) => `k360-live:${slug}`;
+
+function saveLive(slug: string, code: string): void {
+  try {
+    sessionStorage.setItem(liveKey(slug), JSON.stringify({ code, at: Date.now() }));
+  } catch {}
+}
+
+function readSavedLive(slug: string): string | null {
+  try {
+    const raw = sessionStorage.getItem(liveKey(slug));
+    if (!raw) return null;
+    const { code, at } = JSON.parse(raw) as { code?: string; at?: number };
+    if (!code || !LIVE_CODE_RE.test(code) || !at || Date.now() - at > LIVE_SAVE_MAX_MS) return null;
+    return code;
+  } catch {
+    return null;
+  }
+}
+
+function forgetSavedLive(slug: string): void {
+  try {
+    sessionStorage.removeItem(liveKey(slug));
+  } catch {}
 }

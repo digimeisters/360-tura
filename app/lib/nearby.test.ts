@@ -91,3 +91,16 @@ test('fetchNearby poštuje ukupan rok', async () => {
   await assert.rejects(fetchNearby(44.8, 20.4, { budgetMs: 300, fetchImpl: fake.impl }), /Overpass/);
   assert.ok(Date.now() - t < 1500);
 });
+
+test('fetchNearby: od dve prodavnice istog lanca ostaje bliža', async () => {
+  // Overpass vraća po id-u, ne po udaljenosti - dalja Idea stiže prva.
+  const elements = [
+    { lat: 44.808, lon: 20.4, tags: { shop: 'supermarket', name: 'Idea' } },
+    { lat: 44.8013, lon: 20.4, tags: { shop: 'supermarket', name: 'Idea' } }
+  ];
+  const impl = (async () => new Response(JSON.stringify({ elements }), { status: 200 })) as unknown as typeof fetch;
+  const places = await fetchNearby(44.8, 20.4, { fetchImpl: impl });
+  const ideas = places.filter((p) => p.name === 'Idea');
+  assert.equal(ideas.length, 1);
+  assert.ok(ideas[0].m < 200, `ostala je bliža Idea (${ideas[0].m} m)`);
+});

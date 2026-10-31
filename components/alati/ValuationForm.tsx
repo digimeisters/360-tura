@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
+import { trackSiteEvent } from '../../app/lib/track';
 import { OTHER_NEIGHBOURHOOD, neighbourhoodsFor } from '../../app/lib/propertyTaxonomy';
 import type {
   EstimateRequestBody,
@@ -138,7 +139,8 @@ function YesNo({ label, value, onChange }: { label: string; value: boolean | nul
   return (
     <div className="tl-q">
       <span>{label}</span>
-      <span className="tl-yn">
+      {/* Čitač ekrana uz "Da"/"Ne" čita i pitanje. */}
+      <span className="tl-yn" role="group" aria-label={label}>
         <button type="button" aria-pressed={value === true} onClick={() => onChange(true)}>
           Da
         </button>
@@ -269,6 +271,8 @@ export default function ValuationForm({
         return;
       }
       setResult({ estimate: data.estimate, listingType: form.listingType });
+      // Uspešna procena je kontakt (kao ostali formulari) - klik na dugme se broji i kad ne prođe.
+      trackSiteEvent('form_submit', `valuation_${form.listingType}`);
       // Na telefonu je rezultat ispod forme - skrol do njega.
       document.getElementById('procena-rezultat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch {
@@ -361,7 +365,7 @@ export default function ValuationForm({
 
               <div className="tl-field">
                 <span>Tip nekretnine</span>
-                <div className="tl-chips">
+                <div className="tl-chips" role="group" aria-label="Tip nekretnine">
                   {TYPE_OPTIONS.map((opt) => (
                     <button key={opt.value} type="button" aria-pressed={form.propertyType === opt.value} onClick={() => set('propertyType', opt.value)}>
                       {opt.label}
@@ -423,7 +427,7 @@ export default function ValuationForm({
               </h2>
               <div className="tl-field">
                 <span>Stanje nekretnine</span>
-                <div className="tl-chips">
+                <div className="tl-chips" role="group" aria-label="Stanje nekretnine">
                   {CONDITION_OPTIONS.map((opt) => (
                     <button key={opt.value} type="button" aria-pressed={form.condition === opt.value} onClick={() => set('condition', opt.value)}>
                       {opt.label}

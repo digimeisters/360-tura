@@ -119,6 +119,9 @@ export default function ToursAdminPage() {
   const [error, setError] = useState('');
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  // Forma u trenutku otvaranja - zatvaranje (Esc, klik pored, ×) pita pre nego
+  // što baci izmene koje nisu sačuvane.
+  const [formBaseline, setFormBaseline] = useState(JSON.stringify(EMPTY_FORM));
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
   // Panel sa formom (TourFormDrawer): otvara se na "+ Nova tura" i "Izmeni".
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -222,17 +225,19 @@ export default function ToursAdminPage() {
   const openNew = () => {
     setEditingSlug(null);
     setForm(EMPTY_FORM);
+    setFormBaseline(JSON.stringify(EMPTY_FORM));
     setFormError('');
     setNotice('');
     setDrawerOpen(true);
   };
 
   const closeDrawer = useCallback(() => {
+    if (JSON.stringify(form) !== formBaseline && !window.confirm('Zatvoriti bez čuvanja? Izmene u formi će se izgubiti.')) return;
     setDrawerOpen(false);
     setEditingSlug(null);
     setForm(EMPTY_FORM);
     setFormError('');
-  }, []);
+  }, [form, formBaseline]);
 
   // Radnje iz menija "⋯" u redu tabele (TourRowMenu).
   const rowAction = (tour: TourRow, action: TourRowAction) => {
@@ -401,7 +406,7 @@ export default function ToursAdminPage() {
     setError('');
     setFormError('');
     setDrawerOpen(true);
-    setForm({
+    const filled: FormState = {
       title: pickTitle(tour),
       agency_name: tour.agency_name || '',
       address: tour.address || '',
@@ -427,7 +432,9 @@ export default function ToursAdminPage() {
       agent_email: tour.agent_email || '',
       nadir_logo: tour.nadir_logo !== false,
       faq: [tour.faq_1_i18n, tour.faq_2_i18n, tour.faq_3_i18n, tour.faq_4_i18n, tour.faq_5_i18n].map(pickSr)
-    });
+    };
+    setForm(filled);
+    setFormBaseline(JSON.stringify(filled));
   };
 
   const wrap: React.CSSProperties = {

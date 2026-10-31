@@ -72,14 +72,15 @@ export function monthlyReportEmail(r: AgencyReport, reportUrl: string): { subjec
   const kpis = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
 ${kpi('Posetioci', String(t.visitors), visitorsChange, false, '0 8px 0 0')}
 ${kpi('Zahtevi za razgledanje', String(t.viewingRequests), requestsChange, true, '0 4px')}
-${kpi('Prosečno u turi', duration(t.avgSeconds), flat('minuta po posetiocu'), false, '0 0 0 8px')}
+${kpi('Prosečno u turi', duration(t.avgSeconds), flat('po posetiocu koji je ušao'), false, '0 0 0 8px')}
 </tr></table>`;
 
   const enterRate = t.visitors ? Math.round((t.entered / t.visitors) * 100) : 0;
   const more = [
     `${enterRate}% posetilaca je ušlo u turu`,
     t.foreignVisitors ? `${t.foreignVisitors} je gledalo na stranom jeziku` : null,
-    t.contactClicks ? `${t.contactClicks} je otvorilo vaš kontakt` : null
+    t.contactClicks ? `${t.contactClicks} je otvorilo vaš kontakt` : null,
+    t.capturedLeads ? `${t.capturedLeads} je ostavilo kontakt da dobije link i tlocrt` : null
   ].filter(Boolean);
 
   const shown = r.tours.filter((x) => x.visitors > 0).slice(0, MAX_TOURS);
@@ -90,7 +91,9 @@ ${kpi('Prosečno u turi', duration(t.avgSeconds), flat('minuta po posetiocu'), f
       const top = topRoom(x.heat?.rows ?? []);
       const req = x.viewingRequests
         ? `<span style="font-size:13px;color:${COLORS.blue};font-weight:700;">${e(requestsLabel(x.viewingRequests))}</span>`
-        : `<span style="font-size:13px;color:${COLORS.soft};">bez zahteva</span>`;
+        : x.capturedLeads
+          ? `<span style="font-size:13px;color:${COLORS.blue};font-weight:700;">${x.capturedLeads} ostavilo kontakt</span>`
+          : `<span style="font-size:13px;color:${COLORS.soft};">bez zahteva</span>`;
       return `<tr>
   <td style="padding:14px 0;${border}"><p style="margin:0;font-weight:700;">${e(x.title)}</p>${top ? `<p style="margin:2px 0 0;font-size:13px;color:${COLORS.soft};">Najduže gledali: ${e(top.title)}</p>` : ''}</td>
   <td align="right" style="padding:14px 0 14px 12px;${border}white-space:nowrap;"><b>${x.visitors}</b> <span style="color:${COLORS.soft};font-size:13px;">${visitorsLabel(x.visitors)}</span><br>${req}</td>
@@ -126,7 +129,7 @@ ${buttons({ href: reportUrl, label: 'Otvorite ceo izveštaj' })}`,
     title: 'Mesečni izveštaj',
     preheader: `U ${MONTH_IN[m]}: ${t.visitors} ${visitorsLabel(t.visitors)}, ${requestsLabel(t.viewingRequests)} za razgledanje.`,
     body,
-    footer: 'Izveštaj stiže svakog 1. u mesecu. Ne želite ga? Odgovorite na ovaj mejl.'
+    footer: 'Izveštaj za prethodni mesec šaljemo početkom meseca. Ne želite ga? Odgovorite na ovaj mejl.'
   });
 
   const text = [
@@ -138,7 +141,7 @@ ${buttons({ href: reportUrl, label: 'Otvorite ceo izveštaj' })}`,
     `Prosečno u turi: ${duration(t.avgSeconds)} min`,
     `Još: ${more.join(', ')}.`,
     '',
-    ...shown.map((x) => `${x.title}: ${x.visitors} ${visitorsLabel(x.visitors)}, ${x.viewingRequests ? requestsLabel(x.viewingRequests) : 'bez zahteva'}`),
+    ...shown.map((x) => `${x.title}: ${x.visitors} ${visitorsLabel(x.visitors)}, ${x.viewingRequests ? requestsLabel(x.viewingRequests) : x.capturedLeads ? `${x.capturedLeads} ostavilo kontakt` : 'bez zahteva'}`),
     '',
     `Ceo izveštaj: ${reportUrl}`,
     'Ne želite izveštaj? Odgovorite na ovaj mejl.',

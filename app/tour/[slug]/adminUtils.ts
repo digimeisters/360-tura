@@ -8,6 +8,62 @@ import { buildI18nObject, getLocalizedText } from './utils';
  * pozivaju admin API rute i posetiocu nikad ne trebaju.
  */
 
+/** Odgovor generate_voice (isti oblik i kad je spojen iz više poziva). */
+export type VoiceResult = {
+  success: boolean;
+  error?: string;
+  audio: { establish: Record<string, string>; waypoints: { index: number; audio_url_i18n: Record<string, string> }[] };
+  errors: { establish: Record<string, string>; waypoints: Record<string, string> };
+  skipped: { establish: string[]; waypoints: string[] };
+};
+
+/**
+ * Glas sobe, JEDAN poziv po jeziku (redom), pa spojeno. Svi jezici u jednom
+ * pozivu (npr. 6 tačaka + uvod x 4 jezika = 28 snimaka) su prelazili 60 s
+ * rute: Vercel vrati 504, ElevenLabs je već naplaćen, a u bazi ništa. Ovako
+ * pad jednog jezika ne obara ostale.
+ */
+export const generateVoiceByLanguage = async (
+  roomId: string | number,
+  langs: Language[],
+  content: { establishText: unknown; waypoints: { index: number; text: unknown }[] }
+): Promise<VoiceResult> => {
+  const merged: VoiceResult = {
+    success: false,
+    audio: { establish: {}, waypoints: [] },
+    errors: { establish: {}, waypoints: {} },
+    skipped: { establish: [], waypoints: [] }
+  };
+  const messages: string[] = [];
+  for (const lang of langs) {
+    const res = await fetch('/api/ai/auto-populate-room', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
+      body: JSON.stringify({ roomId, action: 'generate_voice', voiceLanguages: [lang], content })
+    });
+    const result = (await res.json().catch(() => null)) as Partial<VoiceResult> | null;
+    if (!result || !result.success) {
+      const msg = result?.error || `server nije odgovorio (${res.status})`;
+      merged.errors.establish[lang] = msg;
+      messages.push(`${lang.toUpperCase()}: ${msg}`);
+      continue;
+    }
+    merged.success = true;
+    Object.assign(merged.audio.establish, result.audio?.establish ?? {});
+    for (const wp of result.audio?.waypoints ?? []) {
+      const slot = merged.audio.waypoints.find((w) => w.index === wp.index);
+      if (slot) Object.assign(slot.audio_url_i18n, wp.audio_url_i18n);
+      else merged.audio.waypoints.push({ index: wp.index, audio_url_i18n: { ...wp.audio_url_i18n } });
+    }
+    Object.assign(merged.errors.establish, result.errors?.establish ?? {});
+    Object.assign(merged.errors.waypoints, result.errors?.waypoints ?? {});
+    merged.skipped.establish.push(...(result.skipped?.establish ?? []));
+    merged.skipped.waypoints.push(...(result.skipped?.waypoints ?? []));
+  }
+  if (!merged.success) merged.error = messages.join('; ') || 'Glas nije generisan.';
+  return merged;
+};
+
 // Zajednički korak prevoda: za dati srpski izvor (naslov, naracija, tačke)
 // šalje po jedan translate_step poziv PARALELNO za svaki ciljani jezik
 // (svaki poziv prevodi nezavisno iz 'sr' izvora, pa redosled ne utiče na

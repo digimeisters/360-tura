@@ -70,7 +70,7 @@ export async function POST(req: Request, { params }: Params) {
   if (body.action === 'inquiry-handled') {
     const inquiryId = typeof body.inquiryId === 'string' ? body.inquiryId : '';
     const handled = body.handled !== false;
-    if (!inquiryId) return fail('Nedostaje upit.');
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(inquiryId)) return fail('Nedostaje upit.');
     const { error } = await db
       .from('project_inquiries')
       .update(handled ? { handled_at: new Date().toISOString(), handled_by: link.person_name } : { handled_at: null, handled_by: null })

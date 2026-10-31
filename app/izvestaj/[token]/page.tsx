@@ -228,6 +228,10 @@ function TourCard({ tour }: { tour: TourReport }) {
               <dd>{tour.viewingRequests}</dd>
             </div>
             <div>
+              <dt>Ostavili kontakt</dt>
+              <dd>{tour.capturedLeads}</dd>
+            </div>
+            <div>
               <dt>Podelili link</dt>
               <dd>{tour.shares}</dd>
             </div>
@@ -283,6 +287,9 @@ function Report({ report, token }: { report: AgencyReport; token: string }) {
         </Kpi>
         <Kpi label="Zahtevi za razgledanje" value={String(t.viewingRequests)} hint="poslati iz same ture">
           <Change now={t.viewingRequests} before={report.previous?.viewingRequests} prevLabel={prevLabel} />
+        </Kpi>
+        <Kpi label="Ostavili kontakt" value={String(t.capturedLeads)} hint="tražili link i tlocrt na mejl ili telefon">
+          <Change now={t.capturedLeads} before={report.previous?.capturedLeads} prevLabel={prevLabel} />
         </Kpi>
       </section>
 

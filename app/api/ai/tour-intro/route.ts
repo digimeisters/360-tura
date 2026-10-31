@@ -85,6 +85,9 @@ async function handleVoice(admin: Admin, slug: string, body: Record<string, unkn
   const foreign = langs.filter((l) => l !== 'sr');
 
   const texts: Partial<Record<VoiceLang, string>> = { sr };
+  const translateErrors: Partial<Record<VoiceLang, string>> = {};
+  // Pad prevoda ne sme da obori i srpski snimak - strani jezici se tada samo
+  // prijave kao neuspeli, a srpski uvod se snima.
   if (foreign.length) {
     const { data } = await generateJsonWithRetry<Partial<Record<VoiceLang, string>>>({
       contents: [
@@ -102,10 +105,14 @@ Vrati JSON sa ključevima ${foreign.join(', ')}.`
       fallbackModel: GEMINI_MODEL,
       attempts: 1,
       label: 'tour-intro translate'
+    }).catch((err: unknown) => {
+      for (const l of foreign) translateErrors[l] = `Prevod nije uspeo: ${err instanceof Error ? err.message : 'greška'}`;
+      return { data: null };
     });
     for (const l of foreign) {
       const t = String(data?.[l] ?? '').replace(/\s+/g, ' ').trim();
       if (t) texts[l] = t;
+      else translateErrors[l] ??= 'Prevod je prazan.';
     }
   }
 
@@ -113,7 +120,7 @@ Vrati JSON sa ključevima ${foreign.join(', ')}.`
   // uvod i dalje zvučao kao stari.
   const stamp = Date.now().toString(36);
   const audio: Partial<Record<VoiceLang, string>> = {};
-  const errors: Partial<Record<VoiceLang, string>> = {};
+  const errors: Partial<Record<VoiceLang, string>> = { ...translateErrors };
   await Promise.all(
     (Object.keys(texts) as VoiceLang[]).map(async (l) => {
       const voiceId = voiceIdFor(l);

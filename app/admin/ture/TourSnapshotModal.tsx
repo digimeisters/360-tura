@@ -114,6 +114,9 @@ export default function TourSnapshotModal({ slug, onClose }: { slug: string; onC
   const [busy, setBusy] = useState<string | null>(null);
   // Koja panorama je spremna u pregledu - dok nije ona izabrane sobe, piše "Učitavam".
   const [loadedUrl, setLoadedUrl] = useState('');
+  // Panorama koja nije učitana (ili je grafička kartica izgubila kontekst) -
+  // poruka stoji na pregledu te sobe, ostale sobe i sačuvani kadrovi ostaju.
+  const [failedUrl, setFailedUrl] = useState<{ url: string; message: string } | null>(null);
   // Sačuvani kadrovi po sobi (id sobe -> lista) - ulaze u "Sve sobe odjednom".
   const [shotsByRoom, setShotsByRoom] = useState<Map<string, Shot[]>>(new Map());
 
@@ -145,7 +148,8 @@ export default function TourSnapshotModal({ slug, onClose }: { slug: string; onC
       let logo: HTMLImageElement | null = null;
       if (tour.agency_name) {
         const { data: branding } = await supabase.from('agency_branding').select('logo_url').eq('agency_name', tour.agency_name).maybeSingle();
-        if (branding?.logo_url) logo = await loadImage(branding.logo_url).catch(() => null);
+        // ?snimak: logo se negde prikazuje kao obična slika, pa bi sačuvan odgovor bez CORS-a tiho izbacio logo.
+        if (branding?.logo_url) logo = await loadImage(`${branding.logo_url}${branding.logo_url.includes('?') ? '&' : '?'}snimak`).catch(() => null);
       }
       if (cancelled) return;
       try {
@@ -216,14 +220,22 @@ export default function TourSnapshotModal({ slug, onClose }: { slug: string; onC
     rendererRef.current.resize(preview.w, preview.h);
     let cancelled = false;
     const url = previewUrl(room);
-    rendererRef.current
+    const renderer = rendererRef.current;
+    // Samo panorama sobe koja se gleda ostaje u memoriji grafičke kartice
+    // (svaka je ~100 MB) - prolazak kroz 8 soba je ranije gušio slabije laptopove.
+    renderer.keepOnly(url);
+    renderer
       .load(url)
       .then(() => {
         if (cancelled) return;
+        if (renderer.lost) {
+          setFailedUrl({ url, message: 'Grafičkoj kartici je ponestalo memorije - zatvorite druge kartice pregledača i otvorite Snimak ponovo.' });
+          return;
+        }
         setLoadedUrl(url);
         draw();
       })
-      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : 'Panorama nije učitana.'));
+      .catch((e) => !cancelled && setFailedUrl({ url, message: e instanceof Error ? e.message : 'Panorama nije učitana.' }));
     return () => {
       cancelled = true;
     };
@@ -430,7 +442,11 @@ export default function TourSnapshotModal({ slug, onClose }: { slug: string; onC
                 style={{ width: preview.w, maxWidth: '100%', height: 'auto', boxShadow: '0 0 0 2px rgba(255,255,255,.85)', cursor: 'grab', touchAction: 'none' }}
               />
               <span style={{ position: 'absolute', top: 28, left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,.55)', color: '#fff', fontSize: 12, borderRadius: 999, padding: '5px 12px', pointerEvents: 'none' }}>
-                {loadingPano ? 'Učitavam panoramu…' : 'Prevucite da namestite kadar · točkić za zum'}
+                {room && failedUrl?.url === previewUrl(room)
+                  ? `Ova soba nije učitana: ${failedUrl.message}`
+                  : loadingPano
+                    ? 'Učitavam panoramu…'
+                    : 'Prevucite da namestite kadar · točkić za zum'}
               </span>
             </div>
 

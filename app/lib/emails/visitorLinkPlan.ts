@@ -184,7 +184,8 @@ export function visitorLinkPlanEmail(v: VisitorLinkPlanEmail): { subject: string
     title: subject,
     preheader: `${v.title}: ${t.intro(withPlan)}`,
     body,
-    footer: e(t.footer)
+    footer: e(t.footer),
+    lang: COPY[v.lang] ? v.lang : 'sr'
   });
 
   const text = [

@@ -481,6 +481,8 @@ export default function FloorplanEditorPage() {
     }));
 
   const resetToDraft = () => {
+    // Usred čuvanja se ne menja raspored - čuvanje bi ga posle označilo kao sačuvan.
+    if (savingRef.current) return;
     if (!draft || !confirm('Zameniti trenutni raspored novim automatskim nacrtom? Izmene koje niste sačuvali se gube.')) return;
     setLayout(draft);
     setVb(viewBoxFor(draft));

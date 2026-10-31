@@ -14,8 +14,11 @@ import { sendTelegramMessage, escapeHtml } from './telegram';
 export const DAILY_LIMITS = {
   /** Pitanja AI pomoćniku u turi (Gemini). */
   tourAssistant: 300,
-  /** Mejlovi agentu iz ture: zahtev za razgledanje i ostavljen kontakt (Resend). */
+  /** Mejlovi agentu iz ture: zahtev za razgledanje (Resend). */
   agentEmail: 50,
+  /** Mejlovi agentu za ostavljen kontakt ("Link i tlocrt") - posebna granica, da
+   *  poplava ovih ne zaustavi mejlove o zahtevima za razgledanje. */
+  agentCaptureEmail: 50,
   /** Mejl "Link i tlocrt" posetiocu ture - adresu može da upiše bilo ko (Resend). */
   visitorEmail: 50
 } as const;

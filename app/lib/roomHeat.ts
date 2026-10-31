@@ -63,20 +63,30 @@ export function buildRoomHeat(events: HeatEvent[], rooms: HeatRoom[], capMs: num
   const seen = new Map<string, Set<string>>();
   const time = new Map<string, { ms: number; views: number; each: number[] }>();
   const last = new Map<string, { room: string; at: string }>();
+  // Vreme jednog kupca u jednoj sobi se sabira: boravak se deli na više zapisa
+  // kad tab ode u pozadinu (useTourAnalytics) ili kad se kupac vrati u sobu -
+  // prosek je "koliko se kupac zadrži u sobi", ne po zapisu.
+  const perViewer = new Map<string, { room: string; ms: number }>();
 
   for (const e of events) {
     if (!e.room_id || !known.has(e.room_id)) continue;
     const sessions = seen.get(e.room_id) ?? new Set<string>();
     sessions.add(e.session_id);
     seen.set(e.room_id, sessions);
-    const t = time.get(e.room_id) ?? { ms: 0, views: 0, each: [] };
     const ms = Math.min(Math.max(e.duration_ms ?? 0, 0), capMs);
+    const key = `${e.room_id}|${e.session_id}`;
+    const v = perViewer.get(key) ?? { room: e.room_id, ms: 0 };
+    v.ms += ms;
+    perViewer.set(key, v);
+    const prev = last.get(e.session_id);
+    if (!prev || e.created_at > prev.at) last.set(e.session_id, { room: e.room_id, at: e.created_at });
+  }
+  for (const { room, ms } of perViewer.values()) {
+    const t = time.get(room) ?? { ms: 0, views: 0, each: [] };
     t.ms += ms;
     t.views++;
     t.each.push(ms);
-    time.set(e.room_id, t);
-    const prev = last.get(e.session_id);
-    if (!prev || e.created_at > prev.at) last.set(e.session_id, { room: e.room_id, at: e.created_at });
+    time.set(room, t);
   }
 
   const viewers = last.size;

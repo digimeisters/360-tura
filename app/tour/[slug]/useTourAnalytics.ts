@@ -59,27 +59,37 @@ export function useTourAnalytics({
     if (!rawRoomId) return;
     const roomId = String(rawRoomId);
 
-    const enteredAt = Date.now();
-    let flushed = false;
+    // Vreme se meri samo dok je tura na ekranu: telefon u džepu ili druga
+    // aplikacija ne naduvavaju sobu. Kad tab ode u pozadinu, deo se odmah šalje -
+    // telefon ume da ugasi tab u pozadini bez pagehide, pa bi se poslednja soba
+    // inače izgubila (i iskrivila "Izašli tu" u izveštaju).
+    let visibleSince: number | null = document.visibilityState === 'visible' ? Date.now() : null;
+    let pendingMs = 0;
+    let sentAny = false;
 
-    const flush = () => {
-      if (flushed) return;
-      flushed = true;
-      trackEvent({
-        eventType: 'room_view',
-        tourSlug: slug,
-        roomId,
-        durationMs: Date.now() - enteredAt,
-        lang
-      });
+    const send = () => {
+      if (visibleSince !== null) {
+        pendingMs += Date.now() - visibleSince;
+        visibleSince = null;
+      }
+      if (pendingMs <= 0 && sentAny) return;
+      trackEvent({ eventType: 'room_view', tourSlug: slug, roomId, durationMs: pendingMs, lang });
+      pendingMs = 0;
+      sentAny = true;
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') send();
+      else if (visibleSince === null) visibleSince = Date.now();
     };
 
     // pagehide hvata zatvaranje taba i prelazak na drugu stranicu, gde se
     // cleanup efekta ne izvrši pouzdano.
-    window.addEventListener('pagehide', flush);
+    window.addEventListener('pagehide', send);
+    document.addEventListener('visibilitychange', onVisibility);
     return () => {
-      window.removeEventListener('pagehide', flush);
-      flush();
+      window.removeEventListener('pagehide', send);
+      document.removeEventListener('visibilitychange', onVisibility);
+      send();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tourStarted, slug, roomIdx, rooms, adminMode]);

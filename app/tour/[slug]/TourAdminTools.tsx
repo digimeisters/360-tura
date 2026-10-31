@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { adminAuthHeader } from '../../lib/authFetch';
@@ -8,7 +8,7 @@ import { Language, Waypoint, EstablishData, Room, Tour } from './types';
 import { translations } from './translations';
 import { THEME, btnStyle } from './theme';
 import { getLocalizedText, parseWaypoints, parseEstablish, composeEstablishText, buildI18nObject } from './utils';
-import { translateRoomToLanguages, hasExactLangText } from './adminUtils';
+import { translateRoomToLanguages, hasExactLangText, generateVoiceByLanguage } from './adminUtils';
 import { describeGuidePathError, parseGuidePath, validateGuidePath } from './guidePath';
 import { checkDraftField, type DraftFieldKind } from '../../lib/roomDraftRules';
 
@@ -165,6 +165,9 @@ export default function TourAdminTools({
 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiDraft, setAiDraft] = useState<AiDraft | null>(null);
+  // Soba za koju je predlog napravljen - potvrda ga upisuje BAŠ u nju, i kad je
+  // admin za 10-30 s čekanja prešao u drugu sobu.
+  const [aiDraftRoomId, setAiDraftRoomId] = useState<string | null>(null);
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [review, setReview] = useState<DraftReview | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
@@ -197,6 +200,15 @@ export default function TourAdminTools({
   const [savingNarration, setSavingNarration] = useState(false);
 
   const currentRoom = rooms[roomIdx];
+  // Soba koja se upravo vidi - posle dugog posla (prevod, glas) tačke se
+  // iscrtavaju samo ako je admin i dalje u sobi koja je menjana.
+  const shownRoomIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    shownRoomIdRef.current = currentRoom ? String(currentRoom.id) : null;
+  }, [currentRoom]);
+  const refreshIfShown = (roomId: string | number, waypoints: Waypoint[]) => {
+    if (shownRoomIdRef.current === String(roomId)) refreshViewerHotspots(waypoints, langRef.current);
+  };
 
   const roomsByOrder = [...rooms].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
 
@@ -388,8 +400,14 @@ export default function TourAdminTools({
       return;
     }
 
+    const oldOrder = currentRoom.order_index ?? null;
     if (newOrder !== currentRoom.order_index) {
       const clash = rooms.find((r) => r.id !== currentRoom.id && r.order_index === newOrder);
+      // Putanja vodiča pamti sobe po rednom broju - zauzet broj bi je učinio dvosmislenom.
+      if (clash && tour?.guide_path) {
+        alert(`Broj ${newOrder} već ima druga soba, a tura ima putanju vodiča. Izaberite slobodan broj.`);
+        return;
+      }
       if (clash) {
         const clashTitle = getLocalizedText(clash.title_i18n, 'sr') || '(bez naziva)';
         const ok = confirm(`Sobu "${clashTitle}" već ima redni broj ${newOrder}. Ipak sačuvati? Redosled će zavisiti od baze.`);
@@ -410,6 +428,23 @@ export default function TourAdminTools({
       setRooms((prev) =>
         prev.map((r, idx) => (idx === roomIdx ? { ...r, title_i18n: newTitleI18n, order_index: newOrder } : r))
       );
+
+      // Novi redni broj i u putanji vodiča - inače vodič preskoči sobu, a video
+      // (koji prati putanju) promeni redosled.
+      if (oldOrder !== null && newOrder !== oldOrder && tour?.guide_path) {
+        const steps = tour.guide_path.split(',').map((x) => x.trim());
+        if (steps.includes(String(oldOrder))) {
+          const remapped = steps.map((x) => (x === String(oldOrder) ? String(newOrder) : x)).join(',');
+          const res = await fetch('/api/admin/tours', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
+            body: JSON.stringify({ slug, guide_path: remapped })
+          });
+          const result = await res.json().catch(() => ({ success: false }));
+          if (result.success) setTour((prev) => (prev ? { ...prev, guide_path: remapped } : prev));
+          else alert('Naziv i broj su sačuvani, ali putanja vodiča nije ažurirana - otvorite "Putanja vodiča" i sačuvajte je ponovo.');
+        }
+      }
       setShowRenameModal(false);
     } catch (err) {
       alert('Greška pri čuvanju naziva: ' + (err instanceof Error ? err.message : 'Nepoznata greška'));
@@ -487,6 +522,7 @@ export default function TourAdminTools({
       const result = await res.json();
       if (result.success && result.draft) {
         setAiDraft(result.draft);
+        setAiDraftRoomId(String(currentRoom.id));
         setReview(null);
         setShowDraftModal(true);
       } else {
@@ -704,21 +740,10 @@ export default function TourAdminTools({
     setVoiceProgress('Generisanje AI glasovne naracije...');
 
     try {
-      const res = await fetch('/api/ai/auto-populate-room', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
-        body: JSON.stringify({
-          roomId: currentRoom.id,
-          action: 'generate_voice',
-          voiceLanguages,
-          content: {
-            establishText: composeEstablishText(establishData),
-            waypoints: waypointsList.map((wp, idx) => ({ index: idx, text: wp.text_i18n }))
-          }
-        })
+      const result = await generateVoiceByLanguage(currentRoom.id, voiceLanguages, {
+        establishText: composeEstablishText(establishData),
+        waypoints: waypointsList.map((wp, idx) => ({ index: idx, text: wp.text_i18n }))
       });
-
-      const result = await res.json();
 
       if (!result.success) {
         throw new Error(result.error || 'Nepoznata greška pri generisanju glasa.');
@@ -798,7 +823,8 @@ export default function TourAdminTools({
 
   // KORAK 2 & 3: Potvrda SR drafta, prevođenje i upis u bazu
   const handleConfirmDraftAndProcess = async () => {
-    if (!aiDraft || !currentRoom) return;
+    const room = rooms.find((r) => String(r.id) === aiDraftRoomId) ?? null;
+    if (!aiDraft || !room) return;
 
     if (targetLanguages.length === 0) {
       alert('Molimo izaberite bar jedan jezik za prevođenje i prikaz.');
@@ -814,8 +840,8 @@ export default function TourAdminTools({
     // je engleski posetilac i dalje slušao/čitao opis prethodne verzije sobe.
     const keepLangs = (o: Record<string, string>) =>
       Object.fromEntries(Object.entries(o).filter(([l]) => l === 'sr' || (otherLangs as string[]).includes(l)));
-    const baseEstablish = parseEstablish(currentRoom.establish_i18n);
-    let currentTitleI18n: Record<string, string> = keepLangs(buildI18nObject(aiDraft.title, currentRoom.title_i18n, 'sr'));
+    const baseEstablish = parseEstablish(room.establish_i18n);
+    let currentTitleI18n: Record<string, string> = keepLangs(buildI18nObject(aiDraft.title, room.title_i18n, 'sr'));
     const currentEstablishI18n: EstablishData = {
       ...baseEstablish,
       intro_i18n: keepLangs(buildI18nObject(aiDraft.narrationIntro, baseEstablish.intro_i18n, 'sr')),
@@ -823,6 +849,12 @@ export default function TourAdminTools({
       audio_url_i18n: undefined,
       audio_url: undefined
     };
+
+    // Vrata ka drugim sobama (navigacija) AI ne pravi - ostaju kakva jesu i idu
+    // posle novih info-tačaka. Ranije ih je novi predlog brisao bez upozorenja.
+    const keptDoors = parseWaypoints(room.waypoints_i18n).filter(
+      (wp) => wp.targetRoomId != null || (wp.type != null && wp.type !== 'info')
+    );
 
     let currentWaypoints: Waypoint[] = aiDraft.waypoints.map((wp) => ({
       ...wp,
@@ -836,7 +868,7 @@ export default function TourAdminTools({
         setTranslationProgress(`Prevođenje na jezike: ${otherLangs.map((l) => l.toUpperCase()).join(', ')}...`);
 
         const translated = await translateRoomToLanguages(
-          currentRoom.id,
+          room.id,
           aiDraft.title,
           aiDraft.narrationIntro,
           aiDraft.narrationDetail,
@@ -868,21 +900,10 @@ export default function TourAdminTools({
         setVoiceProgress('Generisanje AI glasovne naracije...');
 
         try {
-          const voiceRes = await fetch('/api/ai/auto-populate-room', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
-            body: JSON.stringify({
-              roomId: currentRoom.id,
-              action: 'generate_voice',
-              voiceLanguages,
-              content: {
-                establishText: composeEstablishText(currentEstablishI18n),
-                waypoints: currentWaypoints.map((wp, idx) => ({ index: idx, text: wp.text_i18n }))
-              }
-            })
+          const voiceResult = await generateVoiceByLanguage(room.id, voiceLanguages, {
+            establishText: composeEstablishText(currentEstablishI18n),
+            waypoints: currentWaypoints.map((wp, idx) => ({ index: idx, text: wp.text_i18n }))
           });
-
-          const voiceResult = await voiceRes.json();
 
           if (voiceResult.success && voiceResult.audio) {
             const existingEstablishAudio =
@@ -944,6 +965,7 @@ export default function TourAdminTools({
 
       setTranslationProgress('Upisivanje u bazu podataka...');
 
+      currentWaypoints = [...currentWaypoints, ...keptDoors];
       const { error: dbErr } = await supabase
         .from('rooms')
         .update({
@@ -951,15 +973,15 @@ export default function TourAdminTools({
           establish_i18n: currentEstablishI18n,
           waypoints_i18n: currentWaypoints
         })
-        .eq('id', String(currentRoom.id));
+        .eq('id', String(room.id));
 
       if (dbErr) {
         throw dbErr;
       }
 
       setRooms((prevRooms) =>
-        prevRooms.map((r, idx) =>
-          idx === roomIdx
+        prevRooms.map((r) =>
+          String(r.id) === String(room.id)
             ? {
                 ...r,
                 title_i18n: currentTitleI18n,
@@ -970,7 +992,7 @@ export default function TourAdminTools({
         )
       );
 
-      refreshViewerHotspots(currentWaypoints, langRef.current);
+      refreshIfShown(room.id, currentWaypoints);
 
       alert(
         (failedLangs.length
@@ -1046,6 +1068,16 @@ export default function TourAdminTools({
       currentEstablishI18n.detail_i18n = translated.establishDetailI18n;
       currentWaypoints = translated.waypoints;
 
+      // Novi prevod = stari snimljeni glas za te jezike govori stari tekst - briše se
+      // (snima se iznova dugmetom za glas). Jezik čiji prevod nije uspeo ostaje kakav je.
+      const redone = targets.filter((l) => !translated.failed.includes(l)) as string[];
+      const dropAudio = (audio: unknown) => {
+        if (!audio || typeof audio !== 'object') return audio as Record<string, string> | undefined;
+        return Object.fromEntries(Object.entries(audio as Record<string, string>).filter(([l]) => !redone.includes(l)));
+      };
+      currentEstablishI18n.audio_url_i18n = dropAudio(currentEstablishI18n.audio_url_i18n);
+      currentWaypoints = currentWaypoints.map((wp) => ({ ...wp, audio_url_i18n: dropAudio(wp.audio_url_i18n) }));
+
       setTranslationProgress('Upisivanje u bazu podataka...');
 
       const { error: dbErr } = await supabase
@@ -1059,18 +1091,23 @@ export default function TourAdminTools({
 
       if (dbErr) throw dbErr;
 
+      const editedRoomId = currentRoom.id;
       setRooms((prevRooms) =>
-        prevRooms.map((r, idx) =>
-          idx === roomIdx
+        prevRooms.map((r) =>
+          String(r.id) === String(editedRoomId)
             ? { ...r, title_i18n: currentTitleI18n, establish_i18n: currentEstablishI18n, waypoints_i18n: currentWaypoints }
             : r
         )
       );
 
-      refreshViewerHotspots(currentWaypoints, langRef.current);
+      refreshIfShown(editedRoomId, currentWaypoints);
       setAddLanguageTargets([]);
 
-      alert(`Soba je prevedena na: ${targets.map((l) => l.toUpperCase()).join(', ')}.`);
+      alert(
+        translated.failed.length
+          ? `Prevod nije uspeo za: ${translated.failed.map((l) => l.toUpperCase()).join(', ')}. Prevedeno: ${redone.map((l) => l.toUpperCase()).join(', ') || 'ništa'}.`
+          : `Soba je prevedena na: ${targets.map((l) => l.toUpperCase()).join(', ')}.`
+      );
     } catch (err) {
       console.error('Greška pri dodavanju jezika:', err);
       alert('Greška pri prevođenju: ' + (err instanceof Error ? err.message : 'Nepoznata greška'));

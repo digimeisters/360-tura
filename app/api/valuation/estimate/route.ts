@@ -306,7 +306,9 @@ export async function POST(req: Request) {
     if (source !== 'organic' || utmCampaign) {
       lines.push(`📣 ${source}${utmCampaign ? ` / ${escapeHtml(utmCampaign)}` : ''}`);
     }
-    await sendTelegramMessage(lines.join('\n'));
+    // Zahtev je u bazi; ako Telegram ne javi, ostaje bar trag u logu (Vercel).
+    const notified = await sendTelegramMessage(lines.join('\n'));
+    if (!notified) console.error('[api/valuation] Telegram nije javio novi zahtev za procenu, lead:', lead.id);
 
     // --- 6. Odgovor ---
     return NextResponse.json<EstimateResponse>({ success: true, estimate, leadId: lead.id });

@@ -104,3 +104,21 @@ test('ravnomerno gledanje ne daje zaključke', () => {
   const events = crowd(10, [['a', 30_000], ['b', 30_000], ['c', 30_000]]);
   assert.deepEqual(buildRoomHeat(events, rooms, CAP)!.insights, []);
 });
+
+test('vreme jednog kupca u sobi se sabira kad je boravak podeljen na više zapisa', () => {
+  const rooms: HeatRoom[] = [
+    { id: 'a', title: 'Dnevna', x: null, y: null, order: 1 },
+    { id: 'b', title: 'Kuhinja', x: null, y: null, order: 2 }
+  ];
+  const events: HeatEvent[] = [];
+  for (let i = 0; i < MIN_HEAT_VIEWERS; i++) {
+    // Svaki kupac: 30 s u dnevnoj, tab u pozadini, pa još 30 s (dva zapisa).
+    events.push({ session_id: `s${i}`, room_id: 'a', duration_ms: 30_000, created_at: `2026-10-01T10:00:0${i % 10}Z` });
+    events.push({ session_id: `s${i}`, room_id: 'a', duration_ms: 30_000, created_at: `2026-10-01T10:05:0${i % 10}Z` });
+    events.push({ session_id: `s${i}`, room_id: 'b', duration_ms: 20_000, created_at: `2026-10-01T10:06:0${i % 10}Z` });
+  }
+  const heat = buildRoomHeat(events, rooms, CAP);
+  assert.ok(heat);
+  assert.equal(heat.rows.find((r) => r.id === 'a')?.avgSeconds, 60);
+  assert.equal(heat.rows.find((r) => r.id === 'a')?.seenPct, 100);
+});

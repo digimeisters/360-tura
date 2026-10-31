@@ -167,7 +167,10 @@ export async function POST(req: Request) {
   }
 
   // Preko dnevne granice kontakt ostaje u bazi i na Telegramu, bez mejla agentu.
-  const emailStatus = (await overDailyBudget('agentEmail'))
+  // Brojač se ne troši kad agent ionako nema mejl.
+  const emailStatus = !looksLikeEmail(tour.agent_email)
+    ? '📧 Agent nema email u turi - prosledite mu kontakt.'
+    : (await overDailyBudget('agentCaptureEmail'))
     ? '⚠️ Mejl agentu NIJE poslat - dnevna granica mejlova (moguća zloupotreba). Proslediti ručno ako je pravi kontakt.'
     : await emailAgent(tour.agent_email, {
         agentName: tour.agent_name,

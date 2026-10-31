@@ -47,7 +47,8 @@ export function tourContactEmail(c: TourContactEmail): { subject: string; html: 
     : c.lang === 'sr'
       ? `Zdravo! Šaljem vam link 360° ture: ${c.tourUrl}${c.hasPlan ? ' Tlocrt je u turi, dugme „Plan“.' : ''} Javite mi se ako želite razgledanje.`
       : `Hello! Here is the 360° tour link: ${c.tourUrl}${c.hasPlan ? ' The floor plan is in the tour, under "Plan".' : ''} Let me know if you would like a viewing.`;
-  const mailto = `mailto:${c.contact}?subject=${encodeURIComponent(c.title)}&body=${encodeURIComponent(reply)}`;
+  // Adresa kupca se kodira - inače bi "a@b.co?cc=..." dodao primaoca ili tekst u agentov odgovor.
+  const mailto = `mailto:${encodeURIComponent(c.contact)}?subject=${encodeURIComponent(c.title)}&body=${encodeURIComponent(reply)}`;
   // "?&body=" otvara poruku sa tekstom i na iPhone-u i na Androidu.
   const sms = `sms:${tel}?&body=${encodeURIComponent(reply)}`;
 

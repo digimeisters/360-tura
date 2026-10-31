@@ -236,8 +236,10 @@ out center tags;`;
     const key = `${cat}:${name.toLowerCase()}`;
     const list0 = byCat.get(cat) ?? [];
     if (seen.has(key)) {
-      if (name) continue;
-      const prev = list0.find((p) => !p.name);
+      // I za imenovana mesta ostaje BLIŽE: lanci (Maxi, Idea, Lidl, Benu...) imaju
+      // isto ime, a Overpass ih ne vraća po udaljenosti - ranije je ostajala prva,
+      // pa je umesto Idee na 150 m mogla da stoji ona na 900 m.
+      const prev = name ? list0.find((p) => p.name?.toLowerCase() === name.toLowerCase()) : list0.find((p) => !p.name);
       const m = distanceM(lat, lng, pLat, pLng);
       if (prev && m < prev.m) Object.assign(prev, { lat: pLat, lng: pLng, m });
       continue;
