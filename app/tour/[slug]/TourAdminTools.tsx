@@ -9,6 +9,8 @@ import { translations } from './translations';
 import { THEME, btnStyle } from './theme';
 import { getLocalizedText, parseWaypoints, parseEstablish, composeEstablishText, buildI18nObject } from './utils';
 import { translateRoomToLanguages, hasExactLangText, generateVoiceByLanguage } from './adminUtils';
+import { applyRoomDraft } from './roomDraftApply';
+import BulkRoomFill from './BulkRoomFill';
 import { describeGuidePathError, parseGuidePath, validateGuidePath } from './guidePath';
 import { checkDraftField, type DraftFieldKind } from '../../lib/roomDraftRules';
 
@@ -164,6 +166,8 @@ export default function TourAdminTools({
   const [voiceLanguages, setVoiceLanguages] = useState<Language[]>([]);
 
   const [aiLoading, setAiLoading] = useState(false);
+  // "🤖 AI sve sobe" (BulkRoomFill) - više soba odjednom, sa pregledom.
+  const [showBulkFill, setShowBulkFill] = useState(false);
   const [aiDraft, setAiDraft] = useState<AiDraft | null>(null);
   // Soba za koju je predlog napravljen - potvrda ga upisuje BAŠ u nju, i kad je
   // admin za 10-30 s čekanja prešao u drugu sobu.
@@ -832,171 +836,40 @@ export default function TourAdminTools({
     }
 
     setShowDraftModal(false);
-
     const otherLangs = targetLanguages.filter((l) => l !== 'sr');
 
-    // Novi srpski tekst: prevodi i snimljeni glas starog teksta više ne važe -
-    // ostaju samo jezici koji se sad prevode, a glas se snima iznova. Ranije
-    // je engleski posetilac i dalje slušao/čitao opis prethodne verzije sobe.
-    const keepLangs = (o: Record<string, string>) =>
-      Object.fromEntries(Object.entries(o).filter(([l]) => l === 'sr' || (otherLangs as string[]).includes(l)));
-    const baseEstablish = parseEstablish(room.establish_i18n);
-    let currentTitleI18n: Record<string, string> = keepLangs(buildI18nObject(aiDraft.title, room.title_i18n, 'sr'));
-    const currentEstablishI18n: EstablishData = {
-      ...baseEstablish,
-      intro_i18n: keepLangs(buildI18nObject(aiDraft.narrationIntro, baseEstablish.intro_i18n, 'sr')),
-      detail_i18n: keepLangs(buildI18nObject(aiDraft.narrationDetail, baseEstablish.detail_i18n, 'sr')),
-      audio_url_i18n: undefined,
-      audio_url: undefined
-    };
-
-    // Vrata ka drugim sobama (navigacija) AI ne pravi - ostaju kakva jesu i idu
-    // posle novih info-tačaka. Ranije ih je novi predlog brisao bez upozorenja.
-    const keptDoors = parseWaypoints(room.waypoints_i18n).filter(
-      (wp) => wp.targetRoomId != null || (wp.type != null && wp.type !== 'info')
-    );
-
-    let currentWaypoints: Waypoint[] = aiDraft.waypoints.map((wp) => ({
-      ...wp,
-      title_i18n: buildI18nObject(getLocalizedText(wp.title_i18n, 'sr'), wp.title_i18n, 'sr'),
-      text_i18n: buildI18nObject(getLocalizedText(wp.text_i18n, 'sr'), wp.text_i18n, 'sr')
-    }));
-
-    let failedLangs: Language[] = [];
     try {
-      if (otherLangs.length > 0) {
-        setTranslationProgress(`Prevođenje na jezike: ${otherLangs.map((l) => l.toUpperCase()).join(', ')}...`);
-
-        const translated = await translateRoomToLanguages(
-          room.id,
-          aiDraft.title,
-          aiDraft.narrationIntro,
-          aiDraft.narrationDetail,
-          currentTitleI18n,
-          typeof currentEstablishI18n.intro_i18n === 'object' ? (currentEstablishI18n.intro_i18n as Record<string, string>) : {},
-          typeof currentEstablishI18n.detail_i18n === 'object' ? (currentEstablishI18n.detail_i18n as Record<string, string>) : {},
-          currentWaypoints,
-          otherLangs
-        );
-
-        currentTitleI18n = translated.titleI18n;
-        currentEstablishI18n.intro_i18n = translated.establishIntroI18n;
-        currentEstablishI18n.detail_i18n = translated.establishDetailI18n;
-        currentWaypoints = translated.waypoints;
-        failedLangs = translated.failed;
-        // Neuspeo jezik nema tekst (prikaz pada na srpski) - ne stari opis sobe.
-        const dropFailed = (o: Record<string, string>) =>
-          Object.fromEntries(Object.entries(o).filter(([l]) => !(failedLangs as string[]).includes(l)));
-        currentTitleI18n = dropFailed(currentTitleI18n);
-        currentEstablishI18n.intro_i18n = dropFailed(translated.establishIntroI18n);
-        currentEstablishI18n.detail_i18n = dropFailed(translated.establishDetailI18n);
-      }
-
-      // Glasovna naracija (opciono - samo ako je izabran bar jedan jezik u
-      // draft modalu). Ide POSLE prevoda, jer joj trebaju finalni tekstovi.
-      let voiceSummaryMessage = '';
-
-      if (voiceLanguages.length > 0) {
-        setVoiceProgress('Generisanje AI glasovne naracije...');
-
-        try {
-          const voiceResult = await generateVoiceByLanguage(room.id, voiceLanguages, {
-            establishText: composeEstablishText(currentEstablishI18n),
-            waypoints: currentWaypoints.map((wp, idx) => ({ index: idx, text: wp.text_i18n }))
-          });
-
-          if (voiceResult.success && voiceResult.audio) {
-            const existingEstablishAudio =
-              typeof currentEstablishI18n.audio_url_i18n === 'object' ? currentEstablishI18n.audio_url_i18n : {};
-            currentEstablishI18n.audio_url_i18n = {
-              ...existingEstablishAudio,
-              ...voiceResult.audio.establish
-            };
-
-            if (Array.isArray(voiceResult.audio.waypoints)) {
-              currentWaypoints = currentWaypoints.map((wp, idx) => {
-                const wpAudio = voiceResult.audio.waypoints.find((a: { index: number }) => a.index === idx);
-                if (!wpAudio) return wp;
-                const existingWpAudio = typeof wp.audio_url_i18n === 'object' ? wp.audio_url_i18n : {};
-                return {
-                  ...wp,
-                  audio_url_i18n: { ...existingWpAudio, ...wpAudio.audio_url_i18n }
-                };
-              });
-            }
-
-            const establishCount = Object.keys(voiceResult.audio.establish || {}).length;
-            const waypointCount = (voiceResult.audio.waypoints || []).reduce(
-              (acc: number, w: { audio_url_i18n?: Record<string, string> }) => acc + Object.keys(w.audio_url_i18n || {}).length,
-              0
-            );
-            const totalGenerated = establishCount + waypointCount;
-
-            const errorLines = [
-              ...Object.entries(voiceResult.errors?.establish || {}).map(
-                ([l, e]) => `Uvod (${String(l).toUpperCase()}): ${e}`
-              ),
-              ...Object.entries(voiceResult.errors?.waypoints || {}).map(([k, e]) => `Tačka ${k}: ${e}`)
-            ];
-
-            if (totalGenerated === 0) {
-              voiceSummaryMessage =
-                '\n\n⚠️ AI glas NIJE generisan ni za jedan segment' +
-                (errorLines.length > 0 ? ' - greške:\n' + errorLines.join('\n') : ' (tekst je prazan?).');
-            } else {
-              voiceSummaryMessage =
-                `\n\n🎙️ Generisano ${totalGenerated} audio segmenata.` +
-                (errorLines.length > 0 ? ' Deo NIJE uspeo:\n' + errorLines.join('\n') : '');
-            }
-
-            if (errorLines.length > 0) {
-              console.warn('[TTS] Delimične greške pri generisanju glasa:', voiceResult.errors);
-            }
-          } else {
-            console.error('[TTS] Generisanje glasa nije uspelo:', voiceResult.error);
-            voiceSummaryMessage =
-              '\n\n⚠️ Generisanje AI glasa nije uspelo (' + (voiceResult.error || 'nepoznata greška') + ').';
-          }
-        } catch (voiceErr) {
-          console.error('[TTS] Greška pri pozivu generate_voice:', voiceErr);
-          voiceSummaryMessage = '\n\n⚠️ Generisanje AI glasa nije uspelo (mrežna greška).';
+      // Prevod, glas i upis - isto kao "AI sve sobe" (roomDraftApply.ts).
+      const applied = await applyRoomDraft({
+        room,
+        draft: aiDraft,
+        otherLangs,
+        voiceLangs: voiceLanguages,
+        onStep: (step) => {
+          if (step === 'translate') setTranslationProgress(`Prevođenje na jezike: ${otherLangs.map((l) => l.toUpperCase()).join(', ')}...`);
+          else if (step === 'voice') setVoiceProgress('Generisanje AI glasovne naracije...');
+          else setTranslationProgress('Upisivanje u bazu podataka...');
         }
-      }
-
-      setTranslationProgress('Upisivanje u bazu podataka...');
-
-      currentWaypoints = [...currentWaypoints, ...keptDoors];
-      const { error: dbErr } = await supabase
-        .from('rooms')
-        .update({
-          title_i18n: currentTitleI18n,
-          establish_i18n: currentEstablishI18n,
-          waypoints_i18n: currentWaypoints
-        })
-        .eq('id', String(room.id));
-
-      if (dbErr) {
-        throw dbErr;
-      }
+      });
 
       setRooms((prevRooms) =>
         prevRooms.map((r) =>
           String(r.id) === String(room.id)
-            ? {
-                ...r,
-                title_i18n: currentTitleI18n,
-                establish_i18n: currentEstablishI18n,
-                waypoints_i18n: currentWaypoints
-              }
+            ? { ...r, title_i18n: applied.title_i18n, establish_i18n: applied.establish_i18n, waypoints_i18n: applied.waypoints_i18n }
             : r
         )
       );
+      refreshIfShown(room.id, applied.waypoints_i18n);
 
-      refreshIfShown(room.id, currentWaypoints);
-
+      let voiceSummaryMessage = '';
+      if (voiceLanguages.length > 0) {
+        voiceSummaryMessage = applied.voiceCount
+          ? `\n\n🎙️ Generisano ${applied.voiceCount} audio segmenata.` + (applied.voiceErrors.length ? ' Deo NIJE uspeo:\n' + applied.voiceErrors.join('\n') : '')
+          : '\n\n⚠️ AI glas NIJE generisan' + (applied.voiceErrors.length ? ' - greške:\n' + applied.voiceErrors.join('\n') : '.');
+      }
       alert(
-        (failedLangs.length
-          ? `Soba je popunjena, ali prevod nije uspeo za: ${failedLangs.map((l) => l.toUpperCase()).join(', ')} - pokrenite prevod ponovo.`
+        (applied.failedLangs.length
+          ? `Soba je popunjena, ali prevod nije uspeo za: ${applied.failedLangs.map((l) => l.toUpperCase()).join(', ')} - pokrenite prevod ponovo.`
           : 'Soba je uspešno popunjena i prevedena!') + voiceSummaryMessage
       );
     } catch (err) {
@@ -1203,6 +1076,21 @@ export default function TourAdminTools({
       >
         {aiLoading ? '🤖 Generisanje...' : '🤖 AI Popuni Sobu'}
       </button>
+
+      <button onClick={() => setShowBulkFill(true)} disabled={aiLoading} style={{ ...toolbarButtonStyle, background: '#6d28d9' }} title="AI tekst za više soba odjednom, sa pregledom svake pre čuvanja">
+        🤖 AI sve sobe
+      </button>
+      {showBulkFill && (
+        <BulkRoomFill
+          rooms={rooms}
+          tour={tour}
+          onRoomSaved={(roomId, patch) => {
+            setRooms((prev) => prev.map((r) => (String(r.id) === String(roomId) ? { ...r, ...patch } : r)));
+            refreshIfShown(roomId, parseWaypoints(patch.waypoints_i18n));
+          }}
+          onClose={() => setShowBulkFill(false)}
+        />
+      )}
 
       <button
         onClick={() => setShowVoiceModal(true)}
