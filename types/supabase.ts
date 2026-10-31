@@ -1,5 +1,5 @@
 // GENERISANO skriptom scripts/gen-db-types.mjs (npm run db:types) - ne menjati ručno.
-// Izvor: živa baza sajta (tmnaguwmzlwirhjprdbh), 2026-10-27.
+// Izvor: živa baza sajta (tmnaguwmzlwirhjprdbh), 2026-10-31.
 
 export type Json =
   | string
@@ -979,6 +979,7 @@ export type Database = {
           lang: string | null
           room_id: string | null
           session_id: string
+          source: string | null
           tour_slug: string
         }
         Insert: {
@@ -989,6 +990,7 @@ export type Database = {
           lang?: string | null
           room_id?: string | null
           session_id: string
+          source?: string | null
           tour_slug: string
         }
         Update: {
@@ -999,6 +1001,7 @@ export type Database = {
           lang?: string | null
           room_id?: string | null
           session_id?: string
+          source?: string | null
           tour_slug?: string
         }
         Relationships: []

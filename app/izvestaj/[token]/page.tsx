@@ -293,6 +293,32 @@ function Report({ report, token }: { report: AgencyReport; token: string }) {
         </Kpi>
       </section>
 
+      {/* Odakle dolaze posetioci: oglasi (link iz "Tekst oglasa" nosi izvor), mreže,
+          direktni linkovi. Samo kad postoji bar jedan poznat izvor - inače bi stajao
+          samo "Direktan link", što ništa ne kaže. */}
+      {report.sources.some((s) => s.key !== 'direktno') && (
+        <section className="rep-src">
+          <h2>Odakle dolaze posetioci</h2>
+          <ul>
+            {report.sources.slice(0, 8).map((s) => {
+              const pct = t.visitors ? Math.round((s.visitors / Math.max(1, report.sources.reduce((a, x) => a + x.visitors, 0))) * 100) : 0;
+              return (
+                <li key={s.key}>
+                  <span className="rep-src-name">{s.label}</span>
+                  <span className="rep-src-bar" aria-hidden="true">
+                    <i style={{ width: `${pct}%` }} />
+                  </span>
+                  <span className="rep-src-num">
+                    {s.visitors} <small>({pct}%)</small>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="rep-src-hint">Linkovi iz alata „Tekst oglasa“ nose oznaku sajta, pa se ovde vidi koliko je kupaca došlo iz kog oglasa.</p>
+        </section>
+      )}
+
       <section className="rep-tours">
         <h2>Po turama</h2>
         {report.tours.map((tour) => (
@@ -339,6 +365,15 @@ const STYLES = `
   .rep-delta{font-size:12px;font-weight:700;color:#5B5D63;}
   .rep-delta.up{color:#16a34a;}
   .rep-delta.down{color:#b45309;}
+  .rep-src{margin-bottom:32px;}
+  .rep-src h2{font-family:var(--font-display);font-size:20px;margin:0 0 12px;}
+  .rep-src ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;}
+  .rep-src li{display:grid;grid-template-columns:minmax(120px,190px) 1fr auto;gap:12px;align-items:center;font-size:14px;}
+  .rep-src-bar{display:block;height:10px;border-radius:99px;background:#EEF0F3;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .rep-src-bar i{display:block;height:100%;border-radius:99px;background:#1E5AA8;}
+  .rep-src-num{font-weight:700;white-space:nowrap;}
+  .rep-src-num small{font-weight:500;color:#8C8E93;}
+  .rep-src-hint{margin:10px 0 0;font-size:12.5px;color:#5B5D63;}
   .rep-tours h2{font-family:var(--font-display);font-size:20px;margin:0 0 12px;}
   .rep-tour{background:#fff;border:1px solid #E4E4DE;border-radius:14px;padding:16px 18px;margin-bottom:12px;break-inside:avoid;}
   .rep-tour-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;}

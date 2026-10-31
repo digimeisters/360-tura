@@ -8,6 +8,8 @@ type TrackPayload = {
   roomId?: string | null;
   durationMs?: number;
   lang?: string;
+  /** Odakle je posetilac došao (samo uz 'open'): utm_source ili domen prethodne strane. */
+  source?: string | null;
 };
 
 const SESSION_KEY = 'k360_session';
@@ -73,7 +75,9 @@ function isOwnerDevice(): boolean {
 
 export function trackEvent(payload: TrackPayload): void {
   if (typeof window === 'undefined' || isOwnerDevice()) return;
-  send(payload);
+  // Izvor ide uz otvaranje ture - izveštaj agencije iz toga pokazuje koliko je
+  // ljudi došlo iz kog oglasa (link iz "Tekst oglasa" nosi ?utm_source=4zida).
+  send(payload.eventType === 'open' && payload.source === undefined ? { ...payload, source: visitSource() } : payload);
 }
 
 // Administrator je prijavljen preko Supabase-a, a klijent tada drži sesiju u

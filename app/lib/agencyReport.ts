@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 import { fetchAllRows } from './fetchAllRows';
+import { countSources, type VisitSource } from './visitSources';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 import { buildRoomHeat, type HeatRoom, type RoomHeat } from './roomHeat';
@@ -138,6 +139,8 @@ export type TourReport = {
   viewingRequests: number;
   /** "Pošaljite sebi link i tlocrt" - kupac ostavio mejl/telefon u turi. */
   capturedLeads: number;
+  /** Odakle su posetioci došli (oglas, mreže, direktan link) - najviše prvi. */
+  sources: (VisitSource & { visitors: number })[];
 };
 
 export type AgencyReport = {
@@ -153,6 +156,8 @@ export type AgencyReport = {
     viewingRequests: number;
     capturedLeads: number;
   };
+  /** Izvori poseta za sve ture zajedno. */
+  sources: (VisitSource & { visitors: number })[];
   /** Isto za prethodni mesec, za poređenje (null ako tada nije bilo tura). */
   previous: { visitors: number; contactClicks: number; viewingRequests: number; capturedLeads: number } | null;
   /** Najraniji mesec za koji ima smisla izveštaj (kad je nastala prva tura). */
@@ -191,6 +196,7 @@ type EventRow = {
   duration_ms: number | null;
   lang: string | null;
   created_at: string;
+  source: string | null;
 };
 
 async function readMonth(
@@ -204,7 +210,7 @@ async function readMonth(
       (a, b) =>
         supabase
           .from('tour_events')
-          .select('tour_slug, event_type, session_id, room_id, duration_ms, lang, created_at')
+          .select('tour_slug, event_type, session_id, room_id, duration_ms, lang, created_at, source')
           .in('tour_slug', slugs)
           .gte('created_at', from)
           .lt('created_at', to)
@@ -297,7 +303,8 @@ export async function buildAgencyReport(agency: string, month: MonthKey): Promis
       contactClicks: contacts.size,
       shares,
       viewingRequests: current.requests.filter((r) => r.source === `tour:${tour.slug}`).length,
-      capturedLeads: current.requests.filter((r) => r.source === `tour-capture:${tour.slug}`).length
+      capturedLeads: current.requests.filter((r) => r.source === `tour-capture:${tour.slug}`).length,
+      sources: countSources(rows.filter((e) => e.event_type === 'open'))
     };
   });
 
@@ -322,6 +329,9 @@ export async function buildAgencyReport(agency: string, month: MonthKey): Promis
       viewingRequests: sum((t) => t.viewingRequests),
       capturedLeads: sum((t) => t.capturedLeads)
     },
+    sources: countSources(
+      current.events.filter((e) => e.event_type === 'open').map((e) => ({ session_id: `${e.tour_slug}|${e.session_id}`, source: e.source }))
+    ),
     previous:
       previousKey >= firstCreated
         ? {

@@ -130,6 +130,7 @@ export async function POST(req: Request) {
     }
 
     const lang = typeof body.lang === 'string' ? body.lang.slice(0, 5) : null;
+    const source = typeof body.source === 'string' && SITE_SOURCE_RE.test(body.source) ? body.source : null;
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -143,7 +144,8 @@ export async function POST(req: Request) {
       event_type: eventType,
       session_id: sessionId,
       duration_ms: durationMs,
-      lang
+      lang,
+      source
     });
 
     if (error) {

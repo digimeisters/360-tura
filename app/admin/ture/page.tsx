@@ -10,6 +10,7 @@ import SendLiveLinkDialog from './SendLiveLinkDialog';
 import TourVideoLauncher from './TourVideoLauncher';
 import TourSnapshotModal from './TourSnapshotModal';
 import TourIntroModal from './TourIntroModal';
+import TourAdTextModal from './TourAdTextModal';
 import TourFormDrawer from './TourFormDrawer';
 import TourRowMenu, { type TourRowAction } from './TourRowMenu';
 import { CATEGORY_LABELS, EMPTY_FORM, type FormState } from './tourForm';
@@ -142,6 +143,8 @@ export default function ToursAdminPage() {
   const [snapshotSlug, setSnapshotSlug] = useState<string | null>(null);
   // Uvod ture: AI tekst + glas na početku vodiča (TourIntroModal).
   const [introSlug, setIntroSlug] = useState<string | null>(null);
+  // Tekst oglasa za 4zida / Halo oglase / mreže (TourAdTextModal).
+  const [adTour, setAdTour] = useState<TourRow | null>(null);
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
   // Pretraga, filteri i redosled spiska tura - vidi TourListFilters.tsx.
   const tourFilter = useTourListFilter(tours, pickTitle);
@@ -242,6 +245,7 @@ export default function ToursAdminPage() {
   // Radnje iz menija "⋯" u redu tabele (TourRowMenu).
   const rowAction = (tour: TourRow, action: TourRowAction) => {
     if (action === 'intro') setIntroSlug(tour.slug);
+    else if (action === 'adtext') setAdTour(tour);
     else if (action === 'send') setSendTour(tour);
     else if (action === 'qr') setQrTour(tour);
     else if (action === 'video') setVideoSlug(tour.slug);
@@ -644,6 +648,7 @@ export default function ToursAdminPage() {
       {videoSlug && <TourVideoLauncher slug={videoSlug} onClose={() => setVideoSlug(null)} />}
       {snapshotSlug && <TourSnapshotModal slug={snapshotSlug} onClose={() => setSnapshotSlug(null)} />}
       {introSlug && <TourIntroModal slug={introSlug} onClose={() => setIntroSlug(null)} />}
+      {adTour && <TourAdTextModal slug={adTour.slug} title={pickTitle(adTour)} onClose={() => setAdTour(null)} />}
       {qrTour && (
         <TourQrDialog
           slug={qrTour.slug}
