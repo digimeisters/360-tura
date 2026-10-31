@@ -51,7 +51,7 @@ function PinIcon({ size = 15 }: { size?: number }) {
 const CARD_LABELS: TourCardLabels = {
   category: (category) => ({ sale: 'Prodaja', rent: 'Izdavanje', booking: 'Smeštaj' })[category],
   rooms: (count) => (count === 1 ? '1 prostorija' : `${count} prostorija`),
-  open: 'Otvori turu →'
+  open: 'Otvori turu'
 };
 
 /** U filteru piše "Stan na dan", isto kao u upitniku - na kartici je kraće. */

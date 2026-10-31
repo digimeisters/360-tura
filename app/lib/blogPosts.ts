@@ -509,6 +509,76 @@ export const BLOG_POSTS: BlogPost[] = [
       { href: '/#cenovnik', label: 'Koliko košta snimanje jedne nekretnine? Pogledajte cenovnik' },
       { href: '/blog/kako-brze-prodati-stan-u-kragujevcu', label: 'Spremate se za prodaju? Pročitajte šta uraditi pre objave oglasa' }
     ]
+  },
+  {
+    slug: 'zivo-razgledanje-nekretnine-na-daljinu',
+    cta: { href: '/za-agencije#kontakt', label: 'Isprobajte na sledećoj nekretnini' },
+    title: 'Živo razgledanje nekretnine: kad agencija vodi kupca kroz turu na daljinu',
+    seoTitle: 'Živo razgledanje nekretnine na daljinu',
+    description:
+      'Kako agencija vodi kupca kroz 360° turu uživo, u realnom vremenu - i kad to ima više smisla od samostalnog razgledanja nekretnine.',
+    excerpt:
+      'Kupac je zainteresovan, ali neodlučan - i ne može večeras do nekretnine. Vi ste kod kuće, a ipak ga vodite kroz svaku prostoriju, uživo.',
+    publishedAt: '2026-10-30',
+    sections: [
+      {
+        paragraphs: [
+          'Kupac je pogledao turu, pročitao opis, čak se i javio sa dva-tri pitanja - ali i dalje okleva, nesiguran. "Da li se sa terase vidi park?" "Kako zvuči ulica uveče?" Pitanja na koja opis ne može da odgovori, a put do nekretnine kupac ne želi da potroši dok nije siguran.',
+          'Za tog kupca Kvadrat360 tura ima i drugu opciju. Agent je otvori na svom telefonu, dodirne dugme „Uživo" - i kupac, bez instalacije i bez prijave, prati tačno ono što agent gleda, dok se dvoje čuju telefonom ili preko Vibera.'
+        ]
+      },
+      {
+        variant: 'callout',
+        heading: 'Ukratko',
+        paragraphs: [],
+        bullets: [
+          'Agent dodirne „Uživo" u turi i pošalje kupcu link - Viberom ili kopiranjem.',
+          'Kupac ga otvori na svom telefonu i pridruži se jednim dodirom, bez instalacije.',
+          'Dok agent hoda kroz prostorije, kupac na svom ekranu vidi tačno isti pogled.',
+          'Razgovor ide uporedo, telefonom ili Viberom - pitanje dobija odgovor odmah.'
+        ]
+      },
+      {
+        heading: 'Kad samostalna tura nije dovoljna',
+        paragraphs: [
+          'Samostalna tura - ona koju kupac sam otvori i prošeta kroz nju svojim tempom - radi za većinu kupaca i za većinu pitanja. Ali ima situacija kad kupcu treba više:'
+        ],
+        bullets: [
+          'Prvi put koristi 360° turu i ne snalazi se sam u njoj',
+          'Ima konkretno pitanje koje opis i vodič ne pokrivaju - pogled, zvuk, komšiluk',
+          'Neodlučan je, pa mu treba neko da ga provede i odgovori uživo, da bi uopšte zakazao dolazak'
+        ]
+      },
+      {
+        heading: 'Kako izgleda živo razgledanje, korak po korak',
+        paragraphs: [],
+        bullets: [
+          'Agent otvori turu i dodirne dugme „Uživo"',
+          'Pošalje kupcu link - Viberom direktno iz ture, ili ga kopira i pošalje na svoj način',
+          'Kupac otvori link na svom telefonu i pridruži se jednim dodirom',
+          'Agent i kupac se čuju telefonom ili Viberom, dok agent hoda kroz prostorije',
+          'Kupac na svom ekranu vidi tačno ono što agent gleda, u realnom vremenu'
+        ]
+      },
+      {
+        heading: 'Radi pored samostalne ture, ne umesto nje',
+        paragraphs: [
+          'Živo razgledanje ne zamenjuje automatsko vođenje kroz turu - dopunjuje ga. Isti link koji šaljete za samostalnu turu, agent u njoj može u svakom trenutku da uključi uživo, kad proceni da je baš ovom kupcu potreban lični vodič.',
+          'Kad razgledanje uživo završi, tura ostaje otvorena - kupac se može sam vratiti i ponovo pogledati sobu koja ga je najviše zanimala.'
+        ]
+      },
+      {
+        heading: 'Kako to radi Kvadrat360',
+        paragraphs: [
+          'Živo razgledanje je deo svake Kvadrat360 ture, bez doplate - uključeno u snimanje koje radimo u Kragujevcu i okolini. Javite nam se za primer gotove ture i probajte ga na sledećoj nekretnini.'
+        ]
+      }
+    ],
+    relatedLinks: [
+      { href: '/za-agencije', label: 'Agencija ste? Pogledajte paket za agencije i primer gotove ture' },
+      { href: '/#cenovnik', label: 'Koliko košta tura za jednu nekretninu? Pogledajte cenovnik' },
+      { href: '/blog/sta-agencija-za-nekretnine-gubi-sa-obicnim-fotografijama', label: 'Pročitajte i šta agencija gubi kad koristi samo obične fotografije' }
+    ]
   }
 ];
 

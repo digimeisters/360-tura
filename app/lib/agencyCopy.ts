@@ -48,6 +48,8 @@ export type AgencyCopy = {
     /** Kraj priče: poziv odmah posle četvrtog ekrana. */
     end: { text: string; cta: string };
   };
+  /** Kratka traka odmah posle kupčeve priče (02), posebno za uživo razgledanje - detalji su u FAQ (#pitanja), na koji ova traka vodi. */
+  live: { title: string; text: string; cta: string };
   owner: {
     eyebrow: string;
     title: string;
@@ -174,8 +176,13 @@ export const AGENCY_COPY: AgencyCopy = {
     },
     end: {
       text: 'Ovakav link šaljete svakom kupcu — od prvog snimanja.',
-      cta: 'Zatražite turu za sledeći oglas →'
+      cta: 'Zatražite turu za sledeći oglas'
     }
+  },
+  live: {
+    title: 'Kupac sa pitanjima uveče? *Provedite ga lično — na daljinu.*',
+    text: 'Dodirnete „● Uživo“ u turi i pošaljete kupcu link. Pridruži se za par sekundi, bez instalacije — i prati tačno ono što vi gledate dok ga vodite kroz prostorije. Razgovarate telefonom ili Viberom.',
+    cta: 'Kako radi uživo razgledanje ↓'
   },
   owner: {
     eyebrow: 'Vlasnik nekretnine',

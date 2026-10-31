@@ -199,7 +199,6 @@ export default function DemoTourInvite({
       >
         <span aria-hidden="true" style={{ width: '12px', height: '12px', border: `2px solid ${GLASS_ACCENT}`, borderRadius: '3px', transform: 'rotate(45deg)', flex: 'none' }} />
         {copy.pill}
-        <span aria-hidden="true" style={{ color: '#9cc3ff' }}>→</span>
       </a>
     );
   }

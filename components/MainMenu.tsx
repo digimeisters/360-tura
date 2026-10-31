@@ -75,6 +75,9 @@ const TOOLS: Item[] = [
   }
 ];
 
+// Pregled svih alata (/alati) ima svoj tekst i izvore brojeva - ne samo spisak tri alata.
+const TOOLS_ALL = { href: '/alati', label: 'Svi alati' };
+
 const ICONS = {
   tour: <path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm-2 5.5 5.5 3.5-5.5 3.5v-7Z" />,
   price: <path d="M4 7h16M4 12h16M4 17h10" />,
@@ -164,17 +167,24 @@ export default function MainMenu({ lang, cta }: { lang?: MenuLang; cta: MenuCta 
   }, [sheet]);
 
   const isCurrent = (href: string) => !href.includes('#') && (pathname === href || pathname.startsWith(`${href}/`));
-  const inGroup = (items: Item[]) => items.some((i) => isCurrent(i.href));
+  const inGroup = (items: Item[], all?: typeof TOOLS_ALL) =>
+    items.some((i) => isCurrent(i.href)) || (all !== undefined && pathname === all.href);
   const close = () => {
     setOpen(null);
     setSheet(false);
   };
 
-  const group = (key: 'services' | 'tools', label: string, items: Item[]) => (
+  const allLink = (all: typeof TOOLS_ALL) => (
+    <Link href={all.href} className="mm-all" onClick={close} aria-current={pathname === all.href ? 'page' : undefined}>
+      {all.label}
+    </Link>
+  );
+
+  const group = (key: 'services' | 'tools', label: string, items: Item[], all?: typeof TOOLS_ALL) => (
     <li className="mm-group">
       <button
         type="button"
-        className={inGroup(items) ? 'mm-btn is-here' : 'mm-btn'}
+        className={inGroup(items, all) ? 'mm-btn is-here' : 'mm-btn'}
         aria-expanded={open === key}
         aria-controls={`mm-${key}`}
         onClick={() => setOpen((o) => (o === key ? null : key))}
@@ -188,6 +198,7 @@ export default function MainMenu({ lang, cta }: { lang?: MenuLang; cta: MenuCta 
         {items.map((i) => (
           <Entry key={i.href} item={i} onClick={close} current={isCurrent(i.href)} />
         ))}
+        {all && allLink(all)}
       </div>
     </li>
   );
@@ -201,7 +212,7 @@ export default function MainMenu({ lang, cta }: { lang?: MenuLang; cta: MenuCta 
           </Link>
         </li>
         {group('services', 'Usluge', SERVICES)}
-        {group('tools', 'Alati', TOOLS)}
+        {group('tools', 'Alati', TOOLS, TOOLS_ALL)}
         <li>
           <Link href="/#cenovnik" data-track="cta:menu_pricing">
             Cenovnik
@@ -280,6 +291,7 @@ export default function MainMenu({ lang, cta }: { lang?: MenuLang; cta: MenuCta 
             {TOOLS.map((i) => (
               <Entry key={i.href} item={i} onClick={close} current={isCurrent(i.href)} />
             ))}
+            {allLink(TOOLS_ALL)}
             <Entry
               item={{
                 href: '/blog',

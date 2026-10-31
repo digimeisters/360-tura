@@ -214,7 +214,7 @@ export default async function ToolsPage() {
         ))}
       </ul>
       <div className="tl-go">
-        {VALUATION_LIVE ? COPY.valuation.go : COPY.valuation.soon} <span aria-hidden="true">→</span>
+        {VALUATION_LIVE ? COPY.valuation.go : COPY.valuation.soon}
       </div>
     </>
   );
@@ -317,7 +317,7 @@ export default async function ToolsPage() {
                   ))}
                 </ul>
                 <div className="tl-go">
-                  {COPY.calc.go} <span aria-hidden="true">→</span>
+                  {COPY.calc.go}
                 </div>
               </Link>
 
@@ -350,7 +350,7 @@ export default async function ToolsPage() {
                   ))}
                 </ul>
                 <div className="tl-go">
-                  {COPY.prices.go} <span aria-hidden="true">→</span>
+                  {COPY.prices.go}
                 </div>
               </Link>
             </div>

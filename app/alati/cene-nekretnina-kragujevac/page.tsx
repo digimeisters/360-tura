@@ -93,7 +93,7 @@ const COPY = {
     points: ['Sprat, stanje, parking, terasa', 'Prodaja ili kirija', 'Za 90 sekundi'],
     button: 'Procenite nekretninu'
   },
-  other: { title: 'Kupujete?', text: 'Izračunajte ratu, troškove notara i povrat PDV-a za prvi stan.', link: 'Kalkulator kredita →' },
+  other: { title: 'Kupujete?', text: 'Izračunajte ratu, troškove notara i povrat PDV-a za prvi stan.', link: 'Kalkulator kredita' },
   footer: HOME_COPY.sr.footer
 };
 

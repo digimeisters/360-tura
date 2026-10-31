@@ -26,7 +26,7 @@ export default function ProjectBuying({ lang }: { lang: ProjectLang }) {
           <b>{t.calcQuestion}</b> {t.calcNote}
         </span>
         <a className="btn btn-secondary" href="/alati/kalkulator-kredita" data-track="cta:project_calc">
-          {t.calcCta} →
+          {t.calcCta}
         </a>
       </p>
     </div>

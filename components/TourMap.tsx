@@ -52,7 +52,7 @@ export default function TourMap({ tours, lang = 'sr' }: { tours: ShowcaseTour[];
             ${tour.coverUrl ? `<img src="${tour.coverUrl}" alt="" style="width:100%;height:90px;object-fit:cover;border-radius:8px;margin-bottom:6px" />` : ''}
             <div style="font-weight:700;font-size:13px;color:#111113;line-height:1.3">${escapeHtml(tour.title)}</div>
             ${category ? `<div style="font-size:11.5px;color:#686A70;margin-top:2px">${escapeHtml(category)}</div>` : ''}
-            <a href="${tourHref(tour.slug, tour.languages, lang)}" style="display:inline-block;margin-top:6px;font-size:12.5px;font-weight:700;color:#1E5AA8;text-decoration:none">Otvori turu →</a>
+            <a href="${tourHref(tour.slug, tour.languages, lang)}" style="display:inline-block;margin-top:6px;font-size:12.5px;font-weight:700;color:#1E5AA8;text-decoration:none">Otvori turu</a>
           </div>`
         );
         const el = htmlElement(PIN, tour.title);

@@ -674,7 +674,7 @@ export default async function InvestorPage() {
               ))}
             </div>
             <p className="setup-foot" data-reveal="up">
-              {offer.price} <a href="#kontakt" data-track="cta:investor_offer_price">Zakažite razgovor →</a>
+              {offer.price} <a href="#kontakt" data-track="cta:investor_offer_price">Zakažite razgovor</a>
             </p>
 
             <div className="extras" id="renderi">

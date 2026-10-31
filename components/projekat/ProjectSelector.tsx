@@ -1496,7 +1496,7 @@ export default function ProjectSelector({
         </div>
         {unitPage ? (
           <a className="inv-open" href={unitPage} data-track="cta:project_unit_page">
-            {t.openUnitPage(unit.code)} <span aria-hidden="true">→</span>
+            {t.openUnitPage(unit.code)}
           </a>
         ) : (
           <>

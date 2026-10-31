@@ -396,7 +396,7 @@ export default function ValuationForm({
             )}
             <div className="tl-btns">
               <button type="submit" className="tl-btn is-dark">
-                Dalje: stanje i kontakt →
+                Dalje: stanje i kontakt
               </button>
             </div>
           </form>
@@ -571,7 +571,7 @@ export default function ValuationForm({
                   Zakažite snimanje
                 </Link>
                 <Link className="tl-btn is-line" href={demoTourHref} data-track="cta:valuation_demo_tour">
-                  Pogledajte primer ture →
+                  Pogledajte primer ture
                 </Link>
               </div>
             </div>

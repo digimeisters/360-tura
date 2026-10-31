@@ -103,6 +103,6 @@ export const VALUATION_COPY = {
   other: {
     title: 'Kupujete nekretninu?',
     text: 'Izračunajte ratu, troškove notara i povrat PDV-a.',
-    link: 'Kalkulator kredita →'
+    link: 'Kalkulator kredita'
   }
 } as const;

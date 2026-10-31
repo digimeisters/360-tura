@@ -166,7 +166,7 @@ export type HomeCopy = {
     title: string;
     note: string;
     /**
-     * Link "Sve ture →" ispod kartica, dok mini-pretraga (database) nije
+     * Link "Sve ture" ispod kartica, dok mini-pretraga (database) nije
      * uključena (manje od TOUR_FILTERS_FROM tura). Samo srpski - /ture je
      * za sada samo na srpskom.
      */
@@ -281,20 +281,20 @@ const sr: HomeCopy = {
   categories: { sale: 'Prodaja', rent: 'Izdavanje', booking: 'Smeštaj' },
   tourCard: {
     rooms: (count) => (count === 1 ? '1 prostorija' : `${count} prostorija`),
-    open: 'Otvori turu →'
+    open: 'Otvori turu'
   },
   examples: {
     eyebrow: 'Ture',
     title: 'Prošetajte kroz *pravu turu*',
     note: 'Otvorite bilo koju — ovo je tačno ono što vidi vaš kupac.',
-    allTours: 'Sve ture →',
+    allTours: 'Sve ture',
     database: {
       title: 'Pronađite turu',
       text: 'Cela baza, sa mapom i filterima po naselju, kvadraturi i ceni.',
       fields: { category: 'Vrsta oglasa', city: 'Grad', structure: 'Struktura' },
       all: 'Sve',
       categories: { rent: 'Izdavanje', sale: 'Prodaja', booking: 'Stan na dan' },
-      cta: 'Prikaži ture →'
+      cta: 'Prikaži ture'
     }
   },
   benefits: {
@@ -366,7 +366,7 @@ const sr: HomeCopy = {
     ],
     guideReads: '▶ Vodič čita opis',
     doorFallback: 'Pređite u spavaću sobu',
-    cta: 'Prošetajte sami →',
+    cta: 'Prošetajte sami',
     tourName: 'Apartman Belgrade Four, Dorćol'
   },
   midCta: {
@@ -469,7 +469,7 @@ const sr: HomeCopy = {
         label: 'Za vlasnike',
         text: 'Prodajete ili izdajete nekretninu? Tura i HDR fotografije za vaš oglas, gotovi za 24–48h.',
         points: ['Link za svaki portal', 'Vaš telefon u turi', 'Jedna cena po nekretnini'],
-        cta: 'Kako radimo →',
+        cta: 'Kako radimo',
         href: '#kako-radimo'
       },
       {
@@ -477,7 +477,7 @@ const sr: HomeCopy = {
         label: 'Za agencije',
         text: 'Niža cena za više oglasa mesečno, kontakt agenta u svakoj turi i mesečni izveštaj o posetama.',
         points: ['Upitnik — sami ili zajedno sa nama', 'Kontakt agenta u svakoj turi', 'Praćenje poseta po oglasu'],
-        cta: 'Strana za agencije →',
+        cta: 'Strana za agencije',
         href: '/za-agencije'
       },
       {
@@ -486,7 +486,7 @@ const sr: HomeCopy = {
         isNew: true,
         text: 'Novogradnja: kupac na fotografiji zgrade klikne na stan i odmah vidi kvadraturu, raspored, cenu i status.',
         points: ['Stanovi obojeni po statusu', 'Osnova i 360° tura stana', 'Prodaja sama menja cene i statuse'],
-        cta: 'Strana za investitore →',
+        cta: 'Strana za investitore',
         href: '/za-investitore'
       }
     ],
@@ -548,7 +548,7 @@ const en: HomeCopy = {
   categories: { sale: 'For sale', rent: 'For rent', booking: 'Short stay' },
   tourCard: {
     rooms: (count) => (count === 1 ? '1 room' : `${count} rooms`),
-    open: 'Open the tour →'
+    open: 'Open the tour'
   },
   examples: {
     eyebrow: 'Tours',
@@ -621,7 +621,7 @@ const en: HomeCopy = {
     ],
     guideReads: '▶ The guide reads it aloud',
     doorFallback: 'Go to the bedroom',
-    cta: 'Walk through it yourself →',
+    cta: 'Walk through it yourself',
     tourName: 'Belgrade Four Apartment, Dorćol'
   },
   midCta: {

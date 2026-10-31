@@ -290,7 +290,7 @@ export default function LoanCalculator({ newBuildHref }: { newBuildHref: string 
               <span aria-hidden="true">PDF</span> Sačuvajte kalkulaciju
             </button>
             <Link className="tl-btn is-line" href={newBuildHref} data-track="cta:tools_calc_newbuild">
-              Pogledajte stanove u novogradnji →
+              Pogledajte stanove u novogradnji
             </Link>
           </div>
           <p className="tl-fine">

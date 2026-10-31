@@ -24,8 +24,9 @@ import { preloadHeroImage } from '../lib/heroPreload';
  * Prodajna strana za agencije (/za-agencije), ispričana kao jedna nedelja
  * agenta u Kragujevcu:
  *   vrh (prava tura) -> 01 nedelja bez/sa turom -> 02 kupac (četiri ekrana
- *   telefona) -> 03 vlasnik i izveštaj -> 04 šest koristi -> 05 brojke iz
- *   sveta -> 06 kako radimo -> cene -> pitanja -> kontakt.
+ *   telefona) -> 02b uživo razgledanje (kratka traka, detalji u FAQ) ->
+ *   03 vlasnik i izveštaj -> 04 šest koristi -> 05 brojke iz sveta ->
+ *   06 kako radimo -> cene -> pitanja -> kontakt.
  *
  * Deli CSS i komponente sa početnom stranom (SITE_STYLES, HeroTour,
  * ContactForm, Pricing), a cene čita iz istih paketa kao početna -
@@ -250,7 +251,7 @@ const AGENCY_STYLES = `
 `;
 
 export default async function AgencyPage() {
-  const { nav, hero, week, buyer, owner, midCta, proof, steps, contact } = copy;
+  const { nav, hero, week, buyer, live, owner, midCta, proof, steps, contact } = copy;
   const address = [CONTACT.street, CONTACT.city].filter(Boolean).join(', ');
 
   const tours = await getShowcaseTours('sr');
@@ -425,6 +426,19 @@ export default async function AgencyPage() {
             <div className="path-end" data-reveal="up">
               <span>{buyer.end.text}</span>
               <a className="btn btn-primary btn-sm" href="#kontakt" data-track="cta:agency_story_end">{buyer.end.cta}</a>
+            </div>
+          </div>
+        </section>
+
+        {/* 02b Uživo razgledanje: kratka traka, detalji su u FAQ (#pitanja). */}
+        <section id="uzivo">
+          <div className="wrap cta-band">
+            <div className="section-head">
+              <h2 data-reveal="blur">{accent(live.title)}</h2>
+              <p className="note" data-reveal="up">{live.text}</p>
+              <p style={{ marginTop: '1.2rem' }} data-reveal="up">
+                <a className="btn btn-primary" href="#pitanja" data-track="cta:agency_live">{live.cta}</a>
+              </p>
             </div>
           </div>
         </section>

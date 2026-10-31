@@ -371,7 +371,7 @@ export default function ProjectView({
           <div className="wrap proj-badge-inner">
             <span>{t.investorBadge}</span>
             <a href={lang === 'en' ? '/za-investitore' : '/za-investitore'} data-track="cta:project_investor_badge">
-              {t.investorCta} →
+              {t.investorCta}
             </a>
           </div>
         </aside>

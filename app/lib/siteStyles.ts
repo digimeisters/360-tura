@@ -248,6 +248,10 @@ export const SITE_STYLES = `
   .mm-ico svg{width:1.15rem; height:1.15rem;}
   .mm-entry b{display:block; font-family:var(--font-display); font-size:.92rem; font-weight:700;}
   .mm-entry small{display:block; color:var(--ink-faint); font-size:.78rem; line-height:1.4; margin-top:.1rem; font-weight:500;}
+  /* "Svi alati" ispod stavki: tanka linija i tekst u boji, da se ne čita kao četvrti alat. */
+  .mm-all, .navlinks .mm-drop a.mm-all{display:block; margin-top:.35rem; padding:.75rem .75rem .45rem; border-top:1px solid var(--line); border-radius:0; color:var(--accent); font-family:var(--font-display); font-size:.88rem; font-weight:700; text-decoration:none; white-space:normal;}
+  @media (hover:hover){ .mm-all:hover, .navlinks .mm-drop a.mm-all:hover{background:none; color:var(--accent); text-decoration:underline; text-underline-offset:3px;} }
+  .mm-sheet .mm-all{margin:.1rem .3rem 0; padding:.55rem .45rem; border-top:0;}
   .mm-new{font-family:var(--font-body); font-size:.6rem; font-weight:800; letter-spacing:.04em; text-transform:uppercase; background:#F59E0B; color:#FFFFFF; border-radius:5px; padding:.1rem .35rem; margin-left:.45rem; vertical-align:.15em;}
   .mm-end{display:flex; align-items:center; gap:.5rem; flex:none;}
   .mm-burger{display:none; align-items:center; gap:.45rem; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); border-radius:999px; padding:.45rem .9rem; font:inherit; font-weight:700; font-size:.86rem; min-height:40px; cursor:pointer;}

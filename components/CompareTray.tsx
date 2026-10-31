@@ -5,7 +5,7 @@ import { COMPARE_MAX, compareHref } from '../app/lib/compare';
 
 /**
  * Traka na dnu /ture dok je bar jedna nekretnina izabrana za poređenje:
- * sličice, broj i "Uporedi →". `notice` = upravo je odbijena peta.
+ * sličice, broj i "Uporedi". `notice` = upravo je odbijena peta.
  */
 export default function CompareTray({
   tours,
@@ -35,7 +35,7 @@ export default function CompareTray({
           {notice ? `Najviše ${COMPARE_MAX} – uklonite jednu` : left > 0 ? `Dodajte još do ${left}` : `Najviše ${COMPARE_MAX}`}
         </div>
         <a className="compare-tray__go" href={compareHref(slugs)}>
-          Uporedi →
+          Uporedi
         </a>
       </div>
     </>

@@ -86,7 +86,7 @@ const COPY = {
       a: 'Povrat PDV-a i oslobođenje od poreza važe samo za stan, ne za parking mesto ili garažu.'
     }
   ],
-  other: { title: 'Prodajete stan?', valuation: 'Proverite koliko vredi po naselju.', valuationLink: 'Procena vrednosti →', tools: 'Pogledajte i ostale alate.', toolsLink: 'Svi alati →' },
+  other: { title: 'Prodajete stan?', valuation: 'Proverite koliko vredi po naselju.', valuationLink: 'Procena vrednosti', tools: 'Pogledajte i ostale alate.', toolsLink: 'Svi alati' },
   footer: HOME_COPY.sr.footer
 };
 

@@ -172,7 +172,7 @@ export const INVESTOR_COPY: InvestorCopy = {
     sent: '✓ Upit je stigao prodaji',
     d3: '3D prikaz',
     toast: 'Prodaja · primer prikaza',
-    cta: 'Otvorite primer →'
+    cta: 'Otvorite primer'
   },
   sales: {
     eyebrow: 'Vaša prodaja',
@@ -266,7 +266,7 @@ export const INVESTOR_COPY: InvestorCopy = {
       }
     ],
     onRequest: 'Cena na upit',
-    cta: 'Pitajte za ponudu →'
+    cta: 'Pitajte za ponudu'
   },
   steps: {
     eyebrow: 'Kako radimo',
