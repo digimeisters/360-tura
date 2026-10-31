@@ -2,6 +2,7 @@ import type { ShowcaseTour } from '../app/lib/showcaseTours';
 import { tourHref } from '../app/lib/tourHref';
 import { formatListingPrice } from '../app/lib/listingPrice';
 import { keepUnitsTogether } from '../app/lib/typography';
+import CardPanorama from './CardPanorama';
 
 /**
  * Kartica ture - ista na početnoj strani ("Primeri tura") i na spisku
@@ -66,6 +67,8 @@ export default function TourCard({
             decoding="async"
           />
         )}
+        {/* Fotografija ostaje ispod: vidi se dok traka ne stigne i kad je ušteda podataka. */}
+        <CardPanorama strips={tour.cardStrips} lang={lang} />
         {category && (
           <span className="glass tag">
             <span className="dot" />

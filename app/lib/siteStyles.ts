@@ -826,8 +826,21 @@ export const SITE_STYLES = `
   @media (hover:hover){ .tour-card:hover::after{opacity:1;} }
   .tour-photo{position:relative; aspect-ratio:1200/630; background:var(--surface-2);}
   .tour-photo img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;}
-  .tour-photo .glass.tag{position:absolute; top:.75rem; left:.75rem;}
-  .tour-langs{position:absolute; bottom:.75rem; right:.75rem; display:flex; gap:.3rem;}
+  .tour-photo{overflow:hidden;}
+  .tour-photo .glass.tag{position:absolute; top:.75rem; left:.75rem; z-index:2;}
+  .tour-langs{position:absolute; bottom:.75rem; right:.75rem; display:flex; gap:.3rem; z-index:2;}
+  /* Živa slika kartice (components/CardPanorama): traka panorame preko fotografije. */
+  .cp{position:absolute; inset:0; z-index:1; overflow:hidden; touch-action:pan-y; user-select:none; -webkit-user-select:none;}
+  .cp.is-live{cursor:grab;}
+  .cp.is-dragging{cursor:grabbing;}
+  .cp-layer{position:absolute; inset:0; opacity:0; transition:opacity 1.2s ease;}
+  .cp-layer.is-on{opacity:1;}
+  .cp-track{position:absolute; top:0; left:0; height:100%; background-repeat:repeat-x; background-size:auto 100%; will-change:transform;}
+  .cp-chip{position:absolute; bottom:.75rem; left:.75rem; z-index:2; opacity:0; transition:opacity .4s;}
+  .cp.is-live .cp-chip{opacity:1;}
+  .cp-hint{position:absolute; top:50%; left:50%; z-index:2; transform:translate(-50%,-50%); opacity:0; transition:opacity .3s; pointer-events:none; white-space:nowrap;}
+  @media (hover:hover){ .tour-card:hover .cp.is-live:not(.is-dragging) .cp-hint{opacity:1;} }
+  @media (prefers-reduced-motion: reduce){ .cp-layer, .cp-chip{transition:none;} }
   /* Poređenje (/ture): dugme na slici kartice - 34 px vidljivo, 44 px za prst. */
   .tour-compare{position:absolute; top:.75rem; right:.75rem; z-index:3; height:34px; padding:0 .75rem; border:none; border-radius:999px; cursor:pointer;
     display:flex; align-items:center; gap:.35rem; font:700 .8rem/1 var(--font-body); white-space:nowrap;

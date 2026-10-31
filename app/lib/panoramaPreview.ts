@@ -34,6 +34,31 @@ export async function makeMobilePanorama(panorama: Buffer): Promise<Buffer> {
     .toBuffer();
 }
 
+/**
+ * Traka za karticu ture (components/CardPanorama): ceo krug, ali samo pojas
+ * od 70° oko horizonta. Kartica pokazuje ~130° tog pojasa i polako ga
+ * okreće - umesto cele panorame (~450 KB) preuzima se ~80 KB.
+ */
+export const CARD_STRIP_WIDTH = 2400;
+const CARD_STRIP_FOV_V = 70;
+
+export function cardStripKey(key: string): string {
+  return key.replace(/-panorama\.[a-z]+$/i, '-strip.webp');
+}
+
+export async function makeCardStrip(panorama: Buffer): Promise<Buffer> {
+  const image = sharp(panorama, { failOn: 'none', limitInputPixels: false });
+  const { width = 0, height = 0 } = await image.metadata();
+  if (!width || !height) throw new Error('Nije moguće pročitati dimenzije panorame.');
+  const band = Math.round((height * CARD_STRIP_FOV_V) / 180);
+  const outWidth = Math.min(width, CARD_STRIP_WIDTH);
+  return image
+    .extract({ left: 0, top: Math.round((height - band) / 2), width, height: band })
+    .resize({ width: outWidth, height: Math.round((band * outWidth) / width) })
+    .webp({ quality: 72 })
+    .toBuffer();
+}
+
 // Equirectangular panorama pokriva 360°x180°, pa je cela slika neupotrebljiva
 // kao thumbnail - plafon i pod su razvučeni preko celog kadra. Uzima se prozor
 // oko horizonta (vertikalna sredina), gde je izobličenje najmanje.

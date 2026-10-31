@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient';
 import { pickCoverRoom } from './coverRoom';
 import { pickLang, realValue } from '../tour/[slug]/getTourMeta';
 import { isDemoTour } from './demoTour';
+import { pickCardStrips, type CardStrip } from './cardStrips';
 
 /**
  * Objavljene ture za početnu stranu sajta: kartice u "Primeri tura" i kadar
@@ -44,6 +45,8 @@ export type ShowcaseRoom = {
   previewUrl: string;
   /** Panorama za telefon (webp) - vrh početne je vuče levo-desno. Null dok se ne napravi. */
   panoramaUrl: string | null;
+  /** Traka panorame za karticu ture (migracija 044). Null = kartica pokazuje fotografiju. */
+  stripUrl: string | null;
   /** Tačka sobe na tlocrtu, u % širine i visine slike tlocrta (null = nije postavljena). */
   planX: number | null;
   planY: number | null;
@@ -81,6 +84,8 @@ export type ShowcaseTour = {
   price: number | null;
   /** Samo sobe koje imaju sličicu, redom obilaska. */
   rooms: ShowcaseRoom[];
+  /** Do tri prostorije sa trakom za živu karticu, od naslovne nadalje (components/CardPanorama). */
+  cardStrips: CardStrip[];
 };
 
 type TourRow = {
@@ -130,6 +135,7 @@ type RoomRow = {
   establish_i18n: unknown;
   order_index: number | null;
   panorama_url_mobile: string | null;
+  strip_url: string | null;
   floorplan_x: number | null;
   floorplan_y: number | null;
 };
@@ -209,7 +215,7 @@ export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
 
   const { data: rooms, error: roomsErr } = await supabase
     .from('rooms')
-    .select('id, tour_slug, title, title_i18n, preview_url, establish_i18n, order_index, panorama_url_mobile, floorplan_x, floorplan_y')
+    .select('id, tour_slug, title, title_i18n, preview_url, establish_i18n, order_index, panorama_url_mobile, strip_url, floorplan_x, floorplan_y')
     .in(
       'tour_slug',
       tours.map((t) => t.slug)
@@ -238,6 +244,24 @@ export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
       ? (tour.category as ShowcaseCategory)
       : null;
 
+    const showcaseRooms: ShowcaseRoom[] = tourRooms
+      .filter((r) => r.preview_url)
+      .map((r, i) => ({
+        id: String(r.id),
+        title: realValue(pickLang(r.title_i18n, lang)) || realValue(r.title) || fallback.room(i + 1),
+        previewUrl: r.preview_url as string,
+        // Posebna adresa (?hero) za istu sliku: početna je skida bez CORS-a
+        // (<img>, CSS pozadina), pa bi pregledač sačuvao odgovor bez
+        // Access-Control-Allow-Origin i tura bi posle dobila „could not be
+        // accessed" za prvu sobu. Ovako tura i početna ne dele keš.
+        panoramaUrl: r.panorama_url_mobile ? `${r.panorama_url_mobile}?hero` : null,
+        stripUrl: realValue(r.strip_url),
+        planX: asNumber(r.floorplan_x),
+        planY: asNumber(r.floorplan_y),
+        narration: preview(establishNarration(r.establish_i18n, lang), NARRATION_PREVIEW_CHARS)
+      }));
+    const coverRoomId = cover ? String(cover.id) : null;
+
     return {
       slug: tour.slug,
       title: realValue(pickLang(tour.title_i18n, lang)) || realValue(tour.title) || fallback.tour,
@@ -246,7 +270,7 @@ export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
       roomCount: tourRooms.length,
       languages: languages.length ? [...languages] : ['sr'],
       coverUrl: cover?.preview_url ?? null,
-      coverRoomId: cover ? String(cover.id) : null,
+      coverRoomId,
       floorplanUrl: realValue(tour.floorplan_url ?? null),
       address: realValue(tour.address),
       city: realValue(tour.city ?? null) || cityFromAddress(realValue(tour.address)),
@@ -256,21 +280,8 @@ export async function getShowcaseTours(lang = 'sr'): Promise<ShowcaseTour[]> {
       structure: realValue(tour.structure ?? null),
       areaSqm: asNumber(tour.area_sqm),
       price: isDemoTour(tour.agency_name) ? null : asNumber(tour.price),
-      rooms: tourRooms
-        .filter((r) => r.preview_url)
-        .map((r, i) => ({
-          id: String(r.id),
-          title: realValue(pickLang(r.title_i18n, lang)) || realValue(r.title) || fallback.room(i + 1),
-          previewUrl: r.preview_url as string,
-          // Posebna adresa (?hero) za istu sliku: početna je skida bez CORS-a
-          // (<img>, CSS pozadina), pa bi pregledač sačuvao odgovor bez
-          // Access-Control-Allow-Origin i tura bi posle dobila „could not be
-          // accessed" za prvu sobu. Ovako tura i početna ne dele keš.
-          panoramaUrl: r.panorama_url_mobile ? `${r.panorama_url_mobile}?hero` : null,
-          planX: asNumber(r.floorplan_x),
-          planY: asNumber(r.floorplan_y),
-          narration: preview(establishNarration(r.establish_i18n, lang), NARRATION_PREVIEW_CHARS)
-        }))
+      rooms: showcaseRooms,
+      cardStrips: pickCardStrips(showcaseRooms, coverRoomId)
     };
   });
 }

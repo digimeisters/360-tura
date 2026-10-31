@@ -2,7 +2,14 @@ import { NextResponse } from 'next/server';
 import { PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { r2Client } from '@/app/lib/r2';
 import { refreshPublicPages } from '@/app/lib/revalidatePublic';
-import { generatePanoramaPreview, convertPanoramaToWebp, makeMobilePanorama, mobilePanoramaKey } from '@/app/lib/panoramaPreview';
+import {
+  generatePanoramaPreview,
+  convertPanoramaToWebp,
+  makeMobilePanorama,
+  mobilePanoramaKey,
+  makeCardStrip,
+  cardStripKey
+} from '@/app/lib/panoramaPreview';
 import { requireAdmin } from '@/app/lib/adminAuth';
 import type { Database } from '@/types/supabase';
 
@@ -138,17 +145,30 @@ export async function POST(req: Request) {
       console.error('UPLOAD PANORAMA: kopija za telefone nije napravljena:', mobileError);
     }
 
+    // Traka za karticu ture na sajtu (components/CardPanorama).
+    let stripUrl: string | null = null;
+    try {
+      const strip = await makeCardStrip(buffer);
+      const stripKey = cardStripKey(finalKey);
+      await r2Client.send(new PutObjectCommand({ Bucket: bucket, Key: stripKey, Body: strip, ContentType: 'image/webp' }));
+      stripUrl = `${base}/${stripKey}?v=${version}`;
+    } catch (stripError) {
+      console.error('UPLOAD PANORAMA: traka za karticu nije napravljena:', stripError);
+    }
+
     const updates: Partial<Database['public']['Tables']['rooms']['Update']> = {
       panorama_url_cf: r2Url,
-      panorama_url_mobile: mobileUrl
+      panorama_url_mobile: mobileUrl,
+      strip_url: stripUrl
     };
     if (previewUrl) updates.preview_url = previewUrl;
 
     let { error: updateError } = await ctx.supabase.from('rooms').update(updates).eq('id', roomId);
-    // Baza bez migracije 018: soba se upisuje bez kopije za telefone (telefon
-    // tada učitava punu panoramu, kao ranije) - bolje nego propao upload.
-    if (updateError && /panorama_url_mobile/.test(updateError.message)) {
+    // Baza bez migracije 018 ili 044: soba se upisuje bez tih dodataka - bolje
+    // nego propao upload.
+    if (updateError && /panorama_url_mobile|strip_url/.test(updateError.message)) {
       delete updates.panorama_url_mobile;
+      delete updates.strip_url;
       ({ error: updateError } = await ctx.supabase.from('rooms').update(updates).eq('id', roomId));
     }
     if (updateError) {
@@ -171,6 +191,7 @@ export async function POST(req: Request) {
       r2Url,
       previewUrl,
       mobileUrl,
+      stripUrl,
       bytes: finalBody.length,
       originalBytes: buffer.length,
     });

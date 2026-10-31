@@ -879,6 +879,7 @@ export type Database = {
           panorama_url_mobile: string | null
           preview_url: string | null
           status: string | null
+          strip_url: string | null
           target_languages: string | null
           title: string | null
           title_i18n: Json | null
@@ -906,6 +907,7 @@ export type Database = {
           panorama_url_mobile?: string | null
           preview_url?: string | null
           status?: string | null
+          strip_url?: string | null
           target_languages?: string | null
           title?: string | null
           title_i18n?: Json | null
@@ -933,6 +935,7 @@ export type Database = {
           panorama_url_mobile?: string | null
           preview_url?: string | null
           status?: string | null
+          strip_url?: string | null
           target_languages?: string | null
           title?: string | null
           title_i18n?: Json | null
