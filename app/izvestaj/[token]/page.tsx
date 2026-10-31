@@ -275,6 +275,14 @@ function Report({ report, token }: { report: AgencyReport; token: string }) {
         <Kpi label="Posetioci" value={String(t.visitors)} hint="različiti ljudi koji su otvorili link">
           <Change now={t.visitors} before={report.previous?.visitors} prevLabel={prevLabel} />
         </Kpi>
+        {/* Glavna brojka za agenciju: svi upiti iz ture zajedno. */}
+        <Kpi label="Upiti iz ture" value={String(t.viewingRequests + t.capturedLeads)} hint="zahtevi za razgledanje + ostavljeni kontakti">
+          <Change
+            now={t.viewingRequests + t.capturedLeads}
+            before={report.previous ? report.previous.viewingRequests + report.previous.capturedLeads : undefined}
+            prevLabel={prevLabel}
+          />
+        </Kpi>
         <Kpi
           label="Ušli u turu"
           value={String(t.entered)}

@@ -25,6 +25,14 @@ export function visitorsLabel(n: number): string {
 }
 
 export const requestsLabel = (n: number) => (n % 10 === 1 && n % 100 !== 11 ? `${n} zahtev` : `${n} zahteva`);
+/** Upiti = zahtevi za razgledanje + ostavljeni kontakti ("link i tlocrt"). */
+export const inquiriesLabel = (n: number) => (n % 10 === 1 && n % 100 !== 11 ? `${n} upit` : `${n} upita`);
+const contactsLabel = (n: number) => {
+  const last = n % 10;
+  const lastTwo = n % 100;
+  if (last === 1 && lastTwo !== 11) return `${n} ostavljen kontakt`;
+  return last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14) ? `${n} ostavljena kontakta` : `${n} ostavljenih kontakata`;
+};
 
 // Soba koju je video manji deo posetilaca ne može biti "najduže gledana":
 // jedan dug pogled na toalet ne govori ništa o kupcima.
@@ -54,9 +62,11 @@ export function monthlyReportEmail(r: AgencyReport, reportUrl: string): { subjec
     const pct = Math.round(((t.visitors - r.previous.visitors) / r.previous.visitors) * 100);
     visitorsChange = pct > 0 ? up(`${pct}% od ${prevOf}`) : pct < 0 ? down(`${-pct}% od ${prevOf}`) : flat(`isto kao u ${MONTH_IN[(m + 11) % 12]}`);
   }
+  // Glavna brojka za agenciju: svi upiti iz ture (razgledanje + ostavljen kontakt).
+  const inquiries = t.viewingRequests + t.capturedLeads;
   let requestsChange = '';
   if (r.previous) {
-    const diff = t.viewingRequests - r.previous.viewingRequests;
+    const diff = inquiries - (r.previous.viewingRequests + r.previous.capturedLeads);
     requestsChange = diff > 0 ? up(`${diff} više`) : diff < 0 ? down(`${-diff} manje`) : flat(`isto kao u ${MONTH_IN[(m + 11) % 12]}`);
   }
 
@@ -71,16 +81,16 @@ export function monthlyReportEmail(r: AgencyReport, reportUrl: string): { subjec
 
   const kpis = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
 ${kpi('Posetioci', String(t.visitors), visitorsChange, false, '0 8px 0 0')}
-${kpi('Zahtevi za razgledanje', String(t.viewingRequests), requestsChange, true, '0 4px')}
+${kpi('Upiti iz ture', String(inquiries), requestsChange, true, '0 4px')}
 ${kpi('Prosečno u turi', duration(t.avgSeconds), flat('po posetiocu koji je ušao'), false, '0 0 0 8px')}
 </tr></table>`;
 
   const enterRate = t.visitors ? Math.round((t.entered / t.visitors) * 100) : 0;
   const more = [
+    inquiries ? `od upita ${requestsLabel(t.viewingRequests)} za razgledanje i ${contactsLabel(t.capturedLeads)} (link i tlocrt)` : null,
     `${enterRate}% posetilaca je ušlo u turu`,
     t.foreignVisitors ? `${t.foreignVisitors} je gledalo na stranom jeziku` : null,
-    t.contactClicks ? `${t.contactClicks} je otvorilo vaš kontakt` : null,
-    t.capturedLeads ? `${t.capturedLeads} je ostavilo kontakt da dobije link i tlocrt` : null
+    t.contactClicks ? `${t.contactClicks} je otvorilo vaš kontakt` : null
   ].filter(Boolean);
 
   const shown = r.tours.filter((x) => x.visitors > 0).slice(0, MAX_TOURS);
@@ -89,11 +99,10 @@ ${kpi('Prosečno u turi', duration(t.avgSeconds), flat('po posetiocu koji je uš
       const last = i === shown.length - 1;
       const border = `border-top:1px solid ${COLORS.lineStrong};${last ? `border-bottom:1px solid ${COLORS.lineStrong};` : ''}`;
       const top = topRoom(x.heat?.rows ?? []);
-      const req = x.viewingRequests
-        ? `<span style="font-size:13px;color:${COLORS.blue};font-weight:700;">${e(requestsLabel(x.viewingRequests))}</span>`
-        : x.capturedLeads
-          ? `<span style="font-size:13px;color:${COLORS.blue};font-weight:700;">${x.capturedLeads} ostavilo kontakt</span>`
-          : `<span style="font-size:13px;color:${COLORS.soft};">bez zahteva</span>`;
+      const n = x.viewingRequests + x.capturedLeads;
+      const req = n
+        ? `<span style="font-size:13px;color:${COLORS.blue};font-weight:700;">${e(inquiriesLabel(n))}</span>`
+        : `<span style="font-size:13px;color:${COLORS.soft};">bez upita</span>`;
       return `<tr>
   <td style="padding:14px 0;${border}"><p style="margin:0;font-weight:700;">${e(x.title)}</p>${top ? `<p style="margin:2px 0 0;font-size:13px;color:${COLORS.soft};">Najduže gledali: ${e(top.title)}</p>` : ''}</td>
   <td align="right" style="padding:14px 0 14px 12px;${border}white-space:nowrap;"><b>${x.visitors}</b> <span style="color:${COLORS.soft};font-size:13px;">${visitorsLabel(x.visitors)}</span><br>${req}</td>
@@ -127,7 +136,7 @@ ${buttons({ href: reportUrl, label: 'Otvorite ceo izveštaj' })}`,
 
   const html = emailLayout({
     title: 'Mesečni izveštaj',
-    preheader: `U ${MONTH_IN[m]}: ${t.visitors} ${visitorsLabel(t.visitors)}, ${requestsLabel(t.viewingRequests)} za razgledanje.`,
+    preheader: `U ${MONTH_IN[m]}: ${t.visitors} ${visitorsLabel(t.visitors)}, ${inquiriesLabel(inquiries)} iz ture.`,
     body,
     footer: 'Izveštaj za prethodni mesec šaljemo početkom meseca. Ne želite ga? Odgovorite na ovaj mejl.'
   });
@@ -137,11 +146,11 @@ ${buttons({ href: reportUrl, label: 'Otvorite ceo izveštaj' })}`,
     `Vaše ture u ${MONTH_IN[m]}.`,
     '',
     `Posetioci: ${t.visitors}`,
-    `Zahtevi za razgledanje: ${t.viewingRequests}`,
+    `Upiti iz ture: ${inquiries} (razgledanje ${t.viewingRequests}, ostavljen kontakt ${t.capturedLeads})`,
     `Prosečno u turi: ${duration(t.avgSeconds)} min`,
     `Još: ${more.join(', ')}.`,
     '',
-    ...shown.map((x) => `${x.title}: ${x.visitors} ${visitorsLabel(x.visitors)}, ${x.viewingRequests ? requestsLabel(x.viewingRequests) : x.capturedLeads ? `${x.capturedLeads} ostavilo kontakt` : 'bez zahteva'}`),
+    ...shown.map((x) => `${x.title}: ${x.visitors} ${visitorsLabel(x.visitors)}, ${x.viewingRequests + x.capturedLeads ? inquiriesLabel(x.viewingRequests + x.capturedLeads) : 'bez upita'}`),
     '',
     `Ceo izveštaj: ${reportUrl}`,
     'Ne želite izveštaj? Odgovorite na ovaj mejl.',
