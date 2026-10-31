@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { TourChecklist } from '../../lib/tourChecklist';
 import { supabase } from '../../lib/supabaseClient';
 import { FORM, formBtnStyle } from '../../lib/formTheme';
 import { embedSnippet } from '../../lib/embedCode';
@@ -62,6 +63,8 @@ type TourRow = {
   roomsWithPanorama: number;
   /** Agentov link za razgledanje uživo (/tour/<slug>?agent=<token>), pravi ga server. */
   liveGuidePath: string;
+  /** "Šta fali" pre predaje agenciji (lib/tourChecklist.ts), računa server. */
+  checklist?: TourChecklist;
 };
 
 const STATUS_LABELS: Record<TourRow['status'], string> = {
@@ -514,6 +517,20 @@ export default function ToursAdminPage() {
                       <div style={{ fontSize: '12px', color: FORM.textMuted, fontFamily: 'monospace' }}>
                         {tour.city ? `${tour.city} · ` : ''}/tour/{tour.slug}
                       </div>
+                      {tour.checklist &&
+                        (tour.checklist.missing.length ? (
+                          <div
+                            title={tour.checklist.missing.map((m) => `• ${m.label}${m.detail ? ` - ${m.detail}` : ''}`).join('\n')}
+                            style={{ marginTop: '4px', fontSize: '12px', color: '#b45309', lineHeight: 1.4 }}
+                          >
+                            <b style={{ fontVariantNumeric: 'tabular-nums' }}>
+                              {tour.checklist.done}/{tour.checklist.total}
+                            </b>{' '}
+                            · fali: {tour.checklist.missing.map((m) => (m.detail ? `${m.label.toLowerCase()} (${m.detail})` : m.label.toLowerCase())).join(', ')}
+                          </div>
+                        ) : (
+                          <div style={{ marginTop: '4px', fontSize: '12px', color: FORM.success, fontWeight: 700 }}>✓ Spremna za predaju</div>
+                        ))}
                     </td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', color: FORM.textSecondary }}>
                       {formatCreatedDate(tour.created_at)}

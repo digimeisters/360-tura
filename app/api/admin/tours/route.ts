@@ -1,4 +1,6 @@
 import { NextResponse, after } from 'next/server';
+import { tourChecklist } from '@/app/lib/tourChecklist';
+import type { Room, Tour } from '@/app/tour/[slug]/types';
 import { DeleteObjectsCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { requireAdmin } from '@/app/lib/adminAuth';
 import { uniqueSlug } from '@/app/lib/slug';
@@ -184,7 +186,7 @@ export async function GET(req: Request) {
   if (!ctx.ok) return NextResponse.json({ success: false, error: ctx.error }, { status: ctx.status });
 
   const BASE_COLUMNS =
-    'slug, title, title_i18n, agency_name, address, city, category, property_type, agent_name, agent_phone, agent_email, created_at, published, status';
+    'slug, title, title_i18n, agency_name, address, city, category, property_type, agent_name, agent_phone, agent_email, created_at, published, status, guide_path, floorplan_url, intro_audio_i18n, lat, lng, about_text_i18n';
   // `district` i `structure` postoje tek posle migracije 012, `area_sqm` i
   // `price` posle 013, `floor`/`has_elevator`/`has_basement`/`heating`
   // posle 014, `build_status`/`finish_status` posle 015. Nabrajanje kolone
@@ -200,7 +202,8 @@ export async function GET(req: Request) {
     readTours(
       `${BASE_COLUMNS}, district, structure, area_sqm, price, floor, has_elevator, has_basement, heating, build_status, finish_status, terrace, parking, deposit, registration, nadir_logo, faq_1_i18n, faq_2_i18n, faq_3_i18n, faq_4_i18n, faq_5_i18n`
     ),
-    ctx.supabase.from('rooms').select('tour_slug, panorama_url, panorama_url_cf')
+    // Sobe i za "šta fali" (tourChecklist): tekst, glas, vrata, tačke na tlocrtu.
+    ctx.supabase.from('rooms').select('tour_slug, panorama_url, panorama_url_cf, establish_i18n, waypoints_i18n, floorplan_x, floorplan_y')
   ]);
   let { data: tours, error } = toursResult;
 
@@ -240,6 +243,14 @@ export async function GET(req: Request) {
       logoUrl: logos.get(agency) ?? null
     }));
 
+  const roomsBySlug = new Map<string, Room[]>();
+  for (const room of rooms ?? []) {
+    if (!room.tour_slug) continue;
+    const list = roomsBySlug.get(room.tour_slug) ?? [];
+    list.push(room as unknown as Room);
+    roomsBySlug.set(room.tour_slug, list);
+  }
+
   const roomCount = new Map<string, { total: number; withPanorama: number }>();
   for (const room of rooms ?? []) {
     // tour_slug je u koloni dozvoljen null (nije FK), ali soba bez ture nema
@@ -257,6 +268,7 @@ export async function GET(req: Request) {
       ...tour,
       rooms: roomCount.get(tour.slug)?.total ?? 0,
       roomsWithPanorama: roomCount.get(tour.slug)?.withPanorama ?? 0,
+      checklist: tourChecklist(tour as unknown as Tour, roomsBySlug.get(tour.slug) ?? []),
       // Agentov link za razgledanje uživo (lib/liveGuide.ts).
       liveGuidePath: `/tour/${tour.slug}?agent=${liveGuideToken(tour.slug)}`
     })),
