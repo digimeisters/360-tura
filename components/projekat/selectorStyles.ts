@@ -231,6 +231,11 @@ export const SELECTOR_STYLES = `
   .inv-form{display:flex; flex-direction:column; gap:.5rem; margin-top:.4rem;}
   .inv-form input, .inv-form textarea{font:inherit; font-size:.92rem; color:#111113; background:#FFFFFF; border:1.5px solid #D5DEEB; border-radius:12px; padding:.6rem .75rem; width:100%; box-sizing:border-box;}
   .inv-form textarea{min-height:80px; resize:vertical;}
+  .inv-watch{background:#EAF1FB; border-radius:14px; padding:.8rem;}
+  .inv-watch-lead{margin:0; font-size:.88rem; line-height:1.5; color:#17447E;}
+  .inv-watch-check{display:flex; gap:.5rem; align-items:flex-start; font-size:.82rem; line-height:1.45; color:#5B5D63;}
+  .inv-watch-check input{width:auto; margin-top:.15rem;}
+  .inv-watch-note{font-size:.75rem; color:#5B5D63; line-height:1.4;}
   .inv-form-msg{font-size:.85rem; font-weight:600; margin:.2rem 0 0;}
   .inv-form-msg.is-ok{color:#1F7A45;}
   .inv-form-msg.is-err{color:#B42318;}

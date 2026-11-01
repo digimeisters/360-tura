@@ -65,7 +65,8 @@ ${kpi('Prodato', String(t.sold), t.reserved ? flat(`+ ${t.reserved} rezervisano`
     top ? `Najgledaniji: ${top.code} (${views(top.views)}, ${inquiries(top.inquiries)}).` : null,
     r.watch.length
       ? `Pažnja: ${joinCodes(r.watch.map((w) => w.code))} se ${r.watch.length === 1 ? 'mnogo gleda' : 'mnogo gledaju'}, a bez upita.`
-      : null
+      : null,
+    r.waiting.active ? `${r.waiting.active} ${srPlural(r.waiting.active, 'kupac čeka', 'kupca čekaju', 'kupaca čeka')} da se stan oslobodi („Obavesti me“).` : null
   ].filter((x): x is string => Boolean(x));
 
   const body = [

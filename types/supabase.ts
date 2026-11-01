@@ -1,5 +1,5 @@
 // GENERISANO skriptom scripts/gen-db-types.mjs (npm run db:types) - ne menjati ručno.
-// Izvor: živa baza sajta (tmnaguwmzlwirhjprdbh), 2026-10-31.
+// Izvor: živa baza sajta (tmnaguwmzlwirhjprdbh), 2026-11-01.
 
 export type Json =
   | string
@@ -451,6 +451,75 @@ export type Database = {
           },
         ]
       }
+      project_unit_watches: {
+        Row: {
+          created_at: string
+          email: string
+          embedded: boolean
+          expires_at: string
+          id: string
+          lang: string
+          last_mail_at: string | null
+          notified_codes: string[]
+          or_similar: boolean
+          phone: string | null
+          project_id: string
+          structure: string | null
+          unit_code: string
+          unit_id: string | null
+          unsubscribed_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          embedded?: boolean
+          expires_at?: string
+          id?: string
+          lang?: string
+          last_mail_at?: string | null
+          notified_codes: string[]
+          or_similar?: boolean
+          phone?: string | null
+          project_id: string
+          structure?: string | null
+          unit_code: string
+          unit_id?: string | null
+          unsubscribed_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          embedded?: boolean
+          expires_at?: string
+          id?: string
+          lang?: string
+          last_mail_at?: string | null
+          notified_codes?: string[]
+          or_similar?: boolean
+          phone?: string | null
+          project_id?: string
+          structure?: string | null
+          unit_code?: string
+          unit_id?: string | null
+          unsubscribed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_unit_watches_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_unit_watches_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "project_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_units: {
         Row: {
           area_sqm: number | null
@@ -658,6 +727,45 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_watch_mails: {
+        Row: {
+          id: string
+          project_id: string
+          sent_at: string
+          unit_codes: string[]
+          watch_id: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          sent_at?: string
+          unit_codes: string[]
+          watch_id?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          sent_at?: string
+          unit_codes?: string[]
+          watch_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_watch_mails_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_watch_mails_watch_id_fkey"
+            columns: ["watch_id"]
+            isOneToOne: false
+            referencedRelation: "project_unit_watches"
             referencedColumns: ["id"]
           },
         ]

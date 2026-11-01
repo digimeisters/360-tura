@@ -279,6 +279,31 @@ function Report({ r, token }: { r: ProjectReport; token: string }) {
         </section>
       )}
 
+      {(r.waiting.active > 0 || r.waiting.mailed > 0) && (
+        <section>
+          <h2>Kupci koji čekaju stan</h2>
+          <div className="ip-kpis" style={{ marginBottom: 0 }}>
+            <div className="ip-kpi">
+              <small>Čekaju stan</small>
+              <b>{num(r.waiting.active)}</b>
+              {r.waiting.signedUp > 0 && <div className="ip-d">{r.waiting.signedUp} novih u {MONTH_IN[m]}</div>}
+            </div>
+            <div className="ip-kpi">
+              <small>Obavešteno u {MONTH_IN[m]}</small>
+              <b>{num(r.waiting.mailed)}</b>
+              <div className="ip-d">mejl „stan je slobodan“</div>
+            </div>
+            {r.waiting.topStructure && (
+              <div className="ip-kpi">
+                <small>Najviše traže</small>
+                <b style={{ fontSize: 24 }}>{r.waiting.topStructure}</b>
+              </div>
+            )}
+          </div>
+          <p className="ip-hint">Kupci koji su na rezervisanom ili prodatom stanu ostavili mejl („Obavesti me“). Kad se stan oslobodi, javljamo im sami.</p>
+        </section>
+      )}
+
       <section>
         <h2>Prodaja u {MONTH_IN[m]}</h2>
         {r.sales.length === 0 ? (

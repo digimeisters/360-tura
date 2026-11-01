@@ -546,6 +546,7 @@ export default function FacadeFullscreen({
           unitId={unit.id}
           code={unit.code}
           status={unit.status}
+          structure={unit.structure}
           where={[isComplex ? buildingName(uf.buildingId) : null, floorLabel(uf.level, uf.label, 'sr')].filter(Boolean).join(' · ')}
           lang={lang}
         />

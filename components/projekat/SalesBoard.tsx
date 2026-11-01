@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { floorName, GENERAL_INQUIRY_CODE, UNIT_STATUSES, UNIT_STATUS_LABEL, type UnitStatus } from '../../app/lib/projects';
 import type { SalesChange, SalesData, SalesNote, SalesUnit } from '../../app/lib/salesAccess';
 import { srPlural } from '../../app/lib/projectI18n';
+import { watchersOf } from '../../app/lib/unitWatchShared';
 
 /**
  * Strana za prodaju investitora (/prodaja/<kod>): status i cena stanova,
@@ -13,6 +14,10 @@ import { srPlural } from '../../app/lib/projectI18n';
  * sigurni?" sa spiskom šta se menja -> tek tada ide na server. Nema
  * zajedničkog "Sačuvaj sve", da se uz jedan stan slučajno ne pošalje i
  * izmena na drugom.
+ *
+ * "Obavesti me" (migracija 045): uz stan piše koliko kupaca čeka, a kad se
+ * stan vraća u "Slobodan", u potvrdi je spisak kome ide mejl i izbor da li
+ * da ode.
  */
 
 type Draft = { status: UnitStatus; price: string };
@@ -149,6 +154,7 @@ export default function SalesBoard({ token, initial }: { token: string; initial:
   const [filter, setFilter] = useState<UnitStatus | null>(null);
   const [query, setQuery] = useState('');
   const [confirming, setConfirming] = useState<SalesUnit | null>(null);
+  const [notify, setNotify] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<Toast>(null);
   const [flash, setFlash] = useState<string | null>(null);
@@ -227,7 +233,7 @@ export default function SalesBoard({ token, initial }: { token: string; initial:
       const res = await fetch(`/api/prodaja/${encodeURIComponent(token)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ unitId: u.id, status: d.status, price: parsePrice(d.price), expected: { status: u.status, price: u.price } })
+        body: JSON.stringify({ unitId: u.id, status: d.status, price: parsePrice(d.price), expected: { status: u.status, price: u.price }, notifyWatchers: notify })
       });
       const json = await res.json().catch(() => null);
       if (json?.data) setData(json.data as SalesData);
@@ -239,7 +245,11 @@ export default function SalesBoard({ token, initial }: { token: string; initial:
       dropDraft(u.id);
       setFlash(u.id);
       window.setTimeout(() => setFlash(null), 1300);
-      showToast({ ok: true, text: `✓ Stan ${u.code} sačuvan${data.project.published ? " · već se vidi na sajtu" : ""}` });
+      const mailed = d.status === 'available' && u.status !== 'available' && notify ? waitingFor(u).length : 0;
+      showToast({
+        ok: true,
+        text: `✓ Stan ${u.code} sačuvan${data.project.published ? ' · već se vidi na sajtu' : ''}${mailed ? ` · mejl ide ${mailed} ${srPlural(mailed, 'kupcu', 'kupca', 'kupaca')}` : ''}`
+      });
     } catch {
       showToast({ ok: false, text: 'Nema veze sa serverom. Proverite internet i pokušajte ponovo.' });
     } finally {
@@ -247,6 +257,12 @@ export default function SalesBoard({ token, initial }: { token: string; initial:
       setConfirming(null);
     }
   }
+
+  const waitingFor = (u: SalesUnit) => watchersOf(data.watchers ?? [], u);
+  const openConfirm = (u: SalesUnit) => {
+    setNotify(true);
+    setConfirming(u);
+  };
 
   const q = query.trim().toLowerCase();
   const visible = (u: SalesUnit) => (!filter || u.status === filter) && (!q || u.code.toLowerCase().includes(q));
@@ -263,6 +279,8 @@ export default function SalesBoard({ token, initial }: { token: string; initial:
     return rows;
   })();
   const becomesSold = confirming ? draftOf(confirming).status === 'sold' && confirming.status !== 'sold' : false;
+  const becomesFree = confirming ? draftOf(confirming).status === 'available' && confirming.status !== 'available' : false;
+  const freeWaiting = confirming && becomesFree ? waitingFor(confirming) : [];
 
   return (
     <div className="sb">
@@ -388,6 +406,11 @@ export default function SalesBoard({ token, initial }: { token: string; initial:
                     <b>
                       Stan {u.code}
                       {u.note?.important && <span className="sb-flag" title="Važna beleška">⚑</span>}
+                      {u.status !== 'available' && waitingFor(u).length > 0 && (
+                        <span className="sb-wait" title="Kupci sa „Obavesti me“ - dobiće mejl kad se stan oslobodi">
+                          👁 {waitingFor(u).length} {srPlural(waitingFor(u).length, 'čeka', 'čekaju', 'čeka')}
+                        </span>
+                      )}
                     </b>
                     <small>{[u.structure, u.area_sqm ? `${u.area_sqm} m²` : null].filter(Boolean).join(' · ')}</small>
                   </div>
@@ -428,7 +451,7 @@ export default function SalesBoard({ token, initial }: { token: string; initial:
                       <button type="button" className="is-undo" onClick={() => dropDraft(u.id)}>
                         Poništi
                       </button>
-                      <button type="button" className="is-ok" onClick={() => setConfirming(u)}>
+                      <button type="button" className="is-ok" onClick={() => openConfirm(u)}>
                         Potvrdi
                       </button>
                     </div>
@@ -508,6 +531,30 @@ export default function SalesBoard({ token, initial }: { token: string; initial:
                 ? 'Na sajtu će pisati „Prodat“, cena se skriva, a dugme za upit nestaje. Možete ga vratiti kad god treba.'
                 : 'Izmena se odmah vidi na sajtu.'}
             </p>
+            {freeWaiting.length > 0 && (
+              <div className="sb-waitlist">
+                <b>
+                  {freeWaiting.length} {srPlural(freeWaiting.length, 'kupac čeka', 'kupca čekaju', 'kupaca čeka')} ovaj ili sličan stan:
+                </b>
+                <ul>
+                  {freeWaiting.map((w) => (
+                    <li key={`${w.unit_code}-${w.email}`}>
+                      {w.email}
+                      {w.phone ? (
+                        <>
+                          {' · '}
+                          <a href={`tel:${w.phone.replace(/[^d+]/g, '')}`}>{w.phone}</a>
+                        </>
+                      ) : null}
+                      <small>{w.unit_code === confirming.code ? ` · čeka ${w.unit_code} od ${when(w.created_at)}` : ` · čeka sličan (${w.structure?.toLowerCase()})`}</small>
+                    </li>
+                  ))}
+                </ul>
+                <label>
+                  <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} disabled={saving} /> Javi im mejlom da je stan slobodan
+                </label>
+              </div>
+            )}
             <button type="button" className="is-yes" disabled={saving} onClick={() => save(confirming)}>
               {saving ? 'Čuvam...' : 'Da, potvrđujem'}
             </button>

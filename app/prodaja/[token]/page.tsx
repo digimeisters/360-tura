@@ -113,6 +113,13 @@ const STYLES = `
   .sb-help{margin:18px 16px 0; font-size:12.5px; color:#6B7280; line-height:1.5;}
   .sb-toast{position:fixed; left:50%; top:14px; transform:translateX(-50%); z-index:20; background:#1F7A45; color:#FFFFFF; font-size:13.5px; font-weight:700; padding:10px 16px; border-radius:16px; box-shadow:0 10px 24px rgba(0,0,0,.2); width:max-content; max-width:calc(100% - 32px);}
   .sb-toast.is-err{background:#B42318;}
+  .sb-wait{display:inline-block; font-size:11.5px; font-weight:700; color:#1E5AA8; background:#EAF1FB; border-radius:999px; padding:2px 8px; margin-left:6px; vertical-align:2px;}
+  .sb-waitlist{background:#EAF1FB; border-radius:14px; padding:12px 14px; margin:0 0 10px; font-size:14px; color:#17447E;}
+  .sb-waitlist ul{margin:8px 0 10px;}
+  .sb-waitlist li{background:#FFFFFF; font-size:14px;}
+  .sb-waitlist small{color:#5B5D63;}
+  .sb-waitlist label{display:flex; gap:8px; align-items:center; font-weight:700; color:#111113;}
+  .sb-waitlist input{width:18px; height:18px;}
   .sb-sheet-bg{position:fixed; inset:0; background:rgba(17,17,19,.45); display:flex; align-items:flex-end; justify-content:center; z-index:10;}
   .sb-sheet{background:#FFFFFF; border-radius:26px 26px 0 0; padding:20px 18px calc(22px + env(safe-area-inset-bottom)); width:100%; max-width:560px; box-sizing:border-box;}
   .sb-sheet h3{margin:0; font-family:var(--font-display); font-size:20px;}

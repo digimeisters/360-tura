@@ -4,6 +4,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { escapeHtml, sendTelegramMessage } from './telegram';
 import { formatEur, UNIT_STATUS_LABEL, type UnitStatus } from './projects';
 import { loadProjectStats, type ProjectStats } from './projectStats';
+import { activeWatches, type WatchRow } from './unitWatch';
 
 /**
  * Pristup za prodaju investitora (migracija 020): lični link
@@ -104,6 +105,8 @@ export type SalesData = {
   changes: SalesChange[];
   inquiries: SalesInquiry[];
   stats: ProjectStats;
+  /** Kupci sa "Obavesti me" (migracija 045) - ko dobija mejl kad se stan oslobodi. */
+  watchers: Omit<WatchRow, 'id'>[];
 };
 
 /** Sve što strana za prodaju prikazuje: upiti, spratovi, stanovi, poslednje promene, izveštaj. */
@@ -144,7 +147,13 @@ export async function loadSalesData(db: SupabaseClient, projectId: string, perso
     }))
     .sort((a, b) => a.code.localeCompare(b.code, 'sr', { numeric: true }));
   const p = project as SalesData['project'];
-  const stats = await loadProjectStats(db, projectId, p.slug, unitRows.map((u) => u.code));
+  const [stats, watches] = await Promise.all([
+    loadProjectStats(db, projectId, p.slug, unitRows.map((u) => u.code)),
+    activeWatches(db, projectId).catch((err) => {
+      console.error('[salesAccess] prijave nisu učitane:', err);
+      return [];
+    })
+  ]);
   return {
     project: p,
     person,
@@ -152,7 +161,8 @@ export async function loadSalesData(db: SupabaseClient, projectId: string, perso
     units: unitRows,
     changes: (changes ?? []) as SalesChange[],
     inquiries: ((inquiries ?? []) as SalesInquiry[]).map((q) => ({ ...q, note: notes.byInquiry.get(q.id) ?? null })),
-    stats
+    stats,
+    watchers: watches.map((w) => ({ unit_code: w.unit_code, structure: w.structure, or_similar: w.or_similar, email: w.email, phone: w.phone, created_at: w.created_at }))
   };
 }
 

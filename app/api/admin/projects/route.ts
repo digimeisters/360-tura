@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
+import { freedUnits, notifyWatchers } from '@/app/lib/unitWatch';
 import { GEMINI_FALLBACK_MODEL, GEMINI_MODEL, generateJsonWithRetry, TEMP_EXTRACT } from '@/app/lib/gemini';
 import {
   buildFacadeFloorsPrompt,
@@ -126,11 +127,16 @@ async function uniqueSlug(db: SupabaseClient, base: string): Promise<string> {
 
 type OldUnit = { code: string; status: UnitStatus; price: number | null };
 
-/** Izmene statusa/cene iz admina idu u istu istoriju kao izmene prodaje (bez Telegrama). */
+/**
+ * Izmene statusa/cene iz admina idu u istu istoriju kao izmene prodaje (bez
+ * Telegrama). Stan koji postane slobodan javlja se kupcima sa "Obavesti me".
+ */
 async function logAdminChanges(db: SupabaseClient, projectId: string, changes: UnitChange[]) {
   if (!changes.length) return;
   const { data } = await db.from('projects').select('id, slug, title, notify_sales').eq('id', projectId).maybeSingle();
   if (data) await recordUnitChanges(db, data as SalesProject, ADMIN_ACTOR, null, changes);
+  const freed = freedUnits(changes);
+  if (freed.length) after(() => notifyWatchers(db, projectId, freed).catch((err) => console.error('[api/admin/projects] obavesti me:', err)));
 }
 
 async function projectSlug(db: SupabaseClient, projectId: string): Promise<string | null> {

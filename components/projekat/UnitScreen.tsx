@@ -354,6 +354,7 @@ export default function UnitScreen({
               unitId={unit.id}
               code={unit.code}
               status={unit.status}
+              structure={unit.structure}
               where=""
               lang={lang}
               trackView
@@ -362,13 +363,15 @@ export default function UnitScreen({
           {!sold && (
             <div className="up-ask" id="up-ask">
               <h2>{unit.status === 'reserved' ? t.notifyMe : t.askTitle}</h2>
-              <p>{t.askNote}</p>
+              {/* Rezervisan stan: forma "Obavesti me" ima svoj uvodni tekst. */}
+              {unit.status !== 'reserved' && <p>{t.askNote}</p>}
               <UnitInquiry
                 slug={project.slug}
                 projectTitle={project.srTitle ?? project.title}
                 unitId={unit.id}
                 code={unit.code}
                 status={unit.status}
+                structure={unit.structure}
                 where={[building, floor ? floorLabel(floor.level, floor.label, 'sr') : null].filter(Boolean).join(' · ')}
                 lang={lang}
                 embedded={embedded}

@@ -1536,6 +1536,7 @@ export default function ProjectSelector({
           unitId={unit.id}
           code={unit.code}
           status={unit.status}
+          structure={unit.structure}
           where={[isComplex ? buildingName(floor.buildingId) : null, floorLabel(floor.level, floor.label, 'sr')].filter(Boolean).join(' · ')}
           embedded={embedded}
           lang={lang}

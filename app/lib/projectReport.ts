@@ -85,6 +85,8 @@ export type ProjectReport = {
   structures: { structure: string; views: number; inquiries: number }[];
   sources: (VisitSource & { visitors: number })[];
   sales: SaleLine[];
+  /** "Obavesti me" (migracija 045): koliko kupaca čeka stan, koliko je obavešteno u mesecu. */
+  waiting: { active: number; signedUp: number; mailed: number; topStructure: string | null };
   firstMonth: MonthKey;
 };
 
@@ -165,7 +167,7 @@ export async function buildProjectReport(projectId: string, month: MonthKey): Pr
   const prevKey = shiftMonth(month, -1);
   const prevRange = monthRange(prevKey);
 
-  const [{ data: unitRows }, { data: floors }, events, prevEvents, sources, { data: inquiries }, { data: prevInquiries }, { data: changes }] = await Promise.all([
+  const [{ data: unitRows }, { data: floors }, events, prevEvents, sources, { data: inquiries }, { data: prevInquiries }, { data: changes }, { data: watches }, { count: mailed }] = await Promise.all([
     db.from('project_units').select('id, code, structure, area_sqm, price, status, floor_id, plan_url, plan3d_url').eq('project_id', projectId),
     db.from('project_floors').select('id, level, label').eq('project_id', projectId),
     readEvents(db, project.slug, month),
@@ -179,7 +181,10 @@ export async function buildProjectReport(projectId: string, month: MonthKey): Pr
       .eq('project_id', projectId)
       .gte('created_at', from)
       .lt('created_at', to)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: true }),
+    // Aktivne su one koje su važile na kraju meseca (za tekući mesec: danas).
+    db.from('project_unit_watches').select('structure, created_at, unsubscribed_at, expires_at').eq('project_id', projectId).lt('created_at', to),
+    db.from('project_watch_mails').select('id', { count: 'exact', head: true }).eq('project_id', projectId).gte('sent_at', from).lt('sent_at', to)
   ]);
 
   const floorLabel = new Map((floors ?? []).map((f) => [f.id as string, floorName(Number(f.level ?? 0), f.label as string | null, 'sr')]));
@@ -253,6 +258,17 @@ export async function buildProjectReport(projectId: string, month: MonthKey): Pr
     };
   });
 
+  const cutoff = new Date(Math.min(Date.now(), new Date(to).getTime())).toISOString();
+  const activeWatches = (watches ?? []).filter((w) => (!w.unsubscribed_at || w.unsubscribed_at > cutoff) && w.expires_at > cutoff);
+  const byKind = new Map<string, number>();
+  for (const w of activeWatches) if (w.structure) byKind.set(w.structure, (byKind.get(w.structure) ?? 0) + 1);
+  const waiting = {
+    active: activeWatches.length,
+    signedUp: (watches ?? []).filter((w) => w.created_at >= from).length,
+    mailed: mailed ?? 0,
+    topStructure: [...byKind.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+  };
+
   const sessions = (rows: EventRow[]) => new Set(rows.map((e) => e.session_id)).size;
   const firstMonth = (new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Belgrade', year: 'numeric', month: '2-digit' })
     .format(new Date(project.created_at as string))
@@ -286,6 +302,7 @@ export async function buildProjectReport(projectId: string, month: MonthKey): Pr
       .sort((a, b) => b.views - a.views),
     sources,
     sales,
+    waiting,
     firstMonth
   };
 }

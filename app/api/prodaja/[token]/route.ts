@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { rateLimit, tooManyRequests } from '@/app/lib/rateLimit';
 import { loadSalesData, recordUnitChanges, resolveSalesLink, saveNote, serviceClient } from '@/app/lib/salesAccess';
 import { UNIT_STATUSES, type UnitStatus } from '@/app/lib/projects';
+import { notifyWatchers } from '@/app/lib/unitWatch';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,8 +11,10 @@ export const dynamic = 'force-dynamic';
  * /api/prodaja/<kod> - izmene sa strane za prodaju investitora
  * ============================================================
  * GET  -> sveži podaci (stanovi + poslednje promene)
- * POST { unitId, status, price, expected: { status, price } }
- *      -> menja JEDAN stan, posle potvrde na strani.
+ * POST { unitId, status, price, expected: { status, price }, notifyWatchers? }
+ *      -> menja JEDAN stan, posle potvrde na strani. Kad stan postane
+ *         slobodan, kupci sa "Obavesti me" dobiju mejl (osim kad je
+ *         prodavac isključio "Javi im mejlom": notifyWatchers: false).
  *
  * Dozvoljeno je samo: status i cena stana iz projekta kome link pripada.
  * `expected` je ono što je prodavac video pre izmene - ako je u međuvremenu
@@ -136,6 +139,9 @@ export async function POST(req: Request, { params }: Params) {
     ]),
     db.from('project_sales_links').update({ last_used_at: new Date().toISOString() }).eq('id', link.id)
   ]);
+  if (status === 'available' && cur.status !== 'available' && body.notifyWatchers !== false) {
+    after(() => notifyWatchers(db, project.id, [cur.id]).catch((err) => console.error('[api/prodaja] obavesti me:', err)));
+  }
 
   const data = await loadSalesData(db, project.id, link.person_name);
   return NextResponse.json({ success: true, data });
