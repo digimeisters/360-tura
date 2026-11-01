@@ -6,13 +6,35 @@ import { FORM } from '../../lib/formTheme';
 import { previewInNewTab } from '../ture/SendToClientDialog';
 
 /**
- * "Pošalji izveštaj": mesečni izveštaj agenciji mejlom
- * (app/lib/emails/monthlyReport.ts, /api/admin/agency-report-email).
+ * "Pošalji izveštaj": mesečni izveštaj mejlom - agenciji
+ * (app/lib/emails/monthlyReport.ts, /api/admin/agency-report-email) ili
+ * investitoru (emails/projectReport.ts, /api/admin/project-report-email).
  *
- * Isti raspored kao "Pošalji klijentu": levo mesec i primaoci (predlog =
- * mejlovi agenata iz tura agencije), desno pregled tačno onog mejla koji
- * će otići. Šalje se tek na "Pošalji", nikad sam od sebe.
+ * Isti raspored kao "Pošalji klijentu": levo mesec i primaoci (predlog sa
+ * servera), desno pregled tačno onog mejla koji će otići. Šalje se tek na
+ * "Pošalji", nikad sam od sebe.
  */
+
+type ReportTarget =
+  | { kind: 'agency'; agency: string }
+  | { kind: 'project'; projectId: string; title: string };
+
+const TARGET = {
+  agency: {
+    endpoint: '/api/admin/agency-report-email',
+    recipients: 'Primaoci (mejlovi agenata iz tura, odvojeni zarezom)',
+    placeholder: 'agent@agencija.rs',
+    empty: 'Ove ture u tom mesecu nije otvorio niko. Prazan izveštaj obično ne vredi slati.',
+    reader: 'agencija'
+  },
+  project: {
+    endpoint: '/api/admin/project-report-email',
+    recipients: 'Primaoci (predlog: mejl prodaje projekta; odvojeni zarezom)',
+    placeholder: 'prodaja@investitor.rs',
+    empty: 'Projekat u tom mesecu nije otvorio niko. Prazan izveštaj obično ne vredi slati.',
+    reader: 'investitor'
+  }
+} as const;
 
 const MONTHS = ['januar', 'februar', 'mart', 'april', 'maj', 'jun', 'jul', 'avgust', 'septembar', 'oktobar', 'novembar', 'decembar'];
 
@@ -32,7 +54,10 @@ function splitAddresses(value: string): string[] {
     .filter(Boolean);
 }
 
-export default function SendReportDialog({ agency, onClose }: { agency: string; onClose: () => void }) {
+export default function SendReportDialog({ target, onClose }: { target: ReportTarget; onClose: () => void }) {
+  const conf = TARGET[target.kind];
+  const name = target.kind === 'agency' ? target.agency : target.title;
+  const targetKey = target.kind === 'agency' ? target.agency : target.projectId;
   const months = useMemo(() => recentMonths(), []);
   const [month, setMonth] = useState(months[0].key);
   const [to, setTo] = useState('');
@@ -40,22 +65,23 @@ export default function SendReportDialog({ agency, onClose }: { agency: string; 
   const [previewHtml, setPreviewHtml] = useState('');
   const [subject, setSubject] = useState('');
   const [visitors, setVisitors] = useState<number | null>(null);
+  const [reportUrl, setReportUrl] = useState('');
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState<{ sent: string[]; failed: string[] } | null>(null);
 
   const post = useCallback(
     async (payload: Record<string, unknown>) => {
-      const res = await fetch('/api/admin/agency-report-email', {
+      const res = await fetch(conf.endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
-        body: JSON.stringify({ agency, month, ...payload })
+        body: JSON.stringify({ ...(target.kind === 'agency' ? { agency: targetKey } : { projectId: targetKey }), month, ...payload })
       });
       const json = await res.json().catch(() => ({ success: false, error: 'Server nije odgovorio.' }));
       if (!res.ok || !json.success) throw new Error(json.error || 'Greška.');
       return json;
     },
-    [agency, month]
+    [conf.endpoint, target.kind, targetKey, month]
   );
 
   // Pregled za izabrani mesec; primaoci se predlože samo dok ih niko nije menjao.
@@ -67,6 +93,7 @@ export default function SendReportDialog({ agency, onClose }: { agency: string; 
         setPreviewHtml(r.html ?? '');
         setSubject(r.subject ?? '');
         setVisitors(typeof r.visitors === 'number' ? r.visitors : null);
+        setReportUrl(typeof r.reportUrl === 'string' ? r.reportUrl : '');
         if (!toTouched.current) setTo((r.recipients ?? []).join(', '));
         setError('');
       })
@@ -125,7 +152,7 @@ export default function SendReportDialog({ agency, onClose }: { agency: string; 
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`Pošalji izveštaj: ${agency}`}
+      aria-label={`Pošalji izveštaj: ${name}`}
       onClick={() => !sending && onClose()}
       style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
     >
@@ -140,7 +167,17 @@ export default function SendReportDialog({ agency, onClose }: { agency: string; 
               ×
             </button>
           </div>
-          <p style={{ margin: 0, fontSize: '13px', color: FORM.textSecondary }}>{agency}</p>
+          <p style={{ margin: 0, fontSize: '13px', color: FORM.textSecondary }}>{name}</p>
+          {reportUrl && (
+            <p style={{ margin: 0, fontSize: '12.5px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <a href={reportUrl} target="_blank" rel="noreferrer" style={{ color: FORM.accent, fontWeight: 700 }}>
+                Otvori izveštaj ↗
+              </a>
+              <button type="button" onClick={() => void navigator.clipboard?.writeText(reportUrl)} style={{ ...btn, padding: '2px 10px', fontSize: '12.5px' }}>
+                Kopiraj link
+              </button>
+            </p>
+          )}
 
           <label style={label}>
             Mesec
@@ -158,7 +195,7 @@ export default function SendReportDialog({ agency, onClose }: { agency: string; 
             </select>
           </label>
           <label style={label}>
-            Primaoci (mejlovi agenata iz tura, odvojeni zarezom)
+            {conf.recipients}
             <textarea
               value={to}
               onChange={(e) => {
@@ -166,13 +203,13 @@ export default function SendReportDialog({ agency, onClose }: { agency: string; 
                 setTo(e.target.value);
               }}
               rows={3}
-              placeholder="agent@agencija.rs"
+              placeholder={conf.placeholder}
               style={{ ...input, resize: 'vertical', fontFamily: 'inherit' }}
             />
           </label>
           {visitors === 0 && (
             <p style={{ margin: 0, fontSize: '13px', color: '#92400e', background: '#fef3c7', borderRadius: '8px', padding: '10px 12px' }}>
-              Ove ture u tom mesecu nije otvorio niko. Prazan izveštaj obično ne vredi slati.
+              {conf.empty}
             </p>
           )}
           {subject && <p style={{ margin: 0, fontSize: '12.5px', color: FORM.textSecondary }}>Naslov: <b style={{ color: FORM.textPrimary }}>{subject}</b></p>}
@@ -200,7 +237,7 @@ export default function SendReportDialog({ agency, onClose }: { agency: string; 
             </button>
           </div>
           <p style={{ margin: 0, fontSize: '11.5px', color: FORM.textSecondary }}>
-            Svaki primalac dobija svoj mejl. Odgovor stiže na info@kvadrat360.com. Desno je tačno ono što će agencija videti.
+            Svaki primalac dobija svoj mejl. Odgovor stiže na info@kvadrat360.com. Desno je tačno ono što će {conf.reader} videti.
           </p>
         </div>
         <div style={{ flex: '1 1 420px', background: '#F1F1EC', minHeight: '520px', borderLeft: '1px solid ' + FORM.border }}>

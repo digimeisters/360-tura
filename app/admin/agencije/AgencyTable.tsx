@@ -125,7 +125,7 @@ export default function AgencyTable({ reports, onLogoChanged }: { reports: Agenc
         Agencija se ovde pojavi čim joj dodelite prvu turu (polje „Agencija“ u formi ture). Prvog u mesecu stiže podsetnik na Telegram: „✉ Pošalji izveštaj“
         pokazuje mejl za prošli mesec pre slanja.
       </p>
-      {sendFor && <SendReportDialog agency={sendFor} onClose={() => setSendFor(null)} />}
+      {sendFor && <SendReportDialog target={{ kind: 'agency', agency: sendFor }} onClose={() => setSendFor(null)} />}
     </>
   );
 }

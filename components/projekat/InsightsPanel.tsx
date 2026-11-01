@@ -5,11 +5,13 @@ import { adminAuthHeader } from '../../app/lib/authFetch';
 import type { ProjectStats } from '../../app/lib/projectStats';
 import { srPlural } from '../../app/lib/projectI18n';
 import type { SalesInquiry } from '../../app/lib/salesAccess';
+import SendReportDialog from '../../app/admin/agencije/SendReportDialog';
 
 /**
  * Admin projekta -> "Izveštaj i upiti": posete strane, otvaranja stanova i
  * upiti po stanu za poslednjih 30 dana (lib/projectStats.ts), i spisak
- * upita kupaca sa oznakom ko ih je iz prodaje obradio.
+ * upita kupaca sa oznakom ko ih je iz prodaje obradio. Odavde ide i
+ * mesečni izveštaj investitoru (link + mejl, lib/projectReport.ts).
  */
 
 const when = (iso: string) => {
@@ -17,7 +19,8 @@ const when = (iso: string) => {
   return `${d.getDate()}. ${d.getMonth() + 1}. ${d.toLocaleTimeString('sr-RS', { hour: '2-digit', minute: '2-digit' })}`;
 };
 
-export default function InsightsPanel({ projectId }: { projectId: string }) {
+export default function InsightsPanel({ projectId, projectTitle }: { projectId: string; projectTitle: string }) {
+  const [sendOpen, setSendOpen] = useState(false);
   const [stats, setStats] = useState<ProjectStats | null>(null);
   const [inquiries, setInquiries] = useState<SalesInquiry[]>([]);
   const [error, setError] = useState('');
@@ -53,10 +56,16 @@ export default function InsightsPanel({ projectId }: { projectId: string }) {
     <section className="pa-card">
       <div className="pa-row" style={{ justifyContent: 'space-between' }}>
         <h2>Izveštaj i upiti{stats ? ` · poslednjih ${stats.days} dana` : ''}</h2>
-        <button type="button" className="pa-btn" onClick={load} disabled={loading}>
-          {loading ? 'Učitavam...' : 'Osveži'}
-        </button>
+        <div className="pa-row">
+          <button type="button" className="pa-btn" onClick={() => setSendOpen(true)}>
+            Mesečni izveštaj investitoru
+          </button>
+          <button type="button" className="pa-btn" onClick={load} disabled={loading}>
+            {loading ? 'Učitavam...' : 'Osveži'}
+          </button>
+        </div>
       </div>
+      {sendOpen && <SendReportDialog target={{ kind: 'project', projectId, title: projectTitle }} onClose={() => setSendOpen(false)} />}
       <p className="pa-hint">
         Koliko ljudi gleda projekat i koje stanove otvaraju - argument za investitora i za korekciju cena. Isti izveštaj prodaja vidi na
         svom linku. Tvoje posete se ne broje.

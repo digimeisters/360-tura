@@ -1019,7 +1019,7 @@ export default function ProjectEditorPage() {
         />
 
         <div className="pa-anchor" id="sec-upiti" />
-        <InsightsPanel projectId={id} />
+        <InsightsPanel projectId={id} projectTitle={project.title} />
 
         {/* 2) Lamele (migracija 025) */}
         <section className="pa-card pa-anchor" id="sec-zgrade">

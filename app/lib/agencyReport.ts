@@ -103,7 +103,7 @@ export function monthLabel(key: MonthKey): string {
   return `${name.charAt(0).toUpperCase()}${name.slice(1)} ${y}.`;
 }
 
-function monthRange(key: MonthKey): { from: string; to: string } {
+export function monthRange(key: MonthKey): { from: string; to: string } {
   const [y, m] = key.split('-').map(Number);
   return {
     from: monthStartUtc(y, m).toISOString(),
