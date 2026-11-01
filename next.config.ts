@@ -16,6 +16,29 @@ const nextConfig: NextConfig = {
     ],
     qualities: [75],
   },
+  // Zaštitna zaglavlja. Strane sa nalogom ili tajnim linkom (admin, prodaja,
+  // unos, izveštaji, odjava) ne smeju u tuđi <iframe> - lažna strana bi mogla
+  // da "podmetne" klik. Ture i /novogradnja/.../ugradnja namerno ostaju
+  // ugradive (sajtovi agencija i investitora), pa ovde nisu.
+  async headers() {
+    const noFrame = [
+      { key: 'X-Frame-Options', value: 'DENY' },
+      { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" }
+    ];
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' }
+        ]
+      },
+      ...['/admin/:path*', '/prodaja/:path*', '/unos', '/izvestaj/:path*', '/obavestenja/:path*'].map((source) => ({
+        source,
+        headers: noFrame
+      }))
+    ];
+  },
   // Kratka adresa procene za oglase i štampu; strana živi među alatima.
   // ?tip=izdavanje i UTM parametri prelaze uz preusmerenje.
   async redirects() {
