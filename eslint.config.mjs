@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendorovana (minifikovana) biblioteka, nije naš kod.
+    "public/vendor/**",
   ]),
 ]);
 

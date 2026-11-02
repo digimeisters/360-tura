@@ -42,3 +42,11 @@ next-env.d.ts
 
 # Mockupi iz superpowers brainstorming sesija (lokalno)
 .superpowers/
+
+# Lokalno, ne ide u javni repo: interne makete (sve iz public/ bi bilo
+# javno na sajtu), Cowork marketing materijal, beleške Impeccable pregleda
+# i Copilot hook sa putanjom do ovog računara
+public/mockup/
+docs/cowork/
+.impeccable/
+.github/hooks/
