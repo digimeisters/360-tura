@@ -269,7 +269,7 @@ const sr: HomeCopy = {
   },
   hero: {
     chip: 'Prodaja · Izdavanje · Stan na dan',
-    titleStart: 'Vaš kvadrat u Kragujevcu, u 360°, ',
+    titleStart: 'Vaš kvadrat u Kragujevcu, u 360°, ',
     titleEm: 'bez skrivenih ćoškova.',
     lede:
       '360° tura i HDR fotografije vaše nekretnine — kupac prošeta kroz svaki ugao pre prvog dolaska. Za agencije i vlasnike u Kragujevcu.',
@@ -307,7 +307,7 @@ const sr: HomeCopy = {
       // ("Vaše ime u svakoj turi" = modul Kontakt). Svaka ovde je jedna ideja.
       { title: 'Manje uzaludnih razgledanja', text: 'Kupci prvo „prošetaju“ kroz nekretninu online. Na razgledanje dolaze samo oni koje zaista zanima — sa manje pitanja, spremni da brzo odluče.' },
       { title: 'Oglas koji se izdvaja', text: 'HDR fotografije i 360° tura odvajaju vaš oglas od stotina slikanih telefonom — i grade poverenje pre prvog poziva.' },
-      { title: 'Kupci iz drugih gradova', text: 'Ko živi u Beogradu, Nišu ili inostranstvu razgleda nekretninu bez puta — a audio vodič mu ga ispriča na srpskom, engleskom, nemačkom ili ruskom.' },
+      { title: 'Kupci iz drugih gradova', text: 'Ko živi u Beogradu, Nišu ili inostranstvu razgleda nekretninu bez puta — a audio vodič mu je ispriča na srpskom, engleskom, nemačkom ili ruskom.' },
       { title: 'Otvoreno 24 sata', text: 'Tura je otvorena u svako doba, na telefonu ili računaru, bez zakazivanja i bez aplikacije — uz vodiča kroz sve prostorije ili svojim tempom.' }
     ]
   },
@@ -359,7 +359,7 @@ const sr: HomeCopy = {
       { kicker: 'Korak 2', title: 'Svaka prostorija *ima ime*', text: 'Kupac odmah vidi raspored: šta je gde i kako se prostorije nastavljaju.' },
       { kicker: 'Korak 3', title: 'Tačka je *mesto kamere*', text: 'Iz svake tačke snimljena je 360° panorama.' },
       { kicker: 'Korak 4', title: 'Jedan dodir, i *kupac je unutra*', text: 'Izabere prostoriju na tlocrtu i nađe se u njoj.' },
-      { kicker: 'U turi', title: 'Vidi i ono što *slika ne kaže*', text: 'Tačke u panorami otvaraju opis predmeta, a vodič ga i izgovori.' },
+      { kicker: 'U turi', title: 'Vidi i ono što *slika ne kaže*', text: 'Tačke u panorami otvaraju opis predmeta, a vodič ga i izgovori.' },
       { kicker: 'U turi', title: 'Kreće se kao da je *tamo*', text: 'Strelica ga vodi u sledeću prostoriju, a tlocrt u uglu pokazuje gde je i kuda gleda.' },
       { kicker: 'U turi', title: 'Vodič govori *jezik kupca*', text: 'Srpski, engleski, nemački i ruski: glas i titl uz svaku prostoriju.' },
       { kicker: 'Gotova tura', title: 'Razgledanje *pre prvog dolaska*', text: 'Ovo je prava tura:' }

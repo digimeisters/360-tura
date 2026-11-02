@@ -1,7 +1,7 @@
 import type { ShowcaseTour } from '../app/lib/showcaseTours';
 import { tourHref } from '../app/lib/tourHref';
 import { formatListingPrice } from '../app/lib/listingPrice';
-import { keepUnitsTogether } from '../app/lib/typography';
+import { keepDashesAtLineEnd, keepUnitsTogether } from '../app/lib/typography';
 import CardPanorama from './CardPanorama';
 
 /**
@@ -99,7 +99,7 @@ export default function TourCard({
         </span>
       </div>
       <div className="tour-body">
-        <h3>{keepUnitsTogether(tour.title)}</h3>
+        <h3>{keepDashesAtLineEnd(keepUnitsTogether(tour.title))}</h3>
         {price && (
           <p className="tour-price">
             {price.amount}

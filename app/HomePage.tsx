@@ -183,7 +183,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
               {hero.trust.map((item) => (
                 <li key={item}>{item}</li>
               ))}
-              {openCount !== null && <li><CountUp value={openCount} lang={lang} kind="count" />{hero.opensSuffix}</li>}
+              {openCount !== null && <li><span><CountUp value={openCount} lang={lang} kind="count" />{hero.opensSuffix}</span></li>}
             </ul>
           </div>
         </section>

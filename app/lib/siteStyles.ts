@@ -403,7 +403,9 @@ export const SITE_STYLES = `
     .ht-hint, .ht-plan-hint{font-size:.8rem;}
     .ht-hint{top:.9rem;}
   }
-  @media (max-width:480px){ .ht-copy h1{font-size:min(2.4rem, calc(10.6vw - 4.5px));} }
+  /* "bez skrivenih ćoškova." je jedan red (nowrap) i širok ~9.9x veličine
+     fonta; 10vw - 5px ga drži unutar margine na svakoj širini telefona. */
+  @media (max-width:480px){ .ht-copy h1{font-size:min(2.4rem, calc(10vw - 5px));} }
 
   /* ---------- KADAR IZ TURE ---------- */
   /* Delovi aplikacije preko fotografije su uvek svetli, kao u samoj turi. */
@@ -751,7 +753,7 @@ export const SITE_STYLES = `
       linear-gradient(135deg, #1E5AA8 0%, #17447E 100%);
     box-shadow:0 18px 40px -18px rgba(23,68,126,.7);}
   .promo-big{font-family:var(--font-display); font-weight:800; font-size:2.6rem; line-height:1; letter-spacing:-0.03em; flex:none;}
-  .promo-big small{display:block; margin-top:.35rem; font-size:.66rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; opacity:.8;}
+  .promo-big small{display:block; margin-top:.35rem; font-size:.66rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;}
   .promo-mid{flex:1 1 16rem; min-width:0; display:flex; flex-direction:column; gap:.2rem;}
   .promo-mid b{font-family:var(--font-display); font-size:1.12rem; font-weight:800; line-height:1.25;}
   .promo-mid span{font-size:.85rem; opacity:.88; line-height:1.45;}
@@ -998,7 +1000,7 @@ export const SITE_STYLES = `
   .form-more{border:1px solid var(--line); border-radius:16px; background:var(--surface-2);}
   .form-more summary{list-style:none; cursor:pointer; display:flex; align-items:center; gap:.4rem; padding:.85rem 1rem; font-size:.85rem; font-weight:600; color:var(--ink-soft);}
   .form-more summary::-webkit-details-marker{display:none;}
-  .form-more summary small{font-weight:500; color:var(--ink-faint);}
+  .form-more summary small{font-size:.8rem; font-weight:500; color:var(--ink-faint);}
   .form-more summary::after{content:'+'; margin-left:auto; font-size:1.15rem; line-height:1; color:var(--accent);}
   .form-more[open] summary::after{content:'–';}
   .form-more-body{display:flex; flex-direction:column; gap:1rem; padding:0 1rem 1rem;}
@@ -1172,12 +1174,12 @@ export const SITE_STYLES = `
 
   /* ---------- TRAKE ---------- */
   .promo-top{display:block; text-align:center; background:#1E5AA8; color:#FFFFFF; font-size:.86rem; font-weight:500; padding:.6rem 1rem; text-decoration:none; line-height:1.4;
-    background-image:radial-gradient(40% 180% at 50% -40%, rgba(165,200,242,.45) 0%, transparent 70%), linear-gradient(90deg, #17447E 0%, #1E5AA8 50%, #17447E 100%);}
+    background-image:radial-gradient(40% 180% at 50% -40%, rgba(165,200,242,.2) 0%, transparent 70%), linear-gradient(90deg, #17447E 0%, #1E5AA8 50%, #17447E 100%);}
   .promo-top b{font-weight:700;}
   .promo-top-days{white-space:nowrap;}
   .promo-top-short{display:none;}
   @media (max-width:520px){ .promo-top-long{display:none;} .promo-top-short{display:inline;} }
-  .promo-top:hover{background-color:#17447E; background-image:radial-gradient(40% 180% at 50% -40%, rgba(165,200,242,.6) 0%, transparent 70%), linear-gradient(90deg, #17447E 0%, #2463B5 50%, #17447E 100%);}
+  .promo-top:hover{background-color:#17447E; background-image:radial-gradient(40% 180% at 50% -40%, rgba(165,200,242,.3) 0%, transparent 70%), linear-gradient(90deg, #17447E 0%, #1E5AA8 50%, #17447E 100%);}
   footer .wrap{display:flex; flex-direction:column; gap:1.6rem;}
   footer p{font-size:.85rem; color:var(--ink-soft);}
   /* Gornji red: logo levo, veze u sredini, kontakt desno; na telefonu jedno ispod drugog. */

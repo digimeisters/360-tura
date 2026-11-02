@@ -393,13 +393,20 @@ const STYLES = `
 .mods-credit{position:absolute; left:0; right:0; bottom:12px; text-align:center; font-size:10px; color:#9A9CA1;}
 
 @media (max-width:900px){
-  .mods-grid{grid-template-columns:1fr;}
+  .mods-grid{grid-template-columns:minmax(0,1fr);}
   .mods-pitch{min-height:0;}
   .mods-phone{transform:scale(.86); transform-origin:top center; margin-bottom:-95px;}
 }
 @media (max-width:480px){
   .mods-who{grid-template-columns:1fr;}
   .mods-tab{font-size:11px;}
+}
+/* Najuži telefoni (320 px): telefon od 340 px ni na .86 ne staje u kolonu. */
+@media (max-width:380px){
+  .mods-phone{transform:scale(.78); margin-bottom:-150px;}
+  html.rv-armed .mods-phone[data-reveal="scale"]:not(.is-in){transform:translateY(var(--rv-dist)) scale(.75);}
+  .mods-bar{gap:2px; padding:4px;}
+  .mods-tab{font-size:10.5px;}
 }
 
 /* Mikro-filmovi u telefonu (vrednosti iz makete public/mockup/DugmadTura.html). */
