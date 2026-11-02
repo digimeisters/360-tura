@@ -1,4 +1,3 @@
-import { createHmac, timingSafeEqual } from 'crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { looksLikeEmail, sendEmail } from './email';
 import { unitAvailableEmail, type AvailableUnit } from './emails/unitAvailable';
@@ -7,6 +6,7 @@ import { CONTACT, SITE_URL } from './site';
 import { escapeHtml, sendTelegramMessage } from './telegram';
 import type { UnitStatus } from './projects';
 import { sameStructure } from './unitWatchShared';
+import { checkLinkSignature, signLink } from './signedLink.ts';
 
 /**
  * "Obavesti me" (migracija 045, maketa public/mockup/ObavestiMe.html).
@@ -22,15 +22,9 @@ import { sameStructure } from './unitWatchShared';
 
 const MAX_UNITS = 3;
 const SIMILAR_COOLDOWN_MS = 24 * 60 * 60 * 1000;
-const SIG_LENGTH = 24;
 
-function signingKey(): string {
-  const key = process.env.REPORT_LINK_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key) throw new Error('Nema ključa za potpis linka za odjavu.');
-  return key;
-}
-
-const sign = (watchId: string) => createHmac('sha256', signingKey()).update(`unit-watch:${watchId}`).digest('base64url').slice(0, SIG_LENGTH);
+const message = (watchId: string) => `unit-watch:${watchId}`;
+const sign = (watchId: string) => signLink(message(watchId));
 
 /** Link za odjavu iz mejla (strana traži klik, da je skeneri mejla ne okinu sami). */
 export function unsubscribeUrl(watchId: string): string {
@@ -44,9 +38,7 @@ export function oneClickUnsubscribeUrl(watchId: string): string {
 
 export function verifyUnsubscribe(watchId: string, signature: string): boolean {
   if (!/^[0-9a-f-]{36}$/i.test(watchId)) return false;
-  const expected = Buffer.from(sign(watchId));
-  const given = Buffer.from(signature);
-  return expected.length === given.length && timingSafeEqual(expected, given);
+  return checkLinkSignature(message(watchId), signature);
 }
 
 export type WatchRow = {

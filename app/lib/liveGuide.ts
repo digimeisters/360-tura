@@ -1,4 +1,5 @@
-import { createHmac, randomInt, timingSafeEqual } from 'crypto';
+import { randomInt } from 'crypto';
+import { checkLinkSignature, signLink } from './signedLink.ts';
 
 /**
  * Razgledanje uživo (tura sa ?agent=<token>). SAMO SERVER.
@@ -10,35 +11,22 @@ import { createHmac, randomInt, timingSafeEqual } from 'crypto';
  * isti ključ.
  *
  * Link je stalan za turu: agent ga čuva i koristi za svako gledanje. Opoziva
- * se samo promenom ključa (REPORT_LINK_SECRET), što poništava i sve linkove
+ * se samo promenom ključa (lib/signedLink.ts), što poništava i sve linkove
  * izveštaja.
  */
-
-const TOKEN_SIG_LENGTH = 24;
 
 // Bez slova koja se mešaju sa ciframa ili jedna sa drugim (I/1, L, O/0, U/V),
 // da se kod lako pročita i izdiktira preko telefona.
 export const LIVE_CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTVWXYZ';
 const LIVE_CODE_LENGTH = 6;
 
-function signingKey(): string {
-  const key = process.env.REPORT_LINK_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key) throw new Error('Nema ključa za potpis linka za vođenje.');
-  return key;
-}
-
 export function liveGuideToken(slug: string): string {
-  return createHmac('sha256', signingKey())
-    .update(`live-guide:${slug}`)
-    .digest('base64url')
-    .slice(0, TOKEN_SIG_LENGTH);
+  return signLink(`live-guide:${slug}`);
 }
 
 export function isLiveGuideToken(slug: string, token: string): boolean {
   if (!slug || !token) return false;
-  const expected = Buffer.from(liveGuideToken(slug));
-  const given = Buffer.from(token);
-  return expected.length === given.length && timingSafeEqual(expected, given);
+  return checkLinkSignature(`live-guide:${slug}`, token);
 }
 
 /**

@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'crypto';
+import { checkLinkSignature, signLink } from '../signedLink.ts';
 
 /**
  * Potpis za "Pozovite me za snimanje" posle procene: pregledač dobija leadId
@@ -7,18 +7,12 @@ import { createHmac, timingSafeEqual } from 'crypto';
  * ga nema - isti izvor kao link izveštaja agencije.
  */
 
-function key(): string {
-  const k = process.env.VALUATION_LINK_SECRET || process.env.REPORT_LINK_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!k) throw new Error('Nema ključa za potpis.');
-  return k;
-}
+const options = () => ({ length: 32, preferredKey: process.env.VALUATION_LINK_SECRET });
 
 export function callbackToken(leadId: string): string {
-  return createHmac('sha256', key()).update(`valuation-callback:${leadId}`).digest('base64url').slice(0, 32);
+  return signLink(`valuation-callback:${leadId}`, options());
 }
 
 export function verifyCallbackToken(leadId: string, token: string): boolean {
-  const expected = Buffer.from(callbackToken(leadId));
-  const given = Buffer.from(token);
-  return expected.length === given.length && timingSafeEqual(expected, given);
+  return checkLinkSignature(`valuation-callback:${leadId}`, token, options());
 }

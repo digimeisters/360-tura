@@ -1,46 +1,32 @@
-import { createHmac, timingSafeEqual } from 'crypto';
 import { fetchAllRows } from './fetchAllRows';
 import { countSources, type VisitSource } from './visitSources';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 import { buildRoomHeat, type HeatRoom, type RoomHeat } from './roomHeat';
+import { checkLinkSignature, signLink } from './signedLink.ts';
 
 /**
  * Mesečni izveštaj za agenciju (strana /izvestaj/[token]). SAMO SERVER.
  *
  * Agencija nema nalog - dobija tajni link. Token nosi naziv agencije i
  * potpis (HMAC), pa se ne može pogoditi niti prepraviti na tuđu agenciju.
- * Ključ za potpis je REPORT_LINK_SECRET, a dok ga nema, izvodi se iz
- * service-role ključa (jednosmerno - iz tokena se ključ ne može saznati).
- * Promena ključa poništava sve stare linkove.
+ * Ključ i potpis: lib/signedLink.ts.
  *
  * Brojevi se računaju isto kao u admin analitici (api/analytics): posetilac
  * = jedna sesija pregledača, "ušao u turu" = pritisnuo Pokreni turu.
  * Posete admina se ne beleže uopšte (lib/track.ts).
  */
 
-const TOKEN_SIG_LENGTH = 24;
 const MAX_EVENTS = 50_000;
 // Jedno gledanje prostorije se računa najviše ovoliko: ostavljen otvoren tab
 // (tura u pozadini dok čovek radi nešto drugo) bi inače pokazao "120 min u
 // kupatilu" i razvukao prosek. Pet minuta je daleko iznad stvarnog gledanja.
 const ROOM_VIEW_CAP_MS = 5 * 60 * 1000;
 
-function signingKey(): string {
-  const key = process.env.REPORT_LINK_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key) throw new Error('Nema ključa za potpis linka izveštaja.');
-  return key;
-}
-
-function sign(agency: string): string {
-  return createHmac('sha256', signingKey())
-    .update(`agency-report:${agency}`)
-    .digest('base64url')
-    .slice(0, TOKEN_SIG_LENGTH);
-}
+const message = (agency: string) => `agency-report:${agency}`;
 
 export function agencyReportToken(agency: string): string {
-  return `${Buffer.from(agency, 'utf8').toString('base64url')}.${sign(agency)}`;
+  return `${Buffer.from(agency, 'utf8').toString('base64url')}.${signLink(message(agency))}`;
 }
 
 /** Naziv agencije iz tokena, ili null ako potpis ne valja. */
@@ -54,9 +40,7 @@ export function agencyFromToken(token: string): string | null {
     return null;
   }
   if (!agency.trim()) return null;
-  const expected = Buffer.from(sign(agency));
-  const given = Buffer.from(signature);
-  return expected.length === given.length && timingSafeEqual(expected, given) ? agency : null;
+  return checkLinkSignature(message(agency), signature) ? agency : null;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,10 +1,10 @@
-import { createHmac, timingSafeEqual } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { fetchAllRows } from './fetchAllRows';
 import { monthRange, shiftMonth, type MonthKey } from './agencyReport';
 import { floorLabel as floorName, trackKey } from './projectI18n';
 import { countSources, type VisitSource } from './visitSources';
 import type { UnitStatus } from './projects';
+import { checkLinkSignature, signLink } from './signedLink.ts';
 
 /**
  * Mesečni izveštaj za investitora (2026-11-01, maketa
@@ -16,33 +16,22 @@ import type { UnitStatus } from './projects';
  * Link je potpisan (HMAC od id projekta), bez prijave - kao izveštaj agencije.
  */
 
-const TOKEN_SIG_LENGTH = 24;
 const MAX_EVENTS = 50_000;
 /** "Gledaju, a ne pitaju": stan sa bar ovoliko otvaranja i bez upita. */
 const WATCH_MIN_VIEWS = 10;
 /** Cena po m² ovoliko iznad proseka sličnih (ista struktura) je verovatan razlog. */
 const PRICE_ABOVE_PCT = 5;
 
-function signingKey(): string {
-  const key = process.env.REPORT_LINK_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key) throw new Error('Nema ključa za potpis linka izveštaja.');
-  return key;
-}
-
-function sign(projectId: string): string {
-  return createHmac('sha256', signingKey()).update(`project-report:${projectId}`).digest('base64url').slice(0, TOKEN_SIG_LENGTH);
-}
+const message = (projectId: string) => `project-report:${projectId}`;
 
 export function projectReportToken(projectId: string): string {
-  return `${projectId}.${sign(projectId)}`;
+  return `${projectId}.${signLink(message(projectId))}`;
 }
 
 export function projectIdFromToken(token: string): string | null {
   const [id, signature] = token.split('.');
   if (!id || !signature || !/^[0-9a-f-]{36}$/i.test(id)) return null;
-  const expected = Buffer.from(sign(id));
-  const given = Buffer.from(signature);
-  return expected.length === given.length && timingSafeEqual(expected, given) ? id : null;
+  return checkLinkSignature(message(id), signature) ? id : null;
 }
 
 export type ReportUnit = {

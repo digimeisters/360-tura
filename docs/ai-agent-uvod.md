@@ -339,7 +339,7 @@ Samo imena. **Vrednosti se nikad ne upisuju u kod, dokumente ni poruke.** Stoje 
 | `RESEND_API_KEY`, `EMAIL_FROM` | email agentu za zahtev za razgledanje (resend.com; domen kvadrat360.com mora biti potvrđen u Resend-u). `EMAIL_FROM` opciono, podrazumevano `Kvadrat360 <razgledanje@kvadrat360.com>`. Bez ključa zahtev i dalje radi, samo stiže vlasniku na Telegram |
 | `FORM_ACCESS_CODE` | kod koji agencija unosi u `/unos` |
 | `NEXT_PUBLIC_SITE_URL` | opciono; menja kanonski domen (npr. za staging) |
-| `REPORT_LINK_SECRET` | opciono; ključ za potpis linkova izveštaja agencija **i linkova za pregled projekta**. Bez njega se izvodi iz service-role ključa. Promena poništava sve poslate linkove. (Linkovi za prodaju ne zavise od njega — to su nasumični kodovi čiji je otisak u bazi.) |
+| `REPORT_LINK_SECRET` | opciono; ključ za sve potpisane linkove (`app/lib/signedLink.ts`: izveštaji agencija i investitora, vođenje uživo, pregled projekta, odjava „Obavesti me“, poziv posle procene). Bez njega se izvodi iz service-role ključa. Promena poništava sve poslate linkove. (Linkovi za prodaju ne zavise od njega — to su nasumični kodovi čiji je otisak u bazi.) |
 
 `FORM_WEBHOOK_SECRET` iz `.env.local` se više ne koristi (stari Google Form tok je uklonjen).
 
