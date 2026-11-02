@@ -9,7 +9,6 @@ import {
   formatPrice,
   orientationText,
   PROJECT_TEXT,
-  srPlural,
   statusLabel,
   structureText,
   trackKey,
@@ -23,7 +22,10 @@ import UnitInquiry from './UnitInquiry';
 import UnitScreen from './UnitScreen';
 import VideoFrame from './VideoFrame';
 import { parseVideo } from '../../app/lib/videoEmbed';
-import FacadeFullscreen, { RangeSlider, shortStructure } from './FacadeFullscreen';
+import FacadeFullscreen from './FacadeFullscreen';
+import SelectorFilters from './SelectorFilters';
+import UnitListTable from './UnitListTable';
+import { AREA_STEPS, EMPTY_FILTERS, hasAnyFilter, matchesFilters, perSqm, PRICE_STEPS, sortUnits, type SortKey, type UnitFilters, type UnitSort } from '../../app/lib/unitFilters';
 import type { DemoMedia } from '../../app/lib/projectData';
 
 /**
@@ -115,40 +117,6 @@ export type SelectorProject = {
   videoUrl?: string | null;
 };
 
-type SortKey = 'code' | 'building' | 'floor' | 'structure' | 'area' | 'terrace' | 'price' | 'sqm' | 'status';
-
-const PRICE_STEPS = [50_000, 60_000, 70_000, 80_000, 90_000, 100_000, 120_000, 150_000, 200_000, 250_000, 300_000];
-const AREA_STEPS = [30, 40, 50, 60, 70, 80, 100, 120];
-const STATUS_ORDER: Record<UnitStatus, number> = {
-  available: 0,
-  reserved: 1,
-  sold: 2
-};
-/** Panel filtera na telefonu. */
-const MOBILE_TXT = {
-  sr: {
-    filters: 'Filteri',
-    rooms: 'Broj soba',
-    reset: 'Poništi',
-    close: 'Zatvori',
-    remove: 'Ukloni filter',
-    noStatus: 'nijedan status',
-    count: (n: number) => `${n} ${srPlural(n, 'stan', 'stana', 'stanova')}`,
-    of: (n: number, all: number) => `${n} od ${all}`,
-    show: (n: number) => `Prikaži ${n} ${srPlural(n, 'stan', 'stana', 'stanova')}`
-  },
-  en: {
-    filters: 'Filters',
-    rooms: 'Rooms',
-    reset: 'Clear',
-    close: 'Close',
-    remove: 'Remove filter',
-    noStatus: 'no status',
-    count: (n: number) => `${n} ${n === 1 ? 'apartment' : 'apartments'}`,
-    of: (n: number, all: number) => `${n} of ${all}`,
-    show: (n: number) => `Show ${n} ${n === 1 ? 'apartment' : 'apartments'}`
-  }
-};
 // Slika zgrade: telefon dobija smanjenu kopiju (/_next/image), računar veću.
 // Samo slike projekata na CDN-u (next.config images.remotePatterns).
 const VIEW_SIZES = '(max-width: 960px) 100vw, 62vw';
@@ -202,22 +170,8 @@ export default function ProjectSelector({
   const [hover, setHover] = useState<string | null>(null);
   // Prikaz projekta (migracija 040): zgrada (istraživač), 3D render ili video.
   const [media, setMedia] = useState<'building' | 'render' | 'video'>('building');
-  const [structure, setStructure] = useState<string | null>(null);
-  const [maxPrice, setMaxPrice] = useState<number | null>(null);
-  const [minArea, setMinArea] = useState<number | null>(null);
-  const [onlyFree, setOnlyFree] = useState(false);
-  const [listFloor, setListFloor] = useState<number | null>(null);
-  const [listBuilding, setListBuilding] = useState<string | null>(null);
-  // Telefon (panel „Filteri"): klizači od-do, više struktura, statusi. null = bez ograničenja.
-  const [floorRange, setFloorRange] = useState<[number, number] | null>(null);
-  const [areaRange, setAreaRange] = useState<[number, number] | null>(null);
-  const [rooms, setRooms] = useState<string[]>([]);
-  const [statuses, setStatuses] = useState<UnitStatus[] | null>(null);
-  const [sheet, setSheet] = useState(false);
-  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({
-    key: 'floor',
-    dir: 1
-  });
+  const [filters, setFilters] = useState<UnitFilters>(EMPTY_FILTERS);
+  const [sort, setSort] = useState<UnitSort>({ key: 'floor', dir: 1 });
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -248,21 +202,6 @@ export default function ProjectSelector({
       window.removeEventListener('hashchange', sync);
     };
   }, [canFull]);
-
-  // Panel filtera na telefonu: strana se ne pomera ispod njega, Esc ga zatvara.
-  useEffect(() => {
-    if (!sheet) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === 'Escape') setSheet(false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      document.body.style.overflow = prev;
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [sheet]);
 
   // „#lista" u adresi (dugme „Lista svih stanova" u vrhu strane) otvara listu.
   useEffect(() => {
@@ -319,24 +258,8 @@ export default function ProjectSelector({
   }, [units]);
 
   const levelOfUnit = (u: SelectorUnit) => floorById.get(u.floorId)?.level ?? 0;
-  const matches = (u: SelectorUnit) =>
-    (structure === null || u.structure === structure) &&
-    (maxPrice === null || (u.price !== null && u.price <= maxPrice && u.status !== 'sold')) &&
-    (minArea === null || (u.areaSqm !== null && u.areaSqm >= minArea)) &&
-    (!onlyFree || u.status === 'available') &&
-    (floorRange === null || (levelOfUnit(u) >= floorRange[0] && levelOfUnit(u) <= floorRange[1])) &&
-    (areaRange === null || (u.areaSqm !== null && u.areaSqm >= areaRange[0] && u.areaSqm <= areaRange[1])) &&
-    (!rooms.length || (u.structure !== null && rooms.includes(u.structure))) &&
-    (statuses === null || statuses.includes(u.status));
-  const anyFilter =
-    structure !== null ||
-    maxPrice !== null ||
-    minArea !== null ||
-    onlyFree ||
-    floorRange !== null ||
-    areaRange !== null ||
-    rooms.length > 0 ||
-    statuses !== null;
+  const matches = (u: SelectorUnit) => matchesFilters(u, filters, levelOfUnit);
+  const anyFilter = hasAnyFilter(filters);
 
   // Trenutna zgrada: spratovi, stanovi i slike samo te lamele.
   const inBuilding = (f: SelectorFloor) => (buildings.length ? f.buildingId === buildingId : true);
@@ -356,7 +279,6 @@ export default function ProjectSelector({
     const prices = list.filter((u) => u.status !== 'sold' && u.price && matches(u)).map((u) => u.price as number);
     return prices.length ? Math.min(...prices) : null;
   };
-  const perSqm = (u: SelectorUnit) => (u.price && u.areaSqm ? Math.round(u.price / u.areaSqm) : null);
 
   const floor = floorId ? (floorById.get(floorId) ?? null) : null;
   const unit = units.find((u) => u.id === unitId) ?? null;
@@ -545,272 +467,14 @@ export default function ProjectSelector({
     );
   };
 
-  // ---------- traka filtera: ista za zgradu i za listu ----------
+  // ---------- filteri (SelectorFilters): isti za zgradu i za listu ----------
   const listLevels = [...new Set(floors.map((f) => f.level))].sort((a, b) => a - b);
   const listOnly = mode === 'list';
-  const activeCount =
-    [structure, maxPrice, minArea, floorRange, areaRange, statuses].filter((v) => v !== null).length +
-    (onlyFree ? 1 : 0) +
-    (rooms.length ? 1 : 0) +
-    (listOnly ? (listFloor !== null ? 1 : 0) + (listBuilding !== null ? 1 : 0) : 0);
-  const resetFilters = () => {
-    setStructure(null);
-    setMaxPrice(null);
-    setMinArea(null);
-    setOnlyFree(false);
-    setListFloor(null);
-    setListBuilding(null);
-    setFloorRange(null);
-    setAreaRange(null);
-    setRooms([]);
-    setStatuses(null);
-  };
-  const pill = (key: string, label: string, value: string, onChange: (v: string) => void, options: { value: string; label: string }[]) => (
-    <label key={key} className={value ? 'inv-pill is-on' : 'inv-pill'}>
-      <span>{label}</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="">{t.any}</option>
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-  const filterBar = (
-    <div className="inv-fbar" role="group" aria-label={t.filters}>
-      {structures.length > 1 &&
-        pill(
-          'structure',
-          t.structure,
-          structure ?? '',
-          (v) => setStructure(v || null),
-          structures.map((x) => ({ value: x, label: structureText(x, lang) || x }))
-        )}
-      {listOnly &&
-        isComplex &&
-        pill(
-          'building',
-          t.buildingCol,
-          listBuilding ?? '',
-          (v) => setListBuilding(v || null),
-          buildings.map((b) => ({ value: b.id, label: b.name }))
-        )}
-      {listOnly &&
-        listLevels.length > 1 &&
-        pill(
-          'floor',
-          t.floor,
-          listFloor === null ? '' : String(listFloor),
-          (v) => setListFloor(v === '' ? null : Number(v)),
-          listLevels.map((l) => ({ value: String(l), label: floorLabel(l, null, lang) }))
-        )}
-      {priceOptions.length > 0 &&
-        pill(
-          'price',
-          t.priceTo,
-          maxPrice === null ? '' : String(maxPrice),
-          (v) => setMaxPrice(v ? Number(v) : null),
-          priceOptions.map((p) => ({ value: String(p), label: formatPrice(p, lang) }))
-        )}
-      {areaOptions.length > 0 &&
-        pill(
-          'area',
-          t.areaFrom,
-          minArea === null ? '' : String(minArea),
-          (v) => setMinArea(v ? Number(v) : null),
-          areaOptions.map((a) => ({ value: String(a), label: formatArea(a, lang) }))
-        )}
-      <button type="button" className={onlyFree ? 'inv-pill is-on is-toggle' : 'inv-pill is-toggle'} aria-pressed={onlyFree} onClick={() => setOnlyFree((v) => !v)}>
-        <i aria-hidden="true" />
-        {t.onlyFree}
-      </button>
-      {activeCount > 0 && (
-        <button type="button" className="inv-reset" onClick={resetFilters}>
-          {t.reset(activeCount)}
-        </button>
-      )}
-    </div>
-  );
-
-  // ---------- telefon: dugme „Filteri" + čipovi + panel od dole ----------
-  const mt = MOBILE_TXT[lang];
+  const inListScope = (u: SelectorUnit) =>
+    (filters.listFloor === null || floorById.get(u.floorId)?.level === filters.listFloor) &&
+    (filters.listBuilding === null || floorById.get(u.floorId)?.buildingId === filters.listBuilding);
   const scopeUnits = listOnly || atComplex ? units : bUnits;
-  const scopeMatch = (u: SelectorUnit) =>
-    matches(u) &&
-    (!listOnly || listBuilding === null || floorById.get(u.floorId)?.buildingId === listBuilding) &&
-    (!listOnly || listFloor === null || floorById.get(u.floorId)?.level === listFloor);
-  const shownCount = scopeUnits.filter(scopeMatch).length;
-  const fl = (v: number) => (v === 0 ? (lang === 'en' ? 'G' : 'P') : String(v));
-  const chips: { key: string; label: string; clear: () => void }[] = [];
-  if (floorRange) chips.push({ key: 'fr', label: `${t.floor} ${fl(floorRange[0])}–${fl(floorRange[1])}`, clear: () => setFloorRange(null) });
-  if (listOnly && listFloor !== null) chips.push({ key: 'lf', label: floorLabel(listFloor, null, lang), clear: () => setListFloor(null) });
-  if (listOnly && listBuilding !== null) chips.push({ key: 'lb', label: buildingName(listBuilding), clear: () => setListBuilding(null) });
-  if (areaRange) chips.push({ key: 'ar', label: `${areaRange[0]}–${areaRange[1]} m²`, clear: () => setAreaRange(null) });
-  if (minArea !== null) chips.push({ key: 'ma', label: `${t.areaFrom} ${formatArea(minArea, lang)}`, clear: () => setMinArea(null) });
-  if (maxPrice !== null) chips.push({ key: 'mp', label: `${t.priceTo} ${formatPrice(maxPrice, lang)}`, clear: () => setMaxPrice(null) });
-  if (rooms.length) chips.push({ key: 'ro', label: rooms.map((r) => structureText(r, lang) || r).join(', '), clear: () => setRooms([]) });
-  if (structure !== null) chips.push({ key: 'st', label: structureText(structure, lang) || structure, clear: () => setStructure(null) });
-  if (statuses) chips.push({ key: 'ss', label: statuses.map((s) => status(s)).join(', ') || mt.noStatus, clear: () => setStatuses(null) });
-  if (onlyFree) chips.push({ key: 'of', label: t.onlyFree, clear: () => setOnlyFree(false) });
-
-  const mobileFilters = (
-    <div className="inv-mf">
-      <button type="button" className={activeCount ? 'inv-mf-btn is-on' : 'inv-mf-btn'} onClick={() => setSheet(true)} aria-haspopup="dialog">
-        <span className="inv-mf-l">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 6h16M7 12h10M10 18h4" />
-          </svg>
-          {mt.filters}
-          {activeCount > 0 && <span className="inv-mf-n">{activeCount}</span>}
-        </span>
-        <span className="inv-mf-r">{activeCount ? mt.of(shownCount, scopeUnits.length) : mt.count(scopeUnits.length)}</span>
-      </button>
-      {chips.length > 0 && (
-        <div className="inv-mf-chips">
-          {chips.map((c) => (
-            <button key={c.key} type="button" onClick={c.clear} aria-label={`${mt.remove}: ${c.label}`}>
-              {c.label} <span aria-hidden="true">✕</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
-  const allStatuses: UnitStatus[] = ['available', 'reserved', 'sold'];
-  const filterSheet = sheet && (
-    <div className="inv-sheet-wrap" role="dialog" aria-modal="true" aria-label={mt.filters}>
-      <div className="inv-sheet-shade" onClick={() => setSheet(false)} />
-      <div className="inv-sheet">
-        <div className="inv-sheet-grab" aria-hidden="true" />
-        <div className="inv-sheet-head">
-          <b>{mt.filters}</b>
-          <button type="button" onClick={() => setSheet(false)} aria-label={mt.close}>
-            ×
-          </button>
-        </div>
-        <div className="inv-sheet-body">
-          {isComplex && listOnly && (
-            <div className="inv-sheet-grp">
-              <div className="inv-sheet-l">{t.buildingCol}</div>
-              <div className="inv-sheet-seg" style={{ gridTemplateColumns: `repeat(${Math.min(4, buildings.length)}, minmax(0,1fr))` }}>
-                {buildings.map((b) => (
-                  <button key={b.id} type="button" aria-pressed={listBuilding === b.id} onClick={() => setListBuilding(listBuilding === b.id ? null : b.id)}>
-                    {b.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {levelSpan[1] > levelSpan[0] && (
-            <div className="inv-sheet-grp">
-              <div className="inv-sheet-l">
-                {t.floor}
-                <span className="inv-sheet-v">
-                  {fl((floorRange ?? levelSpan)[0])} – {fl((floorRange ?? levelSpan)[1])}
-                </span>
-              </div>
-              <RangeSlider
-                className="is-light"
-                min={levelSpan[0]}
-                max={levelSpan[1]}
-                value={floorRange ?? levelSpan}
-                label={t.floor}
-                format={fl}
-                onChange={(v) => setFloorRange(v[0] === levelSpan[0] && v[1] === levelSpan[1] ? null : v)}
-              />
-            </div>
-          )}
-          {areaSpan[1] > areaSpan[0] && (
-            <div className="inv-sheet-grp">
-              <div className="inv-sheet-l">
-                {t.area}
-                <span className="inv-sheet-v">
-                  {(areaRange ?? areaSpan)[0]} m² – {(areaRange ?? areaSpan)[1]} m²
-                </span>
-              </div>
-              <RangeSlider
-                className="is-light"
-                min={areaSpan[0]}
-                max={areaSpan[1]}
-                value={areaRange ?? areaSpan}
-                label={t.area}
-                format={(v) => `${v} m²`}
-                onChange={(v) => setAreaRange(v[0] === areaSpan[0] && v[1] === areaSpan[1] ? null : v)}
-              />
-            </div>
-          )}
-          {priceSpan[1] > priceSpan[0] && (
-            <div className="inv-sheet-grp">
-              <div className="inv-sheet-l">
-                {t.priceTo}
-                <span className="inv-sheet-v">{maxPrice === null ? t.any : formatPrice(maxPrice, lang)}</span>
-              </div>
-              <div className="fs-range is-light">
-                <div className="fs-range-track">
-                  <i style={{ left: 0, width: `${(((maxPrice ?? priceSpan[1]) - priceSpan[0]) / (priceSpan[1] - priceSpan[0])) * 100}%` }} />
-                  <input
-                    type="range"
-                    min={priceSpan[0]}
-                    max={priceSpan[1]}
-                    step={5000}
-                    value={maxPrice ?? priceSpan[1]}
-                    aria-label={t.priceTo}
-                    onChange={(e) => setMaxPrice(Number(e.target.value) >= priceSpan[1] ? null : Number(e.target.value))}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-          {structures.length > 1 && (
-            <div className="inv-sheet-grp">
-              <div className="inv-sheet-l">{mt.rooms}</div>
-              <div className="inv-sheet-seg" style={{ gridTemplateColumns: `repeat(${Math.min(5, structures.length)}, minmax(0,1fr))` }}>
-                {structures.map((s) => (
-                  <button key={s} type="button" aria-pressed={rooms.includes(s)} onClick={() => setRooms((r) => toggle(r, s))}>
-                    {shortStructure(s)}
-                    <small>{structureText(s, lang) || s}</small>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          <div className="inv-sheet-grp">
-            <div className="inv-sheet-l">{t.statusCol}</div>
-            <div className="inv-sheet-st">
-              {/* Ništa izabrano = bez filtera (prikazuju se svi). Prvi klik na status ga IZOLUJE
-                  (prikazuje samo njega), ne isključuje ga iz pretpostavljenog "svi uključeni". */}
-              {allStatuses.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  aria-pressed={(statuses ?? []).includes(s)}
-                  onClick={() => {
-                    const next = toggle(statuses ?? [], s);
-                    setStatuses(next.length === 0 || next.length === allStatuses.length ? null : next);
-                  }}
-                >
-                  <i style={{ background: UNIT_STATUS_COLORS[s].stroke }} />
-                  {status(s)}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="inv-sheet-foot">
-          <button type="button" className="is-reset" disabled={!activeCount} onClick={resetFilters}>
-            {mt.reset}
-          </button>
-          <button type="button" className="is-go" onClick={() => setSheet(false)}>
-            {mt.show(shownCount)}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  const shownCount = scopeUnits.filter((u) => matches(u) && (!listOnly || inListScope(u))).length;
 
   // Traka zauzetosti: slobodno / rezervisano / prodato.
   const occupancy = (list: SelectorUnit[]) => {
@@ -1142,6 +806,7 @@ export default function ProjectSelector({
         </div>
         <p className="inv-muted">{siteViews.length ? t.pickBuildingHint : t.pickBuildingList}</p>
         {siteViews.length > 0 ? (
+          // eslint-disable-next-line react-hooks/refs -- ref (swipeX, panelRef, stageRef) se čita samo u rukovaocima dodira i klika, ne pri crtanju
           rotator('site', siteViews, renderSite)
         ) : (
           <div className="inv-bcards">
@@ -1190,6 +855,7 @@ export default function ProjectSelector({
             {facadeHasUnits ? (facadeHasFloors ? t.pickOnFacade : t.pickUnitOnFacade) : facadeHasFloors ? t.pickFloorHint : t.pickFloorList}
           </p>
         )}
+        {/* eslint-disable-next-line react-hooks/refs -- ref (swipeX, panelRef, stageRef) se čita samo u rukovaocima dodira i klika, ne pri crtanju */}
         {rotator(buildingId ?? 'main', bViews, renderFacade)}
         {facadeHasUnits && legend}
         {floorChips}
@@ -1224,6 +890,7 @@ export default function ProjectSelector({
               {/* eslint-disable-next-line @next/next/no-img-element -- osnova sprata sa R2 CDN-a */}
               <img src={floor.planUrl} alt={fName(floor)} />
               <svg viewBox="0 0 1 1" preserveAspectRatio="none" role="group" aria-label={t.pickUnit}>
+                {/* eslint-disable-next-line react-hooks/refs -- ref (swipeX, panelRef, stageRef) se čita samo u rukovaocima dodira i klika, ne pri crtanju */}
                 {shaped.map((u) => {
                   const c = UNIT_STATUS_COLORS[u.status];
                   const sel = u.id === unitId;
@@ -1550,123 +1217,12 @@ export default function ProjectSelector({
   }
 
   // ---------- lista svih stanova ----------
-  const listUnits = units
-    .filter((u) => {
-      const f = floorById.get(u.floorId);
-      return (
-        matches(u) &&
-        (listFloor === null || f?.level === listFloor) &&
-        (listBuilding === null || f?.buildingId === listBuilding)
-      );
-    })
-    .sort((a, b) => {
-      const fa = floorById.get(a.floorId);
-      const fb = floorById.get(b.floorId);
-      const num = (x: number | null | undefined) => (x === null || x === undefined ? Number.POSITIVE_INFINITY : x);
-      const price = (u: SelectorUnit) => (u.status === 'sold' ? null : u.price);
-      const sqm = (u: SelectorUnit) => (u.status === 'sold' ? null : perSqm(u));
-      let d = 0;
-      switch (sort.key) {
-        case 'building':
-          d = buildingName(fa?.buildingId ?? null).localeCompare(buildingName(fb?.buildingId ?? null), 'sr', { numeric: true });
-          break;
-        case 'floor':
-          d = (fa?.level ?? 0) - (fb?.level ?? 0);
-          break;
-        case 'structure':
-          d = (a.structure ?? '').localeCompare(b.structure ?? '', 'sr');
-          break;
-        case 'area':
-          d = num(a.areaSqm) - num(b.areaSqm);
-          break;
-        case 'terrace':
-          d = num(a.terraceSqm) - num(b.terraceSqm);
-          break;
-        case 'price':
-          d = num(price(a)) - num(price(b));
-          break;
-        case 'sqm':
-          d = num(sqm(a)) - num(sqm(b));
-          break;
-        case 'status':
-          d = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
-          break;
-      }
-      if (Number.isNaN(d)) d = 0;
-      return d * sort.dir || a.code.localeCompare(b.code, 'sr', { numeric: true });
-    });
+  const listUnits = sortUnits(
+    units.filter((u) => matches(u) && inListScope(u)),
+    sort,
+    { levelOf: levelOfUnit, buildingOf: (u) => buildingName(buildingOfUnit(u)) }
+  );
   const sortBy = (key: SortKey) => setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: 1 }));
-  const th = (key: SortKey, label: string, cls?: string) => (
-    <th className={cls} aria-sort={sort.key === key ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}>
-      <button type="button" onClick={() => sortBy(key)}>
-        {label}
-        <i aria-hidden="true">{sort.key === key ? (sort.dir === 1 ? '↑' : '↓') : '↕'}</i>
-      </button>
-    </th>
-  );
-
-  const list = (
-    <div className="inv-lst">
-      {listUnits.length === 0 ? (
-        <p className="inv-muted">{t.noMatch}</p>
-      ) : (
-        <div className="inv-lst-wrap">
-          <table className="inv-lst-table">
-            <thead>
-              <tr>
-                {th('code', t.unit)}
-                {isComplex && th('building', t.buildingCol)}
-                {th('floor', t.floor)}
-                {th('structure', t.structure)}
-                {th('area', t.area, 'is-num')}
-                {th('terrace', t.terrace, 'is-num')}
-                {th('price', t.price, 'is-num')}
-                {th('sqm', '€/m²', 'is-num')}
-                {th('status', t.statusCol)}
-              </tr>
-            </thead>
-            <tbody>
-              {listUnits.map((u) => {
-                const f = floorById.get(u.floorId);
-                const sqm = perSqm(u);
-                return (
-                  <tr
-                    key={u.id}
-                    tabIndex={0}
-                    onClick={() => openFromList(u)}
-                    onKeyDown={onKey(() => openFromList(u))}
-                    aria-label={`${t.unit} ${u.code}`}
-                  >
-                    <td className="is-code">
-                      <b>{u.code}</b>
-                    </td>
-                    {isComplex && <td data-l={t.buildingCol}>{buildingName(f?.buildingId ?? null)}</td>}
-                    <td data-l={t.floor}>{f ? fName(f) : '—'}</td>
-                    <td data-l={t.structure}>{structureText(u.structure, lang) || '—'}</td>
-                    <td data-l={t.area} className="is-num">
-                      {formatArea(u.areaSqm, lang)}
-                    </td>
-                    <td data-l={t.terrace} className="is-num">
-                      {formatArea(u.terraceSqm, lang)}
-                    </td>
-                    <td data-l={t.price} className="is-num is-price">
-                      {u.status === 'sold' ? '—' : u.price ? formatPrice(u.price, lang) : t.onRequest}
-                    </td>
-                    <td data-l="€/m²" className="is-num">
-                      {u.status !== 'sold' && sqm ? formatPrice(sqm, lang) : '—'}
-                    </td>
-                    <td className="is-status">
-                      <span className={`inv-badge is-${badgeOf(u.status)}`}>{status(u.status)}</span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
 
   return (
     <div className="inv-demo" ref={rootRef}>
@@ -1716,9 +1272,24 @@ export default function ProjectSelector({
       )}
       {units.length > 1 && !showScreen && (
         <>
-          {filterBar}
-          {mobileFilters}
-          {filterSheet}
+          <SelectorFilters
+            lang={lang}
+            filters={filters}
+            setFilters={setFilters}
+            listOnly={listOnly}
+            isComplex={isComplex}
+            buildings={buildings}
+            buildingName={buildingName}
+            structures={structures}
+            priceOptions={priceOptions}
+            areaOptions={areaOptions}
+            listLevels={listLevels}
+            levelSpan={levelSpan}
+            areaSpan={areaSpan}
+            priceSpan={priceSpan}
+            scopeCount={scopeUnits.length}
+            shownCount={shownCount}
+          />
         </>
       )}
       {showScreen && unit ? (
@@ -1733,7 +1304,16 @@ export default function ProjectSelector({
           onBack={closeUnitScreen}
         />
       ) : mode === 'list' && units.length > 0 ? (
-        list
+        <UnitListTable
+          units={listUnits}
+          lang={lang}
+          isComplex={isComplex}
+          sort={sort}
+          onSort={sortBy}
+          floorOf={(u) => floorById.get(u.floorId)}
+          buildingName={buildingName}
+          onOpen={openFromList}
+        />
       ) : (
         <div className="inv-grid">
           <div className="inv-stage" ref={stageRef}>
