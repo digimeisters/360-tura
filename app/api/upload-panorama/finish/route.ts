@@ -195,7 +195,7 @@ export async function POST(req: Request) {
       bytes: finalBody.length,
       originalBytes: buffer.length,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('UPLOAD PANORAMA FINISH ERROR:', error);
     // Neuspela obrada: pokušaj da počistiš privremeni fajl, da se tmp-panorama/
     // ne puni ostacima iz prekinutih upload-a.
@@ -203,7 +203,7 @@ export async function POST(req: Request) {
       r2Client.send(new DeleteObjectCommand({ Bucket: bucket, Key: tmpKey })).catch(() => {});
     }
     return NextResponse.json(
-      { success: false, error: error?.message || 'Greška tokom obrade panorame.' },
+      { success: false, error: (error instanceof Error && error.message) || 'Greška tokom obrade panorame.' },
       { status: 500 }
     );
   }

@@ -223,6 +223,15 @@ type GenerateDraftBody = {
  * KORAK 1: GENERATE_DRAFT
  * ============================================================
  */
+
+/** Odgovor modela po buildDraftSchema - polja se proveravaju pre upotrebe. */
+type DraftRaw = {
+  title_i18n?: { sr?: string };
+  narration_intro_i18n?: { sr?: string };
+  narration_detail_i18n?: { sr?: string };
+  waypoints?: { box_2d?: unknown; title_i18n?: unknown; text_i18n?: unknown }[];
+};
+
 export async function handleGenerateDraft(body: GenerateDraftBody) {
   const roomId = body.roomId ?? body.room_id ?? body.id;
   const panoramaUrl = body.panoramaUrl ?? body.panorama_url;
@@ -242,7 +251,7 @@ export async function handleGenerateDraft(body: GenerateDraftBody) {
   // Za čitanje slike jači Flash (Lite je slabije prepoznavao predmete i više
   // nagađao), Lite je rezerva. Po jedan pokušaj po modelu, da zbir ostane
   // ispod maxDuration rute (60s) i sa preuzimanjem panorame.
-  const { data: raw, usedModel } = await generateJsonWithRetry<any>({
+  const { data: raw, usedModel } = await generateJsonWithRetry<DraftRaw>({
     contents: [{ inlineData: { mimeType: image.contentType, data: image.base64 } }, { text: prompt }],
     config: {
       responseMimeType: 'application/json',

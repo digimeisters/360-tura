@@ -101,10 +101,10 @@ export async function POST(req: Request) {
     );
 
     return NextResponse.json({ success: true, uploadUrl, key, contentType: fileType });
-  } catch (error: any) {
+  } catch (error) {
     console.error('UPLOAD PANORAMA PRESIGN ERROR:', error);
     return NextResponse.json(
-      { success: false, error: error?.message || 'Greška tokom pripreme upload-a.' },
+      { success: false, error: (error instanceof Error && error.message) || 'Greška tokom pripreme upload-a.' },
       { status: 500 }
     );
   }
@@ -153,14 +153,14 @@ export async function DELETE(req: Request) {
     const bucket = process.env.R2_BUCKET_NAME;
     const cdnUrl = process.env.NEXT_PUBLIC_CDN_URL;
     if (bucket && cdnUrl) {
-      const panoramaKey = r2KeyFromUrl((room as any).panorama_url_cf, cdnUrl);
+      const panoramaKey = r2KeyFromUrl(room.panorama_url_cf, cdnUrl);
       const keys = [
         panoramaKey,
         // Kopija za telefone (migracija 018) - ime je izvedeno iz glavne.
         panoramaKey ? mobilePanoramaKey(panoramaKey) : null,
         // Traka za karticu ture (migracija 044) - takođe izvedena iz glavne.
         panoramaKey ? cardStripKey(panoramaKey) : null,
-        r2KeyFromUrl((room as any).preview_url, cdnUrl)
+        r2KeyFromUrl(room.preview_url, cdnUrl)
       ].filter((k): k is string => Boolean(k));
 
       if (keys.length > 0) {
@@ -194,10 +194,10 @@ export async function DELETE(req: Request) {
 
     refreshPublicPages();
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error('DELETE PANORAMA ERROR:', error);
     return NextResponse.json(
-      { success: false, error: error?.message || 'Greška tokom brisanja panorame.' },
+      { success: false, error: (error instanceof Error && error.message) || 'Greška tokom brisanja panorame.' },
       { status: 500 }
     );
   }

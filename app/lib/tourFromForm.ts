@@ -29,6 +29,12 @@ export type ProcessedTour = {
   target_languages: Language[];
 };
 
+/** Odgovor modela po responseSchema ispod: i18n polja su obavezna, ostala ne. */
+type FormAiResult = Partial<
+  Record<'property_type' | 'advertiser_type' | 'agency_name' | 'agent_name' | 'agent_phone' | 'agent_email' | 'address' | 'city', string>
+> &
+  Record<'title_i18n' | 'about_text_i18n' | 'faq_1_i18n' | 'faq_2_i18n' | 'faq_3_i18n' | 'faq_4_i18n' | 'faq_5_i18n', Record<string, string>>;
+
 function i18nSchema(languages: string[]): Schema {
   const properties: Record<string, Schema> = {};
   languages.forEach((l) => {
@@ -186,7 +192,7 @@ ${faqList}
    Nikad ne navodi cenu, površinu, datum ili uslov koji ne postoji u ulazu.
 `;
 
-  const { data } = await generateJsonWithRetry<Record<string, any>>({
+  const { data } = await generateJsonWithRetry<FormAiResult>({
     contents: prompt,
     label: 'Obrada upitnika',
     // Obrada upitnika je duža od jednog opisa sobe: 7 polja puta do 4 jezika.

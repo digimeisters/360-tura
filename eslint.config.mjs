@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Vendorovana (minifikovana) biblioteka, nije naš kod.
     "public/vendor/**",
+    // Marketing materijal (Cowork, motion skripte) - nije deo aplikacije i nije u git-u.
+    "docs/**",
   ]),
 ]);
 

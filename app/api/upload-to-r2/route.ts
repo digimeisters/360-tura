@@ -136,10 +136,10 @@ export async function POST(req: Request) {
       r2Url,
       bytes: buffer.length,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('UPLOAD TO R2 ERROR:', error);
     return NextResponse.json(
-      { success: false, error: error?.message || 'Greška tokom upload-a na R2.' },
+      { success: false, error: (error instanceof Error && error.message) || 'Greška tokom upload-a na R2.' },
       { status: 500 }
     );
   }

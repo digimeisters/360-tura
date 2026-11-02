@@ -180,6 +180,7 @@ export default function ContactForm({
   const [days, setDays] = useState<ShootDay[]>([]);
   const [slotDate, setSlotDate] = useState<string | null>(null);
   const [slotWindow, setSlotWindow] = useState<SlotWindow | null>(null);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- dani se računaju u pregledaču (vidi komentar iznad)
   useEffect(() => setDays(upcomingShootDays()), []);
 
   // Klik na "Izaberi Premium" u cenovniku (Pricing, data-package) spušta

@@ -298,6 +298,7 @@ export default function TourList({
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- filteri iz adrese stižu tek u pregledaču (vidi komentar iznad)
     setFilters(
       Object.fromEntries(
         FILTER_KEYS.map((key) => [

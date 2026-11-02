@@ -179,6 +179,7 @@ export function useRoomNavigation({
     if (!tourStarted) return;
     const id = rooms[roomIdx]?.id;
     if (id == null) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- pamti obiđene sobe kroz vreme (istorija, ne izvedeno stanje)
     setSeenRoomIds((prev) => (prev.has(String(id)) ? prev : new Set(prev).add(String(id))));
   }, [tourStarted, rooms, roomIdx]);
 

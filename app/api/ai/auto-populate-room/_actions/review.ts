@@ -81,6 +81,14 @@ type TranslateStepBody = {
   draft?: DraftShape;
 };
 
+/** Odgovor modela po buildTranslationSchema - polja se proveravaju pre upotrebe. */
+type TranslationRaw = {
+  title?: unknown;
+  narrationIntro?: unknown;
+  narrationDetail?: unknown;
+  waypoints?: { title?: string; text?: string }[];
+};
+
 export async function handleTranslateStep(body: TranslateStepBody) {
   const roomId = body.roomId ?? body.room_id ?? body.id;
   const targetLang = body.targetLang;
@@ -119,7 +127,7 @@ export async function handleTranslateStep(body: TranslateStepBody) {
   );
   const schema = buildTranslationSchema(sourceWaypoints.length);
 
-  const { data: raw, usedModel } = await generateJsonWithRetry<any>({
+  const { data: raw, usedModel } = await generateJsonWithRetry<TranslationRaw>({
     contents: [{ text: prompt }],
     config: {
       responseMimeType: 'application/json',
@@ -140,9 +148,10 @@ export async function handleTranslateStep(body: TranslateStepBody) {
   }
 
   // Ako model vrati pogrešan broj tačaka, popuni/skrati da se indeksi ne pomere.
+  const rawWaypoints = raw.waypoints;
   const waypoints = sourceWaypoints.map((_, idx) => ({
-    title_i18n: raw.waypoints[idx]?.title ?? sourceWaypoints[idx].title,
-    text_i18n: raw.waypoints[idx]?.text ?? sourceWaypoints[idx].text,
+    title_i18n: rawWaypoints[idx]?.title ?? sourceWaypoints[idx].title,
+    text_i18n: rawWaypoints[idx]?.text ?? sourceWaypoints[idx].text,
   }));
 
   // Oblik koji frontend (handleConfirmDraftAndProcess) očekuje:
@@ -305,7 +314,7 @@ export async function handleReviewDraft(body: ReviewDraftBody) {
 
   const [ctx, image] = await Promise.all([loadRoomContext(String(roomId), body.listingType), fetchPanorama(panoramaUrl)]);
 
-  const { data: raw, usedModel } = await generateJsonWithRetry<any>({
+  const { data: raw, usedModel } = await generateJsonWithRetry<{ suggestions?: unknown; checks?: unknown }>({
     contents: [{ inlineData: { mimeType: image.contentType, data: image.base64 } }, { text: buildReviewPrompt(input, ctx) }],
     config: { responseMimeType: 'application/json', responseSchema: buildReviewSchema(), temperature: TEMP_EXTRACT },
     model: GEMINI_FALLBACK_MODEL,

@@ -86,6 +86,7 @@ function useNarrowScreen(): boolean {
 }
 
 // Uklanja sloj jedne scene: Pannellum viewer i njegov div.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Pannellum se učitava sa CDN-a i nema tipove
 function disposeLayer(layer: { viewer: any; el: HTMLDivElement } | null) {
   if (!layer) return;
   try { layer.viewer?.destroy(); } catch {}
@@ -120,6 +121,7 @@ export default function TourPage() {
   // Sloj (div) sa Pannellum-om trenutne scene, i sloj stare scene koja se
   // upravo pretapa. Svaka scena ima svoj sloj unutar #panorama.
   const currentLayerRef = useRef<HTMLDivElement | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Pannellum se učitava sa CDN-a i nema tipove
   const fadingLayerRef = useRef<{ viewer: any; el: HTMLDivElement } | null>(null);
   // Svaki novi prelaz ili klik na sobu poništava prelaz koji se još
   // približava vratima - da se ne desi dupla promena sobe.
@@ -211,6 +213,7 @@ export default function TourPage() {
     if (demoInviteClosed) rememberDemoInviteClosed();
   }, [demoInviteClosed]);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Pannellum se učitava sa CDN-a i nema tipove
   const viewerRef = useRef<any>(null);
   // Pravac pogleda za konus na planu (ViewCone čita ovo u svakom kadru). Za
   // vreme prelaza između soba viewer ume da bude u pola zamene - tada null.
@@ -445,7 +448,7 @@ export default function TourPage() {
 
     // Ukloni postojeće hotspot-ove sa viewer-a
     const existingHotspots = viewerRef.current.getConfig()?.hotSpots || [];
-    existingHotspots.forEach((hs: any) => {
+    existingHotspots.forEach((hs: { id: string }) => {
       try { viewerRef.current.removeHotSpot(hs.id); } catch {}
     });
 
@@ -496,6 +499,7 @@ export default function TourPage() {
     urlLangAppliedRef.current = true;
     const requested = new URLSearchParams(window.location.search).get('lang') as Language | null;
     if (requested && requested !== 'sr' && ['en', 'de', 'ru'].includes(requested) && isLanguageAvailable(requested)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- jezik iz ?lang= se čita tek u pregledaču, kad su tura i sobe učitane
       setLang(requested);
       langRef.current = requested;
     }
@@ -506,6 +510,7 @@ export default function TourPage() {
 
   useEffect(() => {
     isMountedRef.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- zastavica "u pregledaču": adresa se čita posle hidratacije, da se server i pregledač poklope
     setHasMounted(true);
     setGuideRequested(new URLSearchParams(window.location.search).get('vodic') === '1');
 
@@ -611,6 +616,8 @@ export default function TourPage() {
 
   useEffect(() => {
     if (!hasMounted) return;
+    // Pannellum se učitava sa CDN-a i nema tipove; ako je već tu (prelaz sa ture na turu), to je spoljna skripta, ne React stanje.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect
     if ((window as any).pannellum) { setPannellumReady(true); return; }
 
     // Pri prelasku sa ture na turu stil je već tu - ne dodajemo ga ponovo.
@@ -658,6 +665,7 @@ export default function TourPage() {
       // Soba bez panorame: inače "Ulazimo u prostoriju" ostaje zauvek, a
       // svaka sledeća šetnja se odbija jer je šetnja i dalje "u toku".
       walkingRef.current = false;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- soba bez panorame: gasi ekran učitavanja koji je pokrenuo prelaz
       setRoomLoading(false);
       return;
     }
@@ -717,6 +725,7 @@ export default function TourPage() {
     const startYaw = entry ? entry.yaw : targetEstablishYaw;
     const startPitch = entry ? entry.pitch : targetEstablishPitch;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Pannellum se učitava sa CDN-a i nema tipove
     const v = (window as any).pannellum.viewer(layer, {
       type: 'equirectangular',
       panorama: resolvedPanoramaUrl,

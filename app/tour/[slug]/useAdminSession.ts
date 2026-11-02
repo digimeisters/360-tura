@@ -29,6 +29,7 @@ export function useAdminSession() {
   useEffect(() => {
     let active = true;
     const requested = new URLSearchParams(window.location.search).get('admin') === '1';
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- ?admin=1 se čita tek u pregledaču, posle hidratacije
     setAdminRequested(requested);
 
     supabase.auth.getSession().then(({ data: { session } }) => {

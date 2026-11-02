@@ -142,6 +142,7 @@ export default function UnosPage() {
       const saved = localStorage.getItem(DRAFT_KEY);
       if (!saved) return;
       const draft = JSON.parse(saved);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- nacrt upitnika iz localStorage postoji samo u pregledaču
       if (draft.values) setValues(draft.values);
       if (draft.languages) setLanguages(draft.languages);
       if (draft.category) setCategory(draft.category);
