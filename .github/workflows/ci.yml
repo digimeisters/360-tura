@@ -1,0 +1,40 @@
+name: CI
+
+# Pokreće se na svaki push i svaki pull request: provera tipova, lint i da
+# li ceo sajt uopšte builduje, pre nego što promena stigne do "main" (koji
+# se sam deployuje na Vercel). NEXT_PUBLIC_SUPABASE_URL i
+# NEXT_PUBLIC_SUPABASE_ANON_KEY nisu tajne - iste vrednosti su već vidljive
+# svakom posetiocu sajta u pregledaču - zato su ovde obične Variables, ne
+# Secrets. Podesiti ih u Settings -> Secrets and variables -> Actions ->
+# Variables, pre prvog pokretanja.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Provera tipova (tsc)
+        run: npx tsc --noEmit
+
+      - name: Lint (informativno - ne blokira build)
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build (next build)
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
