@@ -7,8 +7,6 @@ import SiteTracker from '../components/SiteTracker';
 import CardSpotlight from '../components/CardSpotlight';
 import SiteReveal from '../components/SiteReveal';
 import CountUp from '../components/CountUp';
-import TourStory from '../components/TourStory';
-import { getStoryData } from './lib/tourStory';
 import PromoBanner from '../components/PromoBanner';
 import Pricing from '../components/Pricing';
 import PricingShort from '../components/PricingShort';
@@ -80,7 +78,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
   const faq = HOME_PAGE_FAQ[lang];
   const { nav, hero, contact } = copy;
 
-  const [allTours, openCount, story] = await Promise.all([getShowcaseTours(lang), getPublicOpenCount(), lang === 'sr' ? null : getStoryData(lang)]);
+  const [allTours, openCount] = await Promise.all([getShowcaseTours(lang), getPublicOpenCount()]);
   // Strana kaže "Vaš kvadrat u Kragujevcu" - primeri i kadar u vrhu kreću od tog grada.
   const tours = localToursFirst(allTours);
   const heroTour = pickHeroTour(tours, lang, HOME_CITY);
@@ -231,11 +229,8 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
           </div>
         </section>
 
-        {/* Wow sekcija (vlasnik, 21. 10. 2026): posle dugmadi ispod ture, priča
-            šta tura radi u samoj panorami. Bez podataka ture se ne prikazuje. */}
-        {/* Na srpskoj početnoj je nema od 3. 11. 2026 - preseljena na
-            /za-vlasnike (početna je bila 15,5 ekrana na telefonu, priča sama 5). */}
-        {story && <TourStory data={story} copy={copy.story} lang={lang} />}
+        {/* Priča "Od tlocrta do ture" (wow sekcija, 21. 10. 2026) je od 3. 11. 2026
+            na /za-vlasnike; skinuta je sa obe početne (copy.story ostaje za tu stranu). */}
 
         <section id="kako-radimo">
           <div className="wrap steps-split">
