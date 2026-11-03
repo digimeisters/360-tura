@@ -14,15 +14,21 @@ import VolumeDetails from './VolumeDetails';
  *
  * `trackPrefix`: "agency_" na /za-agencije, da se u analitici vidi sa koje
  * strane je kliknuto (cta:agency_price_basic).
+ *
+ * `compact` (početna i /za-agencije, vlasnik 3. 11. 2026): kartice samo sa
+ * glavnom cenom, bez reda "tura + HDR"; tabela i "samo tura / samo
+ * fotografije" sklopljeni iza "Prikaži više" na svakoj širini.
  */
 export default function Pricing({
   copy,
   lang,
-  trackPrefix
+  trackPrefix,
+  compact = false
 }: {
   copy: HomeCopy['pricing'];
   lang: HomeLang;
   trackPrefix: '' | 'agency_';
+  compact?: boolean;
 }) {
   return (
     <>
@@ -35,7 +41,7 @@ export default function Pricing({
             <h3>{plan.title}</h3>
             <div>
               <PlanPrice packageType={plan.packageType} unit={plan.unit} lang={lang} />
-              <PlanSplit packageType={plan.packageType} labels={copy.labels} lang={lang} />
+              {!compact && <PlanSplit packageType={plan.packageType} labels={copy.labels} lang={lang} />}
             </div>
             <PlanItemList items={plan.items} lang={lang} />
             <a
@@ -51,12 +57,16 @@ export default function Pricing({
         ))}
       </div>
 
-      {/* Na telefonu sklopljeno - vidi VolumeDetails. */}
-      <VolumeDetails title={copy.volume.title}>
+      {/* Na telefonu sklopljeno - vidi VolumeDetails; na početnoj (compact) uvek. */}
+      <VolumeDetails
+        title={copy.volume.title}
+        toggle={compact ? { more: copy.volume.showMore, less: copy.volume.showLess } : undefined}
+      >
         <p className="note">{copy.volume.note}</p>
         <VolumeTable copy={copy.volume} lang={lang} />
+        {compact && <SingleItems copy={copy.single} lang={lang} />}
       </VolumeDetails>
-      <SingleItems copy={copy.single} lang={lang} />
+      {!compact && <SingleItems copy={copy.single} lang={lang} />}
       <p className="fine-print">{copy.fine}</p>
     </>
   );

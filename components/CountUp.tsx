@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import { formatAmount, type PriceLang } from '../app/lib/pricing';
 
 /**
- * Broj koji naraste od nule kad uđe u ekran (cene u cenovniku, broj otvaranja
- * tura u heroju). Server i prvi prikaz pišu KONAČAN broj, pa je iznos tačan za
+ * Broj koji naraste od nule kad uđe u ekran (broj otvaranja tura u heroju),
+ * ili - sa `from` - krene od tog broja (cena na kartici paketa: od redovne
+ * cene SPUSTI se do snižene, vlasnik 3. 11. 2026, da se popust vidi u
+ * pokretu). Server i prvi prikaz pišu KONAČAN broj, pa je iznos tačan za
  * Google, čitače ekrana i kad JS ne radi. Broji samo na strani koja ima
  * components/SiteReveal (klasa rv-armed na <html>); na ostalim stranama i uz
  * smanjene pokrete broj samo stoji.
@@ -16,7 +18,18 @@ function format(n: number, lang: PriceLang, kind: 'amount' | 'count'): string {
   return kind === 'amount' ? formatAmount(n, lang) : n.toLocaleString(lang === 'sr' ? 'sr-RS' : 'en-US');
 }
 
-export default function CountUp({ value, lang, kind }: { value: number; lang: PriceLang; kind: 'amount' | 'count' }) {
+export default function CountUp({
+  value,
+  from = 0,
+  lang,
+  kind
+}: {
+  value: number;
+  /** Početni broj animacije (podrazumevano 0). */
+  from?: number;
+  lang: PriceLang;
+  kind: 'amount' | 'count';
+}) {
   const ref = useRef<HTMLSpanElement>(null);
   const [shown, setShown] = useState(value);
   // Da li je brojanje već odrađeno: posle toga promena iznosa (promo) samo zameni broj.
@@ -36,7 +49,7 @@ export default function CountUp({ value, lang, kind }: { value: number; lang: Pr
         const start = performance.now();
         const step = (now: number) => {
           const k = Math.min(1, (now - start) / DURATION);
-          setShown(Math.round(value * (1 - Math.pow(1 - k, 3))));
+          setShown(Math.round(from + (value - from) * (1 - Math.pow(1 - k, 3))));
           if (k < 1) frame = requestAnimationFrame(step);
           else done.current = true;
         };
@@ -44,14 +57,14 @@ export default function CountUp({ value, lang, kind }: { value: number; lang: Pr
       },
       { threshold: 0.15, rootMargin: '0px 0px -8% 0px' }
     );
-    setShown(0);
+    setShown(from);
     io.observe(el);
     return () => {
       io.disconnect();
       cancelAnimationFrame(frame);
       setShown(value);
     };
-  }, [value]);
+  }, [value, from]);
 
   return <span ref={ref}>{format(shown, lang, kind)}</span>;
 }

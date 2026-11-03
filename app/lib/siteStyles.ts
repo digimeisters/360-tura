@@ -672,6 +672,19 @@ export const SITE_STYLES = `
     .vol-details > summary h3{font-size:1.05rem;}
     .vol-details[open] > summary{margin-bottom:.8rem;}
   }
+  /* Početna (VolumeDetails toggle): sklopljena pločica na svakoj širini, sa
+     tekstom "Prikaži više / manje" desno. */
+  .vol-details.is-toggle{margin-top:2rem;}
+  .vol-details.is-toggle > summary{pointer-events:auto; max-width:none; padding:1rem 1.25rem; border:1px solid var(--line); border-radius:16px; background:var(--surface); transition:border-color .15s ease;}
+  .vol-details.is-toggle > summary:hover{border-color:var(--accent);}
+  .vol-details.is-toggle > summary:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+  .vol-details.is-toggle > summary h3{font-size:1.15rem;}
+  .vol-details.is-toggle[open] > summary{margin-bottom:1rem;}
+  .vol-details-toggle{display:inline-flex; align-items:center; gap:.4rem; flex:none; color:var(--accent); font-weight:700; font-size:.92rem; white-space:nowrap;}
+  .vol-details.is-toggle .vol-details-chevron{display:inline;}
+  .vol-details .vol-less, .vol-details[open] .vol-more{display:none;}
+  .vol-details[open] .vol-less{display:inline;}
+  @media (max-width:720px){ .vol-details.is-toggle > summary h3{font-size:1rem;} .vol-details-toggle{font-size:.85rem;} }
   .rate-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1.1rem; align-items:stretch;}
   @media (max-width:920px){ .rate-grid{grid-template-columns:1fr;} }
   /* min-width:0 - bez njega flex/grid stavka ne sme da se suzi ispod širine

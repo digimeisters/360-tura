@@ -93,6 +93,8 @@ export function ItemPrice({
 /**
  * Iznos na kartici: dok traje promocija veliki broj je snižena cena, a
  * redovna stoji precrtana pored - da se vidi i ušteda i prava vrednost.
+ * Kad kartica uđe u ekran, broj krene od redovne cene i spusti se do
+ * snižene; bez promocije cena samo stoji (nema šta da padne).
  */
 export function PlanPrice({
   count = 1,
@@ -117,7 +119,8 @@ export function PlanPrice({
 
   return (
     <div className="price-value">
-      {from && `${from} `}<b><CountUp value={active ? promo : regular} lang={lang} kind="amount" /></b>
+      {from && `${from} `}
+      <b>{active ? <CountUp value={promo} from={regular} lang={lang} kind="amount" /> : price(regular)}</b>
       {active && (
         <s className="price-was" aria-label={lang === 'sr' ? 'redovna cena' : 'regular price'}>
           {price(regular)}

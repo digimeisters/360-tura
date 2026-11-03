@@ -357,7 +357,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
               <p className="note" data-reveal="up">{copy.pricing.note}</p>
             </div>
             <PromoBanner lang={lang} />
-            <Pricing copy={copy.pricing} lang={lang} trackPrefix="" />
+            <Pricing copy={copy.pricing} lang={lang} trackPrefix="" compact />
           </div>
         </section>
 

@@ -206,7 +206,16 @@ export type HomeCopy = {
     plans: PricePlan[];
     labels: PricingLabels;
     /** Tabela: više nekretnina mesečno, niža cena po nekretnini. */
-    volume: { title: string; note: string; count: string; basic: string; premium: string };
+    volume: {
+      title: string;
+      note: string;
+      count: string;
+      basic: string;
+      premium: string;
+      /** Dugme na sklopljenoj tabeli: otvori / zatvori. */
+      showMore: string;
+      showLess: string;
+    };
     /** Jedan red: tura bez fotografija i fotografije bez ture. */
     single: { lead: string; tour: string; hdr: string };
     fine: string;
@@ -442,7 +451,9 @@ const sr: HomeCopy = {
       note: 'Cena po nekretnini (tura + HDR fotografije), prema tome koliko nekretnina snimamo za vas u jednom mesecu.',
       count: 'Nekretnina mesečno',
       basic: 'Osnovni',
-      premium: 'Premium'
+      premium: 'Premium',
+      showMore: 'Prikaži više',
+      showLess: 'Prikaži manje'
     },
     single: {
       lead: 'Treba vam samo tura ili samo fotografije?',
@@ -694,7 +705,9 @@ const en: HomeCopy = {
       note: 'Price per property (tour + HDR photos), by how many properties we shoot for you in one month.',
       count: 'Properties a month',
       basic: 'Basic',
-      premium: 'Premium'
+      premium: 'Premium',
+      showMore: 'Show more',
+      showLess: 'Show less'
     },
     single: {
       lead: 'Need only the tour or only the photos?',

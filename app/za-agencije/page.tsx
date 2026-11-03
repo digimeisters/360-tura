@@ -580,7 +580,7 @@ export default async function AgencyPage() {
             <PromoBanner lang="sr" />
             {/* Isti cenovnik kao na početnoj (components/Pricing.tsx), sa
                 napomenom za agencije ispod. */}
-            <Pricing copy={{ ...HOME_COPY.sr.pricing, fine: copy.pricing.fine }} lang="sr" trackPrefix="agency_" />
+            <Pricing copy={{ ...HOME_COPY.sr.pricing, fine: copy.pricing.fine }} lang="sr" trackPrefix="agency_" compact />
           </div>
         </section>
 
