@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { isRecentlyAdded } from '../app/lib/recentBadge';
 
@@ -11,12 +11,13 @@ import { isRecentlyAdded } from '../app/lib/recentBadge';
  * strana ima svoj spisak (vlasnik, 15. 10. 2026 - posetilac početne nije
  * video agencije, investitore ni alate).
  *
- *   Ture · Usluge ▾ · Alati ▾ · Cenovnik · Blog   (+ EN)
+ *   Ture · Za vlasnike · Za agencije · Za investitore · Cenovnik · Alati   (+ EN)
  *
- * Na računaru „Usluge“ i „Alati“ otvaraju padajući spisak; na telefonu
- * (ispod 980px) je jedno dugme „Meni“ koje otvara sve stavke preko celog
- * ekrana. Delovi pojedinačnih strana (Kako radimo, Pitanja...) nisu u
- * meniju - do njih se dolazi skrolovanjem.
+ * Na računaru su sve stavke direktni linkovi (vlasnik, 3. 11. 2026: „Usluge ▾“
+ * nije govorilo šta je unutra); Blog je u podnožju. Na telefonu (ispod
+ * 980px) je jedno dugme „Meni“ koje otvara sve stavke preko celog ekrana,
+ * sa opisima, pojedinačnim alatima i blogom. Delovi pojedinačnih strana
+ * (Kako radimo, Pitanja...) nisu u meniju - do njih se dolazi skrolovanjem.
  *
  * Engleska početna i strane projekata novogradnje imaju svoj meni
  * (SiteNav sa children) - njihova publika je druga.
@@ -33,9 +34,9 @@ type Item = {
 
 const SERVICES: Item[] = [
   {
-    href: '/#kako-radimo',
+    href: '/za-vlasnike',
     label: 'Za vlasnike',
-    note: 'Tura za vaš stan na prodaju ili izdavanje',
+    note: 'Tura za vašu nekretninu na prodaju ili izdavanje',
     icon: 'home'
   },
   {
@@ -125,33 +126,15 @@ export type MenuCta = { href: string; label: string; track: string };
 
 export default function MainMenu({ lang, cta }: { lang?: MenuLang; cta: MenuCta }) {
   const pathname = usePathname() || '/';
-  const [open, setOpen] = useState<'services' | 'tools' | null>(null);
   const [sheet, setSheet] = useState(false);
-  const root = useRef<HTMLUListElement>(null);
 
-  // Zatvori sve pri prelasku na drugu stranu (i dugmetom Nazad) - poređenje
+  // Zatvori meni pri prelasku na drugu stranu (i dugmetom Nazad) - poređenje
   // sa prethodnom adresom tokom iscrtavanja, bez dodatnog effect-a.
   const [shownPath, setShownPath] = useState(pathname);
   if (pathname !== shownPath) {
     setShownPath(pathname);
-    setOpen(null);
     setSheet(false);
   }
-
-  // Padajući spisak: klik van njega ili Esc ga zatvara.
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (root.current && !root.current.contains(e.target as Node)) setOpen(null);
-    };
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(null);
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
 
   // Meni preko celog ekrana (telefon): strana ispod se ne skroluje, Esc zatvara.
   useEffect(() => {
@@ -167,12 +150,7 @@ export default function MainMenu({ lang, cta }: { lang?: MenuLang; cta: MenuCta 
   }, [sheet]);
 
   const isCurrent = (href: string) => !href.includes('#') && (pathname === href || pathname.startsWith(`${href}/`));
-  const inGroup = (items: Item[], all?: typeof TOOLS_ALL) =>
-    items.some((i) => isCurrent(i.href)) || (all !== undefined && pathname === all.href);
-  const close = () => {
-    setOpen(null);
-    setSheet(false);
-  };
+  const close = () => setSheet(false);
 
   const allLink = (all: typeof TOOLS_ALL) => (
     <Link href={all.href} className="mm-all" onClick={close} aria-current={pathname === all.href ? 'page' : undefined}>
@@ -180,47 +158,29 @@ export default function MainMenu({ lang, cta }: { lang?: MenuLang; cta: MenuCta 
     </Link>
   );
 
-  const group = (key: 'services' | 'tools', label: string, items: Item[], all?: typeof TOOLS_ALL) => (
-    <li className="mm-group">
-      <button
-        type="button"
-        className={inGroup(items, all) ? 'mm-btn is-here' : 'mm-btn'}
-        aria-expanded={open === key}
-        aria-controls={`mm-${key}`}
-        onClick={() => setOpen((o) => (o === key ? null : key))}
-      >
-        {label}{' '}
-        <span className="mm-chev" aria-hidden="true">
-          ▾
-        </span>
-      </button>
-      <div className="mm-drop" id={`mm-${key}`} hidden={open !== key}>
-        {items.map((i) => (
-          <Entry key={i.href} item={i} onClick={close} current={isCurrent(i.href)} />
-        ))}
-        {all && allLink(all)}
-      </div>
-    </li>
-  );
-
   return (
     <>
-      <ul className="navlinks mm" ref={root}>
+      <ul className="navlinks mm">
         <li>
           <Link href="/ture" aria-current={isCurrent('/ture') ? 'page' : undefined} data-track="cta:menu_tours">
             Ture
           </Link>
         </li>
-        {group('services', 'Usluge', SERVICES)}
-        {group('tools', 'Alati', TOOLS, TOOLS_ALL)}
+        {SERVICES.map((i) => (
+          <li key={i.href}>
+            <Link href={i.href} aria-current={isCurrent(i.href) ? 'page' : undefined} data-track={`cta:menu_${i.icon}`}>
+              {i.label}
+            </Link>
+          </li>
+        ))}
         <li>
-          <Link href="/#cenovnik" data-track="cta:menu_pricing">
+          <Link href="/cenovnik" aria-current={isCurrent('/cenovnik') ? 'page' : undefined} data-track="cta:menu_pricing">
             Cenovnik
           </Link>
         </li>
         <li>
-          <Link href="/blog" aria-current={isCurrent('/blog') ? 'page' : undefined} data-track="cta:menu_blog">
-            Blog
+          <Link href={TOOLS_ALL.href} aria-current={isCurrent(TOOLS_ALL.href) ? 'page' : undefined} data-track="cta:menu_tools">
+            Alati
           </Link>
         </li>
         {lang && (
@@ -275,15 +235,15 @@ export default function MainMenu({ lang, cta }: { lang?: MenuLang; cta: MenuCta 
             />
             <Entry
               item={{
-                href: '/#cenovnik',
+                href: '/cenovnik',
                 label: 'Cenovnik',
                 note: 'Paketi i cene snimanja',
                 icon: 'price'
               }}
               onClick={close}
-              current={false}
+              current={isCurrent('/cenovnik')}
             />
-            <p className="mm-sheet-grp">Usluge</p>
+            <p className="mm-sheet-grp">Ko ste vi?</p>
             {SERVICES.map((i) => (
               <Entry key={i.href} item={i} onClick={close} current={isCurrent(i.href)} />
             ))}

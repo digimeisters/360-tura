@@ -23,7 +23,7 @@ function pricesSection(): string {
 ${rows}
 Osnovni: audio vodič na srpskom + jednom jeziku po izboru, isporuka najkasnije za 48h.
 Premium: audio vodič na sva 4 jezika, izrada tlocrta, isporuka za 24h.${promo}
-Aktuelni cenovnik: ${SITE_URL}/#cenovnik`;
+Aktuelni cenovnik: ${SITE_URL}/cenovnik`;
 }
 
 function blogSection(): string {

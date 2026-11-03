@@ -188,15 +188,9 @@ export type HomeCopy = {
       cta: string;
     };
   };
-  benefits: { eyebrow: string; title: string; note: string; items: Titled[] };
   modules: ModulesCopy;
   /** Sekcija "Od tlocrta do ture" (components/TourStory), odmah posle "U samoj turi". */
   story: StoryCopy;
-  /**
-   * Poziv na sredini strane, posle "U samoj turi" - ranije između primera
-   * ture i cenovnika sedam ekrana nije bilo nijednog dugmeta.
-   */
-  midCta: { title: string; points: string[]; button: string; call: string };
   steps: { eyebrow: string; title: string; note: string; items: Titled[]; deliverTitle: string; deliver: string[] };
   pricing: {
     eyebrow: string;
@@ -220,6 +214,19 @@ export type HomeCopy = {
     single: { lead: string; tour: string; hdr: string };
     fine: string;
   };
+  /**
+   * Cena ukratko na početnoj (vlasnik, 3. 11. 2026): dva paketa jednim
+   * redom i link na /cenovnik, gde je ceo cenovnik. Samo srpska početna -
+   * /cenovnik je samo na srpskom, pa engleska zadržava ceo cenovnik.
+   */
+  pricingShort?: {
+    eyebrow: string;
+    title: string;
+    note: string;
+    plans: { packageType: PackageType; title: string; note: string }[];
+    book: string;
+    more: string;
+  };
   // Putokaz ka strani za agencije (/za-agencije), odmah ispod paketa. Ta
   // strana postoji za sada samo na srpskom, pa se i sekcija pojavljuje samo
   // tamo - isto pravilo kao nav.agencies.
@@ -231,15 +238,6 @@ export type HomeCopy = {
   audiencePick?: {
     label: string;
     items: { icon: HomeService['icon']; label: string; href: string }[];
-  };
-  /** Sve usluge na jednom mestu - samo srpska početna (te strane su samo na srpskom). */
-  services?: {
-    eyebrow: string;
-    title: string;
-    note: string;
-    items: HomeService[];
-    toolsLabel: string;
-    tools: { href: string; label: string }[];
   };
   faq: { eyebrow: string; title: string; note: string };
   contact: {
@@ -306,20 +304,6 @@ const sr: HomeCopy = {
       cta: 'Prikaži ture'
     }
   },
-  benefits: {
-    eyebrow: 'Benefiti',
-    title: 'Zašto virtuelna tura *prodaje bolje*',
-    note: 'Ono što tura i HDR fotografije donose vama i vašim klijentima — a ne tehnologija iza njih.',
-    items: [
-      // Četiri, ne osam: ranije su se kartice preklapale međusobno ("Manje
-      // uzaludnih razgledanja" / "Brža odluka") i sa sekcijom "U samoj turi"
-      // ("Vaše ime u svakoj turi" = modul Kontakt). Svaka ovde je jedna ideja.
-      { title: 'Manje uzaludnih razgledanja', text: 'Kupci prvo „prošetaju“ kroz nekretninu online. Na razgledanje dolaze samo oni koje zaista zanima — sa manje pitanja, spremni da brzo odluče.' },
-      { title: 'Oglas koji se izdvaja', text: 'HDR fotografije i 360° tura odvajaju vaš oglas od stotina slikanih telefonom — i grade poverenje pre prvog poziva.' },
-      { title: 'Kupci iz drugih gradova', text: 'Ko živi u Beogradu, Nišu ili inostranstvu razgleda nekretninu bez puta — a audio vodič mu je ispriča na srpskom, engleskom, nemačkom ili ruskom.' },
-      { title: 'Otvoreno 24 sata', text: 'Tura je otvorena u svako doba, na telefonu ili računaru, bez zakazivanja i bez aplikacije — uz vodiča kroz sve prostorije ili svojim tempom.' }
-    ]
-  },
   modules: {
     eyebrow: 'U samoj turi',
     title: 'Pet dugmadi koja *odgovaraju umesto vas*',
@@ -378,12 +362,6 @@ const sr: HomeCopy = {
     cta: 'Prošetajte sami',
     tourName: 'Apartman Belgrade Four, Dorćol'
   },
-  midCta: {
-    title: 'Hoćete ovakvu turu za *svoju nekretninu?*',
-    points: ['snimanje 30–60 min', 'tura za 24–48h', 'audio vodič na više jezika'],
-    button: 'Zakažite snimanje',
-    call: 'Pozovite'
-  },
   steps: {
     eyebrow: 'Kako radimo',
     title: 'Od poziva do *gotove ture*',
@@ -423,7 +401,7 @@ const sr: HomeCopy = {
           'Link za oglas i gotov kod za ugradnju na sajt',
           'Isporuka za 48h'
         ],
-        cta: 'Zatražite ponudu',
+        cta: 'Zakažite snimanje',
         track: 'price_basic'
       },
       {
@@ -440,7 +418,7 @@ const sr: HomeCopy = {
           'QR kod za oglas, letak i izlog',
           'Kratak video iz ture za Instagram i Facebook'
         ],
-        cta: 'Zatražite ponudu',
+        cta: 'Zakažite snimanje',
         track: 'price_premium',
         badge: 'Najbolje za agencije'
       }
@@ -462,50 +440,23 @@ const sr: HomeCopy = {
     },
     fine: '* Cene su prosečne, za prostor od oko 50 m². Za manje i veće prostore cenu formiramo prema broju prostorija — javite kvadraturu i broj soba, pa šaljemo tačnu ponudu. Za gradove van Kragujevca dogovaramo posebno.'
   },
+  pricingShort: {
+    eyebrow: 'Cenovnik',
+    title: 'Tura i HDR fotografije, *jedna cena*',
+    note: 'Po nekretnini od oko 50 m². Agencije sa više nekretnina mesečno plaćaju manje.',
+    plans: [
+      { packageType: 'basic', title: 'Osnovni', note: 'SR + jedan jezik · isporuka za 48h' },
+      { packageType: 'premium', title: 'Premium', note: 'Sva 4 jezika i tlocrt · isporuka za 24h' }
+    ],
+    book: 'Zakažite snimanje',
+    more: 'Ceo cenovnik'
+  },
   audiencePick: {
     label: 'Ko ste vi?',
     items: [
-      { icon: 'home', label: 'Vlasnik nekretnine', href: '#kako-radimo' },
+      { icon: 'home', label: 'Vlasnik nekretnine', href: '/za-vlasnike' },
       { icon: 'agency', label: 'Agencija za nekretnine', href: '/za-agencije' },
       { icon: 'building', label: 'Investitor novogradnje', href: '/za-investitore' }
-    ]
-  },
-  services: {
-    eyebrow: 'Usluge',
-    title: 'Za vlasnike, agencije *i investitore*',
-    note: 'Isto snimanje i ista tura, prilagođeni onome ko prodaje: jednu nekretninu, više oglasa mesečno ili celu zgradu.',
-    items: [
-      {
-        icon: 'home',
-        label: 'Za vlasnike',
-        text: 'Prodajete ili izdajete nekretninu? Tura i HDR fotografije za vaš oglas, gotovi za 24–48h.',
-        points: ['Link za svaki portal', 'Vaš telefon u turi', 'Jedna cena po nekretnini'],
-        cta: 'Kako radimo',
-        href: '#kako-radimo'
-      },
-      {
-        icon: 'agency',
-        label: 'Za agencije',
-        text: 'Niža cena za više oglasa mesečno, kontakt agenta u svakoj turi i mesečni izveštaj o posetama.',
-        points: ['Upitnik — sami ili zajedno sa nama', 'Kontakt agenta u svakoj turi', 'Praćenje poseta po oglasu'],
-        cta: 'Strana za agencije',
-        href: '/za-agencije'
-      },
-      {
-        icon: 'building',
-        label: 'Za investitore',
-        isNew: true,
-        text: 'Novogradnja: kupac na fotografiji zgrade klikne na stan i odmah vidi kvadraturu, raspored, cenu i status.',
-        points: ['Stanovi obojeni po statusu', 'Osnova i 360° tura stana', 'Prodaja sama menja cene i statuse'],
-        cta: 'Strana za investitore',
-        href: '/za-investitore'
-      }
-    ],
-    toolsLabel: 'Besplatni alati:',
-    tools: [
-      { href: '/alati/kalkulator-kredita', label: 'Kalkulator kredita' },
-      { href: '/alati/procena-vrednosti', label: 'Procena vrednosti' },
-      { href: '/alati/cene-nekretnina-kragujevac', label: 'Cene po naseljima' }
     ]
   },
   faq: {
@@ -566,17 +517,6 @@ const en: HomeCopy = {
     title: 'Walk through a *real tour*',
     note: 'Open any of them — this is exactly what your buyer sees.'
   },
-  benefits: {
-    eyebrow: 'Benefits',
-    title: 'Why a virtual tour *sells better*',
-    note: 'What the tour and HDR photos do for you and your clients — not the technology behind them.',
-    items: [
-      { title: 'Fewer wasted viewings', text: 'Buyers “walk” through the property online first. Only the seriously interested come to see it — with fewer questions, ready to decide.' },
-      { title: 'A listing that stands out', text: 'HDR photos and a 360° tour set your listing apart from the hundreds shot on a phone — and build trust before the first call.' },
-      { title: 'Buyers from other cities', text: 'Someone in Belgrade, Niš or abroad views the property without the trip — and the audio guide walks them through it in Serbian, English, German or Russian.' },
-      { title: 'Open 24/7', text: 'The property is open at any hour, on a phone or a computer, with no appointment and no app — with a guide through every room or at their own pace.' }
-    ]
-  },
   modules: {
     eyebrow: 'Inside the tour',
     title: 'Five buttons that *answer for you*',
@@ -634,12 +574,6 @@ const en: HomeCopy = {
     doorFallback: 'Go to the bedroom',
     cta: 'Walk through it yourself',
     tourName: 'Belgrade Four Apartment, Dorćol'
-  },
-  midCta: {
-    title: 'Want a tour like this for *your property?*',
-    points: ['30–60 min shoot', 'tour within 24–48h', 'audio guide in several languages'],
-    button: 'Book a shoot',
-    call: 'Call us'
   },
   steps: {
     eyebrow: 'How it works',

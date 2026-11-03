@@ -33,6 +33,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.8
     },
+    // Za vlasnike - strana za vlasnika koji sam prodaje ili izdaje (3. 11. 2026).
+    {
+      url: `${SITE_URL}/za-vlasnike`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8
+    },
+    // Cenovnik - posebna strana od 3. 11. 2026, da cena ima svoj link.
+    {
+      url: `${SITE_URL}/cenovnik`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8
+    },
     // Za investitore (novogradnja) - javna od 15. 10. 2026.
     {
       url: `${SITE_URL}/za-investitore`,

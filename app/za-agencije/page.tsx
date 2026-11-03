@@ -251,7 +251,7 @@ const AGENCY_STYLES = `
 `;
 
 export default async function AgencyPage() {
-  const { nav, hero, week, buyer, live, owner, midCta, proof, steps, contact } = copy;
+  const { nav, hero, week, buyer, live, owner, proof, steps, contact } = copy;
   const address = [CONTACT.street, CONTACT.city].filter(Boolean).join(', ');
 
   const tours = await getShowcaseTours('sr');
@@ -503,26 +503,6 @@ export default async function AgencyPage() {
               <div className="report-chips">
                 {owner.report.chips.map((chip) => <span key={chip}>{chip}</span>)}
               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Poziv na sredini: agent koga je priča ubedila ima gde da klikne pre cena. */}
-        {/* Kompaktna traka: cena u naslovu, tri koristi, dva dugmeta (agenti
-            radije zovu nego što popunjavaju formu). */}
-        <section id="probajte" className="mid-cta-sec">
-          <div className="wrap mid-cta">
-            <div className="mid-cta-text" data-reveal="up">
-              <h2>
-                {accent(midCta.title)} <FromPrice count={1} prefix="od " />
-              </h2>
-              <ul>
-                {midCta.points.map((point) => <li key={point}>{point}</li>)}
-              </ul>
-            </div>
-            <div className="mid-cta-actions" data-reveal="up">
-              <a className="btn btn-primary" href="#kontakt" data-track="cta:agency_mid">{midCta.button}</a>
-              <a className="btn btn-secondary" href={CONTACT_LINKS.phone} data-track="contact:phone"><IconPhone /> {midCta.call}</a>
             </div>
           </div>
         </section>

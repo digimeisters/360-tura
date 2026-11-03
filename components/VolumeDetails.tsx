@@ -12,14 +12,19 @@ import { useEffect, useRef, type ReactNode } from 'react';
  * `toggle` (početna i /za-agencije, vlasnik 3. 11. 2026): sklopljeno na
  * SVAKOJ širini, sa dugmetom "Prikaži više / Prikaži manje" - kartice sa
  * glavnom cenom treba da budu jedino što se odmah vidi.
+ *
+ * `open` (/cenovnik): otvoreno od početka i na telefonu - na toj strani je
+ * tabela razlog dolaska, ne nešto što treba skloniti.
  */
 export default function VolumeDetails({
   title,
   toggle,
+  open = false,
   children
 }: {
   title: string;
   toggle?: { more: string; less: string };
+  open?: boolean;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDetailsElement>(null);
@@ -30,7 +35,7 @@ export default function VolumeDetails({
   }, [toggle]);
 
   return (
-    <details ref={ref} className={`vol-details${toggle ? ' is-toggle' : ''}`}>
+    <details ref={ref} open={open || undefined} className={`vol-details${toggle ? ' is-toggle' : ''}`}>
       <summary>
         <h3>{title}</h3>
         {toggle ? (

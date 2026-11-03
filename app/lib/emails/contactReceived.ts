@@ -35,7 +35,7 @@ const COPY = {
     urgent: 'Ako je hitno, pozovite me ili mi odgovorite na ovaj mejl.',
     footer: 'Ovaj mejl ste dobili jer ste nam pisali preko sajta kvadrat360.com.',
     subject: 'Primili smo vašu poruku - Kvadrat360',
-    pricingPath: '/#cenovnik'
+    pricingPath: '/cenovnik'
   },
   en: {
     hi: (n: string) => `Hi ${n},`,

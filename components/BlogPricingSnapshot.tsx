@@ -24,7 +24,7 @@ export function BlogPricingSnapshot() {
       </div>
       <p className="note">
         Cene su za jednu nekretninu prosečne veličine. Za više nekretnina mesečno cena po nekretnini pada -
-        pogledajte <Link href="/#cenovnik">ceo cenovnik</Link> ili{' '}
+        pogledajte <Link href="/cenovnik">ceo cenovnik</Link> ili{' '}
         <Link href="/za-agencije">paket za agencije</Link>.
       </p>
     </div>

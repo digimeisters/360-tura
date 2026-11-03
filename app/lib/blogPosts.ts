@@ -160,13 +160,13 @@ export const BLOG_POSTS: BlogPost[] = [
       }
     ],
     relatedLinks: [
-      { href: '/#cenovnik', label: 'Pogledajte tačan cenovnik po broju prostorija' },
+      { href: '/cenovnik', label: 'Pogledajte tačan cenovnik po broju prostorija' },
       { href: '/za-agencije', label: 'Agencija ste i naručujete više nekretnina mesečno? Cena po nekretnini pada - pogledajte paket za agencije' }
     ]
   },
   {
     slug: 'sta-agencija-za-nekretnine-gubi-sa-obicnim-fotografijama',
-    cta: { href: '/za-agencije#kontakt', label: 'Zatražite ponudu za agenciju' },
+    cta: { href: '/za-agencije#kontakt', label: 'Zakažite snimanje' },
     title: 'Šta agencija za nekretnine gubi kad koristi samo obične fotografije',
     seoTitle: 'Obične fotografije vs 360 tura nekretnina',
     description:
@@ -247,7 +247,7 @@ export const BLOG_POSTS: BlogPost[] = [
     ],
     relatedLinks: [
       { href: '/za-agencije', label: 'Agencija ste? Pogledajte paket za agencije i primer gotove ture' },
-      { href: '/#cenovnik', label: 'Koliko košta tura za jednu nekretninu? Pogledajte cenovnik' }
+      { href: '/cenovnik', label: 'Koliko košta tura za jednu nekretninu? Pogledajte cenovnik' }
     ]
   },
   {
@@ -415,7 +415,7 @@ export const BLOG_POSTS: BlogPost[] = [
     ],
     relatedLinks: [
       { href: '/alati/procena-vrednosti', label: 'Koliko vredi vaša nekretnina? Proverite raspon cene za vaše naselje' },
-      { href: '/#cenovnik', label: 'Hoćete turu za svoju nekretninu? Pogledajte cenovnik' },
+      { href: '/cenovnik', label: 'Hoćete turu za svoju nekretninu? Pogledajte cenovnik' },
       { href: '/za-agencije', label: 'Agencija ste? Pogledajte kako tura štedi uzaludna razgledanja' }
     ]
   },
@@ -506,7 +506,7 @@ export const BLOG_POSTS: BlogPost[] = [
     ],
     relatedLinks: [
       { href: '/za-agencije', label: 'Agencija ste? Pogledajte kako izgleda saradnja i primer ture' },
-      { href: '/#cenovnik', label: 'Koliko košta snimanje jedne nekretnine? Pogledajte cenovnik' },
+      { href: '/cenovnik', label: 'Koliko košta snimanje jedne nekretnine? Pogledajte cenovnik' },
       { href: '/blog/kako-brze-prodati-stan-u-kragujevcu', label: 'Spremate se za prodaju? Pročitajte šta uraditi pre objave oglasa' }
     ]
   },
@@ -576,7 +576,7 @@ export const BLOG_POSTS: BlogPost[] = [
     ],
     relatedLinks: [
       { href: '/za-agencije', label: 'Agencija ste? Pogledajte paket za agencije i primer gotove ture' },
-      { href: '/#cenovnik', label: 'Koliko košta tura za jednu nekretninu? Pogledajte cenovnik' },
+      { href: '/cenovnik', label: 'Koliko košta tura za jednu nekretninu? Pogledajte cenovnik' },
       { href: '/blog/sta-agencija-za-nekretnine-gubi-sa-obicnim-fotografijama', label: 'Pročitajte i šta agencija gubi kad koristi samo obične fotografije' }
     ]
   }

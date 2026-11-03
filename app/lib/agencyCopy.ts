@@ -64,14 +64,6 @@ export type AgencyCopy = {
       chips: string[];
     };
   };
-  /** Poziv na sredini strane, posle priče i dokaza - pre cena. */
-  midCta: {
-    /** Naslov; iza njega ide ulazna cena ("od 6.000 din."), računa je FromPrice pa prati akciju. */
-    title: string;
-    points: string[];
-    button: string;
-    call: string;
-  };
   proof: {
     eyebrow: string;
     title: string;
@@ -112,14 +104,14 @@ export const AGENCY_COPY: AgencyCopy = {
     packages: 'Cene',
     faq: 'Pitanja',
     home: 'Početna',
-    cta: 'Zatražite ponudu'
+    cta: 'Zakažite snimanje'
   },
   hero: {
     eyebrow: '360° ture za agencije · Kragujevac i okolina',
     title: 'Ista nekretnina, tri agencije. *Kupac zove vas.*',
     lede:
       'Kad je vaš oglas jedini u kome kupac može da prošeta kroz nekretninu, zove vas. Mi snimamo — vi za 24–48h dobijate turu za oglas.',
-    ctaContact: 'Zatražite ponudu',
+    ctaContact: 'Zakažite snimanje',
     ctaPrices: 'Pogledajte cene',
     trust: ['Snimanje 30–60 min', 'Tura za 24–48h', 'Radi na svakom telefonu']
   },
@@ -176,7 +168,7 @@ export const AGENCY_COPY: AgencyCopy = {
     },
     end: {
       text: 'Ovakav link šaljete svakom kupcu — od prvog snimanja.',
-      cta: 'Zatražite turu za sledeći oglas'
+      cta: 'Zakažite snimanje'
     }
   },
   live: {
@@ -210,12 +202,6 @@ export const AGENCY_COPY: AgencyCopy = {
       ],
       chips: ['Sačuvaj kao PDF', 'Poređenje sa prošlim mesecom']
     }
-  },
-  midCta: {
-    title: 'Probajte na *jednoj nekretnini* —',
-    points: ['tura za 24–48h', 'vaš kontakt u turi', 'izveštaj za vlasnika'],
-    button: 'Zatražite ponudu',
-    call: 'Pozovite'
   },
   proof: {
     eyebrow: 'Nije samo naša priča',

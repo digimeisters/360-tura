@@ -44,7 +44,7 @@ export const PROMO_TEXT = {
     // 1 sat, 2-4 sata, 5+ sati (ali 11-14 sati).
     hours: (n: number) =>
       n % 10 === 1 && n % 100 !== 11 ? 'sat' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'sata' : 'sati',
-    cta: 'Iskoristite popust',
+    cta: 'Zakažite uz popust',
     countdown: 'Do kraja promocije'
   },
   en: {

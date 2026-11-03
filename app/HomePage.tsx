@@ -11,6 +11,7 @@ import TourStory from '../components/TourStory';
 import { getStoryData } from './lib/tourStory';
 import PromoBanner from '../components/PromoBanner';
 import Pricing from '../components/Pricing';
+import PricingShort from '../components/PricingShort';
 import NavScrollSpy from '../components/NavScrollSpy';
 import { getShowcaseTours, HOME_CITY, localToursFirst, pickHeroTour, TOUR_FILTERS_FROM } from './lib/showcaseTours';
 import { SITE_NAME, CONTACT, CONTACT_LINKS, whatsappLink } from './lib/site';
@@ -24,7 +25,6 @@ import { STRUCTURE_ORDER, structureLabel } from './lib/propertyTaxonomy';
 import PromoTopBar from '../components/PromoTopBar';
 import TourModulesShowcase from '../components/TourModulesShowcase';
 import ChatBubble from '../components/ChatBubble';
-import { IconPhone } from '../components/SiteIcons';
 import SiteStylesheets from '../components/SiteStylesheets';
 import HtmlLang from '../components/HtmlLang';
 import { preloadHeroImage } from './lib/heroPreload';
@@ -81,7 +81,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
   const faq = HOME_FAQ[lang];
   const { nav, hero, contact } = copy;
 
-  const [allTours, openCount, story] = await Promise.all([getShowcaseTours(lang), getPublicOpenCount(), getStoryData(lang)]);
+  const [allTours, openCount, story] = await Promise.all([getShowcaseTours(lang), getPublicOpenCount(), lang === 'sr' ? null : getStoryData(lang)]);
   // Strana kaže "Vaš kvadrat u Kragujevcu" - primeri i kadar u vrhu kreću od tog grada.
   const tours = localToursFirst(allTours);
   const heroTour = pickHeroTour(tours, lang, HOME_CITY);
@@ -106,7 +106,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
       <CardSpotlight />
       <SiteReveal />
       <NavScrollSpy />
-      <PromoTopBar lang={lang} href="#cenovnik" />
+      <PromoTopBar lang={lang} href={lang === 'sr' ? '/cenovnik' : '#cenovnik'} />
 
       {/* Srpska početna: glavni meni sajta (isti na svim stranama). Engleska
           zadržava meni sa sekcijama ove strane - druge strane su samo na srpskom. */}
@@ -177,7 +177,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
             <p className="lede">{hero.lede}</p>
             <div className="hero-ctas">
               <a className="btn btn-primary" href="#kontakt" data-track="cta:hero_book">{nav.cta}</a>
-              <a className="btn btn-secondary" href="#cenovnik" data-track="cta:hero_packages">{hero.ctaPackages}</a>
+              <a className="btn btn-secondary" href={lang === 'sr' ? '/cenovnik' : '#cenovnik'} data-track="cta:hero_packages">{hero.ctaPackages}</a>
             </div>
             <ul className="ht-facts">
               {hero.trust.map((item) => (
@@ -274,24 +274,6 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
           </section>
         )}
 
-        <section id="benefiti">
-          <div className="wrap">
-            <div className="section-head">
-              <span className="eyebrow" data-reveal="up">{copy.benefits.eyebrow}</span>
-              <h2 data-reveal="blur">{accent(copy.benefits.title)}</h2>
-              <p className="note" data-reveal="up">{copy.benefits.note}</p>
-            </div>
-            <div className="feat-grid">
-              {copy.benefits.items.map((item) => (
-                <div key={item.title} className="card feat" data-reveal="up">
-                  <h3>{item.title}</h3>
-                  <p>{item.text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         <section className="band" id="u-turi">
           <div className="wrap">
             <TourModulesShowcase copy={copy.modules} photoUrl={heroTour?.coverUrl ?? null} />
@@ -300,24 +282,9 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
 
         {/* Wow sekcija (vlasnik, 21. 10. 2026): posle dugmadi ispod ture, priča
             šta tura radi u samoj panorami. Bez podataka ture se ne prikazuje. */}
+        {/* Na srpskoj početnoj je nema od 3. 11. 2026 - preseljena na
+            /za-vlasnike (početna je bila 15,5 ekrana na telefonu, priča sama 5). */}
         {story && <TourStory data={story} copy={copy.story} lang={lang} />}
-
-        {/* Poziv na sredini: posle "U samoj turi" posetilac je video šta tura
-            radi, a do cenovnika ima još dva ekrana bez ijednog dugmeta. */}
-        <section id="zakazite" className="mid-cta-sec">
-          <div className="wrap mid-cta">
-            <div className="mid-cta-text" data-reveal="up">
-              <h2>{accent(copy.midCta.title)}</h2>
-              <ul>
-                {copy.midCta.points.map((point) => <li key={point}>{point}</li>)}
-              </ul>
-            </div>
-            <div className="mid-cta-actions" data-reveal="up">
-              <a className="btn btn-primary" href="#kontakt" data-track="cta:home_mid">{copy.midCta.button}</a>
-              <a className="btn btn-secondary" href={CONTACT_LINKS.phone} data-track="contact:phone"><IconPhone /> {copy.midCta.call}</a>
-            </div>
-          </div>
-        </section>
 
         <section id="kako-radimo">
           <div className="wrap steps-split">
@@ -349,6 +316,12 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
           </div>
         </section>
 
+        {/* Srpska početna: cena ukratko, ceo cenovnik je na /cenovnik (vlasnik,
+            3. 11. 2026). Engleska nema tu stranu, pa ovde zadržava ceo. Id
+            ostaje #cenovnik, da stari linkovi (blog, mejlovi) i dalje rade. */}
+        {copy.pricingShort ? (
+          <PricingShort copy={copy.pricingShort} />
+        ) : (
         <section className="band" id="cenovnik">
           <div className="wrap">
             <div className="section-head">
@@ -360,52 +333,6 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
             <Pricing copy={copy.pricing} lang={lang} trackPrefix="" compact />
           </div>
         </section>
-
-        {/* Sve usluge na jednom mestu (vlasnik, 15. 10. 2026): početna je
-            ranije vodila samo na agencije, a investitori i alati su se videli
-            tek u meniju - na telefonu skrivenom iza dugmeta "Meni". */}
-        {copy.services && (
-          <section className="agency-bridge services" id="usluge">
-            <div className="wrap">
-              <div className="section-head left">
-                <span className="eyebrow" data-reveal="up">{copy.services.eyebrow}</span>
-                <h2 data-reveal="blur">{accent(copy.services.title)}</h2>
-                <p className="note" data-reveal="up">{copy.services.note}</p>
-              </div>
-              <div className="svc-grid">
-                {copy.services.items.map((item) => (
-                  <div key={item.href} className="card svc" data-reveal="up">
-                    <span className="svc-ico" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        {SERVICE_ICONS[item.icon]}
-                      </svg>
-                    </span>
-                    <h3>
-                      {item.label}
-                      {item.isNew && <span className="svc-new">Novo</span>}
-                    </h3>
-                    <p>{item.text}</p>
-                    <ul className="bridge-points">
-                      {item.points.map((point) => (
-                        <li key={point}>{point}</li>
-                      ))}
-                    </ul>
-                    <Link className="svc-link" href={item.href} data-track={`cta:services_${item.icon}`}>
-                      {item.cta}
-                    </Link>
-                  </div>
-                ))}
-              </div>
-              <div className="svc-tools">
-                <span>{copy.services.toolsLabel}</span>
-                {copy.services.tools.map((tool) => (
-                  <Link key={tool.href} href={tool.href} data-track="cta:services_tool">
-                    {tool.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </section>
         )}
 
         {/* Ugradnja na sajt (iframe kod) je preseljena na /za-agencije -

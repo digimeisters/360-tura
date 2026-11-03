@@ -18,17 +18,21 @@ import VolumeDetails from './VolumeDetails';
  * `compact` (početna i /za-agencije, vlasnik 3. 11. 2026): kartice samo sa
  * glavnom cenom, bez reda "tura + HDR"; tabela i "samo tura / samo
  * fotografije" sklopljeni iza "Prikaži više" na svakoj širini.
+ *
+ * `volumeOpen` (/cenovnik): tabela po obimu otvorena i na telefonu.
  */
 export default function Pricing({
   copy,
   lang,
   trackPrefix,
-  compact = false
+  compact = false,
+  volumeOpen = false
 }: {
   copy: HomeCopy['pricing'];
   lang: HomeLang;
-  trackPrefix: '' | 'agency_';
+  trackPrefix: '' | 'agency_' | 'pricing_';
   compact?: boolean;
+  volumeOpen?: boolean;
 }) {
   return (
     <>
@@ -60,6 +64,7 @@ export default function Pricing({
       {/* Na telefonu sklopljeno - vidi VolumeDetails; na početnoj (compact) uvek. */}
       <VolumeDetails
         title={copy.volume.title}
+        open={volumeOpen}
         toggle={compact ? { more: copy.volume.showMore, less: copy.volume.showLess } : undefined}
       >
         <p className="note">{copy.volume.note}</p>
