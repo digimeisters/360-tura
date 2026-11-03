@@ -78,4 +78,5 @@ Kad korisnik da povratnu informaciju o tonu, strukturi ili nečemu što treba dr
 
 - **Gotov tekst od vlasnika (2026-10-16):** kad vlasnik pošalje tekst + SEO naslov + meta opis, SEO naslov ide u `seoTitle`, a meta opis se upisuje tačno kako je dat, i kad je kraći od 150 karaktera. Tekst se samo formatira (Ukratko, bullets) i lektoriše; tvrdnje bez izvora se ublaže, a generičko "stan" ide u "nekretnina".
 - **Postovi za investitore:** `relatedLinks` vode na `/za-investitore`, uz `/` (gotova tura) umesto `/#cenovnik`, jer se cena za investitore dogovara.
+- **Tvrdnje o paketima (2026-11-03):** pre nego što post kaže da je nešto "u oba paketa" ili samo u Premium-u, proveri `app/lib/pricing.ts` i pitaj vlasnika ako nije jasno. Potvrđeno: AI asistent i glasovni uvod idu uz oba paketa.
 - **Ne obećavati turu iz 3D modela** - tura za novogradnju se snima u oglednom ili prvom završenom stanu (ili iz 360° rendera koje arhitekta već ima).

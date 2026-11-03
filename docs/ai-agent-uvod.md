@@ -151,6 +151,12 @@ Najvažnije u `app/lib/`:
 | `propertyTaxonomy.ts` | zatvorene liste (tip, struktura, naselja, grejanje, terasa, parking, depozit, uknjiženost); `structureLabel()` skida „(2.0)" za prikaz |
 | `geocode.ts` | adresa → koordinate (Nominatim) za mapu na `/ture` |
 | `structuredData.ts` | JSON-LD (WebSite, LocalBusiness, FAQPage) |
+| `aiNotes.ts` | napomene za AI popunu soba (`tour_ai_notes`, migracija 046): `normalizeAiNotes`, granice 2000/500 znakova; ruta `/api/admin/ai-notes` (GET/PUT) |
+| `roomAiContext.ts` | šta AI zna o sobi: `roomFactsFromTour` (bez cene, depozita, parkinga, uknjiženosti), `visitOrder` (red obilaska iz `guide_path`), `previousInVisit` |
+| `roomDraftPrompt.ts` | uputstva za AI popunu: glas agenta, `clientAngle` po tipu oglasa, `buildDraftPrompt`, prepis (`buildRewritePrompt`, `shouldRewrite`), plan ture (`buildTourPlanPrompt`, `mapPlanToRooms`; akcija `plan_tour` u `/api/ai/auto-populate-room`) |
+| `roomDraftRules.ts` | granice dužine i provere teksta sobe: `checkDraftField` (dok se kuca), `checkRoomDraft` (ceo nacrt pre pregleda: pohvale, definicije, počeci, prazno, ponavljanje) |
+| `aiOverload.ts` | `isOverloadError` (503/429) i pauza za „AI sve sobe“ |
+| `serviceJsonLd.ts` | JSON-LD usluge za `/cenovnik` i `/za-vlasnike`: Service + OfferCatalog (Osnovni, Premium) sa cenama iz `pricing.ts` (promo i `priceValidUntil` dok traje akcija) i BreadcrumbList. Google od maja 2026. ne prikazuje FAQ rezultate; ovo služi da Google i AI tačno pročitaju ponudu |
 | `slug.ts` | slug od naziva (latinica i ćirilica, jedinstven) |
 | `telegram.ts` | slanje poruke na Telegram |
 | `projects.ts` | novogradnja: tipovi, statusi i boje, `floorName`, `parseLevels` („P-6"), `parseUnitTable` (Excel), `levelPrefix`/`unitSuffix` (uparivanje 2A→3A), `cleanPolygon` |

@@ -1,5 +1,5 @@
 // GENERISANO skriptom scripts/gen-db-types.mjs (npm run db:types) - ne menjati ručno.
-// Izvor: živa baza sajta (tmnaguwmzlwirhjprdbh), 2026-11-01.
+// Izvor: živa baza sajta (tmnaguwmzlwirhjprdbh), 2026-11-03.
 
 export type Json =
   | string
@@ -1083,6 +1083,35 @@ export type Database = {
           target?: string | null
         }
         Relationships: []
+      }
+      tour_ai_notes: {
+        Row: {
+          notes: string
+          room_notes: Json
+          tour_slug: string
+          updated_at: string
+        }
+        Insert: {
+          notes?: string
+          room_notes: Json
+          tour_slug: string
+          updated_at?: string
+        }
+        Update: {
+          notes?: string
+          room_notes?: Json
+          tour_slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tour_ai_notes_tour_slug_fkey"
+            columns: ["tour_slug"]
+            isOneToOne: false
+            referencedRelation: "tours"
+            referencedColumns: ["slug"]
+          },
+        ]
       }
       tour_events: {
         Row: {

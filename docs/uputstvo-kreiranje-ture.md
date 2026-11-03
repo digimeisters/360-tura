@@ -97,7 +97,22 @@ Ostali alati u gornjoj admin traci:
 
 ## 3. Tekst, jezici i naracija
 
-**AI popuna (SR)** — čita samu panoramu i piše srpski opis sobe i predlog tačaka. Zna naziv sobe, podatke o stanu i šta je već rečeno u drugim sobama, pa ne izmišlja raspored i ne ponavlja uvode. Otvara se prozor `✏️ Pregled i Izmena AI Drafta (SR)` gde ispraviš šta treba pre nego što se sačuva. Tu biraš i na koje jezike da se prevede.
+**AI popuna (SR)** — čita samu panoramu i piše srpski opis sobe i predlog tačaka, kao agent koji vodi kupca (obraća se sa „vi“). Ugao zavisi od tipa oglasa: kupcu priča o stanju i kvalitetu, podstanaru o svakodnevici i onome što je u stanu, gostu o boravku. Zna naziv sobe, podatke o nekretnini, opis oglasa, tvoje napomene, redosled obilaska i šta je već rečeno u drugim sobama. Cenu, uslove zakupa, pravila, parking i okolinu ne stavlja u sobe — to je već u Info, Pitanjima i na mapi. Otvara se prozor `✏️ Pregled i Izmena AI Drafta (SR)` gde ispraviš šta treba pre nego što se sačuva. Tu biraš i na koje jezike da se prevede.
+
+**AI popuna: redosled rada**
+1. Sobe i njihovi nazivi („Kupatilo“, „Spavaća soba“) — AI ih poštuje kao takve.
+2. **Putanja vodiča** — po njoj AI piše prelaze („Iz hodnika ulazite u…“). Ako se vodič posle promeni, prelazi postaju pogrešni. Bez vodiča „AI sve sobe“ pokaže žuto upozorenje i ide redom soba.
+3. **Napomene za AI** (ne vide se u turi), ako ih imaš:
+   - za celu turu: `/admin/ture` → tura → „Podaci za Info“ → „Napomene za AI“, jedna po redu (čuvaju se same kad klikneš van polja);
+   - za sobu: polje ispod sobe u „AI sve sobe“, ili u prozoru pregleda pa „↻ Napiši ponovo sa napomenom“.
+   Primeri: „renovirano 2023“, „nova PVC stolarija“, „klima ostaje“, „pogled na park“. AI napomenu koristi samo u sobi gde pripada i prilagodi je tipu oglasa (za podstanara je „klima ostaje“ važno, za kupca usputno); nove činjenice ne izmišlja.
+4. **„🤖 AI sve sobe“** — prvo napravi plan cele ture (šta koja soba priča), pa sobe jednu po jednu.
+
+**Šta znači šta u pregledu**
+- **„Proveriti pre čuvanja“** (žuto): automatska provera je našla nešto što ni posle jednog prepisa nije prošlo — prazna pohvala („prostrano“, „potpuno opremljena“), rečenica-definicija („…je mesto za…“), loš početak („Ovo je…“), prazan deo naracije, tačka bez naziva, predug tekst ili isti početak kao druga soba. Ispravi ručno ili „↻ Novi predlog“.
+- **„Pokušaj ponovo“**: soba za koju AI nije vratio predlog (najčešće je Gemini preopterećen). Kad se to desi, „AI sve sobe“ sam pravi pauzu od par sekundi pre sledeće sobe.
+- **„Plan ture nije uspeo“**: sobe se pišu bez plana, kao ranije; tekst je i dalje dobar, samo prelazi mogu da budu slabiji.
+- Dok ima nesačuvanih predloga, pregledač pita pre zatvaranja ili osvežavanja stranice.
 
 U tom prozoru:
 - **Ispod svakog polja je brojač** (npr. `118/140`): crveno kad je tekst predugačak, žuto upozorenje za prazne pohvale („savršen", „idealan"…) i za ono što glas loše čita („m²", skraćenice).

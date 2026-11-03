@@ -3,6 +3,7 @@ import { requireAdmin } from '@/app/lib/adminAuth';
 import { handleGenerateDraft } from './_actions/draft';
 import { handleReviewDraft, handleTranslateStep } from './_actions/review';
 import { handleGenerateVoice } from './_actions/voice';
+import { handlePlanTour } from './_actions/plan';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -12,6 +13,7 @@ export const dynamic = 'force-dynamic';
  * generate_draft (podrazumevano) -> _actions/draft.ts
  * review_draft, translate_step   -> _actions/review.ts
  * generate_voice                 -> _actions/voice.ts
+ * plan_tour                      -> _actions/plan.ts (plan cele ture pre "AI sve sobe")
  * Zajedničko (kontekst sobe, panorama, i18n tekst) je u _actions/shared.ts.
  */
 
@@ -33,6 +35,9 @@ export async function POST(req: Request) {
 
     const body = await req.json();
 
+    if (body.action === 'plan_tour') {
+      return await handlePlanTour(body);
+    }
     if (body.action === 'generate_voice') {
       return await handleGenerateVoice(body, ctx.supabase);
     }

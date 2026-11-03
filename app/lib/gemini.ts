@@ -1,4 +1,5 @@
 import { GoogleGenAI, type GenerateContentConfig, type ContentListUnion } from '@google/genai';
+import { attemptTimeoutMs } from './aiDeadline';
 
 /**
  * Zajednički sloj za sve Gemini pozive u aplikaciji.
@@ -64,6 +65,11 @@ export type GeminiCallOptions = {
   fallbackModel?: string;
   /** Oznaka za log, da se u Vercel logovima vidi koji poziv je pao. */
   label?: string;
+  /**
+   * Trenutak (Date.now()) do kog sve mora da se završi - npr. pre maxDuration
+   * rute. Pokušaj koji ne može da stane se ne počinje, a poslednji se skraćuje.
+   */
+  deadlineAt?: number;
 };
 
 export type GeminiResult = {
@@ -84,7 +90,8 @@ export async function generateWithRetry(options: GeminiCallOptions): Promise<Gem
     attempts = 2,
     model = GEMINI_MODEL,
     fallbackModel = GEMINI_FALLBACK_MODEL,
-    label = 'gemini'
+    label = 'gemini',
+    deadlineAt
   } = options;
 
   const ai = geminiClient();
@@ -94,8 +101,13 @@ export async function generateWithRetry(options: GeminiCallOptions): Promise<Gem
 
   for (const currentModel of models) {
     for (let attempt = 1; attempt <= attempts; attempt++) {
+      const attemptMs = attemptTimeoutMs(Date.now(), deadlineAt, timeoutMs);
+      if (attemptMs === null) {
+        console.warn(`[${label}] nema vremena za ${currentModel} pokušaj ${attempt} pre roka rute`);
+        throw lastError;
+      }
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const timer = setTimeout(() => controller.abort(), attemptMs);
 
       try {
         const response = await ai.models.generateContent({

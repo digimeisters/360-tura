@@ -4,10 +4,11 @@ import { THEME, btnStyle } from '../theme';
 import { getLocalizedText, buildI18nObject } from '../utils';
 import { AVAILABLE_LANGUAGES, reviewTargetLabel, FieldHint } from './shared';
 import { type TourAdmin } from './useTourAdmin';
+import { MAX_ROOM_NOTE_CHARS } from '../../../lib/aiNotes';
 
 /** Modal: Pregled i izmena srpskog drafta + odabir jezika */
 export default function DraftModal({ a }: { a: TourAdmin }) {
-  const { targetLanguages, voiceLanguages, aiDraft, setAiDraft, showDraftModal, setShowDraftModal, review, reviewLoading, toggleTargetLanguage, toggleVoiceLanguage, handleReviewDraft, applySuggestion, dismissSuggestion, reviewChecks, handleConfirmDraftAndProcess } = a;
+  const { targetLanguages, voiceLanguages, aiDraft, setAiDraft, showDraftModal, setShowDraftModal, review, reviewLoading, toggleTargetLanguage, toggleVoiceLanguage, handleReviewDraft, applySuggestion, dismissSuggestion, reviewChecks, handleConfirmDraftAndProcess, aiRoomNote, setAiRoomNote, handleRedraftWithNote, aiLoading } = a;
   return (
     <>
     {showDraftModal && aiDraft && (
@@ -25,6 +26,14 @@ export default function DraftModal({ a }: { a: TourAdmin }) {
           </div>
 
           <div style={{ padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+            {aiDraft.problems && aiDraft.problems.length > 0 && (
+              <div style={{ background: '#FEF3C7', border: '1px solid #F5DFA0', borderRadius: '10px', padding: '10px 12px', fontSize: '13px', display: 'grid', gap: '4px', color: THEME.textPrimary }}>
+                <b>Proveriti pre čuvanja:</b>
+                {aiDraft.problems.map((p, i) => (
+                  <span key={i}>• {p}</span>
+                ))}
+              </div>
+            )}
             <div>
               <label style={{ fontSize: '12px', color: THEME.textSecondary, display: 'block', marginBottom: '4px', fontWeight: 600 }}>Naziv sobe (SR):</label>
               <input
@@ -157,6 +166,30 @@ export default function DraftModal({ a }: { a: TourAdmin }) {
                   ))}
                 </>
               )}
+            </div>
+
+            {/* NAPOMENA ZA AI: ono što se na panorami ne vidi (tour_ai_notes) */}
+            <div style={{ backgroundColor: THEME.surfaceAlt, padding: '12px 14px', borderRadius: '10px', border: '1px solid ' + THEME.border, display: 'grid', gap: '8px' }}>
+              <label htmlFor="ai-room-note" style={{ fontSize: '12px', color: THEME.textSecondary, fontWeight: 700 }}>
+                Napomena za AI (ne vidi se u turi):
+              </label>
+              <textarea
+                id="ai-room-note"
+                value={aiRoomNote}
+                maxLength={MAX_ROOM_NOTE_CHARS}
+                rows={2}
+                onChange={(e) => setAiRoomNote(e.target.value)}
+                placeholder="npr. klima ostaje, nova kada 2024"
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid ' + THEME.border, font: 'inherit', fontSize: '13px', resize: 'vertical' }}
+              />
+              <button
+                type="button"
+                disabled={aiLoading}
+                onClick={() => void handleRedraftWithNote()}
+                style={{ ...btnStyle, justifySelf: 'start', padding: '7px 12px', fontSize: '13px' }}
+              >
+                {aiLoading ? 'Pišem…' : '↻ Napiši ponovo sa napomenom'}
+              </button>
             </div>
 
             {/* SELEKCIJA CILJNIH JEZIKA DIREKTNO U MODALU */}

@@ -7,7 +7,7 @@ import { Language, Waypoint, EstablishData, Room } from '../types';
 import { translations } from '../translations';
 import { getLocalizedText, parseWaypoints, parseEstablish, composeEstablishText, buildI18nObject } from '../utils';
 import { translateRoomToLanguages, hasExactLangText, generateVoiceByLanguage } from '../adminUtils';
-import { applyRoomDraft } from '../roomDraftApply';
+import { applyRoomDraft, requestRoomDraft } from '../roomDraftApply';
 import { parseGuidePath, validateGuidePath } from '../guidePath';
 import { type AiDraft, type ReviewField, type ReviewSuggestion, type DraftReview, type TourAdminToolsProps } from './shared';
 
@@ -34,6 +34,8 @@ export function useTourAdmin(props: TourAdminToolsProps) {
   // Soba za koju je predlog napravljen - potvrda ga upisuje BAŠ u nju, i kad je
   // admin za 10-30 s čekanja prešao u drugu sobu.
   const [aiDraftRoomId, setAiDraftRoomId] = useState<string | null>(null);
+  // Napomena sobe za AI (tour_ai_notes) - polje u prozoru za pregled nacrta.
+  const [aiRoomNote, setAiRoomNote] = useState('');
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [review, setReview] = useState<DraftReview | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
@@ -363,43 +365,58 @@ export function useTourAdmin(props: TourAdminToolsProps) {
   };
 
   // KORAK 1: Generisanje SR drafta
-  const handleAutoPopulateRoom = async () => {
-    const currentPanoramaUrl = currentRoom?.panorama_url_cf || currentRoom?.panorama_url;
-    if (!currentRoom || !currentPanoramaUrl) {
+  // roomNote: napomena upisana u prozoru ("Napiši ponovo sa napomenom");
+  // bez nje server uzima sačuvanu napomenu sobe.
+  // forRoom: soba čiji je nacrt otvoren - admin je možda u međuvremenu prešao
+  // u drugu sobu, a nacrt i napomena pripadaju onoj iz koje je krenuo.
+  const handleAutoPopulateRoom = async (roomNote?: string, forRoom?: Room) => {
+    const targetRoom = forRoom ?? currentRoom;
+    const currentPanoramaUrl = targetRoom?.panorama_url_cf || targetRoom?.panorama_url;
+    if (!targetRoom || !currentPanoramaUrl) {
       alert('Nema dostupne panorame za ovu sobu.');
       return;
     }
 
     setAiLoading(true);
     try {
-      const res = await fetch('/api/ai/auto-populate-room', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
-        body: JSON.stringify({
-          roomId: currentRoom.id,
-          panoramaUrl: currentPanoramaUrl,
-          // Bez ovoga server ne zna da li stan ide u prodaju, izdavanje ili
-          // na dan, pa je tekst pisan za podstanara i kad je stan na prodaju.
-          listingType: tour?.category,
-          action: 'generate_draft'
-        })
-      });
-
-      const result = await res.json();
-      if (result.success && result.draft) {
-        setAiDraft(result.draft);
-        setAiDraftRoomId(String(currentRoom.id));
-        setReview(null);
-        setShowDraftModal(true);
-      } else {
-        alert('Greška pri obradi: ' + (result.error || 'Nepoznata greška'));
+      if (roomNote === undefined) {
+        // Polje napomene u prozoru prikazuje sačuvanu napomenu ove sobe.
+        try {
+          const res = await fetch(`/api/admin/ai-notes?slug=${encodeURIComponent(slug)}`, { headers: await adminAuthHeader() });
+          const result = await res.json();
+          setAiRoomNote(result.success ? (result.notes.roomNotes?.[String(targetRoom.id)] ?? '') : '');
+        } catch {
+          setAiRoomNote('');
+        }
       }
+      // Tip oglasa: bez njega server ne zna da li je tekst za kupca, podstanara ili gosta.
+      const draft = await requestRoomDraft(targetRoom, tour?.category, roomNote === undefined ? {} : { roomNote });
+      setAiDraft(draft);
+      setAiDraftRoomId(String(targetRoom.id));
+      setReview(null);
+      setShowDraftModal(true);
     } catch (err) {
       console.error('AI Draft Error:', err);
-      alert('Došlo je do greške prilikom generisanja SR drafta.');
+      alert('Greška pri obradi: ' + (err instanceof Error ? err.message : 'Nepoznata greška'));
     } finally {
       setAiLoading(false);
     }
+  };
+
+  /** Sačuva napomenu sobe i napiše nov nacrt sa njom. */
+  const handleRedraftWithNote = async () => {
+    const draftRoom = rooms.find((r) => String(r.id) === aiDraftRoomId);
+    if (!draftRoom) return;
+    try {
+      await fetch('/api/admin/ai-notes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
+        body: JSON.stringify({ slug, roomNotes: { [String(draftRoom.id)]: aiRoomNote } })
+      });
+    } catch {
+      // Napomena i dalje ide uz zahtev; samo nije sačuvana za sledeći put.
+    }
+    await handleAutoPopulateRoom(aiRoomNote, draftRoom);
   };
 
   // KORAK 1b: "Proveri i ispravi" - AI lektor pregleda draft pre prevoda i
@@ -851,7 +868,7 @@ export function useTourAdmin(props: TourAdminToolsProps) {
     }
   };
 
-  return { ...props, t, targetLanguages, setTargetLanguages, voiceLanguages, setVoiceLanguages, aiLoading, setAiLoading, showBulkFill, setShowBulkFill, aiDraft, setAiDraft, aiDraftRoomId, setAiDraftRoomId, showDraftModal, setShowDraftModal, review, setReview, reviewLoading, setReviewLoading, translationProgress, setTranslationProgress, voiceProgress, setVoiceProgress, showVoiceModal, setShowVoiceModal, showAddLanguageModal, setShowAddLanguageModal, addLanguageTargets, setAddLanguageTargets, panoramaUploadProgress, setPanoramaUploadProgress, panoramaFileInputRef, creatingRoom, setCreatingRoom, deletingRoom, setDeletingRoom, showGuidePathModal, setShowGuidePathModal, guidePathInput, setGuidePathInput, savingGuidePath, setSavingGuidePath, guideLinkCopied, setGuideLinkCopied, showRenameModal, setShowRenameModal, renameInput, setRenameInput, orderInput, setOrderInput, savingRename, setSavingRename, showNarrationModal, setShowNarrationModal, narrationIntroInput, setNarrationIntroInput, narrationDetailInput, setNarrationDetailInput, savingNarration, setSavingNarration, currentRoom, shownRoomIdRef, refreshIfShown, roomsByOrder, openGuidePathModal, guideLink, copyGuideLink, guidePathSteps, guidePathError, handleSaveGuidePath, toggleTargetLanguage, toggleVoiceLanguage, toggleAddLanguageTarget, handleAddRoom, handleDeleteRoom, openRenameModal, handleSaveRename, openNarrationModal, handleSaveNarration, handleAutoPopulateRoom, handleReviewDraft, applySuggestion, dismissSuggestion, reviewChecks, handlePanoramaFileSelected, handleDeletePanorama, handleGenerateVoiceForRoom, handleConfirmDraftAndProcess, handleTranslateRoomLanguages };
+  return { ...props, t, targetLanguages, setTargetLanguages, voiceLanguages, setVoiceLanguages, aiLoading, setAiLoading, showBulkFill, setShowBulkFill, aiDraft, setAiDraft, aiDraftRoomId, setAiDraftRoomId, aiRoomNote, setAiRoomNote, handleRedraftWithNote, showDraftModal, setShowDraftModal, review, setReview, reviewLoading, setReviewLoading, translationProgress, setTranslationProgress, voiceProgress, setVoiceProgress, showVoiceModal, setShowVoiceModal, showAddLanguageModal, setShowAddLanguageModal, addLanguageTargets, setAddLanguageTargets, panoramaUploadProgress, setPanoramaUploadProgress, panoramaFileInputRef, creatingRoom, setCreatingRoom, deletingRoom, setDeletingRoom, showGuidePathModal, setShowGuidePathModal, guidePathInput, setGuidePathInput, savingGuidePath, setSavingGuidePath, guideLinkCopied, setGuideLinkCopied, showRenameModal, setShowRenameModal, renameInput, setRenameInput, orderInput, setOrderInput, savingRename, setSavingRename, showNarrationModal, setShowNarrationModal, narrationIntroInput, setNarrationIntroInput, narrationDetailInput, setNarrationDetailInput, savingNarration, setSavingNarration, currentRoom, shownRoomIdRef, refreshIfShown, roomsByOrder, openGuidePathModal, guideLink, copyGuideLink, guidePathSteps, guidePathError, handleSaveGuidePath, toggleTargetLanguage, toggleVoiceLanguage, toggleAddLanguageTarget, handleAddRoom, handleDeleteRoom, openRenameModal, handleSaveRename, openNarrationModal, handleSaveNarration, handleAutoPopulateRoom, handleReviewDraft, applySuggestion, dismissSuggestion, reviewChecks, handlePanoramaFileSelected, handleDeletePanorama, handleGenerateVoiceForRoom, handleConfirmDraftAndProcess, handleTranslateRoomLanguages };
 }
 
 export type TourAdmin = ReturnType<typeof useTourAdmin>;

@@ -40,10 +40,13 @@ function buildTranslationPrompt(
   waypoints: { title: string; text: string }[]
 ): string {
   return `
-You are a professional translator specialized in luxury real-estate copy.
+You are a professional translator of spoken voice-overs for 360° property tours.
 Translate the following content from Serbian to ${targetLangName}.
-Keep an engaging, natural tone appropriate for a virtual property tour narration.
-Preserve the meaning; do not add or remove information.
+The Serbian text is a real estate agent walking a visitor through the property, speaking to them
+directly. Keep that voice: natural spoken language, short sentences that are easy to say out loud,
+addressing the visitor directly (formal "you" where the language has one, e.g. "Sie", "вы").
+Preserve the meaning; do not add or remove information, and do not add praise or adjectives that the
+Serbian text does not have.
 
 RULES:
 - Keep proper nouns as they are: street and city names, building names, brand and

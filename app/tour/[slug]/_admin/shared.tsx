@@ -9,7 +9,14 @@ import { checkDraftField, type DraftFieldKind } from '../../../lib/roomDraftRule
 
 export const AVAILABLE_LANGUAGES: Language[] = ['sr', 'en', 'de', 'ru'];
 
-export type AiDraft = { title: string; narrationIntro: string; narrationDetail: string; waypoints: Waypoint[] };
+export type AiDraft = {
+  title: string;
+  narrationIntro: string;
+  narrationDetail: string;
+  waypoints: Waypoint[];
+  /** Šta automatska provera nije pustila ni posle prepisa (checkRoomDraft). */
+  problems?: string[];
+};
 
 /** Odgovor "Proveri i ispravi" (review_draft u /api/ai/auto-populate-room). */
 export type ReviewField = 'title' | 'intro' | 'detail' | 'wpTitle' | 'wpText';

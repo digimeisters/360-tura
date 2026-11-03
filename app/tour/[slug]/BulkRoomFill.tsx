@@ -1,11 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { adminAuthHeader } from '../../lib/authFetch';
 import { THEME } from './theme';
 import { getLocalizedText, parseEstablish, parseWaypoints } from './utils';
-import { applyRoomDraft, requestRoomDraft, type AiDraft } from './roomDraftApply';
+import { applyRoomDraft, requestRoomDraft, requestTourPlan, type AiDraft } from './roomDraftApply';
+import { MAX_ROOM_NOTE_CHARS } from '../../lib/aiNotes';
+import { isOverloadError, OVERLOAD_PAUSE_MS } from '../../lib/aiOverload';
+import { visitOrder } from '../../lib/roomAiContext';
+import type { TourPlanEntry } from '../../lib/roomDraftPrompt';
 import type { Language, Room, Tour, Waypoint } from './types';
 
 /**
@@ -14,6 +18,12 @@ import type { Language, Room, Tour, Waypoint } from './types';
  * teksta) i jezika, (2) AI predlog za svaku redom pa pregled jedne po jedne,
  * (3) prevod, glas i upis, soba po soba (gotova soba je sačuvana i kad
  * kasnija pukne). Vrata i ručne tačke se ne diraju (applyRoomDraft).
+ *
+ * Od 2026-11-03 (spec docs/superpowers/specs/2026-11-03-ai-tekst-soba-design.md):
+ * sobe idu redom obilaska (vodič), uz napomenu po sobi i plan cele ture
+ * (plan_tour); posle "preopterećen" pauza pre sledeće sobe; sobe koje nisu
+ * uspele dobijaju "Pokušaj ponovo"; zatvaranje taba pita dok ima nesačuvanih
+ * nacrta.
  */
 
 const LANGS: Language[] = ['sr', 'en', 'de', 'ru'];
@@ -23,12 +33,20 @@ type Suggestion = { field: ReviewField; index: number; original: string; suggest
 
 type Phase =
   | { kind: 'pick' }
-  | { kind: 'drafting'; done: number; total: number; current: string }
+  | { kind: 'drafting'; done: number; total: number; current: string; note?: string }
+  | { kind: 'failed' }
   | { kind: 'review'; index: number }
   | { kind: 'applying'; lines: Record<string, string> }
   | { kind: 'done'; lines: Record<string, string> };
 
 type Item = { room: Room; draft: AiDraft | null; error: string | null; accepted: boolean | null };
+
+/** "Jedna soba nije uspela" / "3 sobe nisu uspele" / "5 soba nije uspelo". */
+function failedLabel(n: number): string {
+  if (n === 1) return 'Jedna soba nije uspela:';
+  const few = n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14);
+  return few ? `${n} sobe nisu uspele:` : `${n} soba nije uspelo:`;
+}
 
 function hasText(room: Room): boolean {
   const e = parseEstablish(room.establish_i18n);
@@ -47,7 +65,17 @@ export default function BulkRoomFill({
   onRoomSaved: (roomId: string | number, patch: Pick<Room, 'title_i18n' | 'establish_i18n' | 'waypoints_i18n'>) => void;
   onClose: () => void;
 }) {
-  const candidates = rooms.filter((r) => r.panorama_url_cf || r.panorama_url);
+  // Red obilaska iz vodiča: tim redom AI piše i prelaze ("Iz hodnika...").
+  const order = useMemo(
+    () => visitOrder(tour?.guide_path, rooms.map((r, i) => ({ id: String(r.id), order_index: r.order_index ?? i + 1 }))),
+    [tour?.guide_path, rooms]
+  );
+  const candidates = useMemo(() => {
+    const pos = new Map(order.ids.map((id, i) => [id, i]));
+    return rooms
+      .filter((r) => r.panorama_url_cf || r.panorama_url)
+      .sort((a, b) => (pos.get(String(a.id)) ?? 0) - (pos.get(String(b.id)) ?? 0));
+  }, [rooms, order]);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(candidates.filter((r) => !hasText(r)).map((r) => String(r.id))));
   const [langs, setLangs] = useState<Language[]>(['sr']);
   const [voice, setVoice] = useState<Language[]>([]);
@@ -55,31 +83,142 @@ export default function BulkRoomFill({
   const [phase, setPhase] = useState<Phase>({ kind: 'pick' });
   const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  // Napomene soba za AI (tour_ai_notes): šta je učitano i šta je sad u poljima.
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const savedNotes = useRef<Record<string, string>>({});
+  // Dok se napomene ne učitaju, šalje se samo ono što je admin sam upisao -
+  // inače bi prazno polje sakrilo sačuvanu napomenu sobe.
+  const [notesLoaded, setNotesLoaded] = useState(false);
+  const touched = useRef<Set<string>>(new Set());
+  const [plan, setPlan] = useState<Record<string, TourPlanEntry>>({});
+  const [planNote, setPlanNote] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!tour?.slug) return;
+    let alive = true;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/admin/ai-notes?slug=${encodeURIComponent(tour.slug)}`, { headers: await adminAuthHeader() });
+        const result = await res.json();
+        if (alive && result.success) {
+          savedNotes.current = result.notes.roomNotes ?? {};
+          // Ono što je admin već počeo da kuca ostaje.
+          setNotes((typed) => ({ ...(result.notes.roomNotes ?? {}), ...typed }));
+          setNotesLoaded(true);
+        }
+      } catch {
+        // Bez napomena AI i dalje radi.
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [tour?.slug]);
+
+  // Nacrti su samo u memoriji dok se ne prihvate - zatvaranje taba prvo pita.
+  const unsaved = phase.kind === 'drafting' || phase.kind === 'applying' || items.some((it) => it.draft && it.accepted === null);
+  useEffect(() => {
+    if (!unsaved) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [unsaved]);
 
   const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
   const title = (r: Room, i: number) => getLocalizedText(r.title_i18n, 'sr') || `Soba ${i + 1}`;
   const working = phase.kind === 'drafting' || phase.kind === 'applying';
 
+  const noteFor = (id: string) => (notesLoaded || touched.current.has(id) ? (notes[id] ?? '') : undefined);
+
+  /** Nacrti iz iste serije, da AI vidi nove uvode i nazive (još nisu u bazi). */
+  const siblingsOf = (list: Item[], exceptId: string) =>
+    list
+      .filter((it) => it.draft && String(it.room.id) !== exceptId)
+      .map((it) => ({
+        id: String(it.room.id),
+        title: it.draft!.title,
+        narration: `${it.draft!.narrationIntro} ${it.draft!.narrationDetail}`.trim()
+      }));
+
+  const saveNotes = async () => {
+    if (!tour?.slug) return;
+    const changed = Object.fromEntries(Object.entries(notes).filter(([id, text]) => (savedNotes.current[id] ?? '') !== text));
+    for (const id of Object.keys(savedNotes.current)) if (!(id in notes)) changed[id] = '';
+    if (!Object.keys(changed).length) return;
+    try {
+      const res = await fetch('/api/admin/ai-notes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
+        body: JSON.stringify({ slug: tour.slug, roomNotes: changed })
+      });
+      const result = await res.json();
+      if (result.success) savedNotes.current = result.notes.roomNotes ?? {};
+    } catch {
+      // Napomena i dalje ide uz zahtev za nacrt (roomNote), samo nije sačuvana.
+    }
+  };
+
+  /** Nacrti za date stavke, redom; greška jedne ne zaustavlja ostale. */
+  const draftItems = async (list: Item[], indexes: number[], usePlan: Record<string, TourPlanEntry>) => {
+    for (let k = 0; k < indexes.length; k++) {
+      const i = indexes[k];
+      setPhase({ kind: 'drafting', done: k, total: indexes.length, current: title(list[i].room, i) });
+      const id = String(list[i].room.id);
+      try {
+        const draft = await requestRoomDraft(list[i].room, tour?.category, {
+          plan: usePlan[id],
+          roomNote: noteFor(id),
+          siblings: siblingsOf(list, id)
+        });
+        list[i] = { ...list[i], draft, error: null };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : 'AI nije uspeo.';
+        list[i] = { ...list[i], error: message };
+        if (isOverloadError(message) && k < indexes.length - 1) {
+          setPhase({ kind: 'drafting', done: k + 1, total: indexes.length, current: title(list[i].room, i), note: 'Gemini je preopterećen, čekam par sekundi…' });
+          await new Promise((r) => setTimeout(r, OVERLOAD_PAUSE_MS));
+        }
+      }
+      setItems([...list]);
+    }
+    setSuggestions(null);
+    const first = list.findIndex((it) => it.draft);
+    if (list.some((it) => it.error && !it.draft)) setPhase({ kind: 'failed' });
+    else if (first >= 0) setPhase({ kind: 'review', index: first });
+    else setPhase({ kind: 'done', lines: Object.fromEntries(list.map((it) => [String(it.room.id), `✗ ${it.error}`])) });
+  };
+
   const makeDrafts = async () => {
     const chosen = candidates.filter((r) => selected.has(String(r.id)));
     const list: Item[] = chosen.map((room) => ({ room, draft: null, error: null, accepted: null }));
     setItems(list);
-    for (let i = 0; i < list.length; i++) {
-      setPhase({ kind: 'drafting', done: i, total: list.length, current: title(list[i].room, i) });
+    setPhase({ kind: 'drafting', done: 0, total: list.length, current: '', note: 'Pravim plan cele ture…' });
+    await saveNotes();
+    let usePlan: Record<string, TourPlanEntry> = {};
+    if (tour?.slug) {
       try {
-        list[i] = { ...list[i], draft: await requestRoomDraft(list[i].room, tour?.category) };
-      } catch (e) {
-        list[i] = { ...list[i], error: e instanceof Error ? e.message : 'AI nije uspeo.' };
+        usePlan = (await requestTourPlan(tour.slug, tour.category)).plan;
+        setPlanNote(null);
+      } catch {
+        setPlanNote('Plan ture nije uspeo - sobe se pišu bez plana.');
       }
-      setItems([...list]);
     }
-    const first = list.findIndex((it) => it.draft);
-    setSuggestions(null);
-    setPhase(
-      first >= 0
-        ? { kind: 'review', index: first }
-        : { kind: 'done', lines: Object.fromEntries(list.map((it) => [String(it.room.id), `✗ ${it.error}`])) }
-    );
+    setPlan(usePlan);
+    await draftItems(list, list.map((_, i) => i), usePlan);
+  };
+
+  const retryFailed = async () => {
+    const list = [...items];
+    await draftItems(list, list.flatMap((it, i) => (it.error && !it.draft ? [i] : [])), plan);
+  };
+
+  const continueToReview = () => {
+    const first = items.findIndex((it) => it.draft);
+    if (first >= 0) go(first);
+    else setPhase({ kind: 'done', lines: Object.fromEntries(items.map((it) => [String(it.room.id), `✗ ${it.error}`])) });
   };
 
   const current = phase.kind === 'review' ? items[phase.index] : null;
@@ -113,7 +252,8 @@ export default function BulkRoomFill({
     if (phase.kind !== 'review' || !current) return;
     setBusy('regen');
     try {
-      const draft = await requestRoomDraft(current.room, tour?.category);
+      const id = String(current.room.id);
+      const draft = await requestRoomDraft(current.room, tour?.category, { plan: plan[id], roomNote: noteFor(id), siblings: siblingsOf(items, id) });
       setItems((all) => all.map((it, i) => (i === phase.index ? { ...it, draft } : it)));
       setSuggestions(null);
     } catch (e) {
@@ -245,15 +385,20 @@ export default function BulkRoomFill({
       return (
         <>
           <div>
-            <p style={label}>Sobe</p>
+            <p style={label}>Sobe (redom obilaska)</p>
+            {!order.fromGuide && (
+              <p style={{ margin: '0 0 8px', padding: '8px 10px', borderRadius: 10, background: '#FEF3C7', color: '#92400e', fontSize: 13 }}>
+                Vodič nije postavljen - prelazi će pratiti redosled soba. Postavite vodič pre AI popune.
+              </p>
+            )}
             <div style={{ display: 'grid', gap: 6 }}>
               {candidates.map((r, i) => {
                 const id = String(r.id);
                 const doors = parseWaypoints(r.waypoints_i18n).filter((w) => w.targetRoomId != null).length;
                 const filled = hasText(r);
                 return (
+                  <div key={id} style={{ display: 'grid', gap: 4 }}>
                   <label
-                    key={id}
                     style={{
                       display: 'grid',
                       gridTemplateColumns: '20px 64px 1fr auto',
@@ -300,6 +445,20 @@ export default function BulkRoomFill({
                       {filled ? 'ima tekst' : 'bez teksta'}
                     </span>
                   </label>
+                  {selected.has(id) && (
+                    <input
+                      value={notes[id] ?? ''}
+                      maxLength={MAX_ROOM_NOTE_CHARS}
+                      onChange={(e) => {
+                        touched.current.add(id);
+                        setNotes((n) => ({ ...n, [id]: e.target.value }));
+                      }}
+                      placeholder="Napomena za AI (ne vidi se u turi), npr. klima ostaje, nova kada 2024"
+                      aria-label={`Napomena za AI: ${title(r, i)}`}
+                      style={{ ...area, resize: undefined, fontSize: 13, padding: '6px 10px' }}
+                    />
+                  )}
+                  </div>
                 );
               })}
             </div>
@@ -360,10 +519,37 @@ export default function BulkRoomFill({
               }}
             />
           </div>
+          {phase.current ? (
+            <p style={{ margin: 0 }}>
+              AI pravi predlog: <b>{phase.current}</b> ({phase.done + 1} od {phase.total})
+            </p>
+          ) : null}
+          <p style={{ margin: 0, fontSize: 12.5, color: THEME.textMuted }}>{phase.note ?? 'Ostavite prozor otvoren dok traje.'}</p>
+        </>
+      );
+    }
+    if (phase.kind === 'failed') {
+      const failed = items.filter((it) => it.error && !it.draft);
+      return (
+        <>
           <p style={{ margin: 0 }}>
-            AI pravi predlog: <b>{phase.current}</b> ({phase.done + 1} od {phase.total})
+            {failedLabel(failed.length)}
           </p>
-          <p style={{ margin: 0, fontSize: 12.5, color: THEME.textMuted }}>Ostavite prozor otvoren dok traje.</p>
+          <ul style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 4, fontSize: 13.5 }}>
+            {failed.map((it) => (
+              <li key={String(it.room.id)}>
+                <b>{title(it.room, items.indexOf(it))}</b> <small style={{ color: THEME.textMuted }}>✗ {it.error}</small>
+              </li>
+            ))}
+          </ul>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" onClick={() => void retryFailed()} style={btn('soft')}>
+              ↻ Pokušaj ponovo
+            </button>
+            <button type="button" onClick={continueToReview} style={btn()}>
+              {items.some((it) => it.draft) ? 'Nastavi na pregled bez njih' : 'Dalje'}
+            </button>
+          </div>
         </>
       );
     }
@@ -378,6 +564,15 @@ export default function BulkRoomFill({
               .map((it, i) => `${title(it.room, i)}${it.accepted ? ' ✓' : it.accepted === false ? ' –' : ''}`)
               .join(' · ')}
           </p>
+          {planNote && <p style={{ margin: 0, fontSize: 12.5, color: '#92400e' }}>{planNote}</p>}
+          {d.problems && d.problems.length > 0 && (
+            <div style={{ background: '#FEF3C7', border: '1px solid #F5DFA0', borderRadius: 12, padding: 10, fontSize: 13, display: 'grid', gap: 4 }}>
+              <b>Proveriti pre čuvanja:</b>
+              {d.problems.map((p, i) => (
+                <span key={i}>• {p}</span>
+              ))}
+            </div>
+          )}
           {current.room.preview_url && (
             // eslint-disable-next-line @next/next/no-img-element -- sličica sobe za pregled teksta
             <img src={current.room.preview_url} alt="" style={{ width: '100%', height: 150, objectFit: 'cover', borderRadius: 12 }} />
@@ -581,7 +776,7 @@ export default function BulkRoomFill({
             type="button"
             disabled={working}
             onClick={() => {
-              if (phase.kind === 'review' && !window.confirm('Zatvoriti? Pregledani predlozi koji nisu sačuvani se gube.')) return;
+              if (unsaved && !window.confirm('Zatvoriti? Predlozi koji nisu sačuvani se gube.')) return;
               onClose();
             }}
             aria-label="Zatvori"

@@ -58,7 +58,7 @@ export default function AdminToolbar({ a }: { a: TourAdmin }) {
         color="#7c3aed"
         heading={roomName}
         items={[
-          { label: 'Popuni ovu sobu', title: 'AI predlog naziva, naracije i tačaka za sobu koju gledaš', onClick: handleAutoPopulateRoom, disabled: aiLoading },
+          { label: 'Popuni ovu sobu', title: 'AI predlog naziva, naracije i tačaka za sobu koju gledaš', onClick: () => void handleAutoPopulateRoom(), disabled: aiLoading },
           { label: 'Popuni sve sobe', title: 'AI tekst za više soba odjednom, sa pregledom svake pre čuvanja', onClick: () => setShowBulkFill(true), disabled: aiLoading }
         ]}
       />

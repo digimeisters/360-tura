@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FORM, formBtnStyle } from '../../lib/formTheme';
+import { adminAuthHeader } from '../../lib/authFetch';
+import { MAX_TOUR_NOTES_CHARS } from '../../lib/aiNotes';
 import { slugify } from '../../lib/slug';
 import {
   STRUCTURE_ORDER,
@@ -474,6 +476,7 @@ export default function TourFormDrawer({
                 )}
             </div>
           )}
+          {editingSlug && <AiNotesField slug={editingSlug} />}
 
               </>
             )}
@@ -552,6 +555,91 @@ export default function TourFormDrawer({
         </form>
       </div>
     </>
+  );
+}
+
+/**
+ * Napomene za AI popunu soba (tour_ai_notes): ono što se na panorami ne
+ * vidi. Čuva se samo kad polje izgubi fokus, nezavisno od "Sačuvaj" ture -
+ * tura i napomene su u različitim tabelama, pa greška jednog ne kvari drugo.
+ */
+function AiNotesField({ slug }: { slug: string }) {
+  const [value, setValue] = useState('');
+  const saved = useRef('');
+  const [status, setStatus] = useState<'loading' | 'loadError' | 'idle' | 'saving' | 'saved' | 'error'>('loading');
+
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/admin/ai-notes?slug=${encodeURIComponent(slug)}`, { headers: await adminAuthHeader() });
+        const result = await res.json();
+        if (!alive) return;
+        // Bez uspešnog učitavanja polje ostaje zaključano - inače bi prvo
+        // čuvanje prepisalo napomene koje već postoje.
+        if (!result.success) {
+          setStatus('loadError');
+          return;
+        }
+        saved.current = result.notes.notes;
+        setValue(saved.current);
+        setStatus('idle');
+      } catch {
+        if (alive) setStatus('loadError');
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [slug]);
+
+  const save = async () => {
+    if (status === 'loading' || status === 'loadError') return;
+    if (value.trim() === saved.current.trim()) return;
+    setStatus('saving');
+    try {
+      const res = await fetch('/api/admin/ai-notes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
+        body: JSON.stringify({ slug, notes: value })
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      saved.current = result.notes.notes;
+      setStatus('saved');
+    } catch {
+      setStatus('error');
+    }
+  };
+
+  const hint =
+    status === 'saving'
+      ? 'Čuvam…'
+      : status === 'saved'
+        ? 'Sačuvano.'
+        : status === 'loadError'
+          ? 'Napomene nisu učitane - zatvorite i ponovo otvorite turu.'
+          : status === 'error'
+          ? 'Napomene nisu sačuvane - pokušajte ponovo.'
+          : `AI ih koristi u sobama gde pripadaju. Čuvaju se same kad kliknete van polja. ${value.length}/${MAX_TOUR_NOTES_CHARS}`;
+
+  return (
+    <Field label="Napomene za AI (ne vide se u turi)" hint={hint}>
+      <textarea
+        id="tour-ai-notes"
+        value={value}
+        disabled={status === 'loading' || status === 'loadError'}
+        maxLength={MAX_TOUR_NOTES_CHARS}
+        rows={4}
+        onChange={(e) => {
+          setValue(e.target.value);
+          if (status === 'saved' || status === 'error') setStatus('idle');
+        }}
+        onBlur={() => void save()}
+        placeholder="Jedna po redu: renovirano 2023, nova PVC stolarija, klima ostaje, pogled na park…"
+        style={{ ...inputStyle, resize: 'vertical' }}
+      />
+    </Field>
   );
 }
 

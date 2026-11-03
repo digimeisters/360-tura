@@ -3,6 +3,7 @@ import { adminAuthHeader } from '../../lib/authFetch';
 import { generateVoiceByLanguage, translateRoomToLanguages } from './adminUtils';
 import { buildI18nObject, composeEstablishText, getLocalizedText, parseEstablish, parseWaypoints } from './utils';
 import type { EstablishData, Language, Room, Waypoint } from './types';
+import type { TourPlanEntry } from '../../lib/roomDraftPrompt';
 
 /**
  * AI predlog sobe -> prevod -> glas -> upis u bazu. Zajedničko za
@@ -11,7 +12,14 @@ import type { EstablishData, Language, Room, Waypoint } from './types';
  * (navigacija) ostaju, a jezik čiji prevod ne uspe ostaje bez teksta.
  */
 
-export type AiDraft = { title: string; narrationIntro: string; narrationDetail: string; waypoints: Waypoint[] };
+export type AiDraft = {
+  title: string;
+  narrationIntro: string;
+  narrationDetail: string;
+  waypoints: Waypoint[];
+  /** Šta automatska provera nije pustila ni posle prepisa (checkRoomDraft). */
+  problems?: string[];
+};
 
 export type AppliedDraft = {
   title_i18n: Record<string, string>;
@@ -25,17 +33,41 @@ export type AppliedDraft = {
 };
 
 /** AI predlog za sobu (generate_draft) - isti poziv kao "AI Popuni Sobu". */
-export async function requestRoomDraft(room: Room, listingType: string | null | undefined): Promise<AiDraft> {
+export async function requestRoomDraft(
+  room: Room,
+  listingType: string | null | undefined,
+  opts: {
+    plan?: TourPlanEntry;
+    roomNote?: string;
+    /** "AI sve sobe": nacrti soba iz iste serije, još nesačuvani. */
+    siblings?: { id: string; title: string; narration: string }[];
+  } = {}
+): Promise<AiDraft> {
   const panoramaUrl = room.panorama_url_cf || room.panorama_url;
   if (!panoramaUrl) throw new Error('Soba nema panoramu.');
   const res = await fetch('/api/ai/auto-populate-room', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
-    body: JSON.stringify({ roomId: room.id, panoramaUrl, listingType, action: 'generate_draft' })
+    body: JSON.stringify({ roomId: room.id, panoramaUrl, listingType, action: 'generate_draft', plan: opts.plan, roomNote: opts.roomNote, siblings: opts.siblings })
   });
   const result = await res.json().catch(() => ({ success: false, error: `Greška servera (${res.status}).` }));
   if (!result.success || !result.draft) throw new Error(result.error || 'AI nije vratio predlog.');
   return result.draft as AiDraft;
+}
+
+/** Plan cele ture pre "AI sve sobe" (plan_tour): stavka po sobi + red obilaska. */
+export async function requestTourPlan(
+  tourSlug: string,
+  listingType: string | null | undefined
+): Promise<{ plan: Record<string, TourPlanEntry>; order: string[]; fromGuide: boolean }> {
+  const res = await fetch('/api/ai/auto-populate-room', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(await adminAuthHeader()) },
+    body: JSON.stringify({ action: 'plan_tour', tourSlug, listingType })
+  });
+  const result = await res.json().catch(() => ({ success: false, error: `Greška servera (${res.status}).` }));
+  if (!result.success || !result.plan) throw new Error(result.error || 'Plan ture nije stigao.');
+  return { plan: result.plan, order: result.order ?? [], fromGuide: Boolean(result.fromGuide) };
 }
 
 export async function applyRoomDraft(opts: {
