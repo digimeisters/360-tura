@@ -94,7 +94,7 @@ export function TourCaptureCard({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={t.capturePlaceholder}
-          style={{ flex: 1, minWidth: 0, height: '42px', borderRadius: '11px', border: `1.5px solid ${THEME.border}`, padding: '0 12px', fontSize: '14px', fontFamily: 'inherit' }}
+          style={{ flex: 1, minWidth: 0, height: '42px', borderRadius: '11px', border: `1.5px solid ${THEME.border}`, padding: '0 12px', fontSize: '16px', fontFamily: 'inherit' }} // 16px: iPhone inače zumira stranu pri kucanju
         />
         <button
           type="button"
@@ -140,7 +140,7 @@ export function TourCaptureExitField({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={t.capturePlaceholder}
-          style={{ flex: 1, minWidth: 0, height: '42px', borderRadius: '11px', border: `1.5px solid ${THEME.border}`, padding: '0 12px', fontSize: '13.5px', fontFamily: 'inherit' }}
+          style={{ flex: 1, minWidth: 0, height: '42px', borderRadius: '11px', border: `1.5px solid ${THEME.border}`, padding: '0 12px', fontSize: '16px', fontFamily: 'inherit' }} // 16px: iPhone inače zumira stranu pri kucanju
         />
         <button
           type="button"

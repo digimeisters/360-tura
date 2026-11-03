@@ -515,8 +515,11 @@ export function InfoCard({
           cursor: 'pointer',
           transition: 'background 0.15s ease'
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.22)')}
-        onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')}
+        // Samo pravi miš: na telefonu bi dodir "zalepio" svetliju pozadinu.
+        onPointerEnter={(e) => {
+          if (e.pointerType === 'mouse') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.22)';
+        }}
+        onPointerLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')}
         title={closeLabel}
         aria-label={closeLabel}
       >

@@ -24,6 +24,21 @@
   }
 }
 
+/* Bez sivog/plavog bleska koji telefon iscrta preko svakog dodirnutog
+   elementa (najjači znak "ovo je sajt, ne aplikacija"). Umesto njega
+   blagi sopstveni odziv dok je prst na dugmetu, samo na ekranima na dodir. */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (pointer: coarse) {
+  button:not(:disabled):active,
+  [role="button"]:active,
+  a.btn:active {
+    opacity: 0.8;
+  }
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

@@ -156,7 +156,8 @@ export const SITE_STYLES = `
   .field{display:flex; flex-direction:column; gap:.4rem;}
   .field label{font-size:.8rem; font-weight:600; color:var(--ink-soft);}
   .input{
-    font-family:var(--font-body); font-size:.95rem; color:var(--ink); width:100%;
+    /* 16px: iPhone zumira stranu kad se tapne u polje sitnije od 16px i ne vraća zum. */
+    font-family:var(--font-body); font-size:1rem; color:var(--ink); width:100%;
     background:var(--surface-2); border:1px solid var(--line-strong); border-radius:10px; padding:.72rem .85rem;
     transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
   }

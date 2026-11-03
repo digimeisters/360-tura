@@ -14,6 +14,10 @@ export function TourGlobalStyles() {
       .pnlm-load-box {
         display: none !important;
       }
+      /* Tura je ceo ekran: skrol liste (Info, Plan, okolina, forma) koji
+         stigne do vrha ne sme da pokrene "povuci za osvežavanje" na
+         Androidu i učita turu ispočetka. */
+      html, body { overscroll-behavior: none; }
       /* Dugmad-pilule (jezici, Pozovi, Podeli, zatvaranje kartice) su 36px, a
          ova nevidljiva ivica od 4px daje prstu punih 44px bez većeg izgleda. */
       .k360-tap { position: relative; }
