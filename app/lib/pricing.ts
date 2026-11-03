@@ -63,6 +63,28 @@ export const PROMO = {
 } as const;
 
 /**
+ * Cena za prve agencije (vlasnik, 3. 11. 2026): prvih FIRST_AGENCIES.slots
+ * agencija koje zakažu prvo snimanje do kraja promocije zadržavaju promo
+ * cenu (PROMO.discount na paket) još `months` meseca od prvog snimanja, i
+ * kad promocija istekne. Spisak prvih agencija vodi vlasnik ručno - sajt ne
+ * broji mesta, pa na strani ne piše "preostalo X".
+ */
+export const FIRST_AGENCIES = {
+  slots: 5,
+  months: 3
+} as const;
+
+/**
+ * Garancija prve ture (vlasnik, 3. 11. 2026): svaki novi klijent (agencija
+ * ili vlasnik) - ako nije zadovoljan prvom turom, prostorije koje mu ne
+ * odgovaraju ponovo snimamo besplatno. Ne vraća se novac, zamena je snimak.
+ */
+export const FIRST_TOUR_GUARANTEE = {
+  /** Koliko dana od isporuke klijent ima da se javi. */
+  claimDays: 7
+} as const;
+
+/**
  * Trenutak po vremenu u Srbiji (Europe/Belgrade, sa letnjim računanjem) -
  * inače bi posetilac iz Beča ili Toronta video drugačiji početak i kraj.
  */

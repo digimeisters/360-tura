@@ -49,4 +49,5 @@ next-env.d.ts
 public/mockup/
 docs/cowork/
 .impeccable/
+.agents/
 .github/hooks/

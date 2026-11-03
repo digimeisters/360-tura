@@ -4,6 +4,7 @@ import ContactForm from '../../components/ContactForm';
 import PromoNote from '../../components/PromoNote';
 import PromoTopBar from '../../components/PromoTopBar';
 import Pricing from '../../components/Pricing';
+import FirstOffers from '../../components/FirstOffers';
 import SiteTracker from '../../components/SiteTracker';
 import SiteReveal from '../../components/SiteReveal';
 import SiteStylesheets from '../../components/SiteStylesheets';
@@ -186,6 +187,7 @@ export default function CenovnikPage() {
             {/* Naslov za čitače ekrana: kartice paketa su h3 (Pricing), a iznad je h1. */}
             <h2 className="sr-only">Paketi</h2>
             <Pricing copy={pricing} lang="sr" trackPrefix="pricing_" volumeOpen stickers={false} />
+            <FirstOffers />
           </div>
         </section>
 

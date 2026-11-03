@@ -8,6 +8,7 @@ import PromoTopBar from '../../components/PromoTopBar';
 import FromPrice from '../../components/FromPrice';
 import { IconPhone } from '../../components/SiteIcons';
 import Pricing from '../../components/Pricing';
+import FirstOffers from '../../components/FirstOffers';
 import SiteTracker from '../../components/SiteTracker';
 import NavScrollSpy from '../../components/NavScrollSpy';
 import SiteReveal from '../../components/SiteReveal';
@@ -569,6 +570,7 @@ export default async function AgencyPage() {
             {/* Isti cenovnik kao na početnoj (components/Pricing.tsx), sa
                 napomenom za agencije ispod. */}
             <Pricing copy={{ ...HOME_COPY.sr.pricing, fine: copy.pricing.fine }} lang="sr" trackPrefix="agency_" compact />
+            <FirstOffers />
           </div>
         </section>
 
