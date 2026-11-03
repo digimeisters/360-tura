@@ -77,7 +77,7 @@ export type InvestorCopy = {
     needs: { title: string; items: string[] };
   };
   faq: { eyebrow: string; title: string; note: string; items: { question: string; answer: string }[] };
-  contact: { eyebrow: string; title: string; note: string; call: string; hours: string };
+  contact: { eyebrow: string; title: string; note: string; call: string };
   footer: string;
 };
 
@@ -166,10 +166,10 @@ export const INVESTOR_COPY: InvestorCopy = {
   },
   sales: {
     eyebrow: 'Vaša prodaja',
-    title: 'Prodaja menja statuse *sama*',
+    title: 'Prodaja menja statuse *sama*',
     text: 'Svaka osoba iz vaše prodaje dobija lični link. Bez lozinke i bez obuke - menja samo status i cenu, a sajt se osvežava odmah.',
     points: [
-      'Slobodan, rezervisan, prodat - jednim dodirom, uz potvrdu za svaki stan',
+      'Slobodan, rezervisan, prodat - jednim dodirom, uz potvrdu za svaki stan',
       'Upiti kupaca stižu na isti link, sa oznakom stana',
       'Kratka beleška uz stan ili upit, da cela prodaja zna dogovor',
       'Izveštaj: koji stanovi se najviše gledaju i gde treba korigovati cenu',
@@ -295,8 +295,7 @@ export const INVESTOR_COPY: InvestorCopy = {
     eyebrow: 'Kontakt',
     title: 'Zakažite *razgovor*',
     note: 'Ostavite ime, broj i naziv projekta. Javljamo se da dogovorimo termin - kod vas, na gradilištu ili telefonom.',
-    call: 'Pozovite',
-    hours: 'Radnim danima 9–17h'
+    call: 'Pozovite'
   },
   footer: 'Kvadrat360 · 360° ture i izbor stana za novogradnju · Kragujevac'
 };

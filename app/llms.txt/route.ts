@@ -61,6 +61,8 @@ ${CONTACT.serviceArea}. Za druge gradove po dogovoru.
 
 ## Stranice
 - Početna: ${SITE_URL}
+- Za vlasnike (prodaja ili izdavanje jedne nekretnine): ${SITE_URL}/za-vlasnike
+- Cenovnik: ${SITE_URL}/cenovnik
 - Za agencije: ${SITE_URL}/za-agencije
 - Za investitore (novogradnja: izbor stana na zgradi, cenovnik, ture stanova): ${SITE_URL}/za-investitore
 - Objavljene ture: ${SITE_URL}/ture

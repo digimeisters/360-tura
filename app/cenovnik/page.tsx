@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 import ContactForm from '../../components/ContactForm';
-import PromoBanner from '../../components/PromoBanner';
+import PromoNote from '../../components/PromoNote';
 import PromoTopBar from '../../components/PromoTopBar';
 import Pricing from '../../components/Pricing';
 import SiteTracker from '../../components/SiteTracker';
@@ -32,12 +32,12 @@ const { nav, pricing, contact } = home;
 
 const COPY = {
   meta: {
-    title: 'Cenovnik 360° ture i HDR fotografija nekretnine u Kragujevcu | Kvadrat360',
+    title: 'Cenovnik 360° ture i HDR fotografija | Kvadrat360',
     description:
       'Cena 360° virtuelne ture sa HDR fotografijama po nekretnini: Osnovni i Premium paket, niža cena za agencije sa više nekretnina mesečno. Kragujevac i okolina.'
   },
   hero: {
-    title: 'Dva paketa, *jedna cena* po nekretnini',
+    title: 'Dva paketa, *jedna cena* po nekretnini',
     lede: 'Cena uključuje 360° turu i HDR fotografije. Snimamo u Kragujevcu i okolini.'
   },
   factors: {
@@ -60,7 +60,7 @@ const COPY = {
   },
   faq: {
     eyebrow: 'Pitanja',
-    title: 'Pitanja o *ceni i snimanju*',
+    title: 'Pitanja o *ceni*',
     note: 'Ako vašeg pitanja nema, javite nam se.'
   }
 };
@@ -130,6 +130,9 @@ const STYLES = `
   .cn-hero .section-head{align-items:center; text-align:center; margin:0 auto;}
   .cn-hero h1{font-size:clamp(2.3rem,5vw,3.9rem); line-height:1.05; max-width:20ch;}
   .cn-hero .note{max-width:52ch;}
+  /* Promocija jednim redom ispod naslova (PromoNote), umesto banera i nalepnica. */
+  .promo-note{margin:0; padding:.45rem 1rem; border-radius:999px; background:#FFF1E7; color:#9A3412; font-weight:700; font-size:.95rem;}
+  .sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;}
   /* Plava fraza se ne lomi u dva reda (vlasnik: tipografsko grupisanje). */
   .cn-hero h1 em{white-space:nowrap;}
   .cn-factors{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem;}
@@ -168,6 +171,7 @@ export default function CenovnikPage() {
             <span className="eyebrow" data-reveal="up">{pricing.eyebrow}</span>
             <h1 data-reveal="blur">{accent(COPY.hero.title)}</h1>
             <p className="note" data-reveal="up">{COPY.hero.lede}</p>
+            <PromoNote />
           </div>
         </section>
 
@@ -175,8 +179,9 @@ export default function CenovnikPage() {
             vidljive - tabela otvorena i na telefonu (volumeOpen). */}
         <section id="paketi">
           <div className="wrap">
-            <PromoBanner lang="sr" />
-            <Pricing copy={pricing} lang="sr" trackPrefix="pricing_" volumeOpen />
+            {/* Naslov za čitače ekrana: kartice paketa su h3 (Pricing), a iznad je h1. */}
+            <h2 className="sr-only">Paketi</h2>
+            <Pricing copy={pricing} lang="sr" trackPrefix="pricing_" volumeOpen stickers={false} />
           </div>
         </section>
 

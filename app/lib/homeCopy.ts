@@ -165,28 +165,8 @@ export type HomeCopy = {
     eyebrow: string;
     title: string;
     note: string;
-    /**
-     * Link "Sve ture" ispod kartica, dok mini-pretraga (database) nije
-     * uključena (manje od TOUR_FILTERS_FROM tura). Samo srpski - /ture je
-     * za sada samo na srpskom.
-     */
+    /** Link na ceo spisak tura (/ture) ispod kartica. Samo srpski - /ture je samo na srpskom. */
     allTours?: string;
-    /**
-     * Traka posle mreže kartica, koja najavljuje da postoji ceo spisak tura
-     * sa filterima (/ture) - inače ova sekcija i taj spisak danas prikazuju
-     * ISTO (nema odsecanja na par tura), pa razlika nije očigledna dok baza
-     * ne naraste. Strana je za sada samo na srpskom, pa traka postoji samo
-     * tamo (kao ranije allTours).
-     */
-    database?: {
-      title: string;
-      text: string;
-      /** Natpisi polja mini-pretrage; vrednosti idu u adresu /ture kao filteri. */
-      fields: { category: string; city: string; structure: string };
-      all: string;
-      categories: { rent: string; sale: string; booking: string };
-      cta: string;
-    };
   };
   modules: ModulesCopy;
   /** Sekcija "Od tlocrta do ture" (components/TourStory), odmah posle "U samoj turi". */
@@ -294,15 +274,7 @@ const sr: HomeCopy = {
     eyebrow: 'Ture',
     title: 'Prošetajte kroz *pravu turu*',
     note: 'Otvorite bilo koju — ovo je tačno ono što vidi vaš kupac.',
-    allTours: 'Sve ture',
-    database: {
-      title: 'Pronađite turu',
-      text: 'Cela baza, sa mapom i filterima po naselju, kvadraturi i ceni.',
-      fields: { category: 'Vrsta oglasa', city: 'Grad', structure: 'Struktura' },
-      all: 'Sve',
-      categories: { rent: 'Izdavanje', sale: 'Prodaja', booking: 'Stan na dan' },
-      cta: 'Prikaži ture'
-    }
+    allTours: 'Sve ture, sa mapom i filterima'
   },
   modules: {
     eyebrow: 'U samoj turi',

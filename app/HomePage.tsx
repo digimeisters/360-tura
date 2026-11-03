@@ -13,7 +13,7 @@ import PromoBanner from '../components/PromoBanner';
 import Pricing from '../components/Pricing';
 import PricingShort from '../components/PricingShort';
 import NavScrollSpy from '../components/NavScrollSpy';
-import { getShowcaseTours, HOME_CITY, localToursFirst, pickHeroTour, TOUR_FILTERS_FROM } from './lib/showcaseTours';
+import { getShowcaseTours, HOME_CITY, localToursFirst, pickHeroTour } from './lib/showcaseTours';
 import { SITE_NAME, CONTACT, CONTACT_LINKS, whatsappLink } from './lib/site';
 import { HOME_COPY, type HomeLang } from './lib/homeCopy';
 import { HOME_PAGE_FAQ } from './lib/homeFaq';
@@ -21,7 +21,6 @@ import { homeJsonLd, serializeJsonLd } from './lib/structuredData';
 import TourCard, { tourCardLabels } from '../components/TourCard';
 import { getPublicOpenCount } from './lib/tourStats';
 import { accent } from './lib/accent';
-import { STRUCTURE_ORDER, structureLabel } from './lib/propertyTaxonomy';
 import PromoTopBar from '../components/PromoTopBar';
 import TourModulesShowcase from '../components/TourModulesShowcase';
 import ChatBubble from '../components/ChatBubble';
@@ -86,9 +85,6 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
   const tours = localToursFirst(allTours);
   const heroTour = pickHeroTour(tours, lang, HOME_CITY);
   preloadHeroImage(heroTour);
-  // Mini-pretraga nudi samo vrednosti koje postoje u objavljenim turama.
-  const searchCities = [...new Set(tours.map((t) => t.city).filter((c): c is string => Boolean(c)))].sort((a, b) => a.localeCompare(b, 'sr'));
-  const searchStructures = STRUCTURE_ORDER.filter((st) => tours.some((t) => t.structure === st));
   const address = [CONTACT.street, CONTACT.city, contact.country].filter(Boolean).join(', ');
 
   return (
@@ -199,7 +195,6 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
                     {SERVICE_ICONS[item.icon]}
                   </svg>
                   <span>{item.label}</span>
-                  <span className="aud-pick-arrow" aria-hidden="true">→</span>
                 </Link>
               ))}
             </div>
@@ -219,56 +214,12 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
                   <TourCard key={tour.slug} tour={tour} labels={tourCardLabels(copy)} lang={lang} reveal />
                 ))}
               </div>
-              {copy.examples.allTours && tours.length < TOUR_FILTERS_FROM && (
+              {/* Ranije mini-pretraga za kupce (3 padajuća menija) - na strani koja
+                  prodaje vlasnicima i agencijama bila je višak (pregled 3. 11. 2026). */}
+              {copy.examples.allTours && (
                 <p className="tours-more">
                   <Link href="/ture" data-track="cta:all_tours">{copy.examples.allTours}</Link>
                 </p>
-              )}
-              {copy.examples.database && tours.length >= TOUR_FILTERS_FROM && (
-                // Obična GET forma: radi i bez JavaScript-a, a /ture čita
-                // ?kategorija=&grad=&struktura= iz adrese (prazno = bez filtera).
-                <form className="db-teaser" data-reveal="up" action="/ture" method="get">
-                  <div className="db-teaser-body">
-                    <h3 className="db-teaser-title">{copy.examples.database.title}</h3>
-                    <p className="db-teaser-text">{copy.examples.database.text}</p>
-                  </div>
-                  <div className="db-search">
-                    <label className="db-field">
-                      <span>{copy.examples.database.fields.category}</span>
-                      <select name="kategorija" defaultValue="">
-                        <option value="">{copy.examples.database.all}</option>
-                        {(['rent', 'sale', 'booking'] as const).map((c) => (
-                          <option key={c} value={c}>{copy.examples.database!.categories[c]}</option>
-                        ))}
-                      </select>
-                    </label>
-                    {searchCities.length > 1 && (
-                      <label className="db-field">
-                        <span>{copy.examples.database.fields.city}</span>
-                        <select name="grad" defaultValue="">
-                          <option value="">{copy.examples.database.all}</option>
-                          {searchCities.map((c) => (
-                            <option key={c}>{c}</option>
-                          ))}
-                        </select>
-                      </label>
-                    )}
-                    {searchStructures.length > 1 && (
-                      <label className="db-field">
-                        <span>{copy.examples.database.fields.structure}</span>
-                        <select name="struktura" defaultValue="">
-                          <option value="">{copy.examples.database.all}</option>
-                          {searchStructures.map((c) => (
-                            <option key={c} value={c}>{structureLabel(c)}</option>
-                          ))}
-                        </select>
-                      </label>
-                    )}
-                    <button type="submit" className="btn btn-primary db-teaser-cta" data-track="cta:all_tours">
-                      {copy.examples.database.cta}
-                    </button>
-                  </div>
-                </form>
               )}
             </div>
           </section>

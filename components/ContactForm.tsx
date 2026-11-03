@@ -327,7 +327,7 @@ export default function ContactForm({
         </div>
         <div className="field">
           <label htmlFor="f-msg">
-            {t.message} <small style={{ fontWeight: 400 }}>(opciono)</small>
+            {t.message} <small style={{ fontWeight: 400, fontSize: '.8rem' }}>(opciono)</small>
           </label>
           <textarea className="input" id="f-msg" name="message" placeholder="Npr. gradimo zgradu od 6 spratova, prodaja kreće na proleće…" />
         </div>
@@ -368,7 +368,7 @@ export default function ContactForm({
         </div>
         <div className="field">
           <label htmlFor="f-msg">
-            {t.message} <small style={{ fontWeight: 400 }}>(opciono)</small>
+            {t.message} <small style={{ fontWeight: 400, fontSize: '.8rem' }}>(opciono)</small>
           </label>
           <textarea className="input" id="f-msg" name="message" placeholder="Npr. imamo 3 nekretnine za izdavanje ovog meseca, zanima nas Premium…" />
         </div>

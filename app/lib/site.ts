@@ -27,7 +27,9 @@ export const CONTACT = {
 // Prva poruka je već upisana u WhatsApp-u, na jeziku strane sa koje se piše.
 const WHATSAPP_GREETING = {
   sr: 'Zdravo! Zanima me snimanje 360° ture za nekretninu.',
-  en: 'Hi! I’m interested in a 360° tour of a property.'
+  en: 'Hi! I’m interested in a 360° tour of a property.',
+  // /za-investitore: investitor ne naručuje turu za jednu nekretninu, nego izbor stana za projekat.
+  investor: 'Zdravo! Zanima me izbor stana na zgradi za naš projekat.'
 } as const;
 
 // wa.me radi i bez aplikacije - na računaru otvara WhatsApp Web.

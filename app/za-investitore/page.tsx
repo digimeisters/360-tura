@@ -233,8 +233,9 @@ const INVESTOR_STYLES = `
   .sc-unit{display:flex; justify-content:space-between; align-items:center; gap:.8rem; margin-top:.6rem; padding:.6rem .7rem; border:1px solid #E3E8F1; border-radius:14px;}
   .sc-unit b{font-family:var(--font-display); font-size:.95rem;}
   .sc-seg{display:flex; gap:3px; background:#EEF2F8; border-radius:10px; padding:3px;}
-  .sc-seg i{font-style:normal; font-size:.68rem; font-weight:700; color:#5B5D63; padding:.3rem .5rem; border-radius:8px;}
-  .sc-seg i.s{background:#2E9E5B; color:#fff;} .sc-seg i.r{background:#D99A1E; color:#fff;} .sc-seg i.p{background:#6B6B6B; color:#fff;}
+  /* Kontrast bar 4,5:1 (pregled 3. 11. 2026): tamnija zelena, žuta sa tamnim tekstom. */
+  .sc-seg i{font-style:normal; font-size:.75rem; font-weight:700; color:#5B5D63; padding:.3rem .5rem; border-radius:8px;}
+  .sc-seg i.s{background:#1F7A45; color:#fff;} .sc-seg i.r{background:#E3A93A; color:#2B1D00;} .sc-seg i.p{background:#5B5D63; color:#fff;}
   .rooms-title{font-size:.72rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#5B5D63; margin:1.3rem 0 .7rem;}
   .room-bar{display:grid; grid-template-columns:3.2rem 1fr auto; gap:.8rem; align-items:center; font-size:.85rem; margin-bottom:.55rem;}
   .room-bar > span{height:10px; border-radius:999px; background:#F1F1EC; overflow:hidden;}
@@ -309,6 +310,8 @@ const INVESTOR_STYLES = `
   .inv-steps{list-style:none; margin:1rem 0 0; padding:0; display:grid; gap:1.1rem;}
   .inv-kicker{display:block; font-size:.72rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); margin-bottom:.35rem;}
   .inv-step h3{font-size:clamp(1.15rem,1.6vw,1.35rem); letter-spacing:-.02em; margin:0 0 .3rem;}
+  /* Plava fraza kadra se ne lomi u dva reda. */
+  .inv-step h3 em{white-space:nowrap;}
   .inv-step p{margin:0; color:var(--ink-soft); line-height:1.5;}
   .inv-cta{margin-top:1rem;}
   .inv-progress{display:none;}
@@ -703,7 +706,7 @@ export default async function InvestorPage() {
                 <a className="btn btn-secondary btn-sm qc-viber" href={CONTACT_LINKS.viber} data-track="contact:viber">
                   <span className="qc-dot" />Viber
                 </a>
-                <a className="btn btn-secondary btn-sm qc-wa" href={whatsappLink('sr')} target="_blank" rel="noopener noreferrer" data-track="contact:whatsapp">
+                <a className="btn btn-secondary btn-sm qc-wa" href={whatsappLink('investor')} target="_blank" rel="noopener noreferrer" data-track="contact:whatsapp">
                   <span className="qc-dot" />WhatsApp
                 </a>
               </div>
@@ -713,7 +716,7 @@ export default async function InvestorPage() {
               <a href={CONTACT_LINKS.phone} data-track="contact:phone">{CONTACT.phoneDisplay}</a>
               <a href={CONTACT_LINKS.email} data-track="contact:email">{CONTACT.email}</a>
               <a href={CONTACT_LINKS.map} target="_blank" rel="noopener noreferrer" data-track="contact:map">{address} ↗</a>
-              <span>{contact.hours}</span>
+              <span>{CONTACT.hoursDisplay}</span>
             </p>
           </div>
         </section>

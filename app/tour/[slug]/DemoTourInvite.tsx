@@ -36,6 +36,8 @@ const COPY = {
     pill: 'Ovakva tura za vašu nekretninu',
     close: 'Zatvori',
     home: '/',
+    // Srpski: posebna strana Cenovnik (od 3. 11. 2026); engleski nema svoju.
+    pricing: '/cenovnik',
     formKicker: 'Kvadrat360 · zakazivanje snimanja',
     formTitle: 'Ostavite broj, javljamo vam se',
     nameLabel: 'Ime',
@@ -64,6 +66,7 @@ const COPY = {
     pill: 'A tour like this for your property',
     close: 'Close',
     home: '/en',
+    pricing: '/en#cenovnik',
     formKicker: 'Kvadrat360 · book a shoot',
     formTitle: 'Leave your number, we will call you',
     nameLabel: 'Name',
@@ -320,7 +323,7 @@ export default function DemoTourInvite({
               {copy.book}
             </button>
             <a
-              href={`${copy.home}#cenovnik`}
+              href={copy.pricing}
               target="_top"
               className="k360-tap"
               onClick={() => trackSiteEvent('cta_click', 'tour_invite_prices')}

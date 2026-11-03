@@ -20,19 +20,22 @@ import VolumeDetails from './VolumeDetails';
  * fotografije" sklopljeni iza "Prikaži više" na svakoj širini.
  *
  * `volumeOpen` (/cenovnik): tabela po obimu otvorena i na telefonu.
+ * `stickers` (/cenovnik bez njih): nalepnica −30% na kartici; precrtana cena ostaje.
  */
 export default function Pricing({
   copy,
   lang,
   trackPrefix,
   compact = false,
-  volumeOpen = false
+  volumeOpen = false,
+  stickers = true
 }: {
   copy: HomeCopy['pricing'];
   lang: HomeLang;
   trackPrefix: '' | 'agency_' | 'pricing_';
   compact?: boolean;
   volumeOpen?: boolean;
+  stickers?: boolean;
 }) {
   return (
     <>
@@ -40,7 +43,7 @@ export default function Pricing({
         {copy.plans.map((plan) => (
           <div key={plan.track} className={`card price-card${plan.packageType === 'premium' ? ' featured' : ''}`} data-reveal="scale">
             {plan.badge && <span className="price-badge">{plan.badge}</span>}
-            <SaleSticker />
+            {stickers && <SaleSticker />}
             <span className="price-audience">{plan.audience}</span>
             <h3>{plan.title}</h3>
             <div>

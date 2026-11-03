@@ -66,6 +66,8 @@ const TARGET_LABELS: Record<string, string> = {
   home_price_book: 'Početna — „Zakažite snimanje“ (cena ukratko)',
   home_price_more: 'Početna — „Ceo cenovnik“',
   pricing_nav: 'Cenovnik — „Zakažite snimanje“ (meni)',
+  pricing_nav_sheet: 'Cenovnik — „Zakažite snimanje“ (meni na telefonu)',
+  owner_nav_sheet: 'Za vlasnike — „Zakažite snimanje“ (meni na telefonu)',
   owner_nav: 'Za vlasnike — „Zakažite snimanje“ (meni)',
   owner_hero_book: 'Za vlasnike — „Zakažite snimanje“ (vrh)',
   owner_hero_tour: 'Za vlasnike — „Pogledajte primer ture“ (vrh)',

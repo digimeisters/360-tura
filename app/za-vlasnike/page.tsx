@@ -39,7 +39,7 @@ const { nav, contact } = home;
 
 const COPY = {
   meta: {
-    title: '360° tura za prodaju ili izdavanje nekretnine u Kragujevcu | Kvadrat360',
+    title: '360° tura za prodaju i izdavanje nekretnine | Kvadrat360',
     description:
       'Prodajete ili izdajete nekretninu? 360° tura i HDR fotografije: kupac prošeta kroz svaku prostoriju pre poziva, a vama se javljaju oni koje nekretnina zaista zanima.'
   },
@@ -66,9 +66,9 @@ const COPY = {
     with: {
       title: 'Oglas sa 360° turom',
       rows: [
-        { title: 'Odgovori su već u turi', text: 'Sprat, grejanje, uknjiženost i tlocrt, na jednom mestu.' },
+        { title: 'Odgovori su već u turi', text: 'Sprat, grejanje, uknjiženost i lokacija, na jednom mestu.' },
         { title: 'Dolaze oni kojima se dopala', text: 'Prošetali su kroz svaku prostoriju pre nego što su vas pozvali.' },
-        { title: 'Razgleda i iz Beograda ili Niša', text: 'Sa telefona, uz vodiča koji priča na njegovom jeziku.' }
+        { title: 'Razgleda i iz Beograda ili Niša', text: 'Sa telefona, uz audio vodiča kroz svaku prostoriju.' }
       ]
     }
   },
@@ -212,7 +212,7 @@ export default async function OwnersPage() {
         brandHref="/"
         brandAria={nav.brandAria}
         cta={{ href: '#kontakt', label: nav.cta, track: 'cta:owner_nav' }}
-        mainMenu={{}}
+        mainMenu={{ lang: { href: '/en', label: nav.switchLabel, hrefLang: nav.switchLang, aria: nav.switchAria } }}
       />
 
       <main className="rv-page">
