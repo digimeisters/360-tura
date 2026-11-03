@@ -62,6 +62,7 @@ const TARGET_LABELS: Record<string, string> = {
   agency_hero_story: 'Za agencije — „Kako to izgleda u praksi“ (staro dugme)',
   agency_mid: 'Za agencije — „Probajte na jednoj nekretnini“ (uklonjena traka, do 3. 11. 2026)',
   home_mid: 'Početna — „Hoćete ovakvu turu…“ (uklonjena traka, do 3. 11. 2026)',
+  investor_mid: 'Za investitore — „Zakažite razgovor“ (uklonjena traka, do 3. 11. 2026)',
   home_price_book: 'Početna — „Zakažite snimanje“ (cena ukratko)',
   home_price_more: 'Početna — „Ceo cenovnik“',
   pricing_nav: 'Cenovnik — „Zakažite snimanje“ (meni)',

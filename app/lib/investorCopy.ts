@@ -67,14 +67,6 @@ export type InvestorCopy = {
     points: string[];
     card: { title: string; badge: string; inquiry: string; inquiryWho: string; topTitle: string; top: { code: string; pct: number; views: string }[] };
   };
-  midCta: { title: string; points: string[]; button: string; call: string };
-  setup: {
-    eyebrow: string;
-    title: string;
-    note: string;
-    items: { from: string; to: string; title: string; text: string }[];
-    foot: string;
-  };
   offer: { eyebrow: string; title: string; note: string; items: { title: string; text: string }[]; price: string };
   extras: { title: string; note: string; items: { key: 'render' | 'video'; title: string; text: string }[]; onRequest: string; cta: string };
   steps: {
@@ -154,14 +146,12 @@ export const INVESTOR_COPY: InvestorCopy = {
   buyer: {
     eyebrow: 'Kupac',
     steps: [
-      { kicker: 'Zgrada', title: 'Cela zgrada *na jednoj slici*', text: 'Pravi render vašeg projekta, sprat po sprat obeležen.' },
-      { kicker: 'Statusi', title: 'Boja govori *šta je slobodno*', text: 'Slobodan, rezervisan, prodat - kupac vidi odmah, bez poziva.' },
-      { kicker: 'Sprat', title: 'Jedan dodir, i *kupac je na spratu*', text: 'Bira sprat na fasadi i otvara se njegova osnova.' },
-      { kicker: 'Osnova', title: 'Svaki stan *sa svojim m²*', text: 'Prava osnova sprata, stanovi obojeni po statusu.' },
-      { kicker: 'Stan', title: 'Sve bitno *o jednom stanu*', text: 'Struktura, kvadratura, terasa, cena, osnova, 3D i PDF letak.' },
-      { kicker: '3D', title: 'Stan u 3D, *pre nego što je sagrađen*', text: 'Kupac vidi raspored nameštaja i prostorija, ne samo crtež.' },
-      { kicker: 'Upit', title: 'Upit stiže *sa oznakom stana*', text: 'Kupac ostavi ime i telefon; prodaja tačno zna za koji stan.' },
-      { kicker: 'Prodaja', title: 'Status se menja *jednim dodirom*', text: 'Vaša prodaja označi stan kao rezervisan, a sajt se osveži odmah.' },
+      // 5 kadrova umesto 9 (vlasnik, 3. 11. 2026: priča je bila 5,7 ekrana na
+      // telefonu). Animacija je ista - granice kadrova su STAGES u InvestorStoryPlayer.
+      { kicker: 'Zgrada', title: 'Cela zgrada, *status na prvi pogled*', text: 'Pravi render, sprat po sprat. Zeleno slobodno, žuto rezervisano, sivo prodato.' },
+      { kicker: 'Sprat', title: 'Jedan dodir, i *kupac je na spratu*', text: 'Otvara se prava osnova sprata, svaki stan sa svojim m².' },
+      { kicker: 'Stan', title: 'Sve o stanu, *i u 3D*', text: 'Struktura, kvadratura, terasa, cena, PDF letak i raspored nameštaja u 3D.' },
+      { kicker: 'Upit', title: 'Upit stiže *sa oznakom stana*', text: 'Prodaja zna tačan stan i označi ga rezervisanim jednim dodirom.' },
       { kicker: 'Primer', title: 'Ovo je *pravi projekat*', text: 'Isprobajte izbor stana na telefonu, isto kao vaš kupac.' }
     ],
     tabs: ['Osnova', '360°', '3D', 'Slike'],
@@ -198,38 +188,6 @@ export const INVESTOR_COPY: InvestorCopy = {
         { code: '5G', pct: 52, views: '44 otvaranja' }
       ]
     }
-  },
-  midCta: {
-    title: 'Pokažite stanove *pre nego što su gotovi*',
-    points: ['Razgovor bez obaveze', 'Primer na vašem projektu', 'Kragujevac i okolina'],
-    button: 'Zakažite razgovor',
-    call: 'Pozovite'
-  },
-  setup: {
-    eyebrow: 'Postavljanje',
-    title: 'Vi pošaljete, *mi složimo*',
-    note: 'Cenovnik, osnove i fotografiju zgrade šaljete u obliku u kom ih već imate. Unos i proveru radimo mi - svaki stan i svaki broj, pre nego što ga kupac vidi.',
-    items: [
-      {
-        from: 'cenovnik.pdf',
-        to: '56 stanova u tabeli',
-        title: 'Cenovnik postaje tabela',
-        text: 'PDF, Excel ili slika cenovnika: mi prenesemo oznake, spratove, strukture, m², cene i statuse i proverimo svaki red.'
-      },
-      {
-        from: '23 osnove odjednom',
-        to: 'prostorije i m²',
-        title: 'Svaka osnova uz svoj stan',
-        text: 'Svaku osnovu povežemo sa stanovima na koje se odnosi i upišemo prostorije i kvadrature, tačno kao na vašem crtežu.'
-      },
-      {
-        from: 'render zgrade',
-        to: '7 spratova, 20 stanova',
-        title: 'Stanovi na fotografiji',
-        text: 'Na renderu ili fotografiji zgrade obeležimo svaki sprat i stan, na svakoj slici posebno.'
-      }
-    ],
-    foot: 'Posle objave, promena cene ili statusa je jedan dodir na telefonu vaše prodaje.'
   },
   offer: {
     eyebrow: 'Paket',
@@ -270,13 +228,14 @@ export const INVESTOR_COPY: InvestorCopy = {
   },
   steps: {
     eyebrow: 'Kako radimo',
-    title: 'Od razgovora *do prvog upita*',
-    note: 'Vi šaljete ono što već imate. Snimanje, obradu i objavu radimo mi.',
+    // Spojeno sa nekadašnjom sekcijom "Postavljanje" (3. 11. 2026) - obe su govorile isto.
+    title: 'Vi pošaljete, *mi složimo*',
+    note: 'Cenovnik, osnove i fotografiju zgrade šaljete u obliku u kom ih već imate. Unos i proveru radimo mi - svaki stan i svaki broj, pre nego što ga kupac vidi.',
     items: [
       { title: 'Razgovor', text: 'Pogledamo projekat, šta prodajete i kome. Bez obaveze.' },
       { title: 'Šaljete materijal', text: 'Cenovnik, osnove i rendere - u obliku u kom ih već imate.' },
-      { title: 'Snimamo i slažemo', text: 'Let dronom, ture, izbor stana i tekst na jezicima koje izaberete.' },
-      { title: 'Objava i mesečno', text: 'Link za oglase i vaš sajt, novi snimak gradilišta svakog meseca.' }
+      { title: 'Mi slažemo i proveravamo', text: 'Cenovnik postaje tabela, osnove idu uz svoje stanove, a stanovi se obeleže na zgradi. Plus let dronom, ture i tekst na jezicima koje izaberete.' },
+      { title: 'Objava i mesečno', text: 'Link za oglase i vaš sajt, novi snimak gradilišta svakog meseca. Cenu i status posle menja vaša prodaja sa telefona.' }
     ],
     needs: {
       title: 'Šta nam treba od vas',

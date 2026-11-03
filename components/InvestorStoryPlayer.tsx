@@ -10,7 +10,10 @@ import type { InvestorStoryData } from '../app/lib/investorStory';
  * napredak p (0-1) iz skrola, scena "zalepljena" dok traje, petlja samo dok
  * je sekcija blizu ekrana, uz smanjene pokrete ništa se ne naoružava.
  */
-const STAGES = [0, 0.16, 0.3, 0.42, 0.54, 0.64, 0.77, 0.86, 0.95];
+// Početak svakog tekstualnog kadra (5 od 3. 11. 2026): zgrada i statusi,
+// sprat i osnova, stan i 3D, upit i prodaja, pravi projekat. Animacija ispod
+// i dalje ide po istim vremenima kao kad je bilo 9 kadrova.
+const STAGES = [0, 0.3, 0.54, 0.77, 0.95];
 const PHONE = 760;
 
 const seg = (p: number, a: number, b: number) => Math.max(0, Math.min(1, (p - a) / (b - a)));

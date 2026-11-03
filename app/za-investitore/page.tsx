@@ -15,7 +15,6 @@ import NavScrollSpy from '../../components/NavScrollSpy';
 import SiteReveal from '../../components/SiteReveal';
 import InvestorStory from '../../components/InvestorStory';
 import { buildInvestorStory } from '../lib/investorStory';
-import { IconPhone } from '../../components/SiteIcons';
 import { INVESTOR_COPY } from '../lib/investorCopy';
 import { accent } from '../lib/accent';
 import { INVESTOR_EXTRA_PRICES } from '../lib/pricing';
@@ -284,18 +283,6 @@ const INVESTOR_STYLES = `
   .ph-tabs i{flex:1; font-style:normal; text-align:center; font-size:.56rem; font-weight:700; color:#5B5D63; padding:3px 0; border-radius:6px;}
   .ph-tabs i.on{background:#FFFFFF; color:#1E5AA8;}
 
-  /* 05 Postavljanje: ulaz -> šta mi složimo. */
-  .setup-grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1.2rem;}
-  @media (max-width:900px){ .setup-grid{grid-template-columns:1fr;} }
-  /* Bez kartica, kao prednosti (.feat): red sa linijom iznad. */
-  .setup-grid .setup-card{padding:1.5rem 0 1.7rem; display:flex; flex-direction:column; gap:.6rem; background:none; border:0; border-top:1px solid var(--line-strong); border-radius:0; box-shadow:none;}
-  .setup-grid{column-gap:clamp(1.5rem,4vw,3.5rem);}
-  .setup-flow{display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.5rem;}
-  .setup-in{font-size:.8rem; font-weight:700; color:var(--ink-soft); background:var(--surface-2); border:1px dashed var(--line-strong); border-radius:10px; padding:.4rem .65rem;}
-  .setup-arrow{color:var(--accent); font-weight:800;}
-  .setup-out{font-size:.8rem; font-weight:800; color:#FFFFFF; background:#1E5AA8; border-radius:10px; padding:.4rem .65rem;}
-  .setup-card h3{font-size:1.15rem;}
-  .setup-card p{color:var(--ink-soft); font-size:.95rem; line-height:1.6; margin:0;}
   .extras{margin-top:clamp(2.4rem,5vw,3.6rem); padding:clamp(1.4rem,3vw,2.2rem); border-radius:28px; background:linear-gradient(160deg,#16325C 0%,#1E5AA8 100%); color:#fff;}
   .extras-head h3{margin:0; font-size:clamp(1.4rem,2.4vw,1.9rem); font-weight:700; letter-spacing:-0.015em; color:#fff;}
   .extras-head h3 em{color:#9CC3F2;}
@@ -333,7 +320,8 @@ const INVESTOR_STYLES = `
   .inv-fl{fill:rgba(46,158,91,.28); stroke:#fff; stroke-width:2.5px; vector-effect:non-scaling-stroke; stroke-linejoin:round;}
   .inv-plan, .inv-3d, .inv-ui{display:none;}
 
-  .inv-story.is-armed{height:700vh; padding:0;}
+  /* Skrol priče skraćen 3. 11. 2026 (5 kadrova umesto 9): bilo 700vh / 570vh na telefonu. */
+  .inv-story.is-armed{height:400vh; padding:0;}
   .inv-story.is-armed .inv-stage{position:sticky; top:0; height:100vh; height:100svh;}
   .inv-story.is-armed .inv-text{position:relative;}
   .inv-story.is-armed .inv-steps{position:relative; height:250px; margin:0; display:block;}
@@ -391,7 +379,7 @@ const INVESTOR_STYLES = `
   @media (max-width:760px){
     .inv-stage{grid-template-columns:minmax(0,1fr);}
     .inv-view{order:-1;}
-    .inv-story.is-armed{height:570vh;}
+    .inv-story.is-armed{height:320vh;}
     .inv-story.is-armed .inv-stage{align-content:center; gap:24px;}
     .inv-story.is-armed .inv-view{max-height:none; border-radius:14px;}
     .inv-story.is-armed .inv-steps{height:180px;}
@@ -422,15 +410,10 @@ const INVESTOR_STYLES = `
   html.rv-armed .room-bar + .room-bar + .room-bar span i{transition-delay:.82s;}
   html.rv-armed .report-card.is-in .room-bar span i{transform:none;}
   /* S1 Postavljanje: vaš materijal -> strelica -> gotovo kod nas. */
-  html.rv-armed .setup-in, html.rv-armed .setup-arrow, html.rv-armed .setup-out{display:inline-block; opacity:0; transition:opacity .4s, transform .5s cubic-bezier(.22,.8,.24,1);}
-  html.rv-armed .setup-in{transform:translateX(-10px);} html.rv-armed .setup-arrow{transform:translateX(-14px);} html.rv-armed .setup-out{transform:scale(.85);}
-  html.rv-armed .setup-card.is-in .setup-in{opacity:1; transform:none; transition-delay:calc(var(--i,0) * 90ms + .3s);}
-  html.rv-armed .setup-card.is-in .setup-arrow{opacity:1; transform:none; transition-delay:calc(var(--i,0) * 90ms + .7s);}
-  html.rv-armed .setup-card.is-in .setup-out{opacity:1; transform:none; transition-delay:calc(var(--i,0) * 90ms + 1.1s);}
 `;
 
 export default async function InvestorPage() {
-  const { nav, hero, compare, demo, buyer, sales, midCta, setup, offer, extras, steps, faq, contact } = copy;
+  const { nav, hero, compare, demo, buyer, sales, offer, extras, steps, faq, contact } = copy;
   const address = [CONTACT.street, CONTACT.city].filter(Boolean).join(', ');
 
   const demoData = DEMO_SLUG ? await getPublicProject(DEMO_SLUG) : null;
@@ -616,47 +599,6 @@ export default async function InvestorPage() {
           </div>
         </section>
 
-        {/* Poziv na sredini - kao plava traka na /za-agencije. */}
-        <section id="razgovor" className="mid-cta-sec">
-          <div className="wrap mid-cta">
-            <div className="mid-cta-text" data-reveal="up">
-              <h2>{accent(midCta.title)}</h2>
-              <ul>
-                {midCta.points.map((point) => <li key={point}>{point}</li>)}
-              </ul>
-            </div>
-            <div className="mid-cta-actions" data-reveal="up">
-              <a className="btn btn-primary" href="#kontakt" data-track="cta:investor_mid">{midCta.button}</a>
-              <a className="btn btn-secondary" href={CONTACT_LINKS.phone} data-track="contact:phone"><IconPhone /> {midCta.call}</a>
-            </div>
-          </div>
-        </section>
-
-        {/* 05 Postavljanje: mi unosimo i proveravamo materijal investitora - odgovor na „koliko posla je na nama". */}
-        <section id="postavljanje">
-          <div className="wrap">
-            <div className="section-head">
-              <span className="eyebrow" data-reveal="up">{setup.eyebrow}</span>
-              <h2 data-reveal="blur">{accent(setup.title)}</h2>
-              <p className="note" data-reveal="up">{setup.note}</p>
-            </div>
-            <div className="setup-grid">
-              {setup.items.map((item) => (
-                <div key={item.title} className="card setup-card" data-reveal="up">
-                  <div className="setup-flow" aria-hidden="true">
-                    <span className="setup-in">{item.from}</span>
-                    <span className="setup-arrow">→</span>
-                    <span className="setup-out" data-count>{item.to}</span>
-                  </div>
-                  <h3>{item.title}</h3>
-                  <p>{item.text}</p>
-                </div>
-              ))}
-            </div>
-            <p className="setup-foot">{setup.foot}</p>
-          </div>
-        </section>
-
         {/* 06 Paket. */}
         <section className="band" id="paket">
           <div className="wrap">
@@ -700,7 +642,7 @@ export default async function InvestorPage() {
           </div>
         </section>
 
-        {/* 07 Kako radimo + šta nam treba. */}
+        {/* 07 Kako radimo + šta nam treba (od 3. 11. 2026 i nekadašnje "Postavljanje"). */}
         <section id="kako-radi">
           <div className="wrap steps-split">
             <div className="section-head left">
