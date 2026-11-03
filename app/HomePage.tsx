@@ -16,7 +16,7 @@ import NavScrollSpy from '../components/NavScrollSpy';
 import { getShowcaseTours, HOME_CITY, localToursFirst, pickHeroTour, TOUR_FILTERS_FROM } from './lib/showcaseTours';
 import { SITE_NAME, CONTACT, CONTACT_LINKS, whatsappLink } from './lib/site';
 import { HOME_COPY, type HomeLang } from './lib/homeCopy';
-import { HOME_FAQ } from './lib/homeFaq';
+import { HOME_PAGE_FAQ } from './lib/homeFaq';
 import { homeJsonLd, serializeJsonLd } from './lib/structuredData';
 import TourCard, { tourCardLabels } from '../components/TourCard';
 import { getPublicOpenCount } from './lib/tourStats';
@@ -78,7 +78,7 @@ function gridClass(count: number): string {
 
 export default async function HomePage({ lang }: { lang: HomeLang }) {
   const copy = HOME_COPY[lang];
-  const faq = HOME_FAQ[lang];
+  const faq = HOME_PAGE_FAQ[lang];
   const { nav, hero, contact } = copy;
 
   const [allTours, openCount, story] = await Promise.all([getShowcaseTours(lang), getPublicOpenCount(), lang === 'sr' ? null : getStoryData(lang)]);

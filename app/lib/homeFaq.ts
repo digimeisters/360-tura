@@ -105,3 +105,19 @@ export const HOME_FAQ: Record<HomeLang, readonly FaqItem[]> = {
     }
   ]
 };
+
+// Pitanja koja se prikazuju na početnoj (i idu u njen FAQPage). Srpska
+// početna od 3. 11. 2026 ima samo opšta pitanja - pitanja vlasnika su na
+// /za-vlasnike, a pitanja o ceni na /cenovnik (isti tekst, iz HOME_FAQ).
+// Engleska nema te strane, pa zadržava sva.
+const HOME_PAGE_SR_QUESTIONS = [
+  'Šta je 360° virtuelna tura nekretnine?',
+  'Koliko košta 360° tura nekretnine u Kragujevcu?',
+  'Mora li kupac da zna da se snalazi u 360° turi?',
+  'Gde snimate?'
+];
+
+export const HOME_PAGE_FAQ: Record<HomeLang, readonly FaqItem[]> = {
+  sr: HOME_FAQ.sr.filter((item) => HOME_PAGE_SR_QUESTIONS.includes(item.question)),
+  en: HOME_FAQ.en
+};

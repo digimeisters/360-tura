@@ -377,7 +377,7 @@ const sr: HomeCopy = {
     // u "U samoj turi"). Poslednja stavka nosi ono što je ranije bila cela
     // sekcija "Tipovi oglasa".
     deliver: [
-      'Link ka turi za oglas i gotov kod za sajt agencije',
+      'Link ka turi za oglas, portal ili poruku kupcu',
       'HDR fotografije u punoj rezoluciji, za portal i društvene mreže',
       'Vaše ime i telefon u turi — i kad se link deli dalje',
       'Tekst i vodič prilagođeni oglasu: za prodaju vrednost i vlasništvo, za izdavanje troškovi i useljenje, za stan na dan utisak gosta'
