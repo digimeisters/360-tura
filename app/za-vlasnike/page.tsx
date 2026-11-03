@@ -17,6 +17,7 @@ import { HOME_FAQ } from '../lib/homeFaq';
 import { getShowcaseTours, HOME_CITY, localToursFirst, pickHeroTour } from '../lib/showcaseTours';
 import { CONTACT, CONTACT_LINKS, SITE_NAME, SITE_URL, whatsappLink } from '../lib/site';
 import { serializeJsonLd } from '../lib/structuredData';
+import { breadcrumbJsonLd, packagesJsonLd } from '../lib/serviceJsonLd';
 import { getStoryData } from '../lib/tourStory';
 
 /**
@@ -134,6 +135,9 @@ function jsonLd() {
   return {
     '@context': 'https://schema.org',
     '@graph': [
+      breadcrumbJsonLd('Za vlasnike', PATH),
+      // Paketi sa cenama (iste kao na stranici, promo se menja sam).
+      packagesJsonLd(),
       {
         '@type': 'WebPage',
         '@id': pageUrl,
@@ -141,7 +145,7 @@ function jsonLd() {
         name: COPY.meta.title,
         description: COPY.meta.description,
         inLanguage: 'sr',
-        isPartOf: { '@type': 'WebSite', url: SITE_URL, name: SITE_NAME },
+        isPartOf: { '@id': `${SITE_URL}/#website` },
         about: { '@id': `${SITE_URL}/#business` }
       },
       {

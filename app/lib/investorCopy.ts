@@ -119,7 +119,8 @@ export const INVESTOR_COPY: InvestorCopy = {
         { day: 'Pon', title: 'Kupac dobije PDF tlocrt', text: 'Ne može da zamisli prostor ni da uporedi dva stana na istom spratu.' },
         { day: 'Uto', title: '„Da li je 12B još slobodan?“', text: 'Prodaja ceo dan odgovara na ista pitanja, a spisak stanova je u nečijem Excelu.' },
         { day: 'Sre', title: 'Pogled se ne vidi', text: 'Viši spratovi su skuplji zbog pogleda koji kupac prvi put vidi tek kad se useli.' },
-        { day: 'Čet', title: 'Kupac sa strane odustaje', text: 'Bez dolaska u Kragujevac nema od čega da krene.' }
+        { day: 'Čet', title: 'Kupac sa strane odustaje', text: 'Bez dolaska u Kragujevac nema od čega da krene.' },
+        { day: 'Pet', title: 'Kapara otkazana, a niko ne zna', text: 'Stan je opet slobodan, a kupci koji su ga želeli odavno su otišli.' }
       ]
     },
     with: {
@@ -129,7 +130,9 @@ export const INVESTOR_COPY: InvestorCopy = {
         { day: 'Pon', title: 'Kupac klikne na stan na zgradi', text: 'Odmah vidi kvadraturu, prostorije, cenu i cenu po m².' },
         { day: 'Uto', title: 'Status je uvek tačan', text: 'Vaša prodaja ga menja sa telefona, sajt se osvežava odmah.' },
         { day: 'Sre', title: 'Pogled sa sprata, snimljen dronom', text: 'Kupac sa šestog sprata vidi tačno ono što plaća.' },
-        { day: 'Čet', title: 'Upit za tačan stan', text: 'Stiže pravo prodaji, sa oznakom stana i kontaktom kupca.' }
+        { day: 'Čet', title: 'Upit za tačan stan', text: 'Stiže pravo prodaji, sa oznakom stana i kontaktom kupca.' },
+        // "Obavesti me" (unitWatch.ts): mejl kupcima čim se zauzet stan oslobodi.
+        { day: 'Pet', title: 'Stan se oslobodi, kupci već čekaju', text: 'Ko je ostavio mejl na zauzetom stanu dobije poruku istog trenutka.' }
       ]
     }
   },

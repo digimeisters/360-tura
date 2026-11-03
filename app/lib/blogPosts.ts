@@ -579,6 +579,89 @@ export const BLOG_POSTS: BlogPost[] = [
       { href: '/cenovnik', label: 'Koliko košta tura za jednu nekretninu? Pogledajte cenovnik' },
       { href: '/blog/sta-agencija-za-nekretnine-gubi-sa-obicnim-fotografijama', label: 'Pročitajte i šta agencija gubi kad koristi samo obične fotografije' }
     ]
+  },
+  {
+    slug: 'ai-asistent-u-virtuelnoj-turi-nekretnine',
+    title: 'AI asistent u virtuelnoj turi nekretnine: kupac pita uveče, odgovor stiže odmah',
+    seoTitle: 'AI asistent u 360° turi nekretnine',
+    description:
+      'Kako AI asistent u 360° turi odgovara kupcu na pitanja o nekretnini i u ponoć, i kako ga glasovni uvod sa mapom dočeka pre prve prostorije.',
+    excerpt:
+      'Kupac gleda oglas u deset uveče i ima jedno pitanje. Agent ne radi do jutra. Šta se desi sa tim kupcem, i kako tura može da odgovori umesto vas.',
+    publishedAt: '2026-11-03',
+    sections: [
+      {
+        paragraphs: [
+          'Deset je uveče. Kupac je na telefonu pregledao pet oglasa i jedan mu se dopao. Ima samo jedno pitanje: da li su troškovi zgrade uključeni, ili kolika je stvarna površina terase. Agenta ne zove u to doba, a poruku će poslati „sutra“. Do sutra je već otvorio tri nova oglasa.',
+          'Zato Kvadrat360 tura sada ima dve stvari koje rade i kad vi ne radite: glasovni uvod koji kupca dočeka pre prve prostorije, i AI asistenta kome kupac može da ukuca svoje pitanje.'
+        ]
+      },
+      {
+        variant: 'callout',
+        heading: 'Ukratko',
+        paragraphs: [],
+        bullets: [
+          'Pre obilaska mapa doleti do lokacije, a glas u nekoliko rečenica predstavi nekretninu.',
+          'U delu „Pitanja“ kupac može da ukuca bilo koje pitanje i odmah dobije odgovor.',
+          'Asistent odgovara samo iz podataka o toj nekretnini i ništa ne izmišlja.',
+          'Kad odgovor ne zna, nudi kupcu da pitanje jednim dodirom pošalje agentu.'
+        ]
+      },
+      {
+        heading: 'Pre prve prostorije: glasovni uvod sa mapom',
+        paragraphs: [
+          'Kad kupac pokrene vođeni obilazak, tura ne kreće odmah iz hodnika. Prvo mapa doleti do lokacije i spusti oznaku, a na ekranu se pojave osnovni podaci. Za to vreme glas u nekoliko rečenica kaže šta je ovo za nekretninu i za koga je.',
+          'Uvod je pisan prema vrsti oglasa: za prodaju drugačije nego za izdavanje ili „Stan na dan“. Traje kratko, a onda vodič nastavlja kroz prostorije. Kupac tako prvo zna gde je, pa tek onda ulazi unutra.'
+        ]
+      },
+      {
+        heading: 'Pitanje uveče, odgovor odmah: kako radi AI asistent',
+        paragraphs: [
+          'U delu „Pitanja“ kupac prvo vidi najčešća pitanja sa odgovorima. Ispod njih je polje „Imate drugo pitanje? Pitajte asistenta“. Kupac ukuca šta ga zanima, a asistent:'
+        ],
+        bullets: [
+          'odgovara na jeziku na kom kupac gleda turu (srpski, engleski, nemački ili ruski)',
+          'koristi samo ono što o nekretnini već piše u turi: podatke, opis, odgovore na pitanja i tekstove prostorija',
+          'kad odgovora u turi nema, to kaže otvoreno i nudi dugme „Pišite agentu“',
+          'tada se otvara poruka agentu na Viberu ili WhatsApp-u, sa već upisanim pitanjem kupca'
+        ]
+      },
+      {
+        heading: 'Zašto asistent ne odgovara „iz glave“',
+        paragraphs: [
+          'Pogrešan odgovor o kvadraturi, uknjiženosti ili ceni šteti više nego kad odgovora nema. Zato asistent ne nagađa i ne dopunjuje podatke koje nije dobio. Ispod polja piše i da su odgovori okvirni, a da se tačni uslovi potvrđuju sa agentom.',
+          'Što je tura bolje popunjena, asistent zna više. Podatke o nekretnini i odgovore na pitanja pripremamo zajedno sa vama pre objave ture.'
+        ]
+      },
+      {
+        heading: 'Šta agencija u Kragujevcu dobija od toga',
+        paragraphs: [],
+        bullets: [
+          'Manje poziva sa pitanjima na koja odgovor već piše u oglasu',
+          'Poruke koje ipak stignu su konkretne, jer je kupac već video ono što tura zna',
+          'Kupac koji gleda uveče ne mora da čeka jutro da bi saznao da li mu nekretnina odgovara',
+          'Na razgledanje dolaze kupci koji su već dobili odgovore na osnovna pitanja'
+        ]
+      },
+      {
+        heading: 'Ako nekretninu prodajete ili izdajete sami',
+        paragraphs: [
+          'Vlasnik koji sam vodi oglas obično ima posao, porodicu i telefon koji zvoni u pogrešno vreme. Asistent preuzima ista pitanja koja biste inače ponavljali svakom kupcu, a ono što ne zna stiže vama, sa pitanjem već upisanim.'
+        ]
+      },
+      {
+        heading: 'Kako to radi Kvadrat360',
+        paragraphs: [
+          'Glasovni uvod i AI asistent su deo Kvadrat360 ture, u oba paketa. Snimamo u Kragujevcu i okolini, a gotovu turu dobijate za 24–48h. Otvorite primer ture, uđite u „Pitanja“ i postavite asistentu svoje pitanje.'
+        ]
+      }
+    ],
+    relatedLinks: [
+      { href: '/za-vlasnike', label: 'Prodajete ili izdajete nekretninu? Pogledajte kako tura radi za vlasnike' },
+      { href: '/za-agencije', label: 'Agencija ste? Pogledajte paket za agencije i primer gotove ture' },
+      { href: '/cenovnik', label: 'Koliko košta tura za jednu nekretninu? Pogledajte cenovnik' },
+      { href: '/blog/zivo-razgledanje-nekretnine-na-daljinu', label: 'Kupcu treba lični vodič? Pročitajte kako radi razgledanje uživo' }
+    ]
   }
 ];
 

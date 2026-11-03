@@ -61,6 +61,9 @@ export type AgencyCopy = {
       kpis: { label: string; value: string; delta: string }[];
       roomsTitle: string;
       rooms: { name: string; pct: number }[];
+      /** Izvori poseta (visitSources.ts) - samo redosled, bez izmišljenih procenata. */
+      sourcesTitle: string;
+      sources: string[];
       chips: string[];
     };
   };
@@ -200,6 +203,8 @@ export const AGENCY_COPY: AgencyCopy = {
         { name: 'Kuhinja', pct: 74 },
         { name: 'Terasa', pct: 61 }
       ],
+      sourcesTitle: 'Odakle dolaze posetioci',
+      sources: ['4zida', 'Facebook', 'Halo oglasi', 'Viber'],
       chips: ['Sačuvaj kao PDF', 'Poređenje sa prošlim mesecom']
     }
   },
@@ -233,7 +238,7 @@ export const AGENCY_COPY: AgencyCopy = {
     items: [
       { title: 'Pošaljete podatke o nekretnini', text: 'Kroz kratak upitnik — ili ga zajedno popunimo preko telefona.' },
       { title: 'Mi snimamo, 30–60 minuta', text: 'Dovoljno je da nam neko otvori vrata.' },
-      { title: 'Za 24–48h: tura sa opisom i audio vodičem', text: 'Link za oglas i Viber, i kod za vaš sajt. Uz Premium i tlocrt.' },
+      { title: 'Za 24–48h: tura sa opisom i audio vodičem', text: 'Link za oglas i Viber, kod za vaš sajt i gotov tekst oglasa za 4zida, Halo i mreže. Uz Premium i tlocrt.' },
       { title: 'Svakog meseca: izveštaj', text: 'Brojke za sve vaše ture, spremne za vlasnike.' }
     ],
     embed: {

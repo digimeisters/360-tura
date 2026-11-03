@@ -183,6 +183,10 @@ const AGENCY_STYLES = `
   .room-bar{display:grid; grid-template-columns:8rem 1fr; gap:.8rem; align-items:center; font-size:.85rem; margin-bottom:.55rem;}
   .room-bar span{height:10px; border-radius:999px; background:#F1F1EC; overflow:hidden;}
   .room-bar span i{display:block; height:100%; border-radius:999px; background:#1E5AA8;}
+  /* Izvori poseta: redosled od najvećeg, bez procenata. */
+  .report-sources{counter-reset:src; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.35rem .9rem; margin:0; padding:0; list-style:none; font-size:.85rem; font-weight:600;}
+  .report-sources li{counter-increment:src;}
+  .report-sources li::before{content:counter(src) ". "; color:#1E5AA8; font-weight:800;}
   .report-chips{display:flex; flex-wrap:wrap; gap:.5rem; margin-top:1.3rem;}
   .report-chips span{background:#F1F1EC; border-radius:999px; padding:.4rem .8rem; font-size:.78rem; font-weight:700;}
 
@@ -500,6 +504,10 @@ export default async function AgencyPage() {
                   <span><i style={{ width: `${room.pct}%` }} /></span>
                 </div>
               ))}
+              <div className="rooms-title">{owner.report.sourcesTitle}</div>
+              <ol className="report-sources">
+                {owner.report.sources.map((source) => <li key={source}>{source}</li>)}
+              </ol>
               <div className="report-chips">
                 {owner.report.chips.map((chip) => <span key={chip}>{chip}</span>)}
               </div>

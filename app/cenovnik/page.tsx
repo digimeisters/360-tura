@@ -12,6 +12,7 @@ import { HOME_FAQ } from '../lib/homeFaq';
 import { accent, plainAccent } from '../lib/accent';
 import { CONTACT, CONTACT_LINKS, SITE_NAME, SITE_URL, whatsappLink } from '../lib/site';
 import { serializeJsonLd } from '../lib/structuredData';
+import { breadcrumbJsonLd, packagesJsonLd } from '../lib/serviceJsonLd';
 
 /**
  * Cenovnik (/cenovnik) - posebna strana od 3. 11. 2026 (vlasnik: "Cenovnik"
@@ -98,6 +99,9 @@ function jsonLd() {
   return {
     '@context': 'https://schema.org',
     '@graph': [
+      breadcrumbJsonLd('Cenovnik', PATH),
+      // Paketi sa cenama (iste kao na stranici, promo se menja sam).
+      packagesJsonLd(),
       {
         '@type': 'WebPage',
         '@id': pageUrl,
@@ -105,7 +109,7 @@ function jsonLd() {
         name: COPY.meta.title,
         description: COPY.meta.description,
         inLanguage: 'sr',
-        isPartOf: { '@type': 'WebSite', url: SITE_URL, name: SITE_NAME },
+        isPartOf: { '@id': `${SITE_URL}/#website` },
         // Firma je opisana na početnoj (homeJsonLd) - ovde samo upućujemo na nju.
         about: { '@id': `${SITE_URL}/#business` }
       },
