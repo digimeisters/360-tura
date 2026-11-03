@@ -85,10 +85,24 @@ const MAX_DURATION_MS = 2 * 60 * 60 * 1000;
 // pri generisanju preview-a; ne smeju da se broje kao posete.
 const BOT_RE = /bot|crawler|spider|crawling|facebookexternalhit|preview|slurp|bingpreview|whatsapp|telegram|discord|lighthouse|headless/i;
 
+// Lokalni razvoj, testovi i Vercel preview pišu u ISTU, živu bazu, pa su
+// punili statistiku (2. 11. 2026: 98 "poseta" početne, skoro sve testovi).
+// Beleži se samo produkcija otvorena preko prave adrese.
+const LOCAL_HOST_RE = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i;
+
+function isTestTraffic(req: Request): boolean {
+  if (process.env.NODE_ENV !== 'production') return true;
+  if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'production') return true;
+  return LOCAL_HOST_RE.test(req.headers.get('host') || '');
+}
+
 export async function POST(req: Request) {
   try {
     if (BOT_RE.test(req.headers.get('user-agent') || '')) {
       return NextResponse.json({ success: true, skipped: 'bot' });
+    }
+    if (isTestTraffic(req)) {
+      return NextResponse.json({ success: true, skipped: 'test' });
     }
 
     // Tiho odbacivanje: analitika ne sme da se vidi kao greška u turi, a i
