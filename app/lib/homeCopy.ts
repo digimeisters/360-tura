@@ -36,6 +36,9 @@ export type ModulesCopy = {
     rows: [string, string, boolean?][];
     questions: string[];
     answer: string;
+    /** Polje za AI asistenta ispod pitanja - isti tekst kao u turi (translations.ts askLabel/askPlaceholder). */
+    askLabel: string;
+    askPlaceholder: string;
     addressLabel: string;
     address: string;
     openMaps: string;
@@ -286,7 +289,7 @@ const sr: HomeCopy = {
     youLabel: 'Vi',
     items: [
       { key: 'about', tab: 'Info', title: 'Sve bitno na jednom listu', text: 'Cena, kvadratura, sprat, grejanje, terasa, parking, uknjiženost — pregledno, na jeziku posetioca. Odavde kupac dodaje nekretninu i u poređenje sa drugim turama koje je pogledao.', buyer: 'U pola minuta zna da li mu nekretnina odgovara.', you: 'Nema više poziva „koji je sprat?“ i „ima li lift?“.' },
-      { key: 'faq', tab: 'Pitanja', title: 'Odgovori pre prvog poziva', text: 'Pet pitanja koja kupci uvek postave — drugačija za prodaju, izdavanje i stan na dan — sa odgovorima na svim jezicima ture.', buyer: 'Dobije odgovor odmah, i u ponoć.', you: 'Na razgledanje dolaze već informisani.' },
+      { key: 'faq', tab: 'Pitanja', title: 'Odgovori pre prvog poziva', text: 'Pet pitanja koja kupci uvek postave, sa odgovorima na svim jezicima ture. Kupac može i sam da ukuca pitanje. AI asistent odgovara samo iz podataka o nekretnini, a kad odgovor ne zna, nudi da pitanje pošalje vama.', buyer: 'Pita šta god ga zanima i odmah dobije odgovor, i u ponoć.', you: 'Na razgledanje dolaze već informisani.' },
       { key: 'location', tab: 'Lokacija', title: 'Gde je — bez otkrivanja broja', text: 'Mapa, ulica i naselje. Jednim dodirom otvara Google mape i put do nekretnine, a dugme „Istraži okolinu“ pokazuje školu, prodavnicu i prevoz peške. Kućni broj se ne prikazuje.', buyer: 'Odmah vidi kraj, prevoz i šta je peške blizu.', you: 'Tačnu adresu dajete tek kad zakažete razgledanje.' },
       { key: 'plan', tab: 'Plan', title: 'Raspored jednim pogledom', text: 'Tlocrt sa tačkama prostorija, na jeziku posetioca. Dodir na tačku vodi pravo u tu prostoriju u 360° turi.', buyer: 'Razume raspored pre nego što krene u obilazak.', you: 'Nema „a gde je kupatilo u odnosu na sobu?“.' },
       { key: 'contact', tab: 'Kontakt', title: 'Razgledanje zakazano iz ture', text: 'Vaša kartica sa imenom i agencijom, poziv jednim dodirom i dugme „Zakaži razgledanje“ — ime, telefon i željeni termin.', buyer: 'Zakaže u trenutku kad mu se nekretnina dopadne.', you: 'Upit nam stiže odmah, sa podacima o turi, i istog trenutka ga prosleđujemo vama.' }
@@ -299,6 +302,8 @@ const sr: HomeCopy = {
       rows: [['Ulica', 'Maglićka'], ['Grejanje', 'Centralno'], ['Terasa', 'Terasa'], ['Parking', 'Garaža'], ['Lift', '✓ Da', true], ['Uknjiženo', '✓ Da', true]],
       questions: ['Kolika je cena i da li je moguć kredit?', 'Kakvo je stanje objekta?', 'Da li je uknjižena?', 'Da li su porezi uključeni?', 'Šta sve ide uz nekretninu?'],
       answer: '98.000 €, kupovina na kredit je moguća.',
+      askLabel: 'Imate drugo pitanje? Pitajte asistenta',
+      askPlaceholder: 'Npr. da li ima lift?',
       addressLabel: 'Adresa',
       address: 'Maglićka, Kragujevac',
       openMaps: 'Otvori u Google mapama',
@@ -499,7 +504,7 @@ const en: HomeCopy = {
     youLabel: 'You',
     items: [
       { key: 'about', tab: 'Info', title: 'Everything that matters, on one sheet', text: 'Price, floor area, floor, heating, terrace, parking, registered title — clear, in the visitor’s own language. From here the buyer can also add the property to a comparison with other tours they have seen.', buyer: 'Knows in half a minute whether the place fits.', you: 'No more calls asking “which floor?” or “is there a lift?”.' },
-      { key: 'faq', tab: 'Questions', title: 'Answers before the first call', text: 'The five questions buyers always ask — different for sale, rent and short stays — answered in every language of the tour.', buyer: 'Gets an answer right away, even at midnight.', you: 'People arrive at the viewing already informed.' },
+      { key: 'faq', tab: 'Questions', title: 'Answers before the first call', text: 'The five questions buyers always ask, answered in every language of the tour. Buyers can also type their own question. The AI assistant answers only from the property’s details, and when it doesn’t know, it offers to send the question to you.', buyer: 'Asks whatever they want and gets an answer right away, even at midnight.', you: 'People arrive at the viewing already informed.' },
       { key: 'location', tab: 'Location', title: 'Where it is — without the house number', text: 'Map, street and neighbourhood. One tap opens Google Maps with directions, and an “Explore the area” button shows the school, shop and bus stop on foot. The house number is never shown.', buyer: 'Sees the area, transport and what is nearby on foot.', you: 'You share the exact address only once a viewing is booked.' },
       { key: 'plan', tab: 'Plan', title: 'The layout at a glance', text: 'A floor plan with a dot for every room, in the visitor’s own language. Tapping a dot takes the visitor straight into that room in the 360° tour.', buyer: 'Understands the layout before walking through.', you: 'No more “where is the bathroom from the bedroom?”.' },
       { key: 'contact', tab: 'Contact', title: 'Viewings booked from the tour', text: 'Your card with name and agency, one-tap calling and a “Book a viewing” button — name, phone and preferred time.', buyer: 'Books the moment they like the place.', you: 'The request reaches us instantly, with the tour details, and we pass it straight to you.' }
@@ -512,6 +517,8 @@ const en: HomeCopy = {
       rows: [['Street', 'Maglićka'], ['Heating', 'Central'], ['Terrace', 'Terrace'], ['Parking', 'Garage'], ['Lift', '✓ Yes', true], ['Registered', '✓ Yes', true]],
       questions: ['What’s the price, is a mortgage possible?', 'What’s the condition?', 'Is it registered?', 'Are taxes included?', 'What comes with it?'],
       answer: '€98,000, and buying with a mortgage is possible.',
+      askLabel: 'Another question? Ask the assistant',
+      askPlaceholder: 'E.g. is there an elevator?',
       addressLabel: 'Address',
       address: 'Maglićka, Kragujevac',
       openMaps: 'Open in Google Maps',

@@ -249,6 +249,16 @@ export default function TourModulesShowcase({ copy, photoUrl }: { copy: ModulesC
                   ))}
                 </div>
               )}
+              {/* Polje za AI asistenta, kao ispod pitanja u pravoj turi (samo prikaz). */}
+              {active === 'faq' && (
+                <div className="mods-ask mods-in" style={delay(100 + p.questions.length * 90)}>
+                  <b>✨ {p.askLabel}</b>
+                  <div>
+                    <span>{p.askPlaceholder}</span>
+                    <i aria-hidden="true">➤</i>
+                  </div>
+                </div>
+              )}
 
               {active === 'location' && (
                 <>
@@ -380,6 +390,11 @@ const STYLES = `
 .mods-q{padding:10px 12px; border-top:1px solid #EDF1F7; font-size:13px; font-weight:600; display:flex; justify-content:space-between; gap:8px;}
 .mods-card > div:first-child .mods-q{border-top:0;}
 .mods-q span{color:#1E5AA8;}
+.mods-ask{margin-top:9px;}
+.mods-ask b{display:block; font-size:11px; color:#1E5AA8; margin:0 2px 6px;}
+.mods-ask div{display:flex; gap:6px; align-items:center;}
+.mods-ask span{flex:1; min-width:0; height:34px; display:flex; align-items:center; padding:0 12px; border:1.5px solid #9DBBE3; border-radius:999px; background:#F8FAFD; color:#7A8494; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.mods-ask i{width:34px; height:34px; flex-shrink:0; border-radius:50%; background:#1E5AA8; color:#fff; display:grid; place-items:center; font-style:normal; font-size:13px;}
 .mods-ans{padding:0 12px 10px; font-size:12px; color:#5B5D63; line-height:1.5;}
 .mods-map{height:190px; background:#E8ECE6 repeating-linear-gradient(35deg,transparent 0 26px,#fff 26px 34px); position:relative;}
 .mods-map i{position:absolute; left:50%; top:44%; width:22px; height:22px; border-radius:50% 50% 50% 0; background:#E0453A; transform:rotate(-45deg);}

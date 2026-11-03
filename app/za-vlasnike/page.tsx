@@ -68,7 +68,7 @@ const COPY = {
       rows: [
         { title: 'Odgovori su već u turi', text: 'Sprat, grejanje, uknjiženost i lokacija, na jednom mestu.' },
         { title: 'Dolaze oni kojima se dopala', text: 'Prošetali su kroz svaku prostoriju pre nego što su vas pozvali.' },
-        { title: 'Razgleda i iz Beograda ili Niša', text: 'Sa telefona, uz audio vodiča kroz svaku prostoriju.' }
+        { title: 'Razgleda i iz Beograda ili Niša', text: 'Glas ga prvo uvede u kraj na mapi, pa ga vodi kroz svaku prostoriju.' }
       ]
     }
   },
