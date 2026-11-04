@@ -21,6 +21,7 @@ import { getPublicOpenCount } from './lib/tourStats';
 import { accent } from './lib/accent';
 import PromoTopBar from '../components/PromoTopBar';
 import TourModulesShowcase from '../components/TourModulesShowcase';
+import AudiencePick from '../components/AudiencePick';
 import ChatBubble from '../components/ChatBubble';
 import SiteStylesheets from '../components/SiteStylesheets';
 import HtmlLang from '../components/HtmlLang';
@@ -57,12 +58,6 @@ export function homeMetadata(lang: HomeLang): Metadata {
 }
 
 // Ikone kartica u sekciji "Usluge" - iste linije kao u glavnom meniju.
-const SERVICE_ICONS = {
-  home: <path d="M4 11 12 4l8 7v9h-5v-6H9v6H4v-9Z" />,
-  agency: <path d="M4 20V8l8-4 8 4v12M9 20v-5h6v5M8 10h.01M12 10h.01M16 10h.01" />,
-  building: <path d="M6 20V4h9v16M15 9h3v11M9 8h3M9 12h3M9 16h3M4 20h16" />
-};
-
 // Broj kolona prati broj tura, da nijedna kartica ne ostane sama u redu.
 function gridClass(count: number): string {
   if (count === 1) return 'n-1';
@@ -183,21 +178,7 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
         </section>
 
         {/* Putokaz po publici odmah ispod vrha - ista tri smera kao Usluge niže. */}
-        {copy.audiencePick && (
-          <nav className="aud-pick" aria-label={copy.audiencePick.label}>
-            <div className="wrap" data-reveal="up">
-              <span className="aud-pick-label">{copy.audiencePick.label}</span>
-              {copy.audiencePick.items.map((item) => (
-                <Link key={item.href} className="aud-pick-link" href={item.href} data-track={`cta:audience_${item.icon}`}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    {SERVICE_ICONS[item.icon]}
-                  </svg>
-                  <span>{item.label}</span>
-                </Link>
-              ))}
-            </div>
-          </nav>
-        )}
+        {copy.audiencePick && <AudiencePick copy={copy.audiencePick} />}
 
         {tours.length > 0 && (
           <section className="band" id="primeri">

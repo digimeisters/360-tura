@@ -882,17 +882,75 @@ export const SITE_STYLES = `
   /* ---------- INTEGRACIJA ---------- */
   /* ---------- PUTOKAZ KA STRANI ZA AGENCIJE ---------- */
   /* Tekst levo, dugme desno; na užem ekranu jedno ispod drugog. */
-  /* Putokaz "Ko ste vi?" ispod vrha početne. */
-  .aud-pick{padding:clamp(1.2rem,2.5vw,1.8rem) 0; border-bottom:1px solid var(--line-strong);}
-  .aud-pick .wrap{display:flex; flex-wrap:wrap; align-items:center; gap:.7rem;}
-  .aud-pick-label{margin-right:.4rem; color:var(--ink-soft); font-weight:700;}
-  .aud-pick-link{display:inline-flex; align-items:center; gap:.6rem; min-height:44px; padding:.55rem 1.1rem; border:1px solid var(--line-strong); border-radius:999px;
-    color:var(--ink); font-weight:600; text-decoration:none; transition:border-color .2s, color .2s;}
-  .aud-pick-link svg{width:20px; height:20px; flex:none; color:var(--accent);}
-  .aud-pick-link:hover{border-color:var(--accent); color:var(--accent-strong);}
-  @media (max-width:640px){
-    .aud-pick-label{width:100%;}
-    .aud-pick-link{width:100%;}
+  /* "Ko ste vi?" ispod vrha početne (components/AudiencePick.tsx, maketa public/mockup/KoSteVi.html).
+     Raspored prati širinu trake (container query), ne ekrana: računar = naslov levo + tri kartice u redu,
+     tablet = tri uspravne kartice, telefon = tri reda. */
+  .aud{padding:clamp(1.4rem,3vw,2.2rem) 0; border-bottom:1px solid var(--line-strong);}
+  .aud .wrap{container-type:inline-size;}
+  .aud-in{display:grid; gap:1.1rem 1.6rem; align-items:center;}
+  .aud-head{display:grid; gap:.45rem;}
+  .aud-title{font-size:clamp(1.6rem,2.2vw,2rem); line-height:1.1;}
+  .aud-sub{margin:0; color:var(--ink-soft); font-size:.95rem; line-height:1.45; text-wrap:balance; max-width:24ch;}
+  .aud-list{display:grid; gap:.9rem; margin:0; padding:0; list-style:none;}
+  .aud-list > li{display:flex;}
+  .aud-card{flex:1; min-width:0; display:grid; grid-template-columns:6.4rem 1fr; gap:.9rem; align-items:center; padding:.8rem; min-height:44px;
+    background:var(--surface); border:1px solid var(--line); border-radius:20px; box-shadow:var(--shadow); color:var(--ink); text-decoration:none;
+    transition:border-color .25s, box-shadow .35s cubic-bezier(.22,.8,.24,1), translate .35s cubic-bezier(.22,.8,.24,1);}
+  .aud-art{aspect-ratio:3/2; border-radius:13px; overflow:hidden; background-color:var(--surface-2);
+    background-image:linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size:10px 10px; background-position:-1px -1px;}
+  .aud-art svg{display:block; width:100%; height:100%; fill:none; stroke:var(--accent); stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round;}
+  .aud-art .soft{stroke:var(--line-strong);}
+  .aud-art .win{stroke:var(--line-strong); stroke-width:1.2;}
+  .aud-art .fill{fill:var(--accent-soft); stroke:none;}
+  .aud-art .solid{fill:var(--accent); stroke:none;}
+  .aud-art .paper{fill:var(--surface); stroke:var(--accent);}
+  .aud-art .pin-dot{fill:var(--surface); stroke:none;}
+  .aud-text{display:grid; gap:.25rem; min-width:0;}
+  .aud-name{font-family:var(--font-display); font-weight:800; font-size:1.04rem; letter-spacing:-.015em; line-height:1.2; text-wrap:balance;
+    text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:5px; text-decoration-color:transparent; transition:text-decoration-color .3s;}
+  .aud-line{color:var(--ink-soft); font-size:.92rem; line-height:1.45; text-wrap:balance;}
+  .aud-go{justify-self:start; margin-top:.45rem; display:inline-flex; align-items:center; min-height:34px; padding:.3rem .95rem; border:1.5px solid var(--accent); border-radius:999px;
+    color:var(--accent); font-family:var(--font-display); font-weight:700; font-size:.85rem; transition:background-color .25s, color .25s;}
+  .aud-card:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+  .aud-card:active{translate:0 0;}
+  /* Mirovanje = crtež bez boje; uređaj bez miša ga odmah vidi "upaljenog". */
+  .aud-art .live{transition:opacity .35s cubic-bezier(.22,.8,.24,1), transform .45s cubic-bezier(.22,.8,.24,1);}
+  .aud-art .drop,.aud-art .tip{transition:transform .45s cubic-bezier(.22,.8,.24,1);}
+  .aud-art .ring{transform-box:fill-box; transform-origin:center; transition:transform .5s cubic-bezier(.22,.8,.24,1);}
+  @media (hover:hover){
+    .aud-art .live{opacity:0;}
+    .aud-art .drop{transform:translateY(-4px);}
+    .aud-art .tip{transform:translateX(-5px);}
+    .aud-card:hover{border-color:var(--accent); translate:0 -3px; box-shadow:0 14px 30px -18px rgba(15,23,42,.38);}
+    .aud-card:hover .live{opacity:1;}
+    .aud-card:hover .drop,.aud-card:hover .tip{transform:none;}
+    .aud-card:hover .ring{transform:scale(1.35);}
+    .aud-card:hover .aud-name{text-decoration-color:var(--accent);}
+    .aud-card:hover .aud-go{background:var(--accent); color:var(--on-accent);}
+  }
+  @container (min-width:900px){
+    .aud-in{grid-template-columns:11rem 1fr; gap:1.1rem 1.4rem;}
+    .aud-list{grid-template-columns:repeat(3,minmax(0,1fr)); gap:.8rem;}
+    .aud-card{grid-template-columns:5.6rem 1fr; gap:.8rem;}
+    .aud-name{font-size:.98rem;}
+    .aud-line{font-size:.88rem;}
+    .aud-go{margin-top:.35rem;}
+  }
+  @container (min-width:560px) and (max-width:899.98px){
+    .aud-list{grid-template-columns:repeat(3,minmax(0,1fr)); gap:.8rem;}
+    .aud-card{grid-template-columns:1fr; gap:.75rem; align-items:start;}
+    .aud-art{aspect-ratio:2/1;}
+  }
+  /* Telefon: zbijeno, da traka ne pojede ceo ekran (~530 px umesto ~640). */
+  @container (max-width:559.98px){
+    .aud-in{gap:.8rem;}
+    .aud-sub{max-width:none;}
+    .aud-list{gap:.65rem;}
+    .aud-card{grid-template-columns:5rem 1fr; gap:.75rem; padding:.65rem; border-radius:18px;}
+    .aud-art{border-radius:11px;}
+    .aud-name{font-size:1rem;}
+    .aud-line{font-size:.88rem; line-height:1.4;}
+    .aud-go{min-height:30px; padding:.2rem .85rem; margin-top:.25rem; font-size:.82rem;}
   }
 
   .integration{background:var(--dark-bg); color:var(--dark-ink);}

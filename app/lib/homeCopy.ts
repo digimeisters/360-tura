@@ -221,8 +221,21 @@ export type HomeCopy = {
    * stizali). Samo srpska početna, iz istog razloga kao services.
    */
   audiencePick?: {
+    /** Čist tekst, za aria-label. */
     label: string;
-    items: { icon: HomeService['icon']; label: string; href: string }[];
+    /** Naslov, "*vi*" ide u naglašenu reč (accent). */
+    title: string;
+    /** Poziv da posetilac izabere. */
+    sub: string;
+    items: {
+      icon: HomeService['icon'];
+      label: string;
+      /** Jedna rečenica iz teksta ciljne strane - šta tamo dobija. */
+      line: string;
+      /** Dugme: "Za vašu nekretninu" - isti "vi" glas kao ostatak sajta. */
+      action: string;
+      href: string;
+    }[];
   };
   faq: { eyebrow: string; title: string; note: string };
   contact: {
@@ -431,10 +444,30 @@ const sr: HomeCopy = {
   },
   audiencePick: {
     label: 'Ko ste vi?',
+    title: 'Ko ste *vi*?',
+    sub: 'Izaberite i pokazaćemo vam ono što je za vas.',
     items: [
-      { icon: 'home', label: 'Vlasnik nekretnine', href: '/za-vlasnike' },
-      { icon: 'agency', label: 'Agencija za nekretnine', href: '/za-agencije' },
-      { icon: 'building', label: 'Investitor novogradnje', href: '/za-investitore' }
+      {
+        icon: 'home',
+        label: 'Vlasnik nekretnine',
+        line: 'Neka kupac prošeta kroz nekretninu pre poziva.',
+        action: 'Za vašu nekretninu',
+        href: '/za-vlasnike'
+      },
+      {
+        icon: 'agency',
+        label: 'Agencija za nekretnine',
+        line: 'Paket po nekretnini i mesečni izveštaj o pregledima.',
+        action: 'Za vašu agenciju',
+        href: '/za-agencije'
+      },
+      {
+        icon: 'building',
+        label: 'Investitor novogradnje',
+        line: 'Klik na stan na fotografiji zgrade: kvadratura, raspored, cena i pogled.',
+        action: 'Za vaš projekat',
+        href: '/za-investitore'
+      }
     ]
   },
   faq: {
