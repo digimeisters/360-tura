@@ -1201,7 +1201,11 @@ export default function TourPage() {
                 maxWidth: '55%',
                 borderRadius: '22px',
                 padding: '4px',
-                pointerEvents: 'auto'
+                pointerEvents: 'auto',
+                // Padajući admin meniji ("Sobe ▾" i ostali) se otvaraju preko kartice sobe
+                // i strelica ispod; bez ovoga ona (kasnije u redosledu) crta preko menija.
+                position: 'relative',
+                zIndex: 5
               }}>
                 {/* Admin dugmad crta TourAdminTools kroz portal. display:
                     contents ih pušta da budu članovi ove flex trake kao da
