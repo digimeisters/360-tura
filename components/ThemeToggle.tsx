@@ -21,17 +21,13 @@ type Theme = 'light' | 'dark';
 
 const COPY = {
   sr: {
-    group: 'Tema',
-    light: 'Svetla',
-    dark: 'Tamna',
+    label: 'Tamna tema',
     toLight: 'Prebaci na svetlu temu',
     toDark: 'Prebaci na tamnu temu',
     toggle: 'Promeni temu'
   },
   en: {
-    group: 'Theme',
-    light: 'Light',
-    dark: 'Dark',
+    label: 'Dark theme',
     toLight: 'Switch to light theme',
     toDark: 'Switch to dark theme',
     toggle: 'Change theme'
@@ -75,23 +71,28 @@ const SUN = (
 );
 const MOON = <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" />;
 
-export default function ThemeToggle({ variant = 'icon', lang = 'sr' }: { variant?: 'icon' | 'seg'; lang?: 'sr' | 'en' }) {
+export default function ThemeToggle({ variant = 'icon', lang = 'sr' }: { variant?: 'icon' | 'switch'; lang?: 'sr' | 'en' }) {
   const t = COPY[lang];
   // Na serveru nema teme (null), pa prvi prikaz u pregledaču ne odstupa od HTML-a.
   const theme = useSyncExternalStore<Theme | null>(subscribe, currentTheme, () => null);
 
-  if (variant === 'seg') {
+  // Prekidač za telefonski meni: uključeno = tamna. Položaj i boje daje CSS (--sw-*), kao i ikonica.
+  if (variant === 'switch') {
     return (
-      <div className="theme-seg" role="group" aria-label={t.group}>
-        <button type="button" data-t="light" aria-pressed={theme === 'light'} onClick={() => choose('light')}>
-          <svg viewBox="0 0 24 24" aria-hidden="true">{SUN}</svg>
-          {t.light}
-        </button>
-        <button type="button" data-t="dark" aria-pressed={theme === 'dark'} onClick={() => choose('dark')}>
-          <svg viewBox="0 0 24 24" aria-hidden="true">{MOON}</svg>
-          {t.dark}
-        </button>
-      </div>
+      <button
+        type="button"
+        className="theme-sw"
+        role="switch"
+        aria-checked={theme === 'dark'}
+        onClick={() => choose(currentTheme() === 'dark' ? 'light' : 'dark')}
+      >
+        <span className="theme-sw-l">{t.label}</span>
+        <span className="theme-sw-track" aria-hidden="true">
+          <span className="theme-sw-knob">
+            <svg viewBox="0 0 24 24">{MOON}</svg>
+          </span>
+        </span>
+      </button>
     );
   }
 

@@ -14,8 +14,7 @@ export const SITE_STYLES = `
     color-scheme:light;
     /* Ikonica i izabrana opcija u dugmetu za temu (components/ThemeToggle.tsx): u tamnoj temi se obrću. */
     --t-sun:none; --t-moon:block;
-    --tseg-l-bg:var(--surface); --tseg-l-ink:var(--ink); --tseg-l-shadow:0 1px 4px rgba(17,17,19,.18);
-    --tseg-d-bg:transparent; --tseg-d-ink:var(--ink-soft); --tseg-d-shadow:none;
+    --sw-x:0px; --sw-track:var(--surface-2); --sw-border:var(--line-strong); --sw-knob:var(--surface); --sw-knob-ink:var(--ink-soft);
     --bg:#FAFAF7;
     --surface:#FFFFFF;
     --surface-2:#F1F1EC;
@@ -60,8 +59,7 @@ export const SITE_STYLES = `
       --shadow-lg:0 14px 34px rgba(0,0,0,.5);
       color-scheme:dark;
       --t-sun:block; --t-moon:none;
-      --tseg-l-bg:transparent; --tseg-l-ink:var(--ink-soft); --tseg-l-shadow:none;
-      --tseg-d-bg:var(--surface-2); --tseg-d-ink:var(--ink); --tseg-d-shadow:0 1px 4px rgba(0,0,0,.5);
+      --sw-x:24px; --sw-track:var(--accent); --sw-border:var(--accent); --sw-knob:#0B0E1A; --sw-knob-ink:#CFE0FF;
     }
   }
   :root[data-theme="dark"]{
@@ -84,8 +82,7 @@ export const SITE_STYLES = `
     --shadow-lg:0 14px 34px rgba(0,0,0,.5);
     color-scheme:dark;
     --t-sun:block; --t-moon:none;
-    --tseg-l-bg:transparent; --tseg-l-ink:var(--ink-soft); --tseg-l-shadow:none;
-    --tseg-d-bg:var(--surface-2); --tseg-d-ink:var(--ink); --tseg-d-shadow:0 1px 4px rgba(0,0,0,.5);
+    --sw-x:24px; --sw-track:var(--accent); --sw-border:var(--accent); --sw-knob:#0B0E1A; --sw-knob-ink:#CFE0FF;
   }
 
   *{box-sizing:border-box;}
@@ -275,8 +272,8 @@ export const SITE_STYLES = `
   /* Uzan telefon: dugme za kontakt je u meniju i na strani, ovde bi gurnulo "Meni" van ekrana. */
   @media (max-width:520px){ .mm-end .btn-primary{display:none;} }
   .mm-sheet{position:fixed; inset:0; z-index:100; background:var(--bg); overflow-y:auto; padding:1rem 1rem 2rem;}
-  .mm-sheet-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:.8rem;}
-  .mm-sheet-title{font-family:var(--font-display); font-weight:800; font-size:1.1rem;}
+  .mm-sheet-top{display:flex; align-items:center; gap:.6rem; margin-bottom:.8rem;}
+  .mm-sheet-title{font-family:var(--font-display); font-weight:800; font-size:1.1rem; margin-right:auto;}
   .mm-x{width:44px; height:44px; border-radius:50%; border:1px solid var(--line); background:var(--surface); font-size:1.5rem; line-height:1; color:var(--ink); cursor:pointer;}
   .mm-sheet .mm-entry{background:var(--surface); border:1px solid var(--line); margin-bottom:.4rem; align-items:center;}
   .mm-sheet-grp{font-size:.72rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); margin:1rem .3rem .4rem;}
@@ -288,12 +285,17 @@ export const SITE_STYLES = `
   .theme-btn .t-sun{display:var(--t-sun);}
   .theme-btn .t-moon{display:var(--t-moon);}
   @media (hover:hover){ .theme-btn:hover{background:var(--surface-2);} }
-  .theme-btn:focus-visible,.theme-seg button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
-  .theme-seg{display:grid; grid-template-columns:1fr 1fr; gap:2px; padding:3px; border:1px solid var(--line-strong); border-radius:999px; background:var(--surface-2); margin:0 .3rem;}
-  .theme-seg button{display:flex; align-items:center; justify-content:center; gap:.45rem; min-height:44px; border:0; border-radius:999px; font:inherit; font-weight:700; font-size:.92rem; cursor:pointer;}
-  .theme-seg svg{width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;}
-  .theme-seg [data-t="light"]{background:var(--tseg-l-bg); color:var(--tseg-l-ink); box-shadow:var(--tseg-l-shadow);}
-  .theme-seg [data-t="dark"]{background:var(--tseg-d-bg); color:var(--tseg-d-ink); box-shadow:var(--tseg-d-shadow);}
+  .theme-btn:focus-visible,.theme-sw:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  /* Prekidač u telefonskom meniju: natpis + staza sa mesecom na dugmetu; uključeno = tamna tema. */
+  .theme-sw{display:inline-flex; align-items:center; gap:.55rem; min-height:44px; padding:0 .2rem; border:0; background:none; cursor:pointer; font:inherit; font-weight:700; font-size:.82rem; color:var(--ink-soft);}
+  .theme-sw-track{position:relative; flex:none; width:58px; height:34px; border:1px solid var(--sw-border); border-radius:999px; background:var(--sw-track); transition:background-color .25s, border-color .25s;}
+  .theme-sw-knob{position:absolute; top:3px; left:3px; width:26px; height:26px; border-radius:50%; display:grid; place-items:center; background:var(--sw-knob); color:var(--sw-knob-ink);
+    box-shadow:0 1px 4px rgba(0,0,0,.28); transform:translateX(var(--sw-x)); transition:transform .3s cubic-bezier(.22,.8,.24,1), background-color .25s, color .25s;}
+  .theme-sw-knob svg{width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round;}
+  /* Jezik u traci (telefon i tablet): isti oblik kao dugme "Meni", na računaru ga zamenjuje čip u spisku. */
+  .mm-lang{display:none; align-items:center; justify-content:center; min-height:40px; min-width:44px; padding:0 .75rem; border:1px solid var(--line-strong); border-radius:999px; background:var(--surface); color:var(--ink);
+    font-family:var(--font-display); font-weight:700; font-size:.85rem; letter-spacing:.04em; text-decoration:none;}
+  @media (max-width:980px){ .mm-lang{display:inline-flex;} }
   .mm-sheet-end{display:flex; gap:.5rem; margin-top:1.2rem;}
   .mm-sheet-end .btn{flex:1; justify-content:center;}
   .band{background:var(--surface-2);}

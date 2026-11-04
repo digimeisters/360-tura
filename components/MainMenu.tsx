@@ -206,6 +206,12 @@ export default function MainMenu({ lang, cta }: { lang?: MenuLang; cta: MenuCta 
             {cta.label}
           </Link>
         )}
+        {/* Telefon i tablet: jezik uvek vidljiv u traci, ne tek u otvorenom meniju (vlasnik, 4. 11. 2026). */}
+        {lang && (
+          <a className="mm-lang" href={lang.href} hrefLang={lang.hrefLang} lang={lang.hrefLang} aria-label={lang.aria}>
+            {lang.label}
+          </a>
+        )}
         <button type="button" className="mm-burger" aria-expanded={sheet} aria-controls="mm-sheet" onClick={() => setSheet(true)}>
           <span aria-hidden="true" className="mm-lines">
             <i />
@@ -223,6 +229,7 @@ export default function MainMenu({ lang, cta }: { lang?: MenuLang; cta: MenuCta 
           <div className="mm-sheet" id="mm-sheet" role="dialog" aria-modal="true" aria-label="Meni">
             <div className="mm-sheet-top">
               <span className="mm-sheet-title">Meni</span>
+              <ThemeToggle variant="switch" />
               <button type="button" className="mm-x" onClick={() => setSheet(false)} aria-label="Zatvori meni">
                 ×
               </button>
@@ -266,14 +273,7 @@ export default function MainMenu({ lang, cta }: { lang?: MenuLang; cta: MenuCta 
               onClick={close}
               current={isCurrent('/blog')}
             />
-            <p className="mm-sheet-grp">Tema</p>
-            <ThemeToggle variant="seg" />
             <div className="mm-sheet-end">
-              {lang && (
-                <a className="btn btn-secondary" href={lang.href} hrefLang={lang.hrefLang} lang={lang.hrefLang} aria-label={lang.aria}>
-                  {lang.label}
-                </a>
-              )}
               {cta.href.startsWith('#') ? (
                 <a className="btn btn-primary" href={cta.href} onClick={close} data-track={`${cta.track}_sheet`}>
                   {cta.label}
