@@ -208,7 +208,8 @@ export type HomeCopy = {
     eyebrow: string;
     title: string;
     note: string;
-    plans: { packageType: PackageType; title: string; note: string }[];
+    /** Šta paket sadrži, kratko: na računaru lista, na telefonu jedan red sa tačkicama. */
+    plans: { packageType: PackageType; title: string; points: string[] }[];
     book: string;
     more: string;
   };
@@ -433,11 +434,12 @@ const sr: HomeCopy = {
   },
   pricingShort: {
     eyebrow: 'Cenovnik',
-    title: 'Dva paketa, *jedna cena* po nekretnini',
+    // Vlasnik 4. 11. 2026: isti ton kao dugmad 'Za vašu nekretninu / agenciju / projekat'.
+    title: 'Cena za *vašu nekretninu*',
     note: 'Po nekretnini od oko 50 m². Agencije sa više nekretnina mesečno plaćaju manje.',
     plans: [
-      { packageType: 'basic', title: 'Osnovni', note: '360° tura · SR + jedan jezik · 48h' },
-      { packageType: 'premium', title: 'Premium', note: 'Tura + HDR fotografije · sva 4 jezika i osnova nekretnine · 24h' }
+      { packageType: 'basic', title: 'Osnovni', points: ['360° tura', 'Srpski + jedan jezik', 'Isporuka za 48h'] },
+      { packageType: 'premium', title: 'Premium', points: ['Tura + HDR fotografije', 'Sva 4 jezika', 'Osnova nekretnine', 'Isporuka za 24h'] }
     ],
     book: 'Zakažite snimanje',
     more: 'Ceo cenovnik'
