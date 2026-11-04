@@ -36,7 +36,7 @@ const RATE_WINDOW_MS = 10 * 60 * 1000;
 const LANGS = new Set(['sr', 'en', 'de', 'ru']);
 const LANG_NAMES: Record<string, string> = { en: 'engleskom', de: 'nemačkom', ru: 'ruskom' };
 const CATEGORY_LABELS: Record<string, string> = { sale: 'Prodaja', rent: 'Izdavanje', booking: 'Stan na dan' };
-const WHERE_LABELS: Record<string, string> = { plan: 'tlocrtu', info: 'Info modulu', exit: 'izlasku iz ture' };
+const WHERE_LABELS: Record<string, string> = { plan: 'osnovi nekretnine', info: 'Info modulu', exit: 'izlasku iz ture' };
 
 function clean(value: unknown, max: number): string {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -161,7 +161,7 @@ export async function POST(req: Request) {
       });
       visitorEmailed = sent.ok;
       visitorStatus = sent.ok
-        ? `📨 Posetiocu je poslat link${plan ? ' i tlocrt' : ''}.`
+        ? `📨 Posetiocu je poslat link${plan ? ' i osnovu nekretnine' : ''}.`
         : '📨 Mejl posetiocu nije prošao - agent mu šalje link.';
     }
   }

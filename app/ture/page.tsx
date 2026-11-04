@@ -48,7 +48,7 @@ const COPY = {
     titleStart: 'Prošetajte kroz ',
     titleEm: 'primere tura.',
     lede:
-      'Pogledajte kako izgleda nekretnina u 360°: otvorite turu u pretraživaču, na telefonu ili računaru, bez instaliranja aplikacije. Svaka ima audio vodič, tlocrt i kontakt agenta.'
+      'Pogledajte kako izgleda nekretnina u 360°: otvorite turu u pretraživaču, na telefonu ili računaru, bez instaliranja aplikacije. Svaka ima audio vodič, osnovu nekretnine i kontakt agenta.'
   },
   // Natpisi filtera i kartica su u components/TourList.tsx - između servera
   // i pregledača ne mogu da pređu funkcije, pa tamo i stoje.

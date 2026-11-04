@@ -55,7 +55,7 @@ export function SaleSticker({ label }: { label?: string }) {
 function rateAmount(amount: RateAmount, lang: HomeLang, promoActive: boolean): number {
   const tier = PRICE_TIERS[0];
   if (amount === 'hdr') return inDisplayCurrency(standaloneHdrPrice(tier), lang);
-  return displayTourPrice(tier, amount === 'tourPremium' ? 'premium' : 'basic', lang, promoActive);
+  return displayPerProperty(tier, amount === 'premium' ? 'premium' : 'basic', lang, promoActive);
 }
 
 /** Iznos u redu cenovnika - isto ponašanje kao PlanPrice, samo manji. */
@@ -149,7 +149,7 @@ export function PlanLinePrice({
   const tier = PRICE_TIERS[tierIndexFor(count)];
   const value =
     amount === 'tour'
-      ? displayTourPrice(tier, 'basic', lang, active)
+      ? displayTourPrice(tier, lang, active)
       : amount === 'hdr'
         ? displayHdrPrice(tier, lang, active)
         : displayPremiumExtra(tier, lang, active);
@@ -157,9 +157,10 @@ export function PlanLinePrice({
 }
 
 /**
- * Red ispod velike cene na kartici paketa: od čega se cena sastoji
- * ("tura 6.000 + HDR fotografije 2.500"), a na Premium kartici i koliko je
- * skuplji od Osnovnog. Za jednu nekretninu, prati promociju kao i cena iznad.
+ * Red ispod velike cene na kartici paketa. Osnovni: "360° tura, bez
+ * fotografija". Premium: od čega se cena sastoji ("tura 6.000 + HDR
+ * fotografije 2.500") i koliko je skuplji od Osnovnog. Za jednu nekretninu,
+ * prati promociju kao i cena iznad.
  */
 export function PlanSplit({
   packageType,
@@ -173,16 +174,18 @@ export function PlanSplit({
   const active = usePromoActive();
   const tier = PRICE_TIERS[0];
   const n = (value: number) => formatAmount(value, lang);
+  if (packageType === 'basic') return <p className="price-split">{labels.basicSplit}</p>;
   return (
     <p className="price-split">
-      {labels.tour} {n(displayTourPrice(tier, packageType, lang, active))} + {labels.hdr}{' '}
-      {n(displayHdrPrice(tier, lang, active))}
-      {packageType === 'premium' && (
-        <>
-          <br />
-          <b>+{n(displayPremiumExtra(tier, lang, active))}</b> {labels.overBasic}
-        </>
-      )}
+      <span style={{ whiteSpace: 'nowrap' }}>
+        {labels.tour} {n(displayTourPrice(tier, lang, active))}
+      </span>{' '}
+      +{' '}
+      <span style={{ whiteSpace: 'nowrap' }}>
+        {labels.hdr} {n(displayHdrPrice(tier, lang, active))}
+      </span>
+      <br />
+      <b>+{n(displayPremiumExtra(tier, lang, active))}</b> {labels.overBasic}
     </p>
   );
 }
@@ -235,21 +238,12 @@ export function VolumeTable({
   );
 }
 
-/** Jedan red: tura bez fotografija i fotografije bez ture (HDR bez popusta). */
-export function SingleItems({
-  copy,
-  lang
-}: {
-  copy: { lead: string; tour: string; hdr: string };
-  lang: HomeLang;
-}) {
-  const active = usePromoActive();
+/** Jedan red: HDR fotografije bez ture, uvek redovna cena (Osnovni je već sama tura). */
+export function SingleItems({ copy, lang }: { copy: { lead: string; hdr: string }; lang: HomeLang }) {
   const tier = PRICE_TIERS[0];
-  const n = (value: number) => formatAmount(value, lang);
   return (
     <p className="price-single">
-      <b>{copy.lead}</b> {copy.tour} {n(displayTourPrice(tier, 'basic', lang, active))} ·{' '}
-      {copy.hdr} {n(inDisplayCurrency(standaloneHdrPrice(tier), lang))}
+      <b>{copy.lead}</b> {copy.hdr} {formatAmount(inDisplayCurrency(standaloneHdrPrice(tier), lang), lang)}
     </p>
   );
 }

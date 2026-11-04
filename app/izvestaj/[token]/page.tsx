@@ -116,7 +116,7 @@ function RoomHeatSection({ heat, floorplanUrl }: { heat: RoomHeat; floorplanUrl:
         {floorplanUrl && spots.length > 0 && (
           <div className="rep-plan">
             {/* eslint-disable-next-line @next/next/no-img-element -- SVG tlocrt sa CDN-a, tačke su u % ove slike */}
-            <img src={floorplanUrl} alt="Tlocrt" />
+            <img src={floorplanUrl} alt="Osnova nekretnine" />
             {spots.map((r) => {
               const c = heatColor(r.seenPct);
               return (
@@ -296,7 +296,7 @@ function Report({ report, token }: { report: AgencyReport; token: string }) {
         <Kpi label="Zahtevi za razgledanje" value={String(t.viewingRequests)} hint="poslati iz same ture">
           <Change now={t.viewingRequests} before={report.previous?.viewingRequests} prevLabel={prevLabel} />
         </Kpi>
-        <Kpi label="Ostavili kontakt" value={String(t.capturedLeads)} hint="tražili link i tlocrt na mejl ili telefon">
+        <Kpi label="Ostavili kontakt" value={String(t.capturedLeads)} hint="tražili link i osnovu nekretnine na mejl ili telefon">
           <Change now={t.capturedLeads} before={report.previous?.capturedLeads} prevLabel={prevLabel} />
         </Kpi>
       </section>

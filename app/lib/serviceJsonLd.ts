@@ -15,13 +15,13 @@ const PACKAGES: { type: PackageType; name: string; description: string }[] = [
     type: 'basic',
     name: 'Osnovni',
     description:
-      '360° tura kroz sve prostorije, HDR fotografija svake prostorije i audio vodič na srpskom + jednom jeziku po izboru (EN, DE ili RU).'
+      'Samo 360° tura kroz sve prostorije, sa audio vodičem na srpskom + jednom jeziku po izboru (EN, DE ili RU), AI asistentom i glasovnim uvodom.'
   },
   {
     type: 'premium',
     name: 'Premium',
     description:
-      'Sve iz Osnovnog, plus audio vodič na sva 4 jezika (SR, EN, DE, RU), izrada tlocrta, QR kod i kratak video iz ture.'
+      'Sve iz Osnovnog, plus HDR fotografija svake prostorije, audio vodič na sva 4 jezika (SR, EN, DE, RU), izrada osnove nekretnine, QR kod i kratak video iz ture.'
   }
 ];
 

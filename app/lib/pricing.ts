@@ -3,13 +3,17 @@
 // (components/PromoBanner.tsx), blog i JSON-LD - kad se cena promeni ovde,
 // promeni se svuda. Bez uvoza, jer ga koristi i klijent.
 //
-// Cenovnik na sajtu (od 27. 9. 2026) je namerno jednostavan:
-//   1. Dva paketa - Osnovni i Premium, cena PO NEKRETNINI (tura + HDR).
-//                   Premium je uvek isti dodatak na turu (PREMIUM_EXTRA),
-//                   na svakom stepenu obima - "+2.000 din." svuda isto.
-//   2. Obim       - tabela: koliko nekretnina mesečno (1-2 / 3-4 / 5-9 / 10+)
-//                   i cena po nekretnini za oba paketa.
-//   3. Stavke     - samo jedan red: tura bez fotografija i fotografije bez ture.
+// Cenovnik na sajtu (od 4. 11. 2026, vlasnik - "varijanta 2") je namerno
+// jednostavan:
+//   1. Dva paketa - cena PO NEKRETNINI.
+//                   Osnovni = samo 360° tura (audio SR + jedan jezik).
+//                   Premium = tura + HDR fotografije, a sva 4 jezika, tlocrt,
+//                   QR, video i isporuka za 24h idu bez doplate - razlika
+//                   između paketa je tačno cena HDR fotografija.
+//   2. Obim       - tabela: koliko nekretnina mesečno (1-2 / 3-4 / 5-9 / 10+);
+//                   pojeftinjuje se samo tura, HDR je ista cena na svakom obimu.
+//   3. Stavke     - jedan red: HDR fotografije bez ture (redovna cena).
+// Ranije (27. 9. - 3. 11.) je Osnovni bio tura + HDR, a Premium +15 € na turu.
 // Nema više posebnih "agencijskih" paketa ni kalkulatora - agencija samo
 // pročita red tabele za svoj obim.
 //
@@ -22,21 +26,18 @@ export type PackageType = 'basic' | 'premium';
 export type PriceTier = {
   /** Od koliko nekretnina mesečno važi ovaj stepen. */
   min: number;
-  /** 360° tura sa audio vodičem (Osnovni paket), po nekretnini (€). */
+  /** 360° tura sa audio vodičem (= Osnovni paket), po nekretnini (€). */
   tour: number;
-  /** HDR fotografije, jedna po prostoriji, po nekretnini (€). */
+  /** HDR fotografije, jedna po prostoriji, po nekretnini (€) - isto na svakom obimu. */
   hdr: number;
 };
 
 export const PRICE_TIERS: readonly PriceTier[] = [
   { min: 1, tour: 50, hdr: 20 },
-  { min: 3, tour: 44, hdr: 18 },
-  { min: 5, tour: 39, hdr: 16 },
-  { min: 10, tour: 34, hdr: 14 }
+  { min: 3, tour: 44, hdr: 20 },
+  { min: 5, tour: 39, hdr: 20 },
+  { min: 10, tour: 34, hdr: 20 }
 ];
-
-/** Premium (sva 4 jezika umesto SR + jedan) - dodatak na turu, ne na HDR. */
-export const PREMIUM_EXTRA = 15;
 
 /**
  * Kvadratura na koju se odnose objavljene cene - prosečan stan. Nije gornja
@@ -124,10 +125,11 @@ export function isPromoActive(now: Date = new Date()): boolean {
 
 // Vrednosti polja "Paket" u formi za kontakt. Stižu u bazu i na Telegram na
 // srpskom, i na engleskoj strani (tamo se samo prikazuju prevedene).
+// Engleska forma prikazuje svoje natpise po istom redosledu (ContactForm).
 export const CONTACT_PACKAGES = [
-  'Osnovni (SR + jezik po izboru)',
-  'Premium (sva 4 jezika)',
-  'Samo tura ili samo fotografije',
+  'Osnovni (360° tura)',
+  'Premium (tura + HDR fotografije)',
+  'Samo HDR fotografije',
   'Veći obim (dogovor)'
 ] as const;
 
@@ -231,20 +233,9 @@ function applyPromo(amount: number, lang: PriceLang, promoActive: boolean): numb
   return roundForDisplay(Number((amount * (1 - PROMO.discount)).toFixed(6)), lang);
 }
 
-/** Tura (sa premium dodatkom, ako je Premium), u valuti prikaza. */
-export function displayTourPrice(
-  tier: PriceTier,
-  pkg: PackageType,
-  lang: PriceLang,
-  promoActive = false
-): number {
-  // Dodatak za Premium se pretvara ZA SEBE (15 € -> 2.000 din.), pa je
-  // razlika između paketa ista na svakom stepenu. Ranije se tura i dodatak
-  // pretvarali zajedno, pa je zaokruživanje davalo +2.000 za jednu, a +1.500
-  // za tri nekretnine - na sajtu je to izgledalo kao greška.
-  const base =
-    inDisplayCurrency(tier.tour, lang) + (pkg === 'premium' ? inDisplayCurrency(PREMIUM_EXTRA, lang) : 0);
-  return applyPromo(base, lang, promoActive);
+/** Tura, u valuti prikaza - ista u oba paketa. */
+export function displayTourPrice(tier: PriceTier, lang: PriceLang, promoActive = false): number {
+  return applyPromo(inDisplayCurrency(tier.tour, lang), lang, promoActive);
 }
 
 /**
@@ -256,23 +247,21 @@ export function displayHdrPrice(tier: PriceTier, lang: PriceLang, promoActive = 
 }
 
 /**
- * Za koliko je Premium tura skuplja od Osnovne na datom stepenu - razlika
- * već zaokruženih cena, da se "+X po turi" uvek slaže sa karticama.
+ * Za koliko je Premium skuplji od Osnovnog na datom stepenu - razlika već
+ * zaokruženih cena (= HDR u paketu), da se "+X uz Osnovni" slaže sa karticama.
  */
 export function displayPremiumExtra(tier: PriceTier, lang: PriceLang, promoActive = false): number {
-  return (
-    displayTourPrice(tier, 'premium', lang, promoActive) - displayTourPrice(tier, 'basic', lang, promoActive)
-  );
+  return displayPerProperty(tier, 'premium', lang, promoActive) - displayPerProperty(tier, 'basic', lang, promoActive);
 }
 
-/** Tura + HDR po nekretnini (paket), u valuti prikaza. */
+/** Cena paketa po nekretnini: Osnovni = tura, Premium = tura + HDR. */
 export function displayPerProperty(
   tier: PriceTier,
   pkg: PackageType,
   lang: PriceLang,
   promoActive = false
 ): number {
-  return displayTourPrice(tier, pkg, lang, promoActive) + displayHdrPrice(tier, lang, promoActive);
+  return displayTourPrice(tier, lang, promoActive) + (pkg === 'premium' ? displayHdrPrice(tier, lang, promoActive) : 0);
 }
 
 /** Ukupno za dati broj nekretnina (kartice paketa), u valuti prikaza. */

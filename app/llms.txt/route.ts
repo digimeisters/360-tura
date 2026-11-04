@@ -1,5 +1,5 @@
 import { SITE_URL, SITE_NAME, CONTACT } from '../lib/site';
-import { PRICE_TIERS, PROMO, displayPerProperty, formatAmount, isPromoActive, tierLabel } from '../lib/pricing';
+import { PRICE_TIERS, PROMO, displayPerProperty, formatAmount, isPromoActive, tierLabel, toRSD } from '../lib/pricing';
 import { BLOG_POSTS } from '../lib/blogPosts';
 
 // Kratak, činjenički opis firme za AI alate (ChatGPT, Google AI Overviews,
@@ -17,12 +17,13 @@ function pricesSection(): string {
     return `- ${tierLabel(i)} mesečno: Osnovni ${basic}, Premium ${premium} po nekretnini`;
   }).join('\n');
   const promo = isPromoActive()
-    ? `\nUvodna promocija do ${PROMO.endDate.split('-').reverse().map(Number).join('. ')}.: −${Math.round(PROMO.discount * 100)}% na ceo paket (tura + HDR), u oba paketa.`
+    ? `\nUvodna promocija do ${PROMO.endDate.split('-').reverse().map(Number).join('. ')}.: −${Math.round(PROMO.discount * 100)}% na ceo paket, u oba paketa (HDR fotografije bez ture idu po redovnoj ceni).`
     : '';
-  return `Cena po nekretnini (360° tura + HDR fotografije), redovna, za stan od oko 50 m², po broju nekretnina mesečno:
+  return `Cena po nekretnini, redovna, za stan od oko 50 m², po broju nekretnina mesečno:
 ${rows}
-Osnovni: audio vodič na srpskom + jednom jeziku po izboru, isporuka najkasnije za 48h.
-Premium: audio vodič na sva 4 jezika, izrada tlocrta, isporuka za 24h, QR kod i kratak video iz ture za društvene mreže.${promo}
+Osnovni: samo 360° tura, audio vodič na srpskom + jednom jeziku po izboru, isporuka najkasnije za 48h.
+Premium: tura + HDR fotografija svake prostorije, audio vodič na sva 4 jezika, izrada osnove nekretnine, isporuka za 24h, QR kod i kratak video iz ture za društvene mreže.
+HDR fotografije bez ture: ${formatAmount(toRSD(PRICE_TIERS[0].hdr), 'sr')} po nekretnini, ista cena na svakom obimu.${promo}
 Aktuelni cenovnik: ${SITE_URL}/cenovnik`;
 }
 
@@ -44,7 +45,7 @@ Kvadrat360 NIJE agencija za nekretnine i ne posreduje u prodaji ili izdavanju. I
 - 360° virtuelne ture nekretnina, soba po sobi, sa interaktivnom navigacijom
 - HDR fotografisanje nekretnina
 - Tekst ture i audio vodič na srpskom, engleskom, nemačkom i ruskom jeziku
-- Digitalizacija tlocrta, povezana sa turom
+- Digitalizacija osnove nekretnine, povezana sa turom
 - Isporuka gotove ture za 24-48h (Premium 24h, Osnovni najkasnije 48h): link za deljenje i kod za ugradnju na sajt
 
 ## Šta kupac ima u samoj turi
@@ -53,7 +54,7 @@ Kvadrat360 NIJE agencija za nekretnine i ne posreduje u prodaji ili izdavanju. I
 - Info: cena, kvadratura, sprat, grejanje, uknjiženost i ostali podaci na jednom mestu
 - Pitanja: najčešća pitanja kupaca sa odgovorima, i AI asistent kome kupac može da ukuca svoje pitanje; odgovara samo iz podataka o toj nekretnini, a kad odgovor ne zna, nudi da pitanje pošalje agentu
 - Lokacija: mapa i naselje bez kućnog broja, i „Istraži okolinu“ (škola, prodavnica, prevoz peške)
-- Tlocrt povezan sa turom: dodir na prostoriju vodi pravo u nju
+- Osnova nekretnine povezana sa turom: dodir na prostoriju vodi pravo u nju
 - Poređenje nekretnina koje je kupac pogledao
 - Zakazivanje razgledanja iz ture: upit odmah stiže agentu
 - Razgledanje uživo: agent šalje link i vodi kupca kroz turu na daljinu, bez instalacije aplikacije

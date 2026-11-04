@@ -87,7 +87,7 @@ ${kpi('Prosečno u turi', duration(t.avgSeconds), flat('po posetiocu koji je uš
 
   const enterRate = t.visitors ? Math.round((t.entered / t.visitors) * 100) : 0;
   const more = [
-    inquiries ? `od upita ${requestsLabel(t.viewingRequests)} za razgledanje i ${contactsLabel(t.capturedLeads)} (link i tlocrt)` : null,
+    inquiries ? `od upita ${requestsLabel(t.viewingRequests)} za razgledanje i ${contactsLabel(t.capturedLeads)} (link i osnova nekretnine)` : null,
     `${enterRate}% posetilaca je ušlo u turu`,
     t.foreignVisitors ? `${t.foreignVisitors} je gledalo na stranom jeziku` : null,
     t.contactClicks ? `${t.contactClicks} je otvorilo vaš kontakt` : null

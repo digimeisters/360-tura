@@ -8,6 +8,6 @@ export const alt = 'Primeri 360° virtuelnih tura — Kvadrat360';
 export default function Image() {
   return renderHomeOgImage({
     title: 'Prošetajte kroz primere 360° tura',
-    subtitle: 'Svaka prostorija, tlocrt i audio vodič — pre prvog dolaska.'
+    subtitle: 'Svaka prostorija, osnova nekretnine i audio vodič — pre prvog dolaska.'
   });
 }

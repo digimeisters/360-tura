@@ -101,12 +101,12 @@ export async function POST(req: Request) {
     if (floorplanInput instanceof File && floorplanInput.size > 0) {
       if (!FLOORPLAN_TYPES[floorplanInput.type]) {
         return NextResponse.json(
-          { success: false, error: 'Tlocrt mora biti slika (JPG, PNG ili WEBP). PDF se ne prikazuje u turi.' },
+          { success: false, error: 'Osnova nekretnine mora biti slika (JPG, PNG ili WEBP). PDF se ne prikazuje u turi.' },
           { status: 400 }
         );
       }
       if (floorplanInput.size > MAX_FLOORPLAN_BYTES) {
-        return NextResponse.json({ success: false, error: 'Tlocrt je veći od 4MB.' }, { status: 400 });
+        return NextResponse.json({ success: false, error: 'Osnova nekretnine je veća od 4MB.' }, { status: 400 });
       }
     }
 
@@ -154,13 +154,13 @@ export async function POST(req: Request) {
 
       if (!ext) {
         return NextResponse.json(
-          { success: false, error: 'Tlocrt mora biti slika (JPG, PNG ili WEBP). PDF se ne prikazuje u turi.' },
+          { success: false, error: 'Osnova nekretnine mora biti slika (JPG, PNG ili WEBP). PDF se ne prikazuje u turi.' },
           { status: 400 }
         );
       }
       if (floorplan.size > MAX_FLOORPLAN_BYTES) {
         return NextResponse.json(
-          { success: false, error: 'Tlocrt je veći od 4MB.' },
+          { success: false, error: 'Osnova nekretnine je veća od 4MB.' },
           { status: 400 }
         );
       }

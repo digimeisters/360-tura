@@ -20,8 +20,8 @@ import { breadcrumbJsonLd, packagesJsonLd } from '../lib/serviceJsonLd';
  * je bio samo skok na deo početne i nije mogao da se pošalje kao link).
  *
  * Isti cenovnik kao na početnoj i /za-agencije (components/Pricing.tsx, cene
- * iz lib/pricing.ts), ali ceo: kartice sa podelom tura + HDR, tabela po
- * obimu otvorena, "samo tura / samo fotografije". Ispod toga od čega zavisi
+ * iz lib/pricing.ts), ali ceo: kartice (Osnovni = tura, Premium = tura +
+ * HDR), tabela po obimu otvorena, red "samo HDR fotografije". Ispod toga od čega zavisi
  * cena, pitanja o ceni (isti odgovori kao na početnoj, iz homeFaq.ts) i forma.
  *
  * Početna sada ima samo "Cenu ukratko" (components/PricingShort.tsx).
@@ -36,11 +36,11 @@ const COPY = {
   meta: {
     title: 'Cenovnik 360° ture i HDR fotografija | Kvadrat360',
     description:
-      'Cena 360° virtuelne ture sa HDR fotografijama po nekretnini: Osnovni i Premium paket, niža cena za agencije sa više nekretnina mesečno. Kragujevac i okolina.'
+      'Cena 360° virtuelne ture po nekretnini: Osnovni (samo tura) i Premium (tura + HDR fotografije), niža cena za agencije sa više nekretnina mesečno. Kragujevac i okolina.'
   },
   hero: {
     title: 'Dva paketa, *jedna cena* po nekretnini',
-    lede: 'Cena uključuje 360° turu i HDR fotografije. Snimamo u Kragujevcu i okolini.'
+    lede: 'Samo 360° tura, ili tura sa HDR fotografijama i svim jezicima. Snimamo u Kragujevcu i okolini.'
   },
   factors: {
     eyebrow: 'Šta utiče na cenu',
@@ -52,7 +52,7 @@ const COPY = {
       },
       {
         title: 'Paket',
-        text: 'Razlika je u jezicima vodiča, tlocrtu i roku isporuke. Snimanje je isto u oba paketa.'
+        text: 'Snimanje ture je isto u oba paketa. Premium dodaje HDR fotografije, sve jezike vodiča, osnovu nekretnine i kraći rok.'
       },
       {
         title: 'Grad',

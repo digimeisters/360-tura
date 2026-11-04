@@ -41,7 +41,7 @@ function daysLabel(n: number): string {
 export function agencyOfferEmail(o: AgencyOfferEmail): { subject: string; html: string; text: string } {
   const now = o.now ?? new Date();
   const promo = isPromoActive(now);
-  // Najjeftinija nekretnina: jedna, Osnovni paket (tura + HDR), sa promocijom dok traje.
+  // Najjeftinija nekretnina: jedna, Osnovni paket (samo tura), sa promocijom dok traje.
   const price = formatAmount(displayPerProperty(PRICE_TIERS[0], 'basic', 'sr', promo), 'sr');
   const days = promoDaysLeft(now);
   const greeting = o.name ? `Dobar dan, ${o.name},` : 'Dobar dan,';

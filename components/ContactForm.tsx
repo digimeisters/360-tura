@@ -102,9 +102,9 @@ const TEXT: Record<
     contactPh: '+381 6x xxx xxxx or name@example.com',
     pkg: 'Package',
     packages: [
-      'Basic (SR + language of choice)',
-      'Premium (all 4 languages)',
-      'Tour only or photos only',
+      'Basic (360° tour)',
+      'Premium (tour + HDR photos)',
+      'HDR photos only',
       'Larger volume (custom)'
     ],
     agency: 'Agency name',

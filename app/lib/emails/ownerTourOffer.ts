@@ -74,7 +74,7 @@ export function ownerTourOfferEmail(o: OwnerTourOfferEmail): { subject: string; 
 
   const priceBox = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COLORS.blueSoft};border-radius:14px;"><tr>
   <td class="stack" style="padding:18px 20px;font-family:${SANS};">
-    <p style="margin:0;font-size:14px;color:#17447E;font-weight:700;">360° tura + HDR fotografije</p>
+    <p style="margin:0;font-size:14px;color:#17447E;font-weight:700;">360° tura</p>
     <p style="margin:2px 0 0;font-size:26px;font-weight:800;color:${COLORS.ink};letter-spacing:-.02em;">${e(price)}</p>
     ${promo ? `<p style="margin:2px 0 0;font-size:13px;color:${COLORS.soft};">Uvodna promocija važi još ${e(daysLabel(days))}.</p>` : ''}
   </td>
@@ -102,7 +102,7 @@ export function ownerTourOfferEmail(o: OwnerTourOfferEmail): { subject: string; 
 
   const html = emailLayout({
     title: '360° tura za vašu nekretninu',
-    preheader: `${headline} pre prvog poziva - 360° tura + HDR fotografije, ${price}`,
+    preheader: `${headline} pre prvog poziva - 360° tura, ${price}`,
     body,
     footer: 'Ne želite više ovakve mejlove? Odgovorite sa „odjava“.'
   });
@@ -116,7 +116,7 @@ export function ownerTourOfferEmail(o: OwnerTourOfferEmail): { subject: string; 
     '',
     ...benefitsList.map(([title, t]) => `- ${title}: ${t}`),
     '',
-    `360° tura + HDR fotografije: ${endSentence(price)}${promo ? ` Uvodna promocija važi još ${daysLabel(days)}.` : ''}`,
+    `360° tura: ${endSentence(price)}${promo ? ` Uvodna promocija važi još ${daysLabel(days)}.` : ''}`,
     `Zakažite snimanje: ${ctaUrl}`,
     '',
     'Snimanje traje oko sat vremena, a tura je gotova za 48h. Ako vam je lakše, pozovite me ili odgovorite na ovaj mejl.',
@@ -135,7 +135,7 @@ export function ownerTourOfferViber(o: Pick<OwnerTourOfferEmail, 'name' | 'listi
     `${o.name ? `Dobar dan, ${o.name}` : 'Dobar dan'}, Nikola iz Kvadrat360.`,
     `Videli smo da ste proverili vrednost nekretnine (${o.property}). Ako je oglašavate, 360° tura pomaže da je ${goal} brže - kupci vide ceo stan pre poziva.`,
     `Primer ture: ${o.tourUrl}`,
-    `Tura + HDR fotografije: ${endSentence(price)} Snimanje oko sat vremena, tura gotova za 48h.`,
+    `360° tura: ${endSentence(price)} Snimanje oko sat vremena, tura gotova za 48h.`,
     `Ako vas zanima, javite se ovde ili na ${CONTACT.phoneDisplay} - rado dogovaramo termin.`
   ].join('\n');
 }

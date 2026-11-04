@@ -30,15 +30,15 @@ export const PROMO_TEXT = {
     eyebrow: 'Uvodna promocija',
     headline: (percent: number) => `Paketi su jeftiniji za ${percent}%`,
     until: (date: string) => `Važi do ${date}.`,
-    // "Paket", ne "tura" - iznos je tura + HDR fotografije zajedno.
+    // Iznos je Osnovni paket = sama tura (od 4. 11. 2026; Premium je tura + HDR).
     // Samostalne fotografije (bez ture) u popust ne idu - vidi
     // standaloneHdrPrice u lib/pricing.ts. Cena ne sme da stoji na kraju
     // rečenice: "din." već nosi tačku, pa bi ispalo "din..".
     example: (promoPrice: string, regularPrice: string) =>
-      `Paket (tura + HDR fotografije) već od ${promoPrice} umesto ${regularPrice} po nekretnini.`,
+      `360° tura već od ${promoPrice} umesto ${regularPrice} po nekretnini.`,
     terms: `Cene za prostor od oko ${REFERENCE_AREA_SQM} m².`,
     daysLeft: (n: number) => (n <= 0 ? 'Poslednji dan' : `Još ${n} ${srDays(n)}`),
-    lead: (promoPrice: string) => `Paket već od ${promoPrice} po nekretnini`,
+    lead: (promoPrice: string) => `360° tura već od ${promoPrice} po nekretnini`,
     sub: (regularPrice: string, date: string) => `umesto ${regularPrice} · važi do ${date} · prostor do oko ${REFERENCE_AREA_SQM} m²`,
     days: (n: number) => srDays(n),
     // 1 sat, 2-4 sata, 5+ sati (ali 11-14 sati).
@@ -52,10 +52,10 @@ export const PROMO_TEXT = {
     headline: (percent: number) => `Packages are ${percent}% cheaper`,
     until: (date: string) => `Through ${date}.`,
     example: (promoPrice: string, regularPrice: string) =>
-      `Package (tour + HDR photos) already from ${promoPrice} instead of ${regularPrice} per property.`,
+      `360° tour already from ${promoPrice} instead of ${regularPrice} per property.`,
     terms: `Prices for a property of about ${REFERENCE_AREA_SQM} m².`,
     daysLeft: (n: number) => (n <= 0 ? 'Last day' : `${n} ${n === 1 ? 'day' : 'days'} left`),
-    lead: (promoPrice: string) => `Package from ${promoPrice} per property`,
+    lead: (promoPrice: string) => `360° tour from ${promoPrice} per property`,
     sub: (regularPrice: string, date: string) => `instead of ${regularPrice} · through ${date} · properties up to about ${REFERENCE_AREA_SQM} m²`,
     days: (n: number) => (n === 1 ? 'day' : 'days'),
     hours: (n: number) => (n === 1 ? 'hour' : 'hours'),

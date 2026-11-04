@@ -16,7 +16,7 @@ const NB = ' ';
 export default function Image() {
   const price = formatAmount(displayPackagePrice(1, 'basic', 'sr', isPromoActive()), 'sr').replace(' ', NB);
   return renderHomeOgImage({
-    title: `Cenovnik: tura i HDR fotografije od${NB}${price}`,
+    title: `Cenovnik: 360° tura od${NB}${price}`,
     subtitle: 'Po nekretnini. Agencije sa više nekretnina mesečno plaćaju manje.'
   });
 }

@@ -61,11 +61,11 @@ export type ModulesCopy = {
 };
 
 /**
- * Jedna stavka cenovnika za sebe: tura (osnovna ili premium) ili HDR
- * fotografije. Koristi je red "samo tura / samo fotografije" i kutija sa
- * cenama u blogu (BlogPricingSnapshot).
+ * Jedna stavka cenovnika za sebe: Osnovni (= tura), Premium (tura + HDR)
+ * ili HDR fotografije bez ture. Koristi je kutija sa cenama u blogu
+ * (BlogPricingSnapshot).
  */
-export type RateAmount = 'tourBasic' | 'tourPremium' | 'hdr';
+export type RateAmount = 'tourBasic' | 'premium' | 'hdr';
 
 /** Koju stavku kartice iznos prikazuje (računa ga PlanLinePrice). */
 export type PlanLineAmount = 'tour' | 'hdr' | 'premiumExtra';
@@ -94,10 +94,12 @@ export type PricePlan = {
 
 /** Natpisi u kojima se cena računa na klijentu (PromoPrice.tsx). */
 export type PricingLabels = {
-  /** "tura" / "tour" - ispod velike cene: "tura 6.000 + HDR fotografije 2.500". */
+  /** Ispod cene Osnovnog: "360° tura, bez fotografija". */
+  basicSplit: string;
+  /** "tura" / "tour" - ispod cene Premium-a: "tura 6.000 + HDR fotografije 2.500". */
   tour: string;
   hdr: string;
-  /** "uz Osnovni" - "+2.000 din. uz Osnovni" na Premium kartici. */
+  /** "uz Osnovni" - "+2.500 din. uz Osnovni" na Premium kartici. */
   overBasic: string;
 };
 
@@ -193,8 +195,8 @@ export type HomeCopy = {
       showMore: string;
       showLess: string;
     };
-    /** Jedan red: tura bez fotografija i fotografije bez ture. */
-    single: { lead: string; tour: string; hdr: string };
+    /** Jedan red: HDR fotografije bez ture (Osnovni je već sama tura). */
+    single: { lead: string; hdr: string };
     fine: string;
   };
   /**
@@ -291,7 +293,7 @@ const sr: HomeCopy = {
       { key: 'about', tab: 'Info', title: 'Sve bitno na jednom listu', text: 'Cena, kvadratura, sprat, grejanje, terasa, parking, uknjiženost — pregledno, na jeziku posetioca. Odavde kupac dodaje nekretninu i u poređenje sa drugim turama koje je pogledao.', buyer: 'U pola minuta zna da li mu nekretnina odgovara.', you: 'Nema više poziva „koji je sprat?“ i „ima li lift?“.' },
       { key: 'faq', tab: 'Pitanja', title: 'Odgovori pre prvog poziva', text: 'Pet pitanja koja kupci uvek postave, sa odgovorima na svim jezicima ture. Kupac može i sam da ukuca pitanje. AI asistent odgovara samo iz podataka o nekretnini, a kad odgovor ne zna, nudi da pitanje pošalje vama.', buyer: 'Pita šta god ga zanima i odmah dobije odgovor, i u ponoć.', you: 'Na razgledanje dolaze već informisani.' },
       { key: 'location', tab: 'Lokacija', title: 'Gde je — bez otkrivanja broja', text: 'Mapa, ulica i naselje. Jednim dodirom otvara Google mape i put do nekretnine, a dugme „Istraži okolinu“ pokazuje školu, prodavnicu i prevoz peške. Kućni broj se ne prikazuje.', buyer: 'Odmah vidi kraj, prevoz i šta je peške blizu.', you: 'Tačnu adresu dajete tek kad zakažete razgledanje.' },
-      { key: 'plan', tab: 'Plan', title: 'Raspored jednim pogledom', text: 'Tlocrt sa tačkama prostorija, na jeziku posetioca. Dodir na tačku vodi pravo u tu prostoriju u 360° turi.', buyer: 'Razume raspored pre nego što krene u obilazak.', you: 'Nema „a gde je kupatilo u odnosu na sobu?“.' },
+      { key: 'plan', tab: 'Plan', title: 'Raspored jednim pogledom', text: 'Osnova nekretnine sa tačkama prostorija, na jeziku posetioca. Dodir na tačku vodi pravo u tu prostoriju u 360° turi.', buyer: 'Razume raspored pre nego što krene u obilazak.', you: 'Nema „a gde je kupatilo u odnosu na sobu?“.' },
       { key: 'contact', tab: 'Kontakt', title: 'Razgledanje zakazano iz ture', text: 'Vaša kartica sa imenom i agencijom, poziv jednim dodirom i dugme „Zakaži razgledanje“ — ime, telefon i željeni termin.', buyer: 'Zakaže u trenutku kad mu se nekretnina dopadne.', you: 'Upit nam stiže odmah, sa podacima o turi, i istog trenutka ga prosleđujemo vama.' }
     ],
     preview: {
@@ -307,7 +309,7 @@ const sr: HomeCopy = {
       addressLabel: 'Adresa',
       address: 'Maglićka, Kragujevac',
       openMaps: 'Otvori u Google mapama',
-      planHeading: 'Tlocrt — raspored prostorija',
+      planHeading: 'Osnova nekretnine — raspored prostorija',
       agent: 'Marko Marković',
       agency: 'Vaša agencija',
       call: 'Pozovi',
@@ -323,14 +325,14 @@ const sr: HomeCopy = {
     }
   },
   story: {
-    eyebrow: 'Od tlocrta do ture',
+    eyebrow: 'Od osnove do ture',
     steps: [
-      { kicker: 'Korak 1', title: 'Snimimo svaki *kvadrat*', text: 'Od snimka nastaje tlocrt nekretnine, zid po zid.' },
+      { kicker: 'Korak 1', title: 'Snimimo svaki *kvadrat*', text: 'Od snimka nastaje osnova nekretnine, zid po zid.' },
       { kicker: 'Korak 2', title: 'Svaka prostorija *ima ime*', text: 'Kupac odmah vidi raspored: šta je gde i kako se prostorije nastavljaju.' },
       { kicker: 'Korak 3', title: 'Tačka je *mesto kamere*', text: 'Iz svake tačke snimljena je 360° panorama.' },
-      { kicker: 'Korak 4', title: 'Jedan dodir, i *kupac je unutra*', text: 'Izabere prostoriju na tlocrtu i nađe se u njoj.' },
+      { kicker: 'Korak 4', title: 'Jedan dodir, i *kupac je unutra*', text: 'Izabere prostoriju na osnovi nekretnine i nađe se u njoj.' },
       { kicker: 'U turi', title: 'Vidi i ono što *slika ne kaže*', text: 'Tačke u panorami otvaraju opis predmeta, a vodič ga i izgovori.' },
-      { kicker: 'U turi', title: 'Kreće se kao da je *tamo*', text: 'Strelica ga vodi u sledeću prostoriju, a tlocrt u uglu pokazuje gde je i kuda gleda.' },
+      { kicker: 'U turi', title: 'Kreće se kao da je *tamo*', text: 'Strelica ga vodi u sledeću prostoriju, a osnova nekretnine u uglu pokazuje gde je i kuda gleda.' },
       { kicker: 'U turi', title: 'Vodič govori *jezik kupca*', text: 'Srpski, engleski, nemački i ruski: glas i titl uz svaku prostoriju.' },
       { kicker: 'Gotova tura', title: 'Razgledanje *pre prvog dolaska*', text: 'Ovo je prava tura:' }
     ],
@@ -345,7 +347,7 @@ const sr: HomeCopy = {
     note: 'Vaš deo je jednostavan — sve ostalo je na nama.',
     items: [
       { title: 'Zakazivanje', text: 'Javite se telefonom ili preko forme i dogovorimo termin. Dolazimo sa opremom, bez ometanja stanara.' },
-      { title: 'Snimanje', text: '30–60 minuta po nekretnini: 360° panorame svake prostorije i HDR fotografije za oglas.' },
+      { title: 'Snimanje', text: '30–60 minuta po nekretnini: 360° panorame svake prostorije, a uz Premium i HDR fotografije za oglas.' },
       { title: 'Obrada', text: 'Spajanje panorama, kalibracija boja i priprema audio vodiča na jezicima koje ste izabrali.' },
       { title: 'Isporuka', text: 'Link ka gotovoj turi i fotografije stižu za 24h u Premium paketu, a u Osnovnom najkasnije za 48h — možete ih postaviti na oglas istog dana.' }
     ],
@@ -355,7 +357,7 @@ const sr: HomeCopy = {
     // sekcija "Tipovi oglasa".
     deliver: [
       'Link ka turi za oglas, portal ili poruku kupcu',
-      'HDR fotografije u punoj rezoluciji, za portal i društvene mreže',
+      'Uz Premium: HDR fotografije u punoj rezoluciji, za portal i društvene mreže',
       'Vaše ime i telefon u turi — i kad se link deli dalje',
       'Tekst i vodič prilagođeni oglasu: za prodaju vrednost i vlasništvo, za izdavanje troškovi i useljenje, za stan na dan utisak gosta'
     ]
@@ -363,47 +365,47 @@ const sr: HomeCopy = {
   pricing: {
     eyebrow: 'Cenovnik',
     title: 'Dva paketa, *jedna cena* po nekretnini',
-    note: 'Cena uključuje 360° turu i HDR fotografije. Agencije koje snimaju više nekretnina mesečno plaćaju manje po svakoj.',
+    note: 'Samo 360° tura, ili tura sa HDR fotografijama i svim jezicima. Agencije koje snimaju više nekretnina mesečno plaćaju turu manje.',
     plans: [
       {
-        audience: 'Za oglas na domaćem tržištu',
+        audience: 'Kad već imate fotografije',
         title: 'Osnovni',
         packageType: 'basic',
         unit: '/ nekretnina',
         items: [
           '360° tura kroz sve prostorije',
-          'HDR fotografija svake prostorije',
           'Audio vodič na srpskom + jednom jeziku po izboru (EN, DE ili RU)',
+          'AI asistent i glasovni uvod u turi',
           'Info, pitanja, lokacija i vaš kontakt u samoj turi',
-          'Link za oglas i gotov kod za ugradnju na sajt',
+          'Link za oglas, kod za sajt i gotov tekst oglasa',
           'Isporuka za 48h'
         ],
         cta: 'Zakažite snimanje',
         track: 'price_basic'
       },
       {
-        audience: 'Kad oglas treba da vidi što više ljudi',
+        audience: 'Tura i fotografije za oglas',
         title: 'Premium',
         packageType: 'premium',
         unit: '/ nekretnina',
         items: [
           'Sve iz Osnovnog, plus:',
+          'HDR fotografija svake prostorije',
           'Audio vodič na sva 4 jezika (SR, EN, DE, RU)',
-          'Izrada tlocrta',
-          'Prednost pri zakazivanju termina',
-          'Isporuka za 24h',
+          'Izrada osnove nekretnine',
           'QR kod za oglas, letak i izlog',
-          'Kratak video iz ture za Instagram i Facebook'
+          'Kratak video iz ture za Instagram i Facebook',
+          'Prednost pri zakazivanju i isporuka za 24h'
         ],
         cta: 'Zakažite snimanje',
         track: 'price_premium',
         badge: 'Najbolje za agencije'
       }
     ],
-    labels: { tour: 'tura', hdr: 'HDR fotografije', overBasic: 'uz Osnovni' },
+    labels: { basicSplit: '360° tura, bez fotografija', tour: 'tura', hdr: 'HDR fotografije', overBasic: 'uz Osnovni' },
     volume: {
-      title: 'Više nekretnina mesečno, niža cena',
-      note: 'Cena po nekretnini (tura + HDR fotografije), prema tome koliko nekretnina snimamo za vas u jednom mesecu.',
+      title: 'Više nekretnina mesečno, niža cena ture',
+      note: 'Cena po nekretnini, prema tome koliko nekretnina snimamo za vas u jednom mesecu. HDR fotografije imaju istu cenu na svakom obimu.',
       count: 'Nekretnina mesečno',
       basic: 'Osnovni',
       premium: 'Premium',
@@ -411,19 +413,18 @@ const sr: HomeCopy = {
       showLess: 'Prikaži manje'
     },
     single: {
-      lead: 'Treba vam samo tura ili samo fotografije?',
-      tour: 'Tura od',
-      hdr: 'HDR fotografije'
+      lead: 'Trebaju vam samo fotografije?',
+      hdr: 'HDR fotografije bez ture'
     },
     fine: '* Cene su prosečne, za prostor od oko 50 m². Za manje i veće prostore cenu formiramo prema broju prostorija — javite kvadraturu i broj soba, pa šaljemo tačnu ponudu. Za gradove van Kragujevca dogovaramo posebno.'
   },
   pricingShort: {
     eyebrow: 'Cenovnik',
-    title: 'Tura i HDR fotografije, *jedna cena*',
+    title: 'Dva paketa, *jedna cena* po nekretnini',
     note: 'Po nekretnini od oko 50 m². Agencije sa više nekretnina mesečno plaćaju manje.',
     plans: [
-      { packageType: 'basic', title: 'Osnovni', note: 'SR + jedan jezik · isporuka za 48h' },
-      { packageType: 'premium', title: 'Premium', note: 'Sva 4 jezika i tlocrt · isporuka za 24h' }
+      { packageType: 'basic', title: 'Osnovni', note: '360° tura · SR + jedan jezik · 48h' },
+      { packageType: 'premium', title: 'Premium', note: 'Tura + HDR fotografije · sva 4 jezika i osnova nekretnine · 24h' }
     ],
     book: 'Zakažite snimanje',
     more: 'Ceo cenovnik'
@@ -560,14 +561,14 @@ const en: HomeCopy = {
     note: 'A simple process on your side — we take care of the rest.',
     items: [
       { title: 'Booking', text: 'Book a time by phone or through the form — we arrive with our equipment at the agreed time, without disturbing residents or tenants.' },
-      { title: 'Shooting', text: '30–60 minutes per property: 360° panoramas of every room plus HDR photos for the listing.' },
+      { title: 'Shooting', text: '30–60 minutes per property: 360° panoramas of every room, and with Premium HDR photos for the listing.' },
       { title: 'Editing', text: 'Stitching the panoramas, color calibration and preparing the audio guide in the languages you need.' },
       { title: 'Delivery', text: 'The link to the finished tour and the photos arrive within 24 hours with Premium, and within 48 hours at the latest with Basic — ready to add to the listing the same day.' }
     ],
     deliverTitle: 'What you get',
     deliver: [
       'A link to the tour for your listing and ready-made embed code for your site',
-      'Full-resolution HDR photos for portals and social media',
+      'With Premium: full-resolution HDR photos for portals and social media',
       'Your name and phone inside the tour — even when the link is passed on',
       'Text and guide tailored to the listing: value and ownership for a sale, costs and move-in for a rental, the guest’s impression for a short stay'
     ]
@@ -575,47 +576,47 @@ const en: HomeCopy = {
   pricing: {
     eyebrow: 'Price list',
     title: 'Two packages, *one price* per property',
-    note: 'The price covers the 360° tour and the HDR photos. Agencies that list more properties a month pay less for each one.',
+    note: 'The 360° tour alone, or the tour with HDR photos and all languages. Agencies that list more properties a month pay less for the tour.',
     plans: [
       {
-        audience: 'For a listing aimed at local buyers',
+        audience: 'When you already have photos',
         title: 'Basic',
         packageType: 'basic',
         unit: '/ property',
         items: [
           '360° tour through every room',
-          'An HDR photo of every room',
           'Audio guide in Serbian + one language of your choice (EN, DE or RU)',
+          'AI assistant and spoken intro inside the tour',
           'Info, questions, location and your contact inside the tour',
-          'A link for the listing and ready-made embed code for your site',
+          'A link for the listing, embed code for your site and ready ad text',
           'Delivery within 48 hours'
         ],
         cta: 'Request a quote',
         track: 'price_basic'
       },
       {
-        audience: 'When the listing should reach as many people as possible',
+        audience: 'Tour and photos for the listing',
         title: 'Premium',
         packageType: 'premium',
         unit: '/ property',
         items: [
           'Everything in Basic, plus:',
+          'An HDR photo of every room',
           'Audio guide in all 4 languages (SR, EN, DE, RU)',
           'We draw the floor plan',
-          'Priority scheduling for the shoot',
-          'Delivery within 24 hours',
           'A QR code for the listing, flyers and your shop window',
-          'A short video from the tour for Instagram and Facebook'
+          'A short video from the tour for Instagram and Facebook',
+          'Priority scheduling and delivery within 24 hours'
         ],
         cta: 'Request a quote',
         track: 'price_premium',
         badge: 'Best for agencies'
       }
     ],
-    labels: { tour: 'tour', hdr: 'HDR photos', overBasic: 'over Basic' },
+    labels: { basicSplit: '360° tour, no photos', tour: 'tour', hdr: 'HDR photos', overBasic: 'over Basic' },
     volume: {
-      title: 'More properties a month, lower price',
-      note: 'Price per property (tour + HDR photos), by how many properties we shoot for you in one month.',
+      title: 'More properties a month, lower tour price',
+      note: 'Price per property, by how many properties we shoot for you in one month. HDR photos cost the same at every volume.',
       count: 'Properties a month',
       basic: 'Basic',
       premium: 'Premium',
@@ -623,9 +624,8 @@ const en: HomeCopy = {
       showLess: 'Show less'
     },
     single: {
-      lead: 'Need only the tour or only the photos?',
-      tour: 'Tour from',
-      hdr: 'HDR photos'
+      lead: 'Need only the photos?',
+      hdr: 'HDR photos without a tour'
     },
     fine: '* Prices are averages, for a property of about 50 m². For smaller and larger properties we quote by the number of rooms — tell us the size and room count and we will send an exact quote. Cities outside Kragujevac are arranged separately.'
   },

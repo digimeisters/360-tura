@@ -10,7 +10,7 @@ import { COLORS, SANS, accentSpan, buttons, e, emailLayout, propertyCard, roomsL
  */
 
 const LANG_NAMES: Record<string, string> = { en: 'engleskom', de: 'nemačkom', ru: 'ruskom' };
-const WHERE_TEXT: Record<string, string> = { plan: 'dok je gledao tlocrt', info: 'u Info delu ture', exit: 'pri izlasku iz ture' };
+const WHERE_TEXT: Record<string, string> = { plan: 'dok je gledao osnovu nekretnine', info: 'u Info delu ture', exit: 'pri izlasku iz ture' };
 
 export type TourContactEmail = {
   agentName: string | null;
@@ -31,7 +31,7 @@ export type TourContactEmail = {
 
 export function tourContactEmail(c: TourContactEmail): { subject: string; html: string; text: string } {
   const greeting = c.agentName ? `Zdravo, ${c.agentName}!` : 'Zdravo!';
-  const what = c.hasPlan ? 'link i tlocrt' : 'link';
+  const what = c.hasPlan ? 'link i osnovu nekretnine' : 'link';
   const whereText = WHERE_TEXT[c.where] ?? 'u turi';
   const langName = c.lang !== 'sr' ? LANG_NAMES[c.lang] ?? c.lang : null;
   const tel = c.contact.replace(/[^\d+]/g, '');
@@ -45,7 +45,7 @@ export function tourContactEmail(c: TourContactEmail): { subject: string; html: 
       ? `Zdravo! Javljam se povodom nekretnine ${c.title} (${c.tourUrl}). Da li biste želeli da je pogledate uživo? Mogu da predložim termin.`
       : `Hello! I'm getting in touch about ${c.title} (${c.tourUrl}). Would you like to see it in person? I can suggest a time.`
     : c.lang === 'sr'
-      ? `Zdravo! Šaljem vam link 360° ture: ${c.tourUrl}${c.hasPlan ? ' Tlocrt je u turi, dugme „Plan“.' : ''} Javite mi se ako želite razgledanje.`
+      ? `Zdravo! Šaljem vam link 360° ture: ${c.tourUrl}${c.hasPlan ? ' Osnova nekretnine je u turi, dugme „Plan“.' : ''} Javite mi se ako želite razgledanje.`
       : `Hello! Here is the 360° tour link: ${c.tourUrl}${c.hasPlan ? ' The floor plan is in the tour, under "Plan".' : ''} Let me know if you would like a viewing.`;
   // Adresa kupca se kodira - inače bi "a@b.co?cc=..." dodao primaoca ili tekst u agentov odgovor.
   const mailto = `mailto:${encodeURIComponent(c.contact)}?subject=${encodeURIComponent(c.title)}&body=${encodeURIComponent(reply)}`;
@@ -64,7 +64,7 @@ export function tourContactEmail(c: TourContactEmail): { subject: string; html: 
     ...(langName ? [factRow('Gledao turu na', `${e(langName)}, odgovorite na tom jeziku`, true)] : [])
   ].join('');
 
-  const alreadySent = c.hasPlan ? 'Link i tlocrt su mu već poslati' : 'Link mu je već poslat';
+  const alreadySent = c.hasPlan ? 'Link i osnova nekretnine su mu već poslati' : 'Link mu je već poslat';
   const task = c.visitorEmailed
     ? { title: alreadySent, note: `Kvadrat360 mu je odmah poslao ${what} na mejl. Dugme ispod otvara odgovor sa ponudom za razgledanje.` }
     : {
@@ -83,7 +83,7 @@ export function tourContactEmail(c: TourContactEmail): { subject: string; html: 
   const body = [
     row(
       `<p style="margin:0 0 6px;font-family:${SANS};font-size:15px;color:${COLORS.soft};">${e(greeting)}</p>
-<h1 class="h1" style="margin:0;font-family:${SANS};font-size:28px;line-height:1.15;font-weight:800;letter-spacing:-.02em;color:${COLORS.ink};">Posetilac želi ${c.hasPlan ? `link i ${accentSpan('tlocrt nekretnine')}` : accentSpan('link nekretnine')}</h1>`,
+<h1 class="h1" style="margin:0;font-family:${SANS};font-size:28px;line-height:1.15;font-weight:800;letter-spacing:-.02em;color:${COLORS.ink};">Posetilac želi ${c.hasPlan ? `link i ${accentSpan('osnovu nekretnine')}` : accentSpan('link nekretnine')}</h1>`,
       '28px 32px 0'
     ),
     row(propertyCard({ tourUrl: c.tourUrl, coverUrl: c.coverUrl, title: c.title, metaHtml: e(meta) })),

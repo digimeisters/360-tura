@@ -4,7 +4,7 @@ import { PRICE_TIERS, displayPerProperty, formatAmount, tierIndexFor, type Packa
 import { usePromoActive } from './usePromoActive';
 
 /**
- * "od X din." - cena jedne nekretnine (tura + HDR) za dati broj nekretnina
+ * "od X din." - cena jedne nekretnine (Osnovni = tura) za dati broj nekretnina
  * mesečno. Dok traje promocija prikazuje sniženu cenu, posle redovnu -
  * datum se proverava na klijentu (usePromoActive), pa naslov ne ostane sa
  * starom cenom kad kampanja istekne.

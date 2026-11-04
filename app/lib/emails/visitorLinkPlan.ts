@@ -36,16 +36,16 @@ const COPY: Record<string, Copy> = {
     kicker: 'Kao što ste tražili',
     h1Lead: 'Nekretnina koju ste',
     h1Accent: 'sačuvali.',
-    intro: (p) => (p ? 'Evo linka ture i tlocrta, da je pogledate ponovo kad vam odgovara.' : 'Evo linka ture, da je pogledate ponovo kad vam odgovara.'),
+    intro: (p) => (p ? 'Evo linka ture i osnove nekretnine, da je pogledate ponovo kad vam odgovara.' : 'Evo linka ture, da je pogledate ponovo kad vam odgovara.'),
     open: 'Otvorite turu',
     rooms: roomsLabel,
-    plan: 'Tlocrt',
-    schematicNote: 'Šematski prikaz rasporeda, nije u razmeri. Tlocrt je i u prilogu ovog mejla.',
-    attachedNote: 'Tlocrt je i u prilogu ovog mejla.',
+    plan: 'Osnova nekretnine',
+    schematicNote: 'Šematski prikaz rasporeda, nije u razmeri. Osnova nekretnine je i u prilogu ovog mejla.',
+    attachedNote: 'Osnova nekretnine je i u prilogu ovog mejla.',
     agentQ: 'Pitanja ili zakazivanje razgledanja?',
     call: 'Pozovite',
     footer: 'Ovaj mejl ste dobili jer ste u 360° turi upisali ovu adresu. Ne šaljemo vam ništa drugo.',
-    subject: (t, p) => (p ? `Link i tlocrt: ${t}` : `Link ture: ${t}`)
+    subject: (t, p) => (p ? `Link i osnova nekretnine: ${t}` : `Link ture: ${t}`)
   },
   en: {
     kicker: 'As you asked',

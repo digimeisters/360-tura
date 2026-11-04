@@ -102,7 +102,7 @@ export const BLOG_POSTS: BlogPost[] = [
           'Kvalitetna 360° panorama svake prostorije - ne samo dnevnog boravka',
           'Jasna navigacija soba-po-sobu, da se kupac ne izgubi',
           'Kratak opis ili audio vodič koji odgovara na pitanja koja bi inače postavio uživo - kvadratura, sprat, orijentacija, šta je sve u blizini',
-          'Tlocrt povezan sa turom, da kupac odmah vidi gde se soba koju gleda nalazi u odnosu na celinu'
+          'Osnova nekretnine povezana sa turom, da kupac odmah vidi gde se soba koju gleda nalazi u odnosu na celinu'
         ]
       }
     ],
@@ -384,12 +384,12 @@ export const BLOG_POSTS: BlogPost[] = [
           'Vrstu grejanja i okvirne troškove',
           'Terasu, parking ili garažu, podrum',
           'Stanje: renovirano, za renoviranje, useljivo odmah',
-          'Raspored prostorija - najbolje sa tlocrtom'
+          'Raspored prostorija - najbolje sa osnovom nekretnine'
         ]
       },
       {
         paragraphs: [
-          'Virtuelna tura ide korak dalje: kupac sam prošeta kroz nekretninu, a u turi su na jednom mestu i podaci, odgovori na najčešća pitanja, tlocrt i dugme za zakazivanje razgledanja.'
+          'Virtuelna tura ide korak dalje: kupac sam prošeta kroz nekretninu, a u turi su na jednom mestu i podaci, odgovori na najčešća pitanja, osnova nekretnine i dugme za zakazivanje razgledanja.'
         ]
       },
       {

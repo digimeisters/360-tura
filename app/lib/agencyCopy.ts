@@ -223,7 +223,7 @@ export const AGENCY_COPY: AgencyCopy = {
       },
       {
         value: '+79%',
-        label: 'pregleda oglasa sa turom i tlocrtom',
+        label: 'pregleda oglasa sa turom i osnovom nekretnine',
         source: 'Zillow Showcase, podaci Zillow-a (2025)',
         url: 'https://zillow.mediaroom.com/2025-09-30-More-than-50-brokerages-adopt-Zillow-Showcase-as-go-to-tool-for-listing-marketing-innovation'
       }
@@ -238,7 +238,7 @@ export const AGENCY_COPY: AgencyCopy = {
     items: [
       { title: 'Pošaljete podatke o nekretnini', text: 'Kroz kratak upitnik — ili ga zajedno popunimo preko telefona.' },
       { title: 'Mi snimamo, 30–60 minuta', text: 'Dovoljno je da nam neko otvori vrata.' },
-      { title: 'Za 24–48h: tura sa opisom i audio vodičem', text: 'Link za oglas i Viber, kod za vaš sajt i gotov tekst oglasa za 4zida, Halo i mreže. Uz Premium i tlocrt.' },
+      { title: 'Za 24–48h: tura sa opisom i audio vodičem', text: 'Link za oglas i Viber, kod za vaš sajt i gotov tekst oglasa za 4zida, Halo i mreže. Uz Premium i osnovu nekretnine.' },
       { title: 'Svakog meseca: izveštaj', text: 'Brojke za sve vaše ture, spremne za vlasnike.' }
     ],
     embed: {
@@ -249,7 +249,7 @@ export const AGENCY_COPY: AgencyCopy = {
   pricing: {
     eyebrow: 'Cene',
     titleStart: 'Tura za vaš oglas —',
-    note: 'Dva paketa, cena po nekretnini — uključuje turu i HDR fotografije. Što više nekretnina mesečno snimamo za vas, to je cena po svakoj niža.',
+    note: 'Dva paketa, cena po nekretnini: samo tura, ili tura sa HDR fotografijama. Što više nekretnina mesečno snimamo za vas, to je tura jeftinija.',
     fine:
       '* Cene su prosečne, za prostor od oko 50 m², u Kragujevcu i okolini. Za manje i veće prostore cenu formiramo prema broju prostorija. Za druge gradove i veći obim pravimo poseban predlog.'
   },

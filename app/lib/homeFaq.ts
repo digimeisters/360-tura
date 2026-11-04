@@ -27,11 +27,11 @@ export const HOME_FAQ: Record<HomeLang, readonly FaqItem[]> = {
     {
       question: 'Šta je 360° virtuelna tura nekretnine?',
       answer:
-        'To je interaktivni obilazak nekretnine iz panoramskih snimaka: kupac na telefonu ili računaru prelazi iz prostorije u prostoriju i razgleda svaki ugao, kao da je unutra. Naše ture imaju i audio vodič na više jezika, tlocrt, odgovore na česta pitanja i dugme za zakazivanje razgledanja.'
+        'To je interaktivni obilazak nekretnine iz panoramskih snimaka: kupac na telefonu ili računaru prelazi iz prostorije u prostoriju i razgleda svaki ugao, kao da je unutra. Naše ture imaju i audio vodič na više jezika, osnovu nekretnine, odgovore na česta pitanja i dugme za zakazivanje razgledanja.'
     },
     {
       question: 'Koliko košta 360° tura nekretnine u Kragujevcu?',
-      answer: `Za jednu nekretninu, 360° tura sa HDR fotografijama košta ${SR_PRICES.basic} u Osnovnom paketu (srpski + jedan jezik po izboru, isporuka za 48h) i ${SR_PRICES.premium} u Premium paketu (sva 4 jezika i tlocrt, isporuka za 24h). Agencijama sa više nekretnina mesečno cena pada do ${SR_PRICES.lowest} po nekretnini. Aktuelni popusti su u cenovniku.`
+      answer: `Za jednu nekretninu, 360° tura košta ${SR_PRICES.basic} u Osnovnom paketu (srpski + jedan jezik po izboru, isporuka za 48h), a ${SR_PRICES.premium} u Premium paketu, uz HDR fotografije svake prostorije, sva 4 jezika i osnovu nekretnine, sa isporukom za 24h. Agencijama sa više nekretnina mesečno tura pojeftini do ${SR_PRICES.lowest} po nekretnini. Aktuelni popusti su u cenovniku.`
     },
     {
       question: 'Da li neko mora da bude prisutan tokom snimanja?',
@@ -71,7 +71,7 @@ export const HOME_FAQ: Record<HomeLang, readonly FaqItem[]> = {
     },
     {
       question: 'How much does a 360° property tour cost in Kragujevac?',
-      answer: `For one property, a 360° tour with HDR photos costs ${EN_PRICES.basic} in the Basic package (Serbian + one language of your choice, delivered within 48h) and ${EN_PRICES.premium} in the Premium package (all 4 languages and a floor plan, delivered within 24h). For agencies with more properties a month, the price drops to ${EN_PRICES.lowest} per property. Current discounts are shown in the price list.`
+      answer: `For one property, a 360° tour costs ${EN_PRICES.basic} in the Basic package (Serbian + one language of your choice, delivered within 48h), and ${EN_PRICES.premium} in the Premium package, which adds HDR photos of every room, all 4 languages and a floor plan, delivered within 24h. For agencies with more properties a month, the tour drops to ${EN_PRICES.lowest} per property. Current discounts are shown in the price list.`
     },
     {
       question: 'Does someone need to be at the property during the shoot?',

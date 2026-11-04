@@ -240,7 +240,7 @@ export default function UnosPage() {
       if (floorplan) {
         const upload = await shrinkImage(floorplan, MAX_FLOORPLAN_UPLOAD_BYTES);
         if (upload.size > MAX_FLOORPLAN_UPLOAD_BYTES) {
-          setError('Slika tlocrta je prevelika. Pošaljite manju sliku ili je dodajte naknadno.');
+          setError('Slika osnove nekretnine je prevelika. Pošaljite manju sliku ili je dodajte naknadno.');
           return;
         }
         body.append('floorplan', upload);
@@ -561,7 +561,7 @@ export default function UnosPage() {
             />
           </Field>
 
-          <Field label="Crtež osnove / tlocrt" hint="Slika tlocrta — JPG, PNG ili WEBP. Velika slika se sama smanji pre slanja. Može i naknadno.">
+          <Field label="Osnova nekretnine" hint="Crtež ili slika osnove — JPG, PNG ili WEBP. Velika slika se sama smanji pre slanja. Može i naknadno.">
             {/* Sopstveno dugme: pregledačevo ("Choose File / No file chosen")
                 je uvek na jeziku pregledača, pa je usred srpske forme umelo
                 da bude na engleskom. */}

@@ -11,15 +11,15 @@ export function BlogPricingSnapshot() {
   return (
     <div className="rate-grid">
       <div className="card rate-card">
-        <h4>360° tura — Osnovna</h4>
+        <h4>Osnovni — 360° tura</h4>
         <ItemPrice amount="tourBasic" unit="/ nekretnina" lang="sr" />
       </div>
       <div className="card rate-card">
-        <h4>360° tura — Premium</h4>
-        <ItemPrice amount="tourPremium" unit="/ nekretnina" lang="sr" />
+        <h4>Premium — tura + HDR fotografije</h4>
+        <ItemPrice amount="premium" unit="/ nekretnina" lang="sr" />
       </div>
       <div className="card rate-card">
-        <h4>HDR fotografije</h4>
+        <h4>HDR fotografije bez ture</h4>
         <ItemPrice amount="hdr" unit="/ nekretnina" lang="sr" />
       </div>
       <p className="note">

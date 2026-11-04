@@ -42,13 +42,13 @@ const COPY = {
   meta: {
     title: '360° tura za prodaju i izdavanje nekretnine | Kvadrat360',
     description:
-      'Prodajete ili izdajete nekretninu? 360° tura i HDR fotografije: kupac prošeta kroz svaku prostoriju pre poziva, a vama se javljaju oni koje nekretnina zaista zanima.'
+      'Prodajete ili izdajete nekretninu? 360° tura (uz Premium i HDR fotografije): kupac prošeta kroz svaku prostoriju pre poziva, a vama se javljaju oni koje nekretnina zaista zanima.'
   },
   hero: {
     // Plava fraza je kratka: u vrhu se ne lomi (nowrap), a duža je na telefonu izlazila van pločice.
     titleStart: 'Prodajete ili izdajete? Kupac prošeta ',
     titleEm: 'pre poziva.',
-    lede: '360° tura i HDR fotografije vaše nekretnine. Javljaju vam se oni koje nekretnina zaista zanima, a ne svako ko je video oglas.',
+    lede: '360° tura vaše nekretnine, a uz Premium i HDR fotografije. Javljaju vam se oni koje nekretnina zaista zanima, a ne svako ko je video oglas.',
     book: 'Zakažite snimanje',
     tour: 'Pogledajte primer ture',
     trust: ['Snimanje 30–60 min', 'Tura za 24–48h']
@@ -79,14 +79,14 @@ const COPY = {
     items: [
       { title: 'Zakažete termin', text: 'Telefonom, porukom ili preko forme. Dogovorimo dan koji vama odgovara.' },
       { title: 'Otvorite vrata', text: 'Snimanje traje 30–60 minuta. Za to vreme u prostoriji ne treba da bude nikoga.' },
-      { title: 'Dobijete link', text: 'Za 24–48h stižu tura i HDR fotografije. Link ubacite u oglas ili pošaljete kupcu porukom.' }
+      { title: 'Dobijete link', text: 'Za 24–48h stiže tura (uz Premium i HDR fotografije). Link ubacite u oglas ili pošaljete kupcu porukom.' }
     ],
     prepLead: 'Pre snimanja:',
     prep: 'upalite svetla, razgrnite zavese i sklonite lične stvari. To je sve.'
   },
   price: {
     eyebrow: 'Cena',
-    title: 'Za jednu nekretninu, *tura i fotografije*',
+    title: 'Za jednu nekretninu, *dva paketa*',
     note: 'Cena je za prostor od oko 50 m². Za veći ili manji javite broj soba, pa šaljemo tačnu ponudu.'
   },
   valuation: {
