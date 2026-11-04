@@ -16,7 +16,7 @@ import { WALK_COPY, WALK_SCREENS, WALK_STEPS, type WalkScreen, type WalkStep } f
  */
 const N = WALK_STEPS.length;
 /** Visina skrola po koraku (deo visine ekrana). */
-const STEP_SVH = 30;
+const STEP_SVH = 55;
 
 const STYLES = `
   .thw{position:relative; overflow-x:clip; padding-top:clamp(3rem,7vw,5rem);}
