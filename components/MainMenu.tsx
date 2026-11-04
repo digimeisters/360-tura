@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { isRecentlyAdded } from '../app/lib/recentBadge';
+import ThemeToggle from './ThemeToggle';
 
 /**
  * Glavni meni sajta (srpske strane): isti na svakoj strani, umesto da svaka
@@ -190,6 +191,9 @@ export default function MainMenu({ lang, cta }: { lang?: MenuLang; cta: MenuCta 
             </a>
           </li>
         )}
+        <li className="nav-theme">
+          <ThemeToggle />
+        </li>
       </ul>
 
       <div className="mm-end">
@@ -262,6 +266,8 @@ export default function MainMenu({ lang, cta }: { lang?: MenuLang; cta: MenuCta 
               onClick={close}
               current={isCurrent('/blog')}
             />
+            <p className="mm-sheet-grp">Tema</p>
+            <ThemeToggle variant="seg" />
             <div className="mm-sheet-end">
               {lang && (
                 <a className="btn btn-secondary" href={lang.href} hrefLang={lang.hrefLang} lang={lang.hrefLang} aria-label={lang.aria}>

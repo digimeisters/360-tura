@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Logo } from '../app/tour/[slug]/Logo';
 import { CONTACT, CONTACT_LINKS } from '../app/lib/site';
 import MainMenu, { type MenuLang } from './MainMenu';
+import ThemeToggle from './ThemeToggle';
 
 /**
  * Zaglavlje i podnožje zajednički za sve javne strane sajta (/, /en, /ture,
@@ -68,7 +69,12 @@ export function SiteNav({
             <MainMenu lang={mainMenu.lang} cta={cta} />
           ) : (
             <>
-              <ul className="navlinks">{children}</ul>
+              <ul className="navlinks">
+                {children}
+                <li className="nav-theme">
+                  <ThemeToggle lang="en" />
+                </li>
+              </ul>
               <Cta className="btn btn-primary btn-sm" href={cta.href} data-track={cta.track}>
                 {cta.label}
               </Cta>

@@ -91,8 +91,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const cdn = cdnOrigin();
 
   return (
-    <html lang="sr" className={`${inter.variable} ${jakarta.variable} ${serif.variable} ${urbanist.variable}`}>
+    <html lang="sr" className={`${inter.variable} ${jakarta.variable} ${serif.variable} ${urbanist.variable}`} suppressHydrationWarning>
       <head>
+        {/* Izabrana tema (components/ThemeToggle.tsx) se vraća PRE prvog crtanja - inače bi tamna
+            tema na sekund zasvetlela. Bez izbora ne radi ništa: sajt prati uređaj. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "try{var t=localStorage.getItem('k360-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}"
+          }}
+        />
         {cdn && <link rel="preconnect" href={cdn} />}
         {cdn && <link rel="preconnect" href={cdn} crossOrigin="anonymous" />}
       </head>

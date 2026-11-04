@@ -11,6 +11,11 @@
  */
 export const SITE_STYLES = `
   :root{
+    color-scheme:light;
+    /* Ikonica i izabrana opcija u dugmetu za temu (components/ThemeToggle.tsx): u tamnoj temi se obrću. */
+    --t-sun:none; --t-moon:block;
+    --tseg-l-bg:var(--surface); --tseg-l-ink:var(--ink); --tseg-l-shadow:0 1px 4px rgba(17,17,19,.18);
+    --tseg-d-bg:transparent; --tseg-d-ink:var(--ink-soft); --tseg-d-shadow:none;
     --bg:#FAFAF7;
     --surface:#FFFFFF;
     --surface-2:#F1F1EC;
@@ -53,6 +58,10 @@ export const SITE_STYLES = `
       --ok:#4ade80;
       --shadow:0 2px 8px rgba(0,0,0,.4);
       --shadow-lg:0 14px 34px rgba(0,0,0,.5);
+      color-scheme:dark;
+      --t-sun:block; --t-moon:none;
+      --tseg-l-bg:transparent; --tseg-l-ink:var(--ink-soft); --tseg-l-shadow:none;
+      --tseg-d-bg:var(--surface-2); --tseg-d-ink:var(--ink); --tseg-d-shadow:0 1px 4px rgba(0,0,0,.5);
     }
   }
   :root[data-theme="dark"]{
@@ -73,6 +82,10 @@ export const SITE_STYLES = `
     --ok:#4ade80;
     --shadow:0 2px 8px rgba(0,0,0,.4);
     --shadow-lg:0 14px 34px rgba(0,0,0,.5);
+    color-scheme:dark;
+    --t-sun:block; --t-moon:none;
+    --tseg-l-bg:transparent; --tseg-l-ink:var(--ink-soft); --tseg-l-shadow:none;
+    --tseg-d-bg:var(--surface-2); --tseg-d-ink:var(--ink); --tseg-d-shadow:0 1px 4px rgba(0,0,0,.5);
   }
 
   *{box-sizing:border-box;}
@@ -225,6 +238,8 @@ export const SITE_STYLES = `
     .navlinks a{font-size:.8rem; padding:.34rem .8rem; background:var(--surface-2); border:1px solid var(--line); white-space:nowrap;}
     .nav-lang{order:-1;}
     .nav-lang a{margin-left:0; background:var(--surface); border-color:var(--line-strong);}
+    .nav-theme{order:-1;}
+    .theme-btn{margin-left:0; width:34px; height:34px;}
     section{scroll-margin-top:124px;}
   }
 
@@ -265,6 +280,20 @@ export const SITE_STYLES = `
   .mm-x{width:44px; height:44px; border-radius:50%; border:1px solid var(--line); background:var(--surface); font-size:1.5rem; line-height:1; color:var(--ink); cursor:pointer;}
   .mm-sheet .mm-entry{background:var(--surface); border:1px solid var(--line); margin-bottom:.4rem; align-items:center;}
   .mm-sheet-grp{font-size:.72rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); margin:1rem .3rem .4rem;}
+  /* Dugme za temu (components/ThemeToggle.tsx): okruglo, kao čip EN; u telefonskom meniju dve opcije. */
+  .nav-theme{display:flex; align-items:center;}
+  .theme-btn{display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; margin-left:.35rem; padding:0; border:1px solid var(--line-strong); border-radius:999px;
+    background:transparent; color:var(--ink); cursor:pointer; transition:background-color .2s, color .2s;}
+  .theme-btn svg{width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;}
+  .theme-btn .t-sun{display:var(--t-sun);}
+  .theme-btn .t-moon{display:var(--t-moon);}
+  @media (hover:hover){ .theme-btn:hover{background:var(--surface-2);} }
+  .theme-btn:focus-visible,.theme-seg button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .theme-seg{display:grid; grid-template-columns:1fr 1fr; gap:2px; padding:3px; border:1px solid var(--line-strong); border-radius:999px; background:var(--surface-2); margin:0 .3rem;}
+  .theme-seg button{display:flex; align-items:center; justify-content:center; gap:.45rem; min-height:44px; border:0; border-radius:999px; font:inherit; font-weight:700; font-size:.92rem; cursor:pointer;}
+  .theme-seg svg{width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;}
+  .theme-seg [data-t="light"]{background:var(--tseg-l-bg); color:var(--tseg-l-ink); box-shadow:var(--tseg-l-shadow);}
+  .theme-seg [data-t="dark"]{background:var(--tseg-d-bg); color:var(--tseg-d-ink); box-shadow:var(--tseg-d-shadow);}
   .mm-sheet-end{display:flex; gap:.5rem; margin-top:1.2rem;}
   .mm-sheet-end .btn{flex:1; justify-content:center;}
   .band{background:var(--surface-2);}
