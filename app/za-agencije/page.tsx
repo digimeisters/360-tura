@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import type { CSSProperties } from 'react';
 import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 import ContactForm from '../../components/ContactForm';
-import HeroTour from '../../components/HeroTour';
+import AgencyHeroVisual, { AGENCY_HERO_STYLES } from '../../components/AgencyHeroVisual';
 import PromoBanner from '../../components/PromoBanner';
 import PromoTopBar from '../../components/PromoTopBar';
 import FromPrice from '../../components/FromPrice';
@@ -19,7 +19,6 @@ import { CONTACT, CONTACT_LINKS, SITE_NAME, SITE_URL, whatsappLink } from '../li
 import { serializeJsonLd } from '../lib/structuredData';
 import { getShowcaseTours, pickHeroTour } from '../lib/showcaseTours';
 import SiteStylesheets from '../../components/SiteStylesheets';
-import { preloadHeroImage } from '../lib/heroPreload';
 
 /**
  * Prodajna strana za agencije (/za-agencije), ispričana kao jedna nedelja
@@ -261,7 +260,6 @@ export default async function AgencyPage() {
 
   const tours = await getShowcaseTours('sr');
   const heroTour = pickHeroTour(tours, 'sr');
-  preloadHeroImage(heroTour);
   // Za primer u kodu za ugradnju i za ekrane telefona - prava, otvorena
   // tura, ne izmišljen link ni tuđa fotografija.
   const exampleSlug = heroTour?.slug ?? tours[0]?.slug ?? 'naziv-ture';
@@ -275,7 +273,7 @@ export default async function AgencyPage() {
   return (
     <div lang="sr" style={{ display: 'contents' }}>
       <SiteStylesheets />
-      <style dangerouslySetInnerHTML={{ __html: AGENCY_STYLES }} />
+      <style dangerouslySetInnerHTML={{ __html: AGENCY_STYLES + AGENCY_HERO_STYLES }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd()) }} />
       <SiteTracker />
       <NavScrollSpy />
@@ -291,11 +289,11 @@ export default async function AgencyPage() {
 
       {/* .rv-page: animacije iz siteStyles (kao na početnoj) važe i ovde. */}
       <main className="rv-page">
-        {/* Vrh: prava tura preko cele širine, kao na početnoj (HeroTour) -
-            agent prvo vidi proizvod, a obećanje stoji na pločici preko njega. */}
-        <section className="hero-tour" id="pocetna">
-          <HeroTour tour={heroTour} lang="sr" />
-          <div className="ht-copy">
+        {/* Vrh (vlasnik, 4. 11. 2026): tamno, tekst levo, tura u pregledaču i mesečni
+            izveštaj desno - da se ne ponavlja živa tura sa početne (components/AgencyHeroVisual). */}
+        <section className="ah is-dark" id="pocetna">
+          <div className="wrap">
+          <div className="ah-copy">
             <h1>{accent(hero.title)}</h1>
             <p className="lede">{hero.lede}</p>
             <div className="hero-ctas">
@@ -307,6 +305,8 @@ export default async function AgencyPage() {
                 <li key={item}>{item}</li>
               ))}
             </ul>
+          </div>
+          <AgencyHeroVisual tour={heroTour} report={owner.report} />
           </div>
         </section>
 

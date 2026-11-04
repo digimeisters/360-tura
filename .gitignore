@@ -51,3 +51,4 @@ docs/cowork/
 .impeccable/
 .agents/
 .github/hooks/
+.playwright-mcp/

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 import ContactForm from '../../components/ContactForm';
-import HeroTour from '../../components/HeroTour';
+import OwnerHeroPhone, { OWNER_HERO_STYLES } from '../../components/OwnerHeroPhone';
 import PricingShort from '../../components/PricingShort';
 import PromoTopBar from '../../components/PromoTopBar';
 import SiteReveal from '../../components/SiteReveal';
@@ -11,10 +11,8 @@ import SiteTracker from '../../components/SiteTracker';
 import TourStory from '../../components/TourStory';
 import { VALUATION_HREF } from '../alati/toolsNav';
 import { accent, plainAccent } from '../lib/accent';
-import { preloadHeroImage } from '../lib/heroPreload';
 import { HOME_COPY } from '../lib/homeCopy';
 import { HOME_FAQ } from '../lib/homeFaq';
-import { getShowcaseTours, HOME_CITY, localToursFirst, pickHeroTour } from '../lib/showcaseTours';
 import { CONTACT, CONTACT_LINKS, SITE_NAME, SITE_URL, whatsappLink } from '../lib/site';
 import { serializeJsonLd } from '../lib/structuredData';
 import { breadcrumbJsonLd, packagesJsonLd } from '../lib/serviceJsonLd';
@@ -199,14 +197,12 @@ const STYLES = `
 export default async function OwnersPage() {
   const address = [CONTACT.street, CONTACT.city].filter(Boolean).join(', ');
 
-  const [allTours, story] = await Promise.all([getShowcaseTours('sr'), getStoryData('sr')]);
-  const heroTour = pickHeroTour(localToursFirst(allTours), 'sr', HOME_CITY);
-  preloadHeroImage(heroTour);
+  const story = await getStoryData('sr');
 
   return (
     <div lang="sr" style={{ display: 'contents' }}>
       <SiteStylesheets />
-      <style dangerouslySetInnerHTML={{ __html: STYLES }} />
+      <style dangerouslySetInnerHTML={{ __html: STYLES + OWNER_HERO_STYLES }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd()) }} />
       <SiteTracker />
       <SiteReveal />
@@ -220,9 +216,11 @@ export default async function OwnersPage() {
       />
 
       <main className="rv-page">
-        <section className="hero-tour" id="pocetna">
-          <HeroTour tour={heroTour} lang="sr" />
-          <div className="ht-copy">
+        {/* Vrh (vlasnik, 4. 11. 2026): svetao, tekst levo i telefon sa pravom turom desno -
+            da se ne ponavlja živa tura sa početne (components/OwnerHeroPhone). */}
+        <section className="oh" id="pocetna">
+          <div className="wrap">
+          <div className="oh-copy">
             <h1>{COPY.hero.titleStart}<em>{COPY.hero.titleEm}</em></h1>
             <p className="lede">{COPY.hero.lede}</p>
             <div className="hero-ctas">
@@ -234,6 +232,8 @@ export default async function OwnersPage() {
                 <li key={item}>{item}</li>
               ))}
             </ul>
+          </div>
+          <OwnerHeroPhone />
           </div>
         </section>
 
