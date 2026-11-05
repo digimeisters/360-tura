@@ -36,7 +36,19 @@ const PLAN_PATH = [[58, 40, 0], [100, 106, 3], [32, 106, 2], [100, 106, 3], [168
 
 const motionOK = () => !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-export default function TourModulesShowcase({ copy, photoUrl }: { copy: ModulesCopy; photoUrl: string | null }) {
+export default function TourModulesShowcase({
+  copy,
+  photoUrl,
+  autoMs = AUTO_MS,
+  compact = false
+}: {
+  copy: ModulesCopy;
+  photoUrl: string | null;
+  /** Koliko dugo stoji jedno dugme dok se meni sam smenjuje. */
+  autoMs?: number;
+  /** Manji telefon na računaru, bez telefona na mobilnom (za agencije, vlasnik 5. 11. 2026). */
+  compact?: boolean;
+}) {
   const [active, setActive] = useState<TourModuleKey>('about');
   const [seen, setSeen] = useState<Set<TourModuleKey>>(() => new Set<TourModuleKey>(['about']));
   const [auto, setAuto] = useState(true);
@@ -95,10 +107,10 @@ export default function TourModulesShowcase({ copy, photoUrl }: { copy: ModulesC
     const timer = window.setTimeout(() => {
       const idx = copy.items.findIndex((i) => i.key === active);
       show(copy.items[(idx + 1) % copy.items.length].key);
-    }, AUTO_MS);
+    }, autoMs);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auto, inView, active]);
+  }, [auto, inView, active, autoMs]);
 
   const running = auto && inView;
 
@@ -127,7 +139,7 @@ export default function TourModulesShowcase({ copy, photoUrl }: { copy: ModulesC
   const seenText = copy.seen.replace('{n}', String(seen.size)).replace('{total}', String(copy.items.length));
 
   return (
-    <div className="mods" ref={rootRef}>
+    <div className={compact ? 'mods mods--compact' : 'mods'} ref={rootRef}>
       <style>{STYLES}</style>
       <div className="section-head">
         <span className="eyebrow" data-reveal="up">{copy.eyebrow}</span>
@@ -157,7 +169,7 @@ export default function TourModulesShowcase({ copy, photoUrl }: { copy: ModulesC
                   {!seen.has(i.key) && <span className="mods-new" aria-hidden="true" />}
                   {i.key === active && running && (
                     <span className="mods-prog" aria-hidden="true">
-                      <b key={active} style={{ animationDuration: `${AUTO_MS}ms` }} />
+                      <b key={active} style={{ animationDuration: `${autoMs}ms` }} />
                     </span>
                   )}
                 </button>
@@ -422,6 +434,14 @@ const STYLES = `
   html.rv-armed .mods-phone[data-reveal="scale"]:not(.is-in){transform:translateY(var(--rv-dist)) scale(.75);}
   .mods-bar{gap:2px; padding:4px;}
   .mods-tab{font-size:10.5px;}
+}
+
+/* Kompaktno: telefon manji na računaru, na mobilnom ga nema (tekst i dugmad su dovoljni). */
+.mods--compact .mods-grid{grid-template-columns:minmax(0,1fr) 280px;}
+.mods--compact .mods-phone{transform:scale(.82); transform-origin:top center; margin-bottom:-122px;}
+@media (max-width:900px){
+  .mods--compact .mods-grid{grid-template-columns:minmax(0,1fr);}
+  .mods--compact .mods-phone{display:none;}
 }
 
 /* Mikro-filmovi u telefonu (vrednosti iz makete public/mockup/DugmadTura.html). */

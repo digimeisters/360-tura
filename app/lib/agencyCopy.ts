@@ -15,11 +15,9 @@
  * Tekst između zvezdica u naslovima ide u kurziv (lib/accent.tsx).
  */
 
-type DayRow = { day: string; title: string; text: string };
-
 export type AgencyCopy = {
   meta: { title: string; description: string };
-  nav: { brandAria: string; week: string; buyer: string; owner: string; packages: string; faq: string; home: string; cta: string };
+  nav: { brandAria: string; buyer: string; owner: string; packages: string; faq: string; home: string; cta: string };
   hero: {
     eyebrow: string;
     title: string;
@@ -29,27 +27,20 @@ export type AgencyCopy = {
     ctaPrices: string;
     trust: string[];
   };
-  week: {
-    eyebrow: string;
-    title: string;
-    note: string;
-    without: { title: string; tag: string; days: DayRow[] };
-    with: { title: string; tag: string; days: DayRow[] };
-  };
   buyer: {
     eyebrow: string;
     title: string;
     note: string;
     steps: { time: string; title: string; text: string }[];
-    chat: { app: string; message: string; card: string; reply: string };
-    guide: { room: string; label: string; caption: string };
-    plan: { title: string; rooms: [string, string, string]; legend: string };
-    contact: { title: string; agent: string; agency: string; call: string; book: string; note: string };
-    /** Kraj priče: poziv odmah posle četvrtog ekrana. */
+    /** Jedan telefon sa Viber razgovorom (vlasnik, 5. 11. 2026; maketa public/mockup/Cetvrtak2140.html). */
+    chat: { app: string; sub: string; day: string; message: string; card: string; sent: string; reply: string; replyAt: string; followUp: string; followUpAt: string; call: string; callAt: string };
+    /** Kraj priče: poziv odmah ispod vremenske linije. */
     end: { text: string; cta: string };
   };
-  /** Kratka traka odmah posle kupčeve priče (02), posebno za uživo razgledanje - detalji su u FAQ (#pitanja), na koji ova traka vodi. */
-  live: { title: string; text: string; cta: string };
+  /** Razgledanje uživo odmah posle kupčeve priče (02): pravi ekrani agenta i kupca (public/hero/tura-koraci/uzivo-*.webp). */
+  live: { eyebrow: string; title: string; text: string; steps: { title: string; text: string }[]; use: string; cta: string };
+  /** Ispod "Pet dugmadi" (TourModulesShowcase): ono što dugmad u turi ne pokazuju. Samo ono što aplikacija danas radi. */
+  extras: { title: string; items: { title: string; text: string }[] };
   owner: {
     eyebrow: string;
     title: string;
@@ -81,7 +72,6 @@ export type AgencyCopy = {
     /** Kod za ugradnju na sajt agencije - ispod koraka (ranije u "Šest stvari"). */
     embed: { summary: string; text: string };
   };
-  pricing: { eyebrow: string; titleStart: string; note: string; fine: string };
   faq: { eyebrow: string; title: string; note: string; items: { question: string; answer: string }[] };
   contact: {
     eyebrow: string;
@@ -101,7 +91,6 @@ export const AGENCY_COPY: AgencyCopy = {
   },
   nav: {
     brandAria: 'Kvadrat360, početna strana',
-    week: 'Vaša nedelja',
     buyer: 'Kupac',
     owner: 'Vlasnik',
     packages: 'Cene',
@@ -118,66 +107,56 @@ export const AGENCY_COPY: AgencyCopy = {
     ctaPrices: 'Pogledajte cene',
     trust: ['Snimanje 30–60 min', 'Tura za 24–48h', 'Radi na svakom telefonu']
   },
-  week: {
-    eyebrow: 'Vaša nedelja',
-    title: 'Jedna nekretnina. Ista nedelja. *Dva ishoda.*',
-    note: 'Levo je nedelja koju zna svaki agent u Kragujevcu. Desno — ista nekretnina, isti kupci, samo sa turom u oglasu.',
-    without: {
-      title: 'Bez ture',
-      tag: 'samo fotografije u oglasu',
-      days: [
-        { day: 'PON', title: 'Istu nekretninu na portalu oglašavaju još dve agencije.', text: 'Iste fotografije, ista cena. Kupac zove onoga ko se prvi javi.' },
-        { day: 'UTO', title: 'Vožnja od Aerodroma do Stanova za razgledanje.', text: 'Kupac posle tri minuta: „Nije to za nas.“ Pola popodneva je otišlo.' },
-        { day: 'ČET', title: 'Roditelji studenta iz Kraljeva.', text: '„Možemo da dođemo tek u subotu.“ Do subote je stan već izdat nekom drugom.' },
-        { day: 'SUB', title: 'Zove vlasnik: „Šta ste uradili ove nedelje?“', text: 'A stanar se žali što mu svaki dan neko dolazi u stan.' }
-      ]
-    },
-    with: {
-      title: 'Sa turom',
-      tag: '360° tura u vašem oglasu',
-      days: [
-        { day: 'PON', title: 'Vaš oglas je onaj sa šetnjom kroz nekretninu.', text: 'Kupac ostaje u vašem oglasu i zove vas — ne konkurenciju.' },
-        { day: 'UTO', title: 'Vozite se samo na razgledanja koja imaju smisla.', text: 'Dolazi kupac kome se nekretnina već dopala na turi. Već pričate o ceni.' },
-        { day: 'ČET', title: 'Roditelji iz Kraljeva obiđu stan uveče, sa telefona.', text: 'I javljaju se odmah — pre nego što ga neko drugi uzme.' },
-        { day: 'SUB', title: 'Vlasniku pokazujete brojke.', text: 'Koliko je ljudi pogledalo nekretninu. A stanar otvara vrata samo ozbiljnim kupcima.' }
-      ]
-    }
-  },
   buyer: {
     eyebrow: 'Kupčeva strana priče',
     title: 'Četvrtak, 21:40. Mama studenta iz Kraljeva *„ulazi“ u stan.*',
-    note: 'Vi ste odavno kod kuće. Ona je 55 kilometara daleko. Tura radi umesto vas — deset minuta od poruke do poziva.',
+    note: 'Vi ste odavno kod kuće. Ona je 55 kilometara daleko. Tura radi umesto vas.',
     steps: [
-      { time: '21:40', title: 'Link u Viber poruci', text: 'Bez aplikacije, bez prijave. Otvara se odmah.' },
-      { time: '21:41', title: 'Šetaju kroz stan', text: 'Vodič ih sam provede kroz sobe, uz glas i titlove. Sin gleda gde bi stao sto.' },
-      { time: '21:46', title: 'Znaju raspored', text: 'Plan pokazuje gde su i kuda gledaju.' },
-      { time: '21:50', title: 'Javljaju se', text: 'Poziv ili Viber poruka jednim dodirom — ili zahtev za termin iz ture.' }
+      { time: '21:40', title: 'Link u Viber poruci', text: 'Bez aplikacije i bez prijave. Otvara se odmah.' },
+      { time: '21:41', title: 'Šetaju kroz stan', text: 'Vodič ih provede kroz sobe, uz glas i titlove.' },
+      { time: '21:46', title: 'Znaju raspored', text: 'Plan pokazuje gde su i šta su već videli.' },
+      { time: '21:50', title: 'Javljaju se vama', text: 'Poziv ili zahtev za razgledanje, jednim dodirom.' }
     ],
     chat: {
-      app: 'Viber · Agencija',
-      message: 'Dobro veče! Evo stana kod Ekonomskog fakulteta — možete ga obići odmah:',
+      app: 'Agencija · Kragujevac',
+      sub: 'Viber',
+      day: 'Četvrtak',
+      message: 'Dobro veče! Evo stana kod Ekonomskog fakulteta, možete ga obići odmah:',
       card: 'Jednosoban · Centar',
-      reply: 'Hvala, gledamo odmah sa sinom!'
-    },
-    guide: { room: 'Soba · 2/5', label: 'Automatsko vođenje', caption: 'Svetla soba sa prozorom na ulicu' },
-    plan: { title: 'Plan', rooms: ['Soba', 'Kuhinja', 'Kupatilo'], legend: 'Plavo: ovde ste · Belo: već viđeno · Tamno: još niste bili' },
-    contact: {
-      title: 'Kontakt agenta',
-      agent: 'Vaš agent',
-      agency: 'Agencija · Kragujevac',
-      call: 'Pozovi agenta',
-      book: 'Zakaži razgledanje',
-      note: 'Petak ujutru dolaze da potpišu — bez dolaska „da vide“.'
+      sent: '21:40',
+      reply: 'Hvala, gledamo odmah sa sinom!',
+      replyAt: '21:41',
+      followUp: 'Baš nam se dopao. Možemo li u petak ujutru da dođemo?',
+      followUpAt: '21:49',
+      call: 'Dolazni poziv',
+      callAt: '21:50'
     },
     end: {
-      text: 'Ovakav link šaljete svakom kupcu — od prvog snimanja.',
+      text: 'Ovakav link šaljete svakom kupcu, od prvog snimanja.',
       cta: 'Zakažite snimanje'
     }
   },
   live: {
-    title: 'Kupac sa pitanjima uveče? *Provedite ga lično — na daljinu.*',
-    text: 'Dodirnete „● Uživo“ u turi i pošaljete kupcu link. Pridruži se za par sekundi, bez instalacije — i prati tačno ono što vi gledate dok ga vodite kroz prostorije. Razgovarate telefonom ili Viberom.',
-    cta: 'Kako radi uživo razgledanje ↓'
+    eyebrow: 'Razgledanje uživo',
+    title: 'Kupac je u drugom gradu? *Provedite ga lično, sa svog telefona.*',
+    text: 'Vi se krećete kroz turu, a kupac na svom telefonu vidi isti kadar, u istom trenutku. Razgovarate telefonom ili Viberom, kao da ste zajedno na razgledanju.',
+    steps: [
+      { title: 'Dodirnete „● Uživo“', text: 'U turi, na svom telefonu.' },
+      { title: 'Pošaljete link', text: 'Viberom ili kopiranjem. Kupac ne instalira ništa i ne pravi nalog.' },
+      { title: 'Vodite ga kroz prostorije', text: 'Gde vi uđete, uđe i on. Pozovete ga i pričate dok šetate.' }
+    ],
+    use: 'Kad pomaže: kupac iz drugog grada, roditelji koji biraju stan za studenta, drugo gledanje pre odluke.',
+    cta: 'Zakažite snimanje'
+  },
+  extras: {
+    title: 'Još uz svaku turu',
+    items: [
+      { title: 'Gotov tekst oglasa', text: 'Za 4zida, Halo oglase i društvene mreže.' },
+      { title: 'Tura na vašem sajtu', text: 'Kod za ugradnju u sajt agencije.' },
+      { title: 'Na jeziku kupca', text: 'Do četiri jezika: srpski, engleski, nemački i ruski.' },
+      { title: 'Šta kupce zanima', text: 'Najgledanije prostorije i odakle dolaze posetioci.' },
+      { title: 'Prodato? Tura se zaključa', text: 'Stari link pokazuje vaš kontakt, pa poziv ide na drugu nekretninu.' }
+    ]
   },
   owner: {
     eyebrow: 'Vlasnik nekretnine',
@@ -245,13 +224,6 @@ export const AGENCY_COPY: AgencyCopy = {
       summary: 'Za vašeg programera: kod za ugradnju na sajt agencije',
       text: 'Ubacite ovaj kod na stranicu nekretnine i tura radi u okviru vašeg sajta:'
     }
-  },
-  pricing: {
-    eyebrow: 'Cene',
-    titleStart: 'Tura za vaš oglas —',
-    note: 'Dva paketa, cena po nekretnini: samo tura, ili tura sa HDR fotografijama. Što više nekretnina mesečno snimamo za vas, to je tura jeftinija.',
-    fine:
-      '* Cene su prosečne, za prostor od oko 50 m², u Kragujevcu i okolini. Za manje i veće prostore cenu formiramo prema broju prostorija. Za druge gradove i veći obim pravimo poseban predlog.'
   },
   faq: {
     eyebrow: 'Pitanja agencija',
