@@ -2,43 +2,45 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { accent } from '../app/lib/accent';
-import { WALK_COPY, WALK_SCREENS, WALK_STEPS, type WalkScreen, type WalkStep } from '../app/lib/tourWalkthrough';
+import { WALK_SCREENS, WALK_STEPS, WALK_TITLE, type WalkScreen, type WalkStep } from '../app/lib/tourWalkthrough';
 
 /**
- * "Kako radi tura" (podaci i poreklo ekrana: lib/tourWalkthrough.ts). Telefon
- * stoji zalepljen dok posetilac skroluje; svaki deo skrola je jedan korak:
- * reflektor na mestu dodira, prst, pa ekran koji se tada otvori u pravoj turi.
+ * "Kako radi tura" (podaci i poreklo ekrana: lib/tourWalkthrough.ts). Radi kao
+ * Instagram priča (vlasnik, 5. 11. 2026; maketa public/mockup/KakoRadiTuraPrica.html):
+ * kad je telefon na ekranu, koraci idu sami - reflektor na mestu dodira, prst,
+ * pa ekran koji se tada otvori u pravoj turi. Dodir levo/desno na telefonu,
+ * strelice i nazivi koraka vode ručno; pauza dok sekcija nije na ekranu.
+ * Skrol ne menja korake (ranija skrol verzija je na telefonu preskakala tačke).
  *
- * Bez JS-a sekcija nije zalepljena: telefon sa početnim ekranom i pregled svih
- * koraka. Uz smanjene pokrete koraci se i dalje menjaju, samo bez prelaza.
- * Klase za animaciju (aim, lbl-on, done) stoje na .thw-pin, koji React ne
- * menja posle prvog crtanja, da ih ponovno crtanje ne bi obrisalo.
+ * Uz smanjene pokrete priča ne kreće sama. Klase za animaciju (aim, lbl-on,
+ * done) stoje na .thw-grid, kome React ne menja className, da ih ponovno
+ * crtanje ne bi obrisalo.
  */
 const N = WALK_STEPS.length;
-/** Visina skrola po koraku (deo visine ekrana). */
-const STEP_SVH = 55;
+/** Trajanje koraka u ms (korak može da ima svoje, npr. jezici). */
+const DUR = 4200;
 
 const STYLES = `
-  .thw{position:relative; overflow-x:clip; padding-top:clamp(3rem,7vw,5rem);}
-  .thw-head{max-width:42rem; margin:0 auto; padding:0 1rem; text-align:center;}
+  .thw{position:relative; overflow-x:clip; padding:clamp(3rem,7vw,5.5rem) 0;}
+  .thw-head{max-width:42rem; margin:0 auto clamp(2rem,4vw,3rem); padding:0 1rem; text-align:center;}
   .thw-head h2{font-size:clamp(2rem,4vw,3rem); line-height:1.06; letter-spacing:-0.035em;}
 
-  .thw-track{position:relative;}
-  /* --top: gornji meni sajta je zalepljen (67 px), telefon ide ispod njega. */
-  .thw-pin{--top:4.5rem; --sw:clamp(220px, calc((100svh - var(--top) - 5rem) / 2.2), 300px); --bz:10px; box-sizing:border-box;
-    display:grid; grid-template-columns:minmax(0,560px) minmax(0,420px); justify-content:center; align-items:center;
-    gap:clamp(2rem,4vw,4.5rem); padding:2.5rem 1.25rem clamp(3rem,6vw,5rem);}
-  .thw.is-armed .thw-pin{position:sticky; top:0; height:100svh; padding-block:var(--top) 0;}
+  .thw-grid{--sw:280px; --bz:10px; display:grid; grid-template-columns:minmax(0,540px) minmax(0,420px); justify-content:center; align-items:center;
+    gap:clamp(2rem,4vw,4.5rem); padding:0 1.25rem;}
 
   .thw-stage{--sh:calc(var(--sw) * 2.1633); position:relative; width:100%; height:calc(var(--sh) + var(--bz) * 2);}
   .thw-phone{position:absolute; top:0; left:calc(50% - var(--sw) / 2 - var(--bz)); width:calc(var(--sw) + var(--bz) * 2); height:100%;
     padding:var(--bz); border-radius:calc(var(--bz) * 4.6); background:#0F1014;
     box-shadow:0 2px 0 1px #2A2B31 inset, 0 50px 90px -40px rgba(17,17,19,.6), 0 18px 30px -18px rgba(17,17,19,.35);}
   .thw-screen{position:relative; height:100%; border-radius:calc(var(--bz) * 3.6); overflow:hidden; isolation:isolate; background:#1A1B1F;}
-
   .thw-ly{position:absolute; inset:0; opacity:0; transition:opacity .5s ease, transform .75s cubic-bezier(.16,1,.3,1);}
   .thw-ly.first{opacity:1;}
   .thw-ly img{display:block; width:100%; height:auto;}
+
+  .thw-zone{position:absolute; top:0; bottom:0; z-index:9; border:0; padding:0; background:none; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+  .thw-zone.prev{left:0; width:35%;}
+  .thw-zone.next{right:0; width:65%;}
+  .thw-zone:focus-visible{outline:2px solid var(--accent); outline-offset:-4px;}
 
   @property --fx{syntax:'<percentage>'; inherits:true; initial-value:50%;}
   @property --fy{syntax:'<percentage>'; inherits:true; initial-value:50%;}
@@ -48,7 +50,7 @@ const STYLES = `
     -webkit-mask:radial-gradient(var(--rw) var(--rh) at var(--fx) var(--fy), transparent 0 55%, #000 100%);
             mask:radial-gradient(var(--rw) var(--rh) at var(--fx) var(--fy), transparent 0 55%, #000 100%);
     transition:opacity .45s cubic-bezier(.16,1,.3,1), --fx .7s cubic-bezier(.16,1,.3,1), --fy .7s cubic-bezier(.16,1,.3,1), --rw .7s cubic-bezier(.16,1,.3,1), --rh .7s cubic-bezier(.16,1,.3,1);}
-  .thw-pin.aim .thw-shade{opacity:1;}
+  .thw-grid.aim .thw-shade{opacity:1;}
 
   .thw-tap{position:absolute; z-index:6; left:var(--dx); top:var(--dy); width:34px; height:34px; margin:-17px 0 0 -17px; border-radius:50%; pointer-events:none;
     background:rgba(255,255,255,.92); box-shadow:0 0 0 2px #1E5AA8, 0 8px 18px -6px rgba(0,0,0,.6); opacity:0; transform:scale(.4);}
@@ -60,126 +62,96 @@ const STYLES = `
 
   .thw-dot{position:absolute; z-index:7; left:var(--dx); top:var(--dy); width:13px; height:13px; margin:-6.5px 0 0 -6.5px; border-radius:50%; background:#1E5AA8;
     box-shadow:0 0 0 2px #fff, 0 6px 14px -4px rgba(0,0,0,.6); transform:scale(0); transition:transform .45s cubic-bezier(.16,1,.3,1), opacity .3s ease;}
-  .thw-pin.lbl-on .thw-dot{transform:scale(1);}
-  .thw-pin.done .thw-dot{opacity:0;}
+  .thw-grid.lbl-on .thw-dot{transform:scale(1);}
+  .thw-grid.done .thw-dot{opacity:0;}
   .thw-lbl{position:absolute; z-index:8; top:calc(var(--bz) + var(--ly) * var(--sh)); display:flex; align-items:center; translate:0 -50%; pointer-events:none;}
   .thw-lbl.l{left:0; width:calc(50% - var(--sw) / 2 + var(--lx) * var(--sw) - 8px);}
   .thw-lbl.r{right:0; width:calc(50% + var(--sw) / 2 - var(--lx) * var(--sw) - 8px); flex-direction:row-reverse;}
-  .thw-lbl b{flex:none; font-family:var(--font-display); font-weight:800; font-size:1.12rem; letter-spacing:-0.015em; color:var(--accent);
+  .thw-lbl b{flex:none; font-family:var(--font-display); font-weight:800; font-size:1.1rem; letter-spacing:-0.015em; color:var(--accent);
     opacity:0; transform:translateX(-16px); filter:blur(5px); transition:opacity .4s ease, transform .5s cubic-bezier(.16,1,.3,1), filter .4s ease;}
   .thw-lbl.r b{transform:translateX(16px);}
   .thw-lbl i{flex:1; min-width:10px; height:1.5px; margin:0 8px; background:var(--accent); transform:scaleX(0); transform-origin:right;
     transition:transform .45s cubic-bezier(.16,1,.3,1), opacity .3s ease;}
   .thw-lbl.r i{transform-origin:left;}
-  .thw-pin.lbl-on .thw-lbl i{transform:scaleX(1); transition-delay:.12s;}
-  .thw-pin.lbl-on .thw-lbl b{opacity:1; transform:none; filter:none; transition-delay:.28s;}
-  .thw-pin.done .thw-lbl i{opacity:0;}
+  .thw-grid.lbl-on .thw-lbl i{transform:scaleX(1); transition-delay:.12s;}
+  .thw-grid.lbl-on .thw-lbl b{opacity:1; transform:none; filter:none; transition-delay:.28s;}
+  .thw-grid.done .thw-lbl i{opacity:0;}
 
-  .thw-all{position:absolute; inset:0; z-index:7; pointer-events:none;}
-  .thw-all i{position:absolute; width:11px; height:11px; margin:-5.5px 0 0 -5.5px; border-radius:50%; background:#1E5AA8; box-shadow:0 0 0 2px #fff;
-    opacity:0; transform:scale(0); transition:opacity .3s ease, transform .5s cubic-bezier(.16,1,.3,1); transition-delay:calc(var(--i) * 70ms);}
-  .thw.end .thw-all i{opacity:1; transform:scale(1);}
+  .thw-bars{display:flex; gap:4px; margin-bottom:1.1rem;}
+  .thw-bars i{position:relative; flex:1; height:3px; border-radius:2px; background:var(--line); overflow:hidden;}
+  .thw-bars i::after{content:""; position:absolute; inset:0; background:var(--accent); transform:scaleX(0); transform-origin:left;}
+  .thw-bars i.done::after{transform:none;}
+  .thw-bars i.cur::after{animation:thw-fill var(--d) linear forwards;}
+  .thw.paused .thw-bars i.cur::after{animation-play-state:paused;}
+  @keyframes thw-fill{to{transform:none;}}
 
-  .thw-meta{display:flex; align-items:center; gap:.9rem; margin-bottom:1.3rem; font-size:.82rem; font-weight:600; color:var(--ink-faint); font-variant-numeric:tabular-nums;}
-  .thw-bars{display:flex; gap:5px;}
-  .thw-bars i{width:14px; height:3px; border-radius:2px; background:var(--line); transition:background .4s ease, width .4s cubic-bezier(.16,1,.3,1);}
-  .thw-bars i.done{background:color-mix(in srgb, var(--accent) 40%, var(--line));}
-  .thw-bars i.cur{width:26px; background:var(--accent);}
-  .thw-body{transition:opacity .25s ease, transform .5s cubic-bezier(.16,1,.3,1), filter .35s ease;}
-  .thw-body.out{opacity:0; transform:translateY(14px); filter:blur(4px); transition-duration:.16s;}
-  .thw-body h3{font-size:clamp(1.7rem,2.6vw,2.35rem); line-height:1.08;}
-  .thw-body > p{margin-top:1rem; color:var(--ink-soft); font-size:1.05rem; line-height:1.62; max-width:36ch;}
-  .thw-gain{display:grid; gap:.55rem; margin:1.5rem 0 0; padding:1.1rem 0 0; border-top:1px solid var(--line); list-style:none;}
-  .thw-gain li{display:grid; grid-template-columns:4.6rem 1fr; gap:.8rem; font-size:.95rem; line-height:1.45; color:var(--ink);}
-  .thw-gain li span{font-size:.8rem; font-weight:600; color:var(--ink-faint); padding-top:.1rem;}
-  .thw-names{display:flex; flex-wrap:wrap; gap:.45rem; margin:1.4rem 0 0; padding:0; list-style:none;}
-  .thw-names li{padding:.38rem .8rem; border-radius:999px; background:var(--accent-soft); color:var(--accent); font-size:.86rem; font-weight:600;}
-  .thw-body > p.thw-src{margin-top:1.3rem; font-size:.8rem; color:var(--ink-faint);}
+  .thw-meta{display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; font-size:.82rem; font-weight:600; color:var(--ink-faint); font-variant-numeric:tabular-nums;}
+  .thw-ctrl{display:flex; gap:.4rem;}
+  .thw-ctrl button{display:grid; place-items:center; width:36px; height:36px; padding:0; border-radius:50%; border:1px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer;
+    transition:border-color .2s ease;}
+  .thw-ctrl button:hover{border-color:var(--accent);}
+  .thw-ctrl button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .thw-ctrl svg{width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
+
+  .thw-body{min-height:9.5rem; transition:opacity .25s ease, transform .5s cubic-bezier(.16,1,.3,1), filter .35s ease;}
+  .thw-body.out{opacity:0; transform:translateY(12px); filter:blur(4px); transition-duration:.16s;}
+  .thw-body h3{font-size:clamp(1.6rem,2.5vw,2.2rem); line-height:1.08;}
+  .thw-body p{margin-top:.8rem; color:var(--ink-soft); font-size:1.05rem; line-height:1.6; max-width:36ch;}
+
+  .thw-chips{display:flex; flex-wrap:wrap; gap:.4rem; margin:1.4rem 0 0; padding:0; list-style:none;}
+  .thw-chips button{padding:.4rem .78rem; border-radius:999px; border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:.85rem; font-weight:600; cursor:pointer;
+    transition:background-color .2s ease, color .2s ease, border-color .2s ease;}
+  .thw-chips button:hover{border-color:var(--accent); color:var(--accent);}
+  .thw-chips button[aria-current="step"]{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .thw-chips button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
   .thw-sr{position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;}
 
-  /* Tablet: telefon levo, kratko objašnjenje desno; sve staje u visinu ekrana. */
-  @media (max-width:1060px){
-    .thw-pin{--sw:clamp(130px, calc((100svh - var(--top) - 2.5rem) / 2.2), 240px); --bz:8px; grid-template-columns:calc(var(--sw) + 12rem) minmax(0,19rem); gap:1.25rem;}
-    .thw-gain, .thw-body > p.thw-src{display:none;}
-    .thw-meta{margin-bottom:.8rem;}
-    .thw-body h3{font-size:clamp(1.35rem,3.2vw,1.8rem);}
-    .thw-body > p{margin-top:.6rem; font-size:.97rem; line-height:1.5;}
+  @media (max-width:1000px){
+    .thw-grid{--sw:240px; --bz:9px; grid-template-columns:calc(var(--sw) + 11rem) minmax(0,21rem); gap:1.5rem;}
     .thw-lbl b{font-size:.95rem;}
   }
-  /* Telefon: telefon gore, objašnjenje ispod, oba u jednom ekranu. */
   @media (max-width:640px){
-    .thw-pin{--top:3.75rem; --sw:clamp(120px, calc((100svh - var(--top) - 11rem) / 2.2), 200px); grid-template-columns:minmax(0,1fr); align-content:center; gap:1rem; padding-inline:.75rem;}
-    .thw-stage{justify-self:center; width:min(100%, calc(var(--sw) + 11rem));}
-    .thw-panel{justify-self:center; max-width:22rem; min-height:8.2rem; text-align:center;}
-    .thw-meta{justify-content:center; margin-bottom:.5rem;}
-    .thw-body h3{font-size:1.3rem;}
-    .thw-body > p{margin:.4rem auto 0; font-size:.92rem;}
-    .thw-names{justify-content:center;}
+    .thw-grid{--sw:210px; --bz:8px; grid-template-columns:minmax(0,1fr); gap:1.4rem; padding:0 1rem;}
+    .thw-stage{justify-self:center; width:min(100%, calc(var(--sw) + 10rem));}
+    .thw-panel{text-align:center;}
+    .thw-body{min-height:7.5rem;}
+    .thw-body h3{font-size:1.4rem;}
+    .thw-body p{margin:.5rem auto 0; font-size:.95rem;}
+    .thw-chips{justify-content:center;}
     .thw-lbl b{font-size:.84rem;}
     .thw-lbl i{margin:0 5px;}
     .thw-tap{width:24px; height:24px; margin:-12px 0 0 -12px;}
   }
   @media (prefers-reduced-motion:reduce){
-    .thw-ly, .thw-shade, .thw-dot, .thw-lbl b, .thw-lbl i, .thw-body, .thw-bars i, .thw-all i{transition:none !important;}
+    .thw-ly, .thw-shade, .thw-dot, .thw-lbl b, .thw-lbl i, .thw-body{transition:none !important;}
     .thw-tap{display:none;}
   }
 `;
 
-function Panel({ step }: { step: number }) {
-  if (step >= 1 && step <= N) {
-    const s = WALK_STEPS[step - 1];
-    return (
-      <>
-        <h3>{accent(s.title)}</h3>
-        <p>{s.text}</p>
-        <ul className="thw-gain">
-          <li><span>Kupac</span>{s.buyer}</li>
-          <li><span>Vi</span>{s.you}</li>
-        </ul>
-      </>
-    );
-  }
-  if (step === 0) {
-    return (
-      <>
-        <h3>{accent(WALK_COPY.intro.title)}</h3>
-        <p>{WALK_COPY.intro.text}</p>
-        <p className="thw-src">{WALK_COPY.source}</p>
-      </>
-    );
-  }
-  return (
-    <>
-      <h3>{accent(WALK_COPY.end.title)}</h3>
-      <p>{WALK_COPY.end.text}</p>
-      <ul className="thw-names">
-        {WALK_STEPS.map((s) => <li key={s.name}>{s.name}</li>)}
-      </ul>
-    </>
-  );
-}
+type Controls = { step: (delta: number) => void; to: (k: number) => void; toggle: () => void };
 
 export default function TourWalkthrough({ id = 'kako-radi-tura' }: { id?: string }) {
-  const [armed, setArmed] = useState(false);
-  // Bez JS-a (i pre nego što se skript pokrene) vidi se kraj: pregled svih koraka.
-  const [step, setStep] = useState(N + 1);
-  const [panelStep, setPanelStep] = useState(N + 1);
+  const [cur, setCur] = useState(0);
+  const [panel, setPanel] = useState(0);
   const [out, setOut] = useState(false);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const pinRef = useRef<HTMLDivElement>(null);
+  const [started, setStarted] = useState(false);
+  const [tick, setTick] = useState(0);
+  const [running, setRunning] = useState(false);
+  const [userPaused, setUserPaused] = useState(false);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const ctrl = useRef<Controls | null>(null);
 
   useEffect(() => {
-    const track = trackRef.current;
-    const pin = pinRef.current;
-    if (!track || !pin) return;
-    const screen = pin.querySelector<HTMLElement>('.thw-screen')!;
-    const tap = pin.querySelector<HTMLElement>('.thw-tap')!;
-    const lbl = pin.querySelector<HTMLElement>('.thw-lbl')!;
+    const grid = gridRef.current;
+    if (!grid) return;
+    const screen = grid.querySelector<HTMLElement>('.thw-screen')!;
+    const tap = grid.querySelector<HTMLElement>('.thw-tap')!;
+    const lbl = grid.querySelector<HTMLElement>('.thw-lbl')!;
     const lblText = lbl.querySelector('b')!;
     const layers = new Map<WalkScreen, HTMLElement>();
-    pin.querySelectorAll<HTMLElement>('.thw-ly').forEach((el) => layers.set(el.dataset.n as WalkScreen, el));
+    grid.querySelectorAll<HTMLElement>('.thw-ly').forEach((el) => layers.set(el.dataset.n as WalkScreen, el));
 
-    let cur: WalkScreen = 'pocetak';
+    let shown: WalkScreen = 'pocetak';
     const timers = new Set<ReturnType<typeof setTimeout>>();
     const later = (ms: number, fn: () => void) => {
       const t = setTimeout(() => {
@@ -193,22 +165,12 @@ export default function TourWalkthrough({ id = 'kako-radi-tura' }: { id?: string
       timers.clear();
     };
     const hides = new Set<ReturnType<typeof setTimeout>>();
-    // Tekst u panelu: stari izbledi, pa dođe novi.
-    let panelTimer: ReturnType<typeof setTimeout> | undefined;
-    const showPanel = (n: number) => {
-      setOut(true);
-      clearTimeout(panelTimer);
-      panelTimer = setTimeout(() => {
-        setPanelStep(n);
-        setOut(false);
-      }, 170);
-    };
 
     const swap = (name: WalkScreen, mode: WalkStep['mode'] = 'fade', origin = '50% 50%') => {
-      if (cur === name) return;
+      if (shown === name) return;
       const next = layers.get(name)!;
-      const prev = layers.get(cur)!;
-      cur = name;
+      const prev = layers.get(shown)!;
+      shown = name;
       next.classList.remove('first');
       next.style.transition = 'none';
       next.style.transformOrigin = origin;
@@ -230,7 +192,7 @@ export default function TourWalkthrough({ id = 'kako-radi-tura' }: { id?: string
       // Sakrivanje prethodnog ekrana ne ide u timers: mora da se desi i kad se korak promeni.
       const h = setTimeout(() => {
         hides.delete(h);
-        if (layers.get(cur) === prev) return;
+        if (layers.get(shown) === prev) return;
         prev.style.transition = 'none';
         prev.style.opacity = '0';
         prev.style.transform = 'none';
@@ -245,179 +207,220 @@ export default function TourWalkthrough({ id = 'kako-radi-tura' }: { id?: string
       tap.classList.add('go');
     };
 
-    const run = (n: number) => {
-      clear();
+    const animate = (s: WalkStep) => {
       tap.classList.remove('go');
-      const active = n >= 1 && n <= N ? n - 1 : -1;
-      if (active < 0) {
-        pin.classList.remove('aim', 'lbl-on', 'done');
-        swap('pocetak');
-        return;
-      }
-      const s = WALK_STEPS[active];
       const w = screen.offsetWidth;
-      pin.style.setProperty('--fx', `${(s.cx ?? s.x) * 100}%`);
-      pin.style.setProperty('--fy', `${(s.cy ?? s.y) * 100}%`);
-      pin.style.setProperty('--dx', `${s.x * 100}%`);
-      pin.style.setProperty('--dy', `${s.y * 100}%`);
-      pin.style.setProperty('--rw', `${(s.rw ?? 0.2) * w}px`);
-      pin.style.setProperty('--rh', `${s.rh ? s.rh * w * 2.1633 : w * 0.2}px`);
-
-      pin.classList.remove('lbl-on', 'done');
+      grid.style.setProperty('--fx', `${(s.cx ?? s.x) * 100}%`);
+      grid.style.setProperty('--fy', `${(s.cy ?? s.y) * 100}%`);
+      grid.style.setProperty('--dx', `${s.x * 100}%`);
+      grid.style.setProperty('--dy', `${s.y * 100}%`);
+      grid.style.setProperty('--rw', `${(s.rw ?? 0.2) * w}px`);
+      grid.style.setProperty('--rh', `${s.rh ? s.rh * w * 2.1633 : w * 0.2}px`);
+      grid.classList.remove('lbl-on', 'done');
       later(60, () => {
         lbl.className = `thw-lbl ${s.side}`;
         lbl.style.setProperty('--lx', String(s.x));
         lbl.style.setProperty('--ly', String(s.y));
         lblText.textContent = s.name;
         void lbl.offsetWidth;
-        pin.classList.add('lbl-on');
+        grid.classList.add('lbl-on');
       });
-
       swap(s.base);
-      pin.classList.add('aim');
+      grid.classList.add('aim');
       if (s.result === s.base) return;
-      later(520, press);
-      later(940, () => {
-        pin.classList.remove('aim');
-        pin.classList.add('done');
+      later(620, press);
+      later(1040, () => {
+        grid.classList.remove('aim');
+        grid.classList.add('done');
         swap(s.result, s.mode, `${s.x * 100}% ${s.y * 100}%`);
       });
-
       // Jezici: prst redom dodiruje EN, DE, RU, SR i ekran se menja.
       const cycle = s.cycle;
       if (cycle) {
         let k = 1;
         const next = () => {
-          const [name, bx] = cycle[k % cycle.length];
-          pin.style.setProperty('--dx', `${bx * 100}%`);
+          const [name, bx] = cycle[k];
+          grid.style.setProperty('--dx', `${bx * 100}%`);
           press();
           later(420, () => swap(name));
           k++;
-          later(1500, next);
+          if (k < cycle.length) later(1300, next);
         };
-        later(2100, next);
+        later(2200, next);
       }
     };
 
-    // Skrol određuje cilj, a koraci idu ka njemu jedan po jedan (vlasnik,
-    // 5. 11. 2026: jači pokret skrola je preskakao po nekoliko tačaka).
-    // Napred svaki korak odigra ceo dodir pre sledećeg; nazad ide brže.
-    const GAP_FORWARD = 1150;
-    const GAP_BACK = 450;
-    let shown = -1;
-    let target = -1;
+    // Tekst u panelu: stari izbledi, pa dođe novi.
+    let panelTimer: ReturnType<typeof setTimeout> | undefined;
+    const showPanel = (n: number) => {
+      setOut(true);
+      clearTimeout(panelTimer);
+      panelTimer = setTimeout(() => {
+        setPanel(n);
+        setOut(false);
+      }, 170);
+    };
+
+    // Tajmer koraka sa pauzom: pamti koliko je ostalo do sledećeg.
+    let i = -1;
+    let visible = false;
+    let paused = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let stepTimer: ReturnType<typeof setTimeout> | undefined;
-    const show = (n: number) => {
-      shown = n;
-      setStep(n);
-      showPanel(n);
-      run(n);
+    let stepStart = 0;
+    let remaining = 0;
+    const playing = () => visible && !paused;
+    const sync = () => {
+      setRunning(playing());
+      setUserPaused(paused);
     };
-    const advance = () => {
-      stepTimer = undefined;
-      if (shown === target) return;
-      const forward = target > shown;
-      show(shown + (forward ? 1 : -1));
-      if (shown !== target) stepTimer = setTimeout(advance, forward ? GAP_FORWARD : GAP_BACK);
+    const schedule = () => {
+      clearTimeout(stepTimer);
+      if (!playing()) return;
+      stepStart = performance.now();
+      stepTimer = setTimeout(() => go(i + 1), remaining);
     };
-    let raf = 0;
-    const update = () => {
-      raf = 0;
-      const total = track.offsetHeight - window.innerHeight;
-      if (total <= 0) return;
-      const p = Math.min(1, Math.max(0, -track.getBoundingClientRect().top / total));
-      target = Math.min(N + 1, Math.floor(p * (N + 2)));
-      // Prvi put (strana otvorena usred sekcije): odmah na mesto, bez nadoknađivanja.
-      if (shown === -1) {
-        show(target);
-        return;
+    const stopClock = () => {
+      remaining = Math.max(0, remaining - (performance.now() - stepStart));
+    };
+
+    const go = (n: number, byUser = false) => {
+      clear();
+      i = (n + N) % N;
+      const s = WALK_STEPS[i];
+      remaining = s.dur ?? DUR;
+      setCur(i);
+      setStarted(true);
+      setTick((t) => t + 1);
+      showPanel(i);
+      animate(s);
+      if (byUser) paused = false;
+      sync();
+      schedule();
+    };
+
+    ctrl.current = {
+      step: (delta) => go(i + delta, true),
+      to: (k) => go(k, true),
+      toggle: () => {
+        if (playing()) stopClock();
+        paused = !paused;
+        if (!paused && i < 0) {
+          go(0);
+          return;
+        }
+        sync();
+        schedule();
       }
-      if (!stepTimer) advance();
     };
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(update);
-    };
-    const onResize = () => onScroll();
-    // Prvo merenje posle crtanja sa armed (staza tek tada dobija visinu).
-    raf = requestAnimationFrame(() => {
-      setArmed(true);
-      raf = requestAnimationFrame(update);
-    });
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onResize);
+
+    // Kreće kad je telefon bar napola na ekranu; staje kad ode.
+    const io = new IntersectionObserver(
+      ([e]) => {
+        const wasPlaying = playing();
+        visible = e.isIntersecting;
+        if (visible && i < 0 && !paused) {
+          go(0);
+          return;
+        }
+        if (wasPlaying && !visible) stopClock();
+        sync();
+        schedule();
+      },
+      { threshold: 0.5 }
+    );
+    io.observe(grid.querySelector('.thw-stage')!);
+
     return () => {
+      io.disconnect();
       clear();
       hides.forEach(clearTimeout);
       clearTimeout(panelTimer);
       clearTimeout(stepTimer);
-      if (raf) cancelAnimationFrame(raf);
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onResize);
+      ctrl.current = null;
     };
   }, []);
 
-  const active = step >= 1 && step <= N ? step - 1 : -1;
-  const count = active >= 0 ? `Korak ${active + 1} od ${N}` : step > N ? `Svih ${N} koraka` : `${N} koraka`;
+  const s = WALK_STEPS[panel];
+  const dur = WALK_STEPS[cur].dur ?? DUR;
 
   return (
-    <section className={`thw${armed ? ' is-armed' : ''}${step > N ? ' end' : ''}`} id={id} aria-labelledby={`${id}-naslov`}>
+    <section className={`thw${running ? '' : ' paused'}`} id={id} aria-labelledby={`${id}-naslov`}>
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
       <div className="thw-head">
-        <h2 id={`${id}-naslov`}>{accent(WALK_COPY.title)}</h2>
+        <h2 id={`${id}-naslov`}>{accent(WALK_TITLE)}</h2>
       </div>
 
       <ol className="thw-sr">
-        {WALK_STEPS.map((s) => (
-          <li key={s.name}>
-            {s.title.replace(/\*/g, '')}. {s.text}
+        {WALK_STEPS.map((w) => (
+          <li key={w.name}>
+            {w.title.replace(/\*/g, '')}. {w.text}
           </li>
         ))}
       </ol>
 
-      <div
-        className="thw-track"
-        ref={trackRef}
-        style={armed ? { height: `calc(100svh + ${(N + 2) * STEP_SVH}svh)` } : undefined}
-      >
-        <div className="thw-pin" ref={pinRef} aria-hidden="true">
-          <div className="thw-stage">
-            <div className="thw-phone">
-              <div className="thw-screen">
-                {WALK_SCREENS.map((n) => (
-                  <div key={n} className={`thw-ly${n === 'pocetak' ? ' first' : ''}`} data-n={n}>
-                    {/* eslint-disable-next-line @next/next/no-img-element -- snimci ekrana, unapred smanjeni na 600 px */}
-                    <img src={`/hero/tura-koraci/${n}.webp`} width={600} height={1298} alt="" loading="lazy" decoding="async" />
-                  </div>
-                ))}
-                <div className="thw-shade" />
-                <div className="thw-tap" />
-                <div className="thw-all">
-                  {WALK_STEPS.map((s, i) => (
-                    <i key={s.name} style={{ left: `${s.x * 100}%`, top: `${s.y * 100}%`, '--i': i } as CSSProperties} />
-                  ))}
+      <div className="thw-grid" ref={gridRef}>
+        <div className="thw-stage">
+          <div className="thw-phone">
+            <div className="thw-screen">
+              {WALK_SCREENS.map((n) => (
+                <div key={n} className={`thw-ly${n === 'pocetak' ? ' first' : ''}`} data-n={n} aria-hidden="true">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- snimci ekrana, unapred smanjeni na 600 px */}
+                  <img src={`/hero/tura-koraci/${n}.webp`} width={600} height={1298} alt="" loading="lazy" decoding="async" />
                 </div>
-                <i className="thw-dot" />
-              </div>
-            </div>
-            <div className="thw-lbl r">
-              <b />
-              <i />
+              ))}
+              <div className="thw-shade" aria-hidden="true" />
+              <div className="thw-tap" aria-hidden="true" />
+              <i className="thw-dot" aria-hidden="true" />
+              <button className="thw-zone prev" type="button" aria-label="Prethodni korak" onClick={() => ctrl.current?.step(-1)} />
+              <button className="thw-zone next" type="button" aria-label="Sledeći korak" onClick={() => ctrl.current?.step(1)} />
             </div>
           </div>
+          <div className="thw-lbl r" aria-hidden="true">
+            <b />
+            <i />
+          </div>
+        </div>
 
-          <div className="thw-panel">
-            <div className="thw-meta">
-              <span className="thw-bars">
-                {WALK_STEPS.map((s, k) => (
-                  <i key={s.name} className={step > N || k < active ? 'done' : k === active ? 'cur' : undefined} />
-                ))}
-              </span>
-              <span>{count}</span>
-            </div>
-            <div className={`thw-body${out ? ' out' : ''}`}>
-              <Panel step={panelStep} />
-            </div>
+        <div className="thw-panel">
+          <div className="thw-bars" aria-hidden="true" style={{ '--d': `${dur}ms` } as CSSProperties}>
+            {WALK_STEPS.map((w, k) => (
+              <i
+                key={k === cur ? `cur-${tick}` : w.name}
+                className={k < cur ? 'done' : k === cur && started ? 'cur' : undefined}
+              />
+            ))}
           </div>
+          <div className="thw-meta">
+            <span>
+              Korak {cur + 1} od {N} · {WALK_STEPS[cur].name}
+            </span>
+            <span className="thw-ctrl">
+              <button type="button" aria-label="Prethodni korak" onClick={() => ctrl.current?.step(-1)}>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+              </button>
+              <button type="button" aria-label={userPaused ? 'Pusti' : 'Pauziraj'} onClick={() => ctrl.current?.toggle()}>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d={userPaused ? 'M8 5l11 7-11 7z' : 'M9 6v12M15 6v12'} />
+                </svg>
+              </button>
+              <button type="button" aria-label="Sledeći korak" onClick={() => ctrl.current?.step(1)}>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+              </button>
+            </span>
+          </div>
+          <div className={`thw-body${out ? ' out' : ''}`}>
+            <h3>{accent(s.title)}</h3>
+            <p>{s.text}</p>
+          </div>
+          <ul className="thw-chips">
+            {WALK_STEPS.map((w, k) => (
+              <li key={w.name}>
+                <button type="button" aria-current={k === cur ? 'step' : undefined} onClick={() => ctrl.current?.to(k)}>
+                  {w.name}
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </section>
