@@ -299,27 +299,45 @@ export default function TourWalkthrough({ id = 'kako-radi-tura' }: { id?: string
       }
     };
 
-    let last = -1;
+    // Skrol određuje cilj, a koraci idu ka njemu jedan po jedan (vlasnik,
+    // 5. 11. 2026: jači pokret skrola je preskakao po nekoliko tačaka).
+    // Napred svaki korak odigra ceo dodir pre sledećeg; nazad ide brže.
+    const GAP_FORWARD = 1150;
+    const GAP_BACK = 450;
+    let shown = -1;
+    let target = -1;
+    let stepTimer: ReturnType<typeof setTimeout> | undefined;
+    const show = (n: number) => {
+      shown = n;
+      setStep(n);
+      showPanel(n);
+      run(n);
+    };
+    const advance = () => {
+      stepTimer = undefined;
+      if (shown === target) return;
+      const forward = target > shown;
+      show(shown + (forward ? 1 : -1));
+      if (shown !== target) stepTimer = setTimeout(advance, forward ? GAP_FORWARD : GAP_BACK);
+    };
     let raf = 0;
     const update = () => {
       raf = 0;
       const total = track.offsetHeight - window.innerHeight;
       if (total <= 0) return;
       const p = Math.min(1, Math.max(0, -track.getBoundingClientRect().top / total));
-      const n = Math.min(N + 1, Math.floor(p * (N + 2)));
-      if (n === last) return;
-      last = n;
-      setStep(n);
-      showPanel(n);
-      run(n);
+      target = Math.min(N + 1, Math.floor(p * (N + 2)));
+      // Prvi put (strana otvorena usred sekcije): odmah na mesto, bez nadoknađivanja.
+      if (shown === -1) {
+        show(target);
+        return;
+      }
+      if (!stepTimer) advance();
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);
     };
-    const onResize = () => {
-      last = -1;
-      onScroll();
-    };
+    const onResize = () => onScroll();
     // Prvo merenje posle crtanja sa armed (staza tek tada dobija visinu).
     raf = requestAnimationFrame(() => {
       setArmed(true);
@@ -331,6 +349,7 @@ export default function TourWalkthrough({ id = 'kako-radi-tura' }: { id?: string
       clear();
       hides.forEach(clearTimeout);
       clearTimeout(panelTimer);
+      clearTimeout(stepTimer);
       if (raf) cancelAnimationFrame(raf);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onResize);
