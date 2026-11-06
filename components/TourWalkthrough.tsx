@@ -12,6 +12,11 @@ import { WALK_SCREENS, WALK_STEPS, WALK_TITLE, type WalkScreen, type WalkStep } 
  * strelice i nazivi koraka vode ručno; pauza dok sekcija nije na ekranu.
  * Skrol ne menja korake (ranija skrol verzija je na telefonu preskakala tačke).
  *
+ * Na telefonu (do 640 px, vlasnik 6. 11. 2026; maketa
+ * public/mockup/PricaTelefon.html): mali ceo telefon levo i tekst koraka desno,
+ * a napredak, strelice i nazivi koraka ispod - ceo telefon preko širine bio je
+ * prevelik, a isečak ekrana previše odsečen.
+ *
  * Uz smanjene pokrete priča ne kreće sama. Klase za animaciju (aim, lbl-on,
  * done) stoje na .thw-grid, kome React ne menja className, da ih ponovno
  * crtanje ne bi obrisalo.
@@ -110,17 +115,37 @@ const STYLES = `
     .thw-grid{--sw:240px; --bz:9px; grid-template-columns:calc(var(--sw) + 11rem) minmax(0,21rem); gap:1.5rem;}
     .thw-lbl b{font-size:.95rem;}
   }
+  /* Telefon: mali ceo telefon levo; desno, centrirano uz njega, priča koraka
+     (brojač, naslov, rečenica) i nazivi koraka kao sadržaj. Ispod napredak i
+     strelice. Panel i meta se "rastvore" u mrežu (display:contents). */
   @media (max-width:640px){
-    .thw-grid{--sw:210px; --bz:8px; grid-template-columns:minmax(0,1fr); gap:1.4rem; padding:0 1rem;}
-    .thw-stage{justify-self:center; width:min(100%, calc(var(--sw) + 10rem));}
-    .thw-panel{text-align:center;}
-    .thw-body{min-height:7.5rem;}
-    .thw-body h3{font-size:1.4rem;}
-    .thw-body p{margin:.5rem auto 0; font-size:.95rem;}
-    .thw-chips{justify-content:center;}
-    .thw-lbl b{font-size:.84rem;}
-    .thw-lbl i{margin:0 5px;}
-    .thw-tap{width:24px; height:24px; margin:-12px 0 0 -12px;}
+    .thw-head{margin-bottom:1.4rem;}
+    .thw-grid{--sw:clamp(130px, 34vw, 190px); --bz:5px; grid-template-columns:calc(var(--sw) + var(--bz) * 2) minmax(0,1fr);
+      grid-template-rows:minmax(0,1fr) auto auto auto minmax(0,1fr) auto auto;
+      grid-template-areas:"phone ." "phone count" "phone body" "phone chips" "phone ." "bars bars" "ctrl ctrl";
+      column-gap:16px; row-gap:0; align-items:start; padding:0 1rem;}
+    .thw-stage{grid-area:phone; width:calc(var(--sw) + var(--bz) * 2); align-self:center;}
+    .thw-phone{border-radius:24px; box-shadow:0 20px 40px -22px rgba(17,17,19,.6);}
+    .thw-screen{border-radius:19px;}
+    .thw-panel, .thw-meta{display:contents;}
+    .thw-count{grid-area:count; margin-bottom:.5rem; font-size:.74rem;}
+    .thw-body{grid-area:body; min-height:0;}
+    .thw-body h3{font-size:clamp(1.12rem, 4.2vw, 1.4rem); line-height:1.12;}
+    .thw-body p{margin-top:.5rem; font-size:.86rem; line-height:1.45;}
+    /* Nazivi koraka uz tekst: sadržaj priče, sitniji nego na računaru. */
+    .thw-chips{grid-area:chips; margin-top:1rem; gap:.3rem;}
+    .thw-chips button{font-size:.74rem; padding:.28rem .58rem;}
+    .thw-bars{grid-area:bars; margin:1.4rem 0 .7rem;}
+    .thw-ctrl{grid-area:ctrl; justify-content:center;}
+    .thw-ctrl button{width:36px; height:36px;}
+    .thw-lbl{display:none;}
+    .thw-tap{width:20px; height:20px; margin:-10px 0 0 -10px;}
+    .thw-dot{width:9px; height:9px; margin:-4.5px 0 0 -4.5px;}
+  }
+  /* Najuži telefoni (do 360 px): manji telefon, da kolona desno ne bude tesna. */
+  @media (max-width:360px){
+    .thw-grid{--sw:112px; column-gap:12px;}
+    .thw-body p{font-size:.82rem;}
   }
   @media (prefers-reduced-motion:reduce){
     .thw-ly, .thw-shade, .thw-dot, .thw-lbl b, .thw-lbl i, .thw-body{transition:none !important;}
@@ -391,7 +416,7 @@ export default function TourWalkthrough({ id = 'kako-radi-tura' }: { id?: string
             ))}
           </div>
           <div className="thw-meta">
-            <span>
+            <span className="thw-count">
               Korak {cur + 1} od {N} · {WALK_STEPS[cur].name}
             </span>
             <span className="thw-ctrl">

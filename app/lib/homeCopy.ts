@@ -371,9 +371,13 @@ const sr: HomeCopy = {
     // sekcija "Tipovi oglasa".
     deliver: [
       'Link ka turi za oglas, portal ili poruku kupcu',
-      'Uz Premium: HDR fotografije u punoj rezoluciji, za portal i društvene mreže',
+      'Kod za ugradnju — tura radi i na vašem sajtu',
+      'Gotov tekst oglasa za 4zida, Halo oglase i društvene mreže',
+      'Uz Premium: HDR fotografije u punoj rezoluciji i osnova nekretnine',
       'Vaše ime i telefon u turi — i kad se link deli dalje',
-      'Tekst i vodič prilagođeni oglasu: za prodaju vrednost i vlasništvo, za izdavanje troškovi i useljenje, za stan na dan utisak gosta'
+      'Tekst i vodič prilagođeni oglasu: za prodaju vrednost i vlasništvo, za izdavanje troškovi i useljenje, za stan na dan utisak gosta',
+      'Link bez roka trajanja — kad se nekretnina proda, turu zaključavamo, a vaš kontakt ostaje',
+      'Za agencije: mesečni izveštaj o pregledima, spreman za vlasnika'
     ]
   },
   pricing: {
@@ -603,9 +607,12 @@ const en: HomeCopy = {
     deliverTitle: 'What you get',
     deliver: [
       'A link to the tour for your listing and ready-made embed code for your site',
-      'With Premium: full-resolution HDR photos for portals and social media',
+      'Ready-made listing text for 4zida, Halo oglasi and social media',
+      'With Premium: full-resolution HDR photos and a floor plan',
       'Your name and phone inside the tour — even when the link is passed on',
-      'Text and guide tailored to the listing: value and ownership for a sale, costs and move-in for a rental, the guest’s impression for a short stay'
+      'Text and guide tailored to the listing: value and ownership for a sale, costs and move-in for a rental, the guest’s impression for a short stay',
+      'A link with no expiry — once the property is sold we lock the tour, and your contact stays',
+      'For agencies: a monthly viewing report, ready to show the owner'
     ]
   },
   pricing: {
