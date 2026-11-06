@@ -21,6 +21,7 @@ import { getPublicOpenCount } from './lib/tourStats';
 import { accent } from './lib/accent';
 import PromoTopBar from '../components/PromoTopBar';
 import TourModulesShowcase from '../components/TourModulesShowcase';
+import TourWalkthrough from '../components/TourWalkthrough';
 import AudiencePick from '../components/AudiencePick';
 import ChatBubble from '../components/ChatBubble';
 import SiteStylesheets from '../components/SiteStylesheets';
@@ -204,11 +205,18 @@ export default async function HomePage({ lang }: { lang: HomeLang }) {
           </section>
         )}
 
-        <section className="band" id="u-turi">
-          <div className="wrap">
-            <TourModulesShowcase copy={copy.modules} photoUrl={heroTour?.coverUrl ?? null} />
-          </div>
-        </section>
+        {/* Srpska: priča korak po korak na pravim ekranima ture (vlasnik, 4. 11.
+            2026, umesto "Šta je u turi"). Engleska zadržava staru sekciju -
+            ekrani i tekst nove su na srpskom. */}
+        {lang === 'sr' ? (
+          <TourWalkthrough id="u-turi" />
+        ) : (
+          <section className="band" id="u-turi">
+            <div className="wrap">
+              <TourModulesShowcase copy={copy.modules} photoUrl={heroTour?.coverUrl ?? null} />
+            </div>
+          </section>
+        )}
 
         {/* Priča "Od tlocrta do ture" (wow sekcija, 21. 10. 2026) je od 3. 11. 2026
             na /za-vlasnike; skinuta je sa obe početne (copy.story ostaje za tu stranu). */}

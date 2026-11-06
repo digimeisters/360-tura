@@ -1,13 +1,11 @@
 import type { Metadata } from 'next';
-import type { CSSProperties } from 'react';
 import { SiteNav, SiteFooter } from '../../components/SiteChrome';
 import ContactForm from '../../components/ContactForm';
 import AgencyHeroVisual, { AGENCY_HERO_STYLES } from '../../components/AgencyHeroVisual';
-import PromoBanner from '../../components/PromoBanner';
 import PromoTopBar from '../../components/PromoTopBar';
-import FromPrice from '../../components/FromPrice';
 import { IconPhone } from '../../components/SiteIcons';
-import Pricing from '../../components/Pricing';
+import PricingShort from '../../components/PricingShort';
+import TourModulesShowcase from '../../components/TourModulesShowcase';
 import FirstOffers from '../../components/FirstOffers';
 import SiteTracker from '../../components/SiteTracker';
 import NavScrollSpy from '../../components/NavScrollSpy';
@@ -21,10 +19,10 @@ import { getShowcaseTours, pickHeroTour } from '../lib/showcaseTours';
 import SiteStylesheets from '../../components/SiteStylesheets';
 
 /**
- * Prodajna strana za agencije (/za-agencije), ispričana kao jedna nedelja
- * agenta u Kragujevcu:
- *   vrh (prava tura) -> 01 nedelja bez/sa turom -> 02 kupac (četiri ekrana
- *   telefona) -> 02b uživo razgledanje (kratka traka, detalji u FAQ) ->
+ * Prodajna strana za agencije (/za-agencije):
+ *   vrh (tura ugrađena na sajt agencije) -> 02 kupac (vremenska linija i
+ *   jedan telefon sa Viber razgovorom) -> 02b pet dugmadi u turi
+ *   (TourModulesShowcase) i "još uz svaku turu" -> 02c uživo razgledanje ->
  *   03 vlasnik i izveštaj -> 04 šest koristi -> 05 brojke iz sveta ->
  *   06 kako radimo -> cene -> pitanja -> kontakt.
  *
@@ -87,81 +85,45 @@ function jsonLd() {
 }
 
 const AGENCY_STYLES = `
-  /* 01 Nedelja: dve kolone, levo siva, desno tamna. */
-  .week-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1.6rem;}
-  @media (max-width:880px){ .week-grid{grid-template-columns:1fr;} }
-  .week-card{border-radius:30px; padding:clamp(1.4rem,3vw,2.5rem); background:color-mix(in srgb, var(--surface-2) 70%, var(--line-strong)); border:0;}
-  .week-card.is-dark{background:#111113; box-shadow:0 30px 60px -20px rgba(17,17,19,.4);}
-  .week-head{display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;}
-  .week-head h3{font-size:1.5rem; color:var(--ink-soft);}
-  .week-card.is-dark .week-head h3{color:var(--ink);}
-  .week-tag{font-size:.8rem; font-weight:700; color:var(--ink-faint); background:var(--surface); border-radius:999px; padding:.35rem .8rem;}
-  .week-card.is-dark .week-tag{background:#1E5AA8; color:#FFFFFF;}
-  .week-days{display:flex; flex-direction:column; gap:.85rem; margin-top:1.8rem;}
-  .week-day{display:grid; grid-template-columns:3.6rem 1fr; gap:.9rem; background:var(--surface); border-radius:18px; padding:1.1rem 1.3rem;}
-  .week-card.is-dark .week-day{background:#1C1C20; border:1px solid var(--line);}
-  .week-day > b{font-family:var(--font-display); font-weight:800; color:var(--ink-faint);}
-  .week-card.is-dark .week-day > b{color:var(--accent);}
-  .week-day strong{display:block; font-weight:600; font-size:1rem; line-height:1.4;}
-  .week-day span{display:block; font-size:.95rem; color:var(--ink-soft); margin-top:.25rem; line-height:1.5;}
+  /* 02 Kupac: vremenska linija levo, jedan telefon sa Viber razgovorom desno. */
+  .st .wrap{display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); gap:clamp(2rem,5vw,5rem); align-items:center;}
+  .tl{position:relative; list-style:none; margin:2rem 0 0; padding:0; display:grid; gap:1.1rem;}
+  .tl::before{content:""; position:absolute; left:2.35rem; top:.9rem; bottom:.9rem; width:2px; background:var(--line-strong);}
+  .tl li{position:relative; display:grid; grid-template-columns:4.7rem 1fr; gap:1rem; align-items:start;}
+  .tl time{position:relative; z-index:1; justify-self:center; padding:.3rem .65rem; border-radius:999px; background:#1E5AA8; color:#FFFFFF; font-family:var(--font-display); font-weight:800; font-size:.86rem; font-variant-numeric:tabular-nums;}
+  .tl li:last-child time{background:#1E7A4C;}
+  .tl b{display:block; font-family:var(--font-display); font-size:1.06rem; letter-spacing:-0.01em; color:var(--ink);}
+  .tl span{color:var(--ink-soft); font-size:.95rem;}
+  .st-end{display:flex; flex-wrap:wrap; align-items:center; gap:.8rem 1.2rem; margin-top:2rem; padding-top:1.3rem; border-top:1px solid var(--line);}
+  .st-end p{font-family:var(--font-display); font-weight:700; font-size:1.02rem; color:var(--ink);}
+  .vb-ph{justify-self:center; width:min(310px,100%); padding:10px; border-radius:42px; background:#0F1014; box-shadow:0 0 0 1px #2A2B31, 0 50px 90px -40px rgba(17,17,19,.6);}
+  .vb-in{border-radius:33px; overflow:hidden; background:#ECE5DD; color:#111113; min-height:540px; display:flex; flex-direction:column;}
+  .vb-top{display:flex; align-items:center; gap:.6rem; padding:16px 14px 12px; background:#7360F2; color:#FFFFFF;}
+  .vb-top i{display:grid; place-items:center; width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,.22); font-style:normal; font-weight:800; font-size:.8rem;}
+  .vb-top b{display:block; font-size:.92rem;}
+  .vb-top small{display:block; font-size:.72rem;}
+  .vb{flex:1; display:flex; flex-direction:column; gap:10px; padding:16px 12px;}
+  .vb-day{align-self:center; font-size:.7rem; font-weight:600; color:#4F535A; background:rgba(255,255,255,.75); padding:.15rem .6rem; border-radius:999px;}
+  .vb-msg{max-width:84%; padding:9px 11px 6px; border-radius:16px; font-size:.86rem; line-height:1.4; background:#FFFFFF; box-shadow:0 1px 1px rgba(0,0,0,.06);}
+  .vb-msg.out{align-self:flex-end; background:#E6E1FB; border-bottom-right-radius:5px;}
+  .vb-msg.inn{align-self:flex-start; border-bottom-left-radius:5px;}
+  .vb-msg time, .vb-call time{display:block; text-align:right; font-size:.64rem; color:#565A61; margin-top:3px;}
+  .vb-card{display:block; margin-top:7px; border-radius:11px; overflow:hidden; background:#FFFFFF; border:1px solid #DCD6F7;}
+  .vb-card img{display:block; width:100%; height:112px; object-fit:cover; background:#E4E4DE;}
+  .vb-card span{display:block; padding:6px 9px 7px;}
+  .vb-card b{display:block; font-size:.8rem;}
+  .vb-card small{display:block; font-size:.68rem; color:#4F535A;}
+  .vb-call{align-self:flex-start; display:flex; align-items:center; gap:.5rem; padding:8px 12px; border-radius:16px; background:#FFFFFF; font-size:.82rem; font-weight:600; color:#1E7A4C;}
+  .vb-call i{display:grid; place-items:center; width:26px; height:26px; border-radius:50%; background:#1E7A4C; color:#FFFFFF;}
+  .vb-call i svg{width:14px; height:14px;}
+  .vb-call time{display:inline; margin:0 0 0 .3rem; font-weight:500;}
+  @media (max-width:900px){
+    .st .wrap{grid-template-columns:1fr;}
+    .vb-ph{order:-1; width:min(280px,100%);}
+    .vb-in{min-height:0;}
+    .vb-card img{height:90px;}
+  }
 
-  /* 02 Kupac: četiri ekrana telefona duž vremenske linije. */
-  .path{position:relative; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1.6rem;}
-  .path::before{content:""; position:absolute; left:8%; right:8%; top:1.25rem; height:2px; background:var(--line-strong);}
-  @media (max-width:1100px){ .path{grid-template-columns:repeat(2,minmax(0,1fr)); row-gap:3rem;} .path::before{display:none;} }
-  @media (max-width:560px){ .path{grid-template-columns:1fr;} }
-  .path-step{position:relative; display:flex; flex-direction:column; align-items:center; gap:.9rem; text-align:center;}
-  .path-time{background:#1E5AA8; color:#FFFFFF; font-family:var(--font-display); font-weight:800; font-size:.95rem; padding:.55rem 1.1rem; border-radius:999px;}
-  .path-step:last-child .path-time{background:#111113;}
-  /* Ekrani su namerno niski (vlasnik, 28. 9. 2026): ranije su bili visoki
-     skoro ceo ekran, pa je korist ispod njih stizala tek posle skrola. */
-  .phone{width:min(100%,230px); aspect-ratio:4/3.4; border-radius:26px; background:#111113; padding:7px; box-shadow:0 16px 34px rgba(17,17,19,.18);}
-  .phone-screen{width:100%; height:100%; border-radius:20px; overflow:hidden; position:relative; background:#FFFFFF; color:#111113; text-align:left;}
-  .phone-screen img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
-  .path-step h3{font-size:1.15rem;}
-  .path-step h3 + p{font-size:.95rem; color:var(--ink-soft); max-width:26ch; margin:.4rem auto 0;}
-  .chat{background:#EDE9F7; display:flex; flex-direction:column; gap:.4rem; padding:.7rem .7rem; font-size:.72rem; line-height:1.35;}
-  .chat .chat-card, .chat .chat-app{display:none;}
-  .chat-app{font-weight:700; color:#5B4FB3; text-align:center; font-size:.75rem;}
-  .chat-msg{align-self:flex-start; max-width:85%; background:#FFFFFF; border-radius:16px 16px 16px 4px; padding:.65rem .75rem;}
-  .chat-card{display:block; align-self:flex-start; width:85%; background:#FFFFFF; border-radius:14px; overflow:hidden;}
-  .chat-card-img{display:block; position:relative; height:90px; background:#E4E4DE;}
-  .chat-card-text{display:block; padding:.5rem .65rem; font-size:.75rem;}
-  .chat-card small{display:block; color:#686A70;}
-  .chat-reply{align-self:flex-end; max-width:78%; background:#6A55E8; color:#FFFFFF; border-radius:16px 16px 4px 16px; padding:.65rem .75rem;}
-  .ph-chip{position:absolute; top:12px; left:10px; background:rgba(15,23,42,.5); color:#FFFFFF; border:1px solid rgba(255,255,255,.6); border-radius:999px; padding:3px 9px; font-size:.68rem; font-weight:700;}
-  .ph-card{position:absolute; left:8px; right:8px; bottom:10px; background:rgba(15,23,42,.66); color:#FFFFFF; border-radius:14px; padding:.7rem;}
-  .ph-card small{display:block; font-size:.6rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#7FB0EC;}
-  .ph-card b{display:block; font-family:var(--font-display); font-size:.82rem; margin-top:.2rem;}
-  .ph-bar{height:4px; border-radius:999px; background:rgba(255,255,255,.2); margin-top:.55rem;}
-  .ph-bar i{display:block; width:45%; height:100%; border-radius:999px; background:#5B92D6;}
-  .plan-screen{padding:.7rem .8rem; display:flex; flex-direction:column; gap:.5rem;}
-  .plan-screen p{display:none;}
-  .plan-screen h4{margin:0; font-family:var(--font-display); font-size:.95rem;}
-  .mini-plan{position:relative; flex:1; border:3px solid #2B2D33; background:#F7F7F4; overflow:hidden;}
-  .mini-cone{position:absolute; inset:0; width:100%; height:100%; overflow:visible;}
-  .mini-cone path{fill:#5B92D6; fill-opacity:.32; stroke:#5B92D6; stroke-width:1; vector-effect:non-scaling-stroke;}
-  .mini-plan .wall-h{position:absolute; left:0; right:0; top:50%; border-top:4px solid #2B2D33;}
-  .mini-plan .wall-v{position:absolute; left:55%; top:50%; bottom:0; border-left:4px solid #2B2D33;}
-  .mini-plan em{position:absolute; font-family:var(--font-body); font-style:normal; font-size:.66rem; font-weight:700; color:#2B2D33; line-height:1;}
-  .mini-plan .dot{position:absolute; width:13px; height:13px; border-radius:50%; border:3px solid #FFFFFF; background:rgba(15,23,42,.55);}
-  .mini-plan .dot.seen{background:#FFFFFF; border-color:#334155;}
-  .mini-plan .dot.here{background:#5B92D6; width:16px; height:16px;}
-  .mini-plan .dot.here::after{content:""; position:absolute; inset:-7px; border-radius:50%; border:2px solid #5B92D6; animation:agPulse 1.8s ease-out infinite;}
-  @keyframes agPulse{from{transform:scale(.6); opacity:1} to{transform:scale(1.7); opacity:0}}
-  .plan-screen p{font-size:.7rem; color:#5B5D63; line-height:1.5;}
-  .agent-screen{padding:.8rem .8rem; display:flex; flex-direction:column; gap:.5rem;}
-  .agent-screen p, .agent-screen .ph-btn.alt{display:none;}
-  .agent-screen h4{margin:0; font-family:var(--font-display); font-size:.95rem;}
-  .agent-row{display:flex; align-items:center; gap:.6rem; background:#F1F1EC; border-radius:14px; padding:.7rem;}
-  .agent-row i{width:36px; height:36px; border-radius:50%; background:#1E5AA8; color:#FFFFFF; display:grid; place-items:center; font-style:normal; font-weight:800;}
-  .agent-row b{display:block; font-size:.8rem;}
-  .agent-row small{font-size:.72rem; color:#5B5D63;}
-  .ph-btn{display:block; text-align:center; border-radius:999px; padding:.7rem; font-size:.78rem; font-weight:700; background:#1E5AA8; color:#FFFFFF;}
-  .ph-btn.alt{background:none; border:2px solid #1E5AA8; color:#1E5AA8;}
-  .agent-screen p{margin-top:auto; font-size:.72rem; color:#5B5D63; text-align:center; line-height:1.5;}
-
-  .path-end{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.8rem 1.2rem; margin-top:2rem; padding:1rem 1.3rem; border-radius:18px; background:var(--accent-soft); color:var(--ink); font-weight:600;}
   /* Plava traka na sredini (#probajte) - stil je u app/lib/siteStyles.ts (.mid-cta), deli ga i početna. */
 
   /* 03 Vlasnik: tamna sekcija, izveštaj u beloj kartici. */
@@ -221,30 +183,13 @@ const AGENCY_STYLES = `
      Opšti efekti su u siteStyles (data-reveal, .rv-page); ovde su samo filmovi
      ove strane. Važe dok je html.rv-armed (components/SiteReveal), pa bez JS-a
      i uz smanjene pokrete strana izgleda kao ranije. */
-  /* N1 Nedelja: dani obe nedelje ulaze u paru, red po red. */
-  html.rv-armed .week-day[data-reveal]{transition-delay:calc(var(--row,0) * 220ms + var(--side,0) * 110ms);}
-  html.rv-armed .week-card.is-dark[data-reveal]{transition-delay:140ms;}
-  /* K1 Put kupca: linija se iscrta, vremena 21:40 -> 21:50 se pale redom, telefoni izranjaju. */
-  html.rv-armed .path::before{transform:scaleX(0); transform-origin:left; transition:transform 2.2s cubic-bezier(.45,0,.55,1) .2s;}
-  html.rv-armed .path.is-in::before{transform:scaleX(1);}
-  .path-step:nth-child(2){--d:550ms;} .path-step:nth-child(3){--d:1100ms;} .path-step:nth-child(4){--d:1650ms;}
-  html.rv-armed .path-time{transform:scale(.6); opacity:0; transition:transform .5s cubic-bezier(.34,1.56,.64,1), opacity .3s; transition-delay:var(--d,0ms);}
-  html.rv-armed .path-step .phone, html.rv-armed .path-step > div:last-child{opacity:0; transform:translateY(16px); transition:opacity .6s cubic-bezier(.22,.8,.24,1), transform .6s cubic-bezier(.22,.8,.24,1); transition-delay:calc(var(--d,0ms) + 150ms);}
-  html.rv-armed .path.is-in .path-time, html.rv-armed .path.is-in .path-step .phone, html.rv-armed .path.is-in .path-step > div:last-child{opacity:1; transform:none;}
-  /* K2 Filmovi u telefonima: poruke stižu, vodič teče, konus se okreće, dugmad iskoče. */
-  html.rv-armed .chat > *{opacity:0; transform:translateY(8px); transition:opacity .35s, transform .35s;}
-  html.rv-armed .path.is-in .chat > *{opacity:1; transform:none;}
-  html.rv-armed .path.is-in .chat .chat-app{transition-delay:.3s;}
-  html.rv-armed .path.is-in .chat .chat-msg{transition-delay:.7s;}
-  html.rv-armed .path.is-in .chat .chat-card{transition-delay:1.2s;}
-  html.rv-armed .path.is-in .chat .chat-reply{transition-delay:1.9s;}
-  html.rv-armed .ph-bar i{transform:scaleX(0); transform-origin:left; transition:transform 2.4s linear 1.2s;}
-  html.rv-armed .path.is-in .ph-bar i{transform:none;}
-  html.rv-armed .mini-cone{transform-origin:55% 26%; transform:rotate(-70deg); opacity:0; transition:transform 1.4s cubic-bezier(.22,.8,.24,1) 1.9s, opacity .4s 1.9s;}
-  html.rv-armed .path.is-in .mini-cone{transform:none; opacity:1;}
-  html.rv-armed .agent-screen .ph-btn{transform:scale(.8); opacity:0; transition:transform .45s cubic-bezier(.34,1.56,.64,1), opacity .3s;}
-  html.rv-armed .path.is-in .agent-screen .ph-btn{transform:none; opacity:1; transition-delay:2.3s;}
-  html.rv-armed .path.is-in .agent-screen .ph-btn.alt{transition-delay:2.5s;}
+  /* K1 Viber razgovor: poruke stižu redom kad telefon uđe u ekran. */
+  html.rv-armed .vb > *{opacity:0; transform:translateY(10px); transition:opacity .45s cubic-bezier(.16,1,.3,1), transform .45s cubic-bezier(.16,1,.3,1);}
+  html.rv-armed .vb-ph.is-in .vb > *{opacity:1; transform:none;}
+  html.rv-armed .vb-ph.is-in .vb > :nth-child(2){transition-delay:.4s;}
+  html.rv-armed .vb-ph.is-in .vb > :nth-child(3){transition-delay:1.2s;}
+  html.rv-armed .vb-ph.is-in .vb > :nth-child(4){transition-delay:2.1s;}
+  html.rv-armed .vb-ph.is-in .vb > :nth-child(5){transition-delay:3s;}
   /* V1 Izveštaj vlasniku: trake prostorija porastu, čipovi iskoče (KPI brojevi rastu preko data-count). */
   html.rv-armed .room-bar span i{transform:scaleX(0); transform-origin:left; transition:transform 1.1s cubic-bezier(.22,.8,.24,1) .5s;}
   html.rv-armed .room-bar + .room-bar span i{transition-delay:.66s;}
@@ -252,10 +197,47 @@ const AGENCY_STYLES = `
   html.rv-armed .report-card.is-in .room-bar span i{transform:none;}
   html.rv-armed .report-chips span{display:inline-block; transform:scale(.6); opacity:0; transition:transform .45s cubic-bezier(.34,1.56,.64,1) 1.1s, opacity .3s 1.1s;}
   html.rv-armed .report-card.is-in .report-chips span{transform:none; opacity:1;}
+
+  /* 02c Uživo: tekst i koraci levo, dva telefona desno (vaš i kupčev, isti kadar). */
+  .lv .wrap{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.05fr); gap:clamp(2rem,5vw,4.5rem); align-items:center;}
+  .lv-steps{list-style:none; margin:2rem 0 0; padding:0; display:grid; gap:1.1rem; counter-reset:s;}
+  .lv-steps li{display:grid; grid-template-columns:2.2rem 1fr; gap:.9rem; align-items:start; counter-increment:s;}
+  .lv-steps li::before{content:counter(s); display:grid; place-items:center; width:2.2rem; height:2.2rem; border-radius:50%; background:#1E5AA8; color:#FFFFFF; font-family:var(--font-display); font-weight:800;}
+  .lv-steps b{display:block; font-family:var(--font-display); font-size:1.08rem; color:var(--ink);}
+  .lv-steps span{color:var(--ink-soft); font-size:.96rem;}
+  .lv-use{margin-top:1.8rem; padding-top:1.2rem; border-top:1px solid var(--line); font-size:.92rem; color:var(--ink-soft);}
+  .lv-ctas{margin-top:1.6rem;}
+  .lv-pair{position:relative; display:flex; justify-content:center; align-items:flex-end; gap:clamp(1rem,3vw,2.2rem);}
+  .lv-ph{--w:clamp(150px,19vw,240px); position:relative; width:var(--w); flex:none; margin:0;}
+  .lv-ph img{display:block; width:100%; height:auto; padding:9px; border-radius:38px; background:#050506; box-shadow:0 0 0 1px #2C2D33, 0 40px 80px -30px rgba(0,0,0,.8);}
+  .lv-ph figcaption{margin-top:.9rem; text-align:center; font-size:.85rem; font-weight:600; color:var(--ink-soft);}
+  .lv-ph.agent{transform:translateY(-28px);}
+  .lv-sync{position:absolute; top:38%; left:50%; translate:-50% -50%; z-index:2; display:flex; align-items:center; gap:.45rem; padding:.5rem .85rem; border-radius:999px;
+    background:#FFFFFF; color:#111113; font-size:.8rem; font-weight:700; white-space:nowrap; box-shadow:0 14px 30px -10px rgba(0,0,0,.6);}
+  .lv-sync i{width:8px; height:8px; border-radius:50%; background:#2FA36B; animation:lv-ping 1.6s ease-out infinite;}
+  @keyframes lv-ping{0%{box-shadow:0 0 0 0 rgba(47,163,107,.6);} 100%{box-shadow:0 0 0 10px rgba(47,163,107,0);}}
+  @media (prefers-reduced-motion:reduce){ .lv-sync i{animation:none;} }
+
+  /* 02b Ispod pet dugmadi: kratak red onoga što dugmad ne pokazuju. */
+  .ex{margin-top:clamp(2.5rem,5vw,3.5rem); padding-top:clamp(1.6rem,3vw,2.2rem); border-top:1px solid var(--line);}
+  .ex h3{font-size:1.15rem; letter-spacing:-0.01em; margin-bottom:1rem;}
+  .ex ul{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:1rem 1.6rem;}
+  .ex li b{display:block; font-family:var(--font-display); font-weight:800; font-size:1rem; color:var(--ink);}
+  .ex li span{display:block; margin-top:.2rem; color:var(--ink-soft); font-size:.92rem; line-height:1.45;}
+
+  @media (max-width:920px){
+    .lv .wrap{grid-template-columns:1fr;}
+    .lv-pair{order:-1; padding-top:28px;}
+  }
+  @media (max-width:520px){
+    .lv-ph{--w:42vw;}
+    .lv-ph.agent{transform:translateY(-16px);}
+    .lv-sync{font-size:.72rem; padding:.4rem .7rem;}
+  }
 `;
 
 export default async function AgencyPage() {
-  const { nav, hero, week, buyer, live, owner, proof, steps, contact } = copy;
+  const { nav, hero, buyer, live, extras, owner, proof, steps, contact } = copy;
   const address = [CONTACT.street, CONTACT.city].filter(Boolean).join(', ');
 
   const tours = await getShowcaseTours('sr');
@@ -265,10 +247,6 @@ export default async function AgencyPage() {
   const exampleSlug = heroTour?.slug ?? tours[0]?.slug ?? 'naziv-ture';
   const room = heroTour?.rooms[1] ?? heroTour?.rooms[0] ?? null;
   const roomPhoto = room?.previewUrl ?? heroTour?.coverUrl ?? null;
-  // Na ekranu vodiča stoji pravi naziv te sobe, da natpis i slika ne kažu različito.
-  const roomIndex = room && heroTour ? heroTour.rooms.indexOf(room) + 1 : 0;
-  const guideChip = room && heroTour ? `${room.title} · ${roomIndex}/${heroTour.rooms.length}` : buyer.guide.room;
-  const guideCaption = room?.title ?? buyer.guide.caption;
 
   return (
     <div lang="sr" style={{ display: 'contents' }}>
@@ -310,140 +288,106 @@ export default async function AgencyPage() {
           </div>
         </section>
 
-        {/* 01 Nedelja bez ture i sa turom. */}
-        <section className="band" id="nedelja">
+        {/* 02 Kupac: ista priča, kraće (vlasnik, 5. 11. 2026): vremenska linija i
+            jedan telefon. Plan i kontakt pokazuje "Pet dugmadi" odmah ispod. */}
+        <section className="st" id="kupac">
           <div className="wrap">
-            <div className="section-head">
-              <span className="eyebrow" data-reveal="up">{week.eyebrow}</span>
-              <h2 data-reveal="blur">{accent(week.title)}</h2>
-              <p className="note" data-reveal="up">{week.note}</p>
+            <div>
+              <div className="section-head left">
+                <span className="eyebrow" data-reveal="up">{buyer.eyebrow}</span>
+                <h2 data-reveal="blur">{accent(buyer.title)}</h2>
+                <p className="note" data-reveal="up">{buyer.note}</p>
+              </div>
+              <ol className="tl">
+                {buyer.steps.map((step) => (
+                  <li key={step.time} data-reveal="list">
+                    <time>{step.time}</time>
+                    <div><b>{step.title}</b><span>{step.text}</span></div>
+                  </li>
+                ))}
+              </ol>
+              <div className="st-end" data-reveal="up">
+                <p>{buyer.end.text}</p>
+                <a className="btn btn-primary btn-sm" href="#kontakt" data-track="cta:agency_story_end">{buyer.end.cta}</a>
+              </div>
             </div>
-            <div className="week-grid">
-              {[week.without, week.with].map((side, i) => (
-                <div key={side.title} className={i === 1 ? 'week-card is-dark' : 'week-card'} data-reveal="scale">
-                  <div className="week-head">
-                    <h3>{side.title}</h3>
-                    <span className="week-tag">{side.tag}</span>
+
+            <div className="vb-ph" aria-hidden="true" data-reveal-group>
+              <div className="vb-in">
+                <div className="vb-top"><i>AG</i><div><b>{buyer.chat.app}</b><small>{buyer.chat.sub}</small></div></div>
+                <div className="vb">
+                  <span className="vb-day">{buyer.chat.day}</span>
+                  <div className="vb-msg out">
+                    {buyer.chat.message}
+                    <span className="vb-card">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- sličica ture sa CDN-a */}
+                      {roomPhoto && <img src={roomPhoto} alt="" loading="lazy" />}
+                      <span><b>{buyer.chat.card}</b><small>kvadrat360.com/tour/…</small></span>
+                    </span>
+                    <time>{buyer.chat.sent}</time>
                   </div>
-                  <div className="week-days">
-                    {side.days.map((d, row) => (
-                      // --row/--side: dani obe nedelje ulaze u paru, red po red (AGENCY_STYLES).
-                      <div key={d.day} className="week-day" data-reveal="up" style={{ ['--row' as string]: row, ['--side' as string]: i } as CSSProperties}>
-                        <b>{d.day}</b>
-                        <div>
-                          <strong>{d.title}</strong>
-                          <span>{d.text}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <div className="vb-msg inn">{buyer.chat.reply}<time>{buyer.chat.replyAt}</time></div>
+                  <div className="vb-msg inn">{buyer.chat.followUp}<time>{buyer.chat.followUpAt}</time></div>
+                  <div className="vb-call"><i><IconPhone /></i>{buyer.chat.call}<time>{buyer.chat.callAt}</time></div>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         </section>
 
-        {/* 02 Kupac: od poruke do poziva, ekran po ekran. */}
-        <section id="kupac">
+        {/* 02b Pet dugmadi u turi (vlasnik, 5. 11. 2026): ista sekcija koja je bila
+            na početnoj, tekst je već pisan za agenta ("Vi"). Ispod, ono što
+            dugmad ne pokazuju. */}
+        {HOME_COPY.sr.modules && (
+          <section className="band" id="dugmad">
+            <div className="wrap">
+              <TourModulesShowcase copy={HOME_COPY.sr.modules} photoUrl={heroTour?.coverUrl ?? null} autoMs={7000} compact />
+              <div className="ex">
+                <h3 data-reveal="up">{extras.title}</h3>
+                <ul>
+                  {extras.items.map((item) => (
+                    <li key={item.title} data-reveal="up"><b>{item.title}</b><span>{item.text}</span></li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* 02c Uživo razgledanje (vlasnik, 5. 11. 2026): pravi snimci ture u
+            režimu za agenta i kupčevog telefona, isti kadar (tura-koraci/uzivo-*.webp). */}
+        <section className="lv is-dark" id="uzivo">
           <div className="wrap">
-            <div className="section-head">
-              <span className="eyebrow" data-reveal="up">{buyer.eyebrow}</span>
-              <h2 data-reveal="blur">{accent(buyer.title)}</h2>
-              <p className="note" data-reveal="up">{buyer.note}</p>
-            </div>
-            <div className="path" data-reveal-group>
-              <div className="path-step">
-                <span className="path-time">{buyer.steps[0].time}</span>
-                <div className="phone" aria-hidden="true">
-                  <div className="phone-screen chat">
-                    <span className="chat-app">{buyer.chat.app}</span>
-                    <span className="chat-msg">{buyer.chat.message}</span>
-                    <span className="chat-card">
-                      <span className="chat-card-img">
-                        {/* eslint-disable-next-line @next/next/no-img-element -- sličica ture sa CDN-a */}
-                        {roomPhoto && <img src={roomPhoto} alt="" loading="lazy" />}
-                      </span>
-                      <span className="chat-card-text"><b>{buyer.chat.card}</b><small>kvadrat360.com/tour/…</small></span>
-                    </span>
-                    <span className="chat-reply">{buyer.chat.reply}</span>
-                  </div>
-                </div>
-                <div><h3>{buyer.steps[0].title}</h3><p>{buyer.steps[0].text}</p></div>
+            <div>
+              <div className="section-head left">
+                <span className="eyebrow" data-reveal="up">{live.eyebrow}</span>
+                <h2 data-reveal="blur">{accent(live.title)}</h2>
+                <p className="note" data-reveal="up">{live.text}</p>
               </div>
-
-              <div className="path-step">
-                <span className="path-time">{buyer.steps[1].time}</span>
-                <div className="phone" aria-hidden="true">
-                  <div className="phone-screen">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- sličica ture sa CDN-a */}
-                    {roomPhoto && <img src={roomPhoto} alt="" loading="lazy" />}
-                    <span className="ph-chip">{guideChip}</span>
-                    <span className="ph-card">
-                      <small>{buyer.guide.label}</small>
-                      <b>{guideCaption}</b>
-                      <span className="ph-bar"><i /></span>
-                    </span>
-                  </div>
-                </div>
-                <div><h3>{buyer.steps[1].title}</h3><p>{buyer.steps[1].text}</p></div>
-              </div>
-
-              <div className="path-step">
-                <span className="path-time">{buyer.steps[2].time}</span>
-                <div className="phone" aria-hidden="true">
-                  <div className="phone-screen plan-screen">
-                    <h4>{buyer.plan.title}</h4>
-                    <div className="mini-plan">
-                      <span className="wall-h" />
-                      <span className="wall-v" />
-                      <em style={{ left: '12%', top: '20%' }}>{buyer.plan.rooms[0]}</em>
-                      <em style={{ left: '8%', top: '66%' }}>{buyer.plan.rooms[1]}</em>
-                      <em style={{ left: '60%', top: '66%' }}>{buyer.plan.rooms[2]}</em>
-                      {/* Konus pogleda iz tačke "ovde ste" - isto kao na planu u turi (ViewCone). */}
-                      <svg className="mini-cone" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                        <path d="M55,26 L20,8 A39,39 0 0 0 20,44 Z" />
-                      </svg>
-                      <span className="dot here" style={{ left: '55%', top: '26%' }} />
-                      <span className="dot seen" style={{ left: '25%', top: '80%' }} />
-                      <span className="dot" style={{ left: '75%', top: '80%' }} />
-                    </div>
-                    <p>{buyer.plan.legend}</p>
-                  </div>
-                </div>
-                <div><h3>{buyer.steps[2].title}</h3><p>{buyer.steps[2].text}</p></div>
-              </div>
-
-              <div className="path-step">
-                <span className="path-time">{buyer.steps[3].time}</span>
-                <div className="phone" aria-hidden="true">
-                  <div className="phone-screen agent-screen">
-                    <h4>{buyer.contact.title}</h4>
-                    <span className="agent-row"><i>A</i><span><b>{buyer.contact.agent}</b><small>{buyer.contact.agency}</small></span></span>
-                    <span className="ph-btn"><IconPhone /> {buyer.contact.call}</span>
-                    <span className="ph-btn alt">{buyer.contact.book}</span>
-                    <p>{buyer.contact.note}</p>
-                  </div>
-                </div>
-                <div><h3>{buyer.steps[3].title}</h3><p>{buyer.steps[3].text}</p></div>
-              </div>
-            </div>
-            {/* Kraj priče: odmah korak ka upitu, dok je priča sveža. */}
-            <div className="path-end" data-reveal="up">
-              <span>{buyer.end.text}</span>
-              <a className="btn btn-primary btn-sm" href="#kontakt" data-track="cta:agency_story_end">{buyer.end.cta}</a>
-            </div>
-          </div>
-        </section>
-
-        {/* 02b Uživo razgledanje: kratka traka, detalji su u FAQ (#pitanja). */}
-        <section id="uzivo">
-          <div className="wrap cta-band">
-            <div className="section-head">
-              <h2 data-reveal="blur">{accent(live.title)}</h2>
-              <p className="note" data-reveal="up">{live.text}</p>
-              <p style={{ marginTop: '1.2rem' }} data-reveal="up">
-                <a className="btn btn-primary" href="#pitanja" data-track="cta:agency_live">{live.cta}</a>
+              <ol className="lv-steps">
+                {live.steps.map((step) => (
+                  <li key={step.title} data-reveal="list">
+                    <div><b>{step.title}</b><span>{step.text}</span></div>
+                  </li>
+                ))}
+              </ol>
+              <p className="lv-use" data-reveal="up">{live.use}</p>
+              <p className="lv-ctas" data-reveal="up">
+                <a className="btn btn-primary" href="#kontakt" data-track="cta:agency_live">{live.cta}</a>
               </p>
+            </div>
+            <div className="lv-pair" aria-hidden="true" data-reveal="scale">
+              <figure className="lv-ph agent">
+                {/* eslint-disable-next-line @next/next/no-img-element -- snimak ekrana, unapred smanjen na 600 px */}
+                <img src="/hero/tura-koraci/uzivo-agent.webp" width={600} height={1298} alt="" loading="lazy" />
+                <figcaption>Vaš telefon</figcaption>
+              </figure>
+              <span className="lv-sync"><i />Isti kadar, uživo</span>
+              <figure className="lv-ph">
+                {/* eslint-disable-next-line @next/next/no-img-element -- snimak ekrana, unapred smanjen na 600 px */}
+                <img src="/hero/tura-koraci/uzivo-kupac.webp" width={600} height={1298} alt="" loading="lazy" />
+                <figcaption>Kupčev telefon</figcaption>
+              </figure>
             </div>
           </div>
         </section>
@@ -553,26 +497,14 @@ export default async function AgencyPage() {
           </div>
         </section>
 
-        {/* Cene. */}
-        <section className="band" id="paketi">
-          <div className="wrap">
-            <div className="section-head">
-              <span className="eyebrow" data-reveal="up">{copy.pricing.eyebrow}</span>
-              <h2 data-reveal="blur">
-                {/* Ista početna cena kao u pozivu iznad (jedna nekretnina) - ranije je
-                    ovde stajala cena za 10+ mesečno, pa je strana nudila dve "od" cene.
-                    Niže cene po obimu su u tabeli ispod. */}
-                {copy.pricing.titleStart} <em><FromPrice count={1} prefix="od " /></em>
-              </h2>
-              <p className="note" data-reveal="up">{copy.pricing.note}</p>
-            </div>
-            <PromoBanner lang="sr" />
-            {/* Isti cenovnik kao na početnoj (components/Pricing.tsx), sa
-                napomenom za agencije ispod. */}
-            <Pricing copy={{ ...HOME_COPY.sr.pricing, fine: copy.pricing.fine }} lang="sr" trackPrefix="agency_" compact />
+        {/* Cene ukratko, kao na početnoj (vlasnik, 5. 11. 2026: ceo cenovnik je bio
+            3 ekrana na telefonu); tabela po obimu je na /cenovnik. Ispod su
+            ponude samo za agencije. */}
+        {HOME_COPY.sr.pricingShort && (
+          <PricingShort copy={HOME_COPY.sr.pricingShort} id="paketi" track="agency">
             <FirstOffers />
-          </div>
-        </section>
+          </PricingShort>
+        )}
 
         {/* Pitanja. */}
         <section id="pitanja">

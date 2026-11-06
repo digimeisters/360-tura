@@ -308,7 +308,7 @@ const sr: HomeCopy = {
       { key: 'faq', tab: 'Pitanja', title: 'Odgovori pre prvog poziva', text: 'Pet pitanja koja kupci uvek postave, sa odgovorima na svim jezicima ture. Kupac može i sam da ukuca pitanje. AI asistent odgovara samo iz podataka o nekretnini, a kad odgovor ne zna, nudi da pitanje pošalje vama.', buyer: 'Pita šta god ga zanima i odmah dobije odgovor, i u ponoć.', you: 'Na razgledanje dolaze već informisani.' },
       { key: 'location', tab: 'Lokacija', title: 'Gde je — bez otkrivanja broja', text: 'Mapa, ulica i naselje. Jednim dodirom otvara Google mape i put do nekretnine, a dugme „Istraži okolinu“ pokazuje školu, prodavnicu i prevoz peške. Kućni broj se ne prikazuje.', buyer: 'Odmah vidi kraj, prevoz i šta je peške blizu.', you: 'Tačnu adresu dajete tek kad zakažete razgledanje.' },
       { key: 'plan', tab: 'Plan', title: 'Raspored jednim pogledom', text: 'Osnova nekretnine sa tačkama prostorija, na jeziku posetioca. Dodir na tačku vodi pravo u tu prostoriju u 360° turi.', buyer: 'Razume raspored pre nego što krene u obilazak.', you: 'Nema „a gde je kupatilo u odnosu na sobu?“.' },
-      { key: 'contact', tab: 'Kontakt', title: 'Razgledanje zakazano iz ture', text: 'Vaša kartica sa imenom i agencijom, poziv jednim dodirom i dugme „Zakaži razgledanje“ — ime, telefon i željeni termin.', buyer: 'Zakaže u trenutku kad mu se nekretnina dopadne.', you: 'Upit nam stiže odmah, sa podacima o turi, i istog trenutka ga prosleđujemo vama.' }
+      { key: 'contact', tab: 'Kontakt', title: 'Razgledanje zakazano iz ture', text: 'Vaša kartica sa imenom i agencijom, poziv jednim dodirom i dugme „Zakaži razgledanje“ — ime, telefon i željeni termin.', buyer: 'Zakaže u trenutku kad mu se nekretnina dopadne.', you: 'Upit stiže odmah na vaš mejl, sa nazivom nekretnine.' }
     ],
     preview: {
       category: 'Prodaja',
@@ -371,9 +371,13 @@ const sr: HomeCopy = {
     // sekcija "Tipovi oglasa".
     deliver: [
       'Link ka turi za oglas, portal ili poruku kupcu',
-      'Uz Premium: HDR fotografije u punoj rezoluciji, za portal i društvene mreže',
+      'Kod za ugradnju — tura radi i na vašem sajtu',
+      'Gotov tekst oglasa za 4zida, Halo oglase i društvene mreže',
+      'Uz Premium: HDR fotografije u punoj rezoluciji i osnova nekretnine',
       'Vaše ime i telefon u turi — i kad se link deli dalje',
-      'Tekst i vodič prilagođeni oglasu: za prodaju vrednost i vlasništvo, za izdavanje troškovi i useljenje, za stan na dan utisak gosta'
+      'Tekst i vodič prilagođeni oglasu: za prodaju vrednost i vlasništvo, za izdavanje troškovi i useljenje, za stan na dan utisak gosta',
+      'Link bez roka trajanja — kad se nekretnina proda, turu zaključavamo, a vaš kontakt ostaje',
+      'Za agencije: mesečni izveštaj o pregledima, spreman za vlasnika'
     ]
   },
   pricing: {
@@ -543,7 +547,7 @@ const en: HomeCopy = {
       { key: 'faq', tab: 'Questions', title: 'Answers before the first call', text: 'The five questions buyers always ask, answered in every language of the tour. Buyers can also type their own question. The AI assistant answers only from the property’s details, and when it doesn’t know, it offers to send the question to you.', buyer: 'Asks whatever they want and gets an answer right away, even at midnight.', you: 'People arrive at the viewing already informed.' },
       { key: 'location', tab: 'Location', title: 'Where it is — without the house number', text: 'Map, street and neighbourhood. One tap opens Google Maps with directions, and an “Explore the area” button shows the school, shop and bus stop on foot. The house number is never shown.', buyer: 'Sees the area, transport and what is nearby on foot.', you: 'You share the exact address only once a viewing is booked.' },
       { key: 'plan', tab: 'Plan', title: 'The layout at a glance', text: 'A floor plan with a dot for every room, in the visitor’s own language. Tapping a dot takes the visitor straight into that room in the 360° tour.', buyer: 'Understands the layout before walking through.', you: 'No more “where is the bathroom from the bedroom?”.' },
-      { key: 'contact', tab: 'Contact', title: 'Viewings booked from the tour', text: 'Your card with name and agency, one-tap calling and a “Book a viewing” button — name, phone and preferred time.', buyer: 'Books the moment they like the place.', you: 'The request reaches us instantly, with the tour details, and we pass it straight to you.' }
+      { key: 'contact', tab: 'Contact', title: 'Viewings booked from the tour', text: 'Your card with name and agency, one-tap calling and a “Book a viewing” button — name, phone and preferred time.', buyer: 'Books the moment they like the place.', you: 'The request lands in your inbox instantly, with the property name.' }
     ],
     preview: {
       category: 'For sale',
@@ -603,9 +607,12 @@ const en: HomeCopy = {
     deliverTitle: 'What you get',
     deliver: [
       'A link to the tour for your listing and ready-made embed code for your site',
-      'With Premium: full-resolution HDR photos for portals and social media',
+      'Ready-made listing text for 4zida, Halo oglasi and social media',
+      'With Premium: full-resolution HDR photos and a floor plan',
       'Your name and phone inside the tour — even when the link is passed on',
-      'Text and guide tailored to the listing: value and ownership for a sale, costs and move-in for a rental, the guest’s impression for a short stay'
+      'Text and guide tailored to the listing: value and ownership for a sale, costs and move-in for a rental, the guest’s impression for a short stay',
+      'A link with no expiry — once the property is sold we lock the tour, and your contact stays',
+      'For agencies: a monthly viewing report, ready to show the owner'
     ]
   },
   pricing: {

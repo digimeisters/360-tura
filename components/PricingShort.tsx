@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import type { HomeCopy } from '../app/lib/homeCopy';
 import { accent } from '../app/lib/accent';
 import { PlanPrice, SaleSticker } from './PromoPrice';
@@ -37,6 +38,7 @@ const STYLES = `
   .ps-points li > i{display:none;}
   .ps-points li + li::before{content:" · ";}
   .ps-ctas{grid-area:ctas; display:flex; flex-wrap:wrap; justify-content:center; gap:.7rem; margin-top:clamp(1.4rem,3vw,2rem);}
+  .ps-extra{grid-column:1 / -1; width:100%; text-align:left;}
 
   /* Računar: tekst levo, paketi desno, da sekcija ne visi prazna. */
   @media (min-width:960px){
@@ -65,12 +67,15 @@ const STYLES = `
 export default function PricingShort({
   copy,
   id = 'cenovnik',
-  track = 'home'
+  track = 'home',
+  children
 }: {
   copy: NonNullable<HomeCopy['pricingShort']>;
   id?: string;
   /** Početak naziva klika u analitici: home -> cta:home_price_book. */
-  track?: 'home' | 'owner';
+  track?: 'home' | 'owner' | 'agency';
+  /** Ispod paketa i dugmadi, preko cele širine (npr. ponude za agencije). */
+  children?: ReactNode;
 }) {
   return (
     <section className="band" id={id}>
@@ -115,6 +120,7 @@ export default function PricingShort({
             {copy.more}
           </Link>
         </div>
+        {children && <div className="ps-extra">{children}</div>}
       </div>
     </section>
   );
