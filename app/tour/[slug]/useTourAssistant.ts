@@ -14,6 +14,9 @@ type Labels = { error: string; rateLimited: string };
 /** Koliko poslednjih poruka ide serveru kao tok razgovora (server dodatno skraćuje). */
 const HISTORY_SENT = 8;
 
+/** Najduže čekanje odgovora u chatu pre nego što se ponudi poruka agentu. */
+const CLIENT_TIMEOUT_MS = 25_000;
+
 /**
  * Razgovor sa asistentom iz modula "Pitanja" (ruta /api/tour-assistant).
  * Drži poruke i stanje čekanja; tekst grešaka stiže spolja (prevodi), da
@@ -38,11 +41,18 @@ export function useTourAssistant(slug: string | undefined, lang: string, labels:
       const fail = (text: string) =>
         setMessages((prev) => [...prev, { role: 'ai', text, known: false, question }]);
 
+      // Ruta sama staje najkasnije oko 20 s (maxDuration 30); ako mreža ili
+      // server zaglave, kupac ne sme da gleda tačkice u nedogled - posle roka
+      // dobija istu poruku kao kod greške, sa dugmetom "Pišite agentu".
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), CLIENT_TIMEOUT_MS);
+
       try {
         const res = await fetch('/api/tour-assistant', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ slug, question, lang, history })
+          body: JSON.stringify({ slug, question, lang, history }),
+          signal: controller.signal
         });
         if (res.status === 429) {
           fail(labels.rateLimited);
@@ -57,6 +67,7 @@ export function useTourAssistant(slug: string | undefined, lang: string, labels:
       } catch {
         fail(labels.error);
       } finally {
+        clearTimeout(timer);
         busyRef.current = false;
         setLoading(false);
       }

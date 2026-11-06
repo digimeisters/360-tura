@@ -43,6 +43,8 @@ const MAX_HISTORY_TURNS = 4;
 const MAX_HISTORY_CHARS = 400;
 const MAX_CONTEXT_CHARS = 7000;
 const MAX_ANSWER_CHARS = 700;
+/** Odgovor (~250 tokena) + razmišljanje, koje se kod Gemini 3 broji u isti limit. */
+const ASSISTANT_MAX_OUTPUT_TOKENS = 4096;
 
 const LANG_NAMES: Record<Language, string> = {
   sr: 'Serbian (Latin script)',
@@ -238,15 +240,22 @@ export async function POST(req: Request) {
         responseSchema: answerSchema(),
         temperature: TEMP_EXTRACT,
         // Jednostavno čitanje iz malog izvora: najniže razmišljanje koje oba modela
-        // prihvataju (MINIMAL odbija Flash). Na probi 10. 10. 2026 Flash-Lite je
-        // skakao od 1 do 30 s, a Flash je držao 3-5 s - zato je on glavni.
+        // prihvataju (MINIMAL odbija Flash).
         thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-        maxOutputTokens: 500
+        // Tokeni razmišljanja se kod Gemini 3 RAČUNAJU u maxOutputTokens. Sa 500
+        // je kratko pitanje ("Da li ima lift?") prolazilo, ali otvoreno ("pogodan
+        // za porodicu sa decom?") potroši budžet na razmišljanje pre nego što
+        // napiše JSON -> MAX_TOKENS na oba modela (4. 11. 2026). Sam odgovor je
+        // najviše ~250 tokena (MAX_ANSWER_CHARS); ostatak je prostor za
+        // razmišljanje. Plaća se samo potrošeno, ne granica.
+        maxOutputTokens: ASSISTANT_MAX_OUTPUT_TOKENS
       },
-      // Flash (stabilniji) glavni, jeftiniji Flash-Lite rezerva; po jedan pokušaj i
-      // kratak rok, da najgori slučaj ostane oko 18 s.
-      model: GEMINI_FALLBACK_MODEL,
-      fallbackModel: GEMINI_MODEL,
+      // Flash-Lite glavni, Flash rezerva (vlasnik 4. 11. 2026). Do tada je Flash
+      // bio glavni (proba 10. 10.: Flash 3-5 s, Lite 1-30 s), ali je 4. 11. na
+      // svakom pitanju istekao posle 9 s i odgovor je ionako davao Lite - kupac
+      // je 9 s čekao uzalud. Po jedan pokušaj i kratak rok, najgori slučaj ~18 s.
+      model: GEMINI_MODEL,
+      fallbackModel: GEMINI_FALLBACK_MODEL,
       attempts: 1,
       timeoutMs: 9_000,
       label: 'AI asistent ture'
