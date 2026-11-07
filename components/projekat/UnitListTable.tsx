@@ -10,6 +10,7 @@ import type { SelectorFloor, SelectorUnit } from './ProjectSelector';
  * „Lista" u izboru stana: svi stanovi u tabeli, sortiranje klikom na
  * naslov kolone. Filtrira i sortira ProjectSelector (unitFilters.ts), ovde
  * je samo prikaz. Na telefonu red postaje kartica (data-l = naziv polja).
+ * Zvezdica (`isFav`/`onFav`) pamti stan među „Izabranim" (useFavorites).
  */
 
 const badgeOf = (s: UnitStatus) => (s === 'available' ? 's' : s === 'reserved' ? 'r' : 'p');
@@ -22,7 +23,9 @@ export default function UnitListTable({
   onSort,
   floorOf,
   buildingName,
-  onOpen
+  onOpen,
+  isFav,
+  onFav
 }: {
   /** Već filtrirano i sortirano. */
   units: SelectorUnit[];
@@ -33,6 +36,8 @@ export default function UnitListTable({
   floorOf: (u: SelectorUnit) => SelectorFloor | undefined;
   buildingName: (id: string | null) => string;
   onOpen: (u: SelectorUnit) => void;
+  isFav?: (code: string) => boolean;
+  onFav?: (code: string) => void;
 }) {
   const t = PROJECT_TEXT[lang];
   const onKey = (fn: () => void) => (e: KeyboardEvent) => {
@@ -67,6 +72,9 @@ export default function UnitListTable({
                 {th('price', t.price, 'is-num')}
                 {th('sqm', '€/m²', 'is-num')}
                 {th('status', t.statusCol)}
+                {onFav && (
+                  <th className="is-fav" aria-label={t.favorites} />
+                )}
               </tr>
             </thead>
             <tbody>
@@ -96,6 +104,23 @@ export default function UnitListTable({
                     <td className="is-status">
                       <span className={`inv-badge is-${badgeOf(u.status)}`}>{statusLabel(u.status, lang)}</span>
                     </td>
+                    {onFav && (
+                      <td className="is-fav">
+                        <button
+                          type="button"
+                          className="inv-star"
+                          aria-pressed={Boolean(isFav?.(u.code))}
+                          aria-label={`${t.favSave} · ${t.unit} ${u.code}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onFav(u.code);
+                          }}
+                          onKeyDown={(e) => e.stopPropagation()}
+                        >
+                          {isFav?.(u.code) ? '★' : '☆'}
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 );
               })}

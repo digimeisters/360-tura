@@ -214,7 +214,29 @@ export const SELECTOR_STYLES = `
   .inv-nearby-src{margin:.6rem 0 0; font-size:.75rem; color:var(--ink-faint);}
 
   /* Telefon: red velikih dugmadi spratova uz sliku (na računaru skriven). */
+  /* Na telefonu spratovi su samo dugmad uz sliku; spisak spratova u panelu bi ih ponovio. */
+  @media (max-width:960px){ .inv-panel .inv-list.is-floors{display:none;} .inv-panel:has(.inv-list.is-floors) .inv-phead{display:none;} }
   .inv-floorchips{display:none;}
+  /* Zvezdica „Izabrani" (useFavorites). */
+  .inv-star{display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border:0; border-radius:10px; background:transparent; color:var(--ink-faint,#686A70); font-size:1.25rem; line-height:1; cursor:pointer;}
+  .inv-star:hover{background:var(--surface-2,#F1F1EC);}
+  .inv-star[aria-pressed="true"]{color:#C58A06;}
+  /* Stan u spisku sprata: struktura i kvadratura se ne seku (zvezdica oduzima mesto). */
+  .inv-frow-fav .inv-frow-main small{white-space:normal; overflow:visible;}
+  /* Telefon: tri kartice (Zgrada, Lista, Izabrani) u jednom redu; zgrada bliže vrhu. */
+  @media (max-width:640px){
+    .inv-tabs{display:flex; width:100%;}
+    .inv-tabs button{flex:1 1 auto; padding:.5rem .6rem; font-size:.84rem; white-space:nowrap;}
+    .inv-tabs small{margin-left:2px; padding:1px 5px;}
+    .inv-stage > p.inv-muted{display:none;}
+    .inv-tabs{gap:2px;}
+    .inv-tabs button:nth-child(2) small{display:none;}
+    /* Slobodan stan se vidi po zelenom broju - oznaka bi gurala strukturu i kvadraturu. */
+    .inv-frow-fav .inv-badge.is-s{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap;}
+  }
+  .inv-frow-fav{display:grid; grid-template-columns:minmax(0,1fr) 40px; align-items:center; gap:4px;}
+  .inv-fav-empty{padding:1.4rem 1rem; text-align:center;}
+  .inv-lst-table td.is-fav, .inv-lst-table th.is-fav{width:48px; text-align:center; padding-inline:4px;}
   .inv-floorchips-label{display:none;}
   @media (max-width:960px){
     .inv-floorchips-label{display:block; font-size:.74rem; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:var(--d-faint); margin:8px 2px 0;}
@@ -354,7 +376,11 @@ export const SELECTOR_STYLES = `
   .inv-panel > .inv-title{font-size:1.45rem;}
   .inv-list{gap:8px;}
   .inv-legend{gap:.5rem;}
-  .inv-legend span{display:inline-flex; align-items:center; background:#F4F7FB; border-radius:999px; padding:.3rem .7rem; font-weight:600;}
+  /* Legenda je samo objašnjenje boja - ne sme da liči na dugmad (maketa IzborStanaV2). */
+  .inv-legend span{display:inline-flex; align-items:center; font-weight:600;}
+  .inv-colors{position:absolute; top:12px; right:12px; z-index:2; display:inline-flex; align-items:center; gap:.4rem; min-height:40px; border:0; border-radius:999px; padding:.5rem .95rem; background:rgba(17,17,19,.74); backdrop-filter:blur(6px); color:#FFFFFF; font:inherit; font-size:.84rem; font-weight:700; cursor:pointer;}
+  .inv-colors[aria-pressed="true"]{background:#FFFFFF; color:#111113; box-shadow:0 2px 10px rgba(0,0,0,.18);}
+  @media (max-width:640px){ .inv-colors{top:8px; right:8px; min-height:44px;} }
   .inv-legend i{border-radius:50%; width:10px; height:10px;}
 
   /* Traka filtera: „pilule" sa padajućim izborom + prekidač „samo slobodni". */

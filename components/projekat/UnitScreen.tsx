@@ -4,6 +4,7 @@ import Link from 'next/link';
 import UnitMedia, { UnitRooms } from './UnitMedia';
 import UnitInquiry from './UnitInquiry';
 import PaymentCalculator from './PaymentCalculator';
+import { useFavorites } from './useFavorites';
 import { parseVideo } from '../../app/lib/videoEmbed';
 import {
   floorLabel,
@@ -74,6 +75,10 @@ const UNIT_SCREEN_STYLES = `
   .up-pn button{display:inline-flex; align-items:center; gap:.35rem; min-height:44px; padding:0 1rem; border-radius:999px; border:1px solid var(--line); background:var(--surface); color:var(--ink); font:inherit; font-weight:700; font-size:.88rem; cursor:pointer; box-shadow:var(--shadow);}
   .up-pn button:hover{border-color:var(--accent); color:var(--accent);}
   .up-ask{scroll-margin-top:120px;}
+  .up-fav{cursor:pointer; font:inherit;}
+  .up-fav[aria-pressed="true"]{border-color:#C58A06; color:#8A5E00;}
+  .up-price-none{display:block; margin:.1rem 0 .7rem; font-family:var(--font-display); font-weight:700; font-size:1.15rem; color:var(--ink);}
+  .up-price-ask{display:inline-flex;}
   .usb{display:none;}
   @media (max-width:899px){
     .usb{position:fixed; left:0; right:0; bottom:0; z-index:61; display:flex; align-items:center; gap:12px; padding:10px 14px calc(10px + env(safe-area-inset-bottom)); background:rgba(255,255,255,.96); backdrop-filter:blur(8px); border-top:1px solid var(--line);}
@@ -138,6 +143,7 @@ export default function UnitScreen({
   const t = PROJECT_TEXT[lang];
   const inline = mode === 'inline';
   const { project, units, floors, buildings } = data;
+  const fav = useFavorites(project.slug);
   const prefix = lang === 'en' ? '/en' : '';
   const base = `${prefix}/novogradnja/${project.slug}`;
   const unitHref = (u: SelectorUnit) => `${base}/stan/${encodeURIComponent(u.code)}`;
@@ -199,7 +205,8 @@ export default function UnitScreen({
           <Link href={base}>← {title}</Link>
         )}
         {building && <span>/ {building}</span>}
-        {fName && <span>/ {fName}</span>}
+        {/* Na strani projekta dugme nazad već nosi naziv sprata - ne ponavljati ga. */}
+        {fName && !inline && <span>/ {fName}</span>}
         <span>
           / {t.unit} {unit.code}
         </span>
@@ -221,6 +228,9 @@ export default function UnitScreen({
             {unit.areaSqm && <span className="chip">{formatArea(unit.areaSqm, lang)}</span>}
             {fName && <span className="chip">{[building, fName].filter(Boolean).join(' · ')}</span>}
             {unit.orientation && <span className="chip">{orientationText(unit.orientation, lang)}</span>}
+            <button type="button" className="chip up-fav" aria-pressed={fav.has(unit.code)} onClick={() => fav.toggle(unit.code)}>
+              <span aria-hidden="true">{fav.has(unit.code) ? '★' : '☆'}</span> {fav.has(unit.code) ? t.favSaved : t.favSave}
+            </button>
           </div>
         </div>
         <div className="up-pn">
@@ -308,7 +318,24 @@ export default function UnitScreen({
           <div className={sold ? 'up-price is-sold' : unit.price ? 'up-price is-dark' : 'up-price'}>
             <div>
               <small className="up-price-l">{sold ? t.soldNote : t.price}</small>
-              {!sold && <b>{unit.price ? formatPrice(unit.price, lang) : t.onRequest}</b>}
+              {!sold && unit.price ? <b>{formatPrice(unit.price, lang)}</b> : null}
+              {/* Bez cene: umesto velikog „Na upit" kratko objašnjenje i dugme do forme za upit. */}
+              {!sold && !unit.price && (
+                <>
+                  <span className="up-price-none">{t.onRequestBar}</span>
+                  <a
+                    className="btn btn-primary up-price-ask"
+                    href="#up-ask"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      document.getElementById('up-ask')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    data-track="cta:unit_price_ask"
+                  >
+                    {unit.status === 'reserved' ? t.notifyMe : t.askPriceCta}
+                  </a>
+                </>
+              )}
               {!sold && sqm ? <small>{`${formatPrice(sqm, lang)} ${t.perSqm}`}</small> : null}
             </div>
             <span className={`inv-badge is-${badge}`}>{statusLabel(unit.status, lang)}</span>

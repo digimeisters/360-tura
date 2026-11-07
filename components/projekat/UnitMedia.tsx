@@ -101,9 +101,12 @@ export default function UnitMedia({
   const tourIsDemo = !ownTour && Boolean(tourHref);
   const photos = ownPhotos.length ? ownPhotos : (demo?.photos ?? []);
   const tabs: { id: Tab; label: string }[] = [];
+  // Stan koji ima 3D osnovu otvara se na njoj - ona prodaje, crtež arhitekte je
+  // druga kartica (vlasnik, 7. 11. 2026, maketa IzborStanaV2).
+  if (plan3dUrl) tabs.push({ id: 'plan3d', label: t.tab3d });
   if (planUrl || fallbackPlan || all) tabs.push({ id: 'plan', label: t.tabPlan });
   if (tourHref || all) tabs.push({ id: 'tour', label: t.tab360 });
-  if (plan3dUrl || all) tabs.push({ id: 'plan3d', label: t.tab3d });
+  if (!plan3dUrl && all) tabs.push({ id: 'plan3d', label: t.tab3d });
   if (photos.length || all) tabs.push({ id: 'photos', label: t.tabPhotos });
   const hasVideo = Boolean(parseVideo(videoUrl));
   if (hasVideo || all) tabs.push({ id: 'video', label: t.tabVideo });
@@ -221,8 +224,8 @@ export default function UnitMedia({
 }
 
 /**
- * Mala slika stana u kartici na zgradi: sopstvena osnova, pa isečak osnove
- * sprata, pa 3D osnova. Klik vodi na stranu stana (tamo su sve kartice).
+ * Mala slika stana u kartici na zgradi: 3D osnova, pa sopstvena osnova, pa
+ * isečak osnove sprata. Klik vodi na stranu stana (tamo su sve kartice).
  */
 export function UnitThumb({
   href,
@@ -241,10 +244,11 @@ export function UnitThumb({
 }) {
   const t = PROJECT_TEXT[lang];
   if (!planUrl && !fallbackPlan && !plan3dUrl) return null;
-  const alt = `${planUrl || fallbackPlan ? t.tabPlan : t.tab3d} · ${code}`;
-  const imgSrc = planUrl ?? (fallbackPlan ? null : plan3dUrl);
+  // 3D osnova ima prednost, kao i na kartici stana (UnitMedia).
+  const alt = `${plan3dUrl ? t.tab3d : t.tabPlan} · ${code}`;
+  const imgSrc = plan3dUrl ?? planUrl ?? null;
   return (
-    <a href={href} className={!planUrl && !fallbackPlan ? 'inv-thumb is-dark' : 'inv-thumb'} data-track="cta:project_unit_page">
+    <a href={href} className={plan3dUrl ? 'inv-thumb is-dark' : 'inv-thumb'} data-track="cta:project_unit_page">
       {imgSrc ? (
         // eslint-disable-next-line @next/next/no-img-element -- slika sa R2 CDN-a
         <img src={imgSrc} alt={alt} loading="lazy" />

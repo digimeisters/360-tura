@@ -26,25 +26,27 @@ import HtmlLang from '../HtmlLang';
  */
 
 const PAGE_STYLES = `
-  .proj-head{padding-block:clamp(1.6rem,4vw,3.2rem) clamp(1.2rem,2.4vw,2rem);}
-  .proj-hero{display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:clamp(1.4rem,4vw,3.5rem); align-items:end;}
-  @media (max-width:900px){ .proj-hero{grid-template-columns:1fr; align-items:start;} }
-  .proj-head h1{font-size:clamp(2.2rem,5vw,3.8rem); line-height:1.02; letter-spacing:-.035em; margin-top:.7rem;}
+  /* Vrh strane je tanka traka (vlasnik, 7. 11. 2026, maketa IzborStanaV2): zgrada
+     mora da se vidi na prvom ekranu, i na računaru i na telefonu. */
+  .proj-head{padding-block:clamp(1rem,2.2vw,1.6rem) clamp(.7rem,1.4vw,1rem);}
+  .proj-hero{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:.8rem 2rem;}
+  .proj-head h1{font-size:clamp(1.7rem,3.2vw,2.5rem); line-height:1.05; letter-spacing:-.03em; margin-top:.4rem;}
   .proj-head .lede{margin-top:.9rem; max-width:58ch; color:var(--ink-soft); font-size:1.02rem; line-height:1.65;}
-  .proj-meta{display:flex; flex-wrap:wrap; gap:.35rem 1.1rem; margin-top:1rem; font-size:.9rem; color:var(--ink-soft);}
+  .proj-meta{display:flex; flex-wrap:wrap; gap:.35rem 1.1rem; margin-top:.5rem; font-size:.9rem; color:var(--ink-soft);}
   .proj-meta span{display:inline-flex; align-items:center; gap:.4rem;}
   .proj-meta svg{width:16px; height:16px; flex:none; color:var(--accent);}
   .proj-cta{display:flex; flex-wrap:wrap; gap:.6rem; margin-top:1.4rem;}
-  .proj-stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;}
-  .proj-stat{background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:1rem 1.1rem; box-shadow:0 1px 2px rgba(20,22,27,.04),0 8px 24px rgba(20,22,27,.06);}
-  .proj-stat b{display:block; font-family:var(--font-display); font-weight:800; font-size:clamp(1.45rem,2.6vw,1.95rem); letter-spacing:-.02em; line-height:1.1; color:var(--ink); white-space:nowrap;}
-  .proj-stat b small{font-size:.55em; font-weight:700; color:var(--ink-faint); margin-left:.15rem;}
-  .proj-stat span{display:block; margin-top:.3rem; font-size:.78rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint);}
-  .proj-stat.is-free{background:linear-gradient(160deg,#16325C 0%,#1E5AA8 100%); border-color:transparent;}
-  .proj-stat.is-free b, .proj-stat.is-free b small{color:#FFFFFF;}
-  .proj-stat.is-free span{color:#DCE8F7;}
+  .proj-stats{display:flex; flex-wrap:wrap; gap:6px;}
+  .proj-stat{display:inline-flex; align-items:baseline; gap:.4rem; background:var(--surface); border:1px solid var(--line); border-radius:999px; padding:.45rem .9rem; white-space:nowrap;}
+  .proj-stat b{font-family:var(--font-display); font-weight:800; font-size:1.02rem; letter-spacing:-.01em; color:var(--ink);}
+  .proj-stat b small{font-size:.8em; font-weight:700; color:var(--ink-faint); margin-left:.1rem;}
+  .proj-stat span{font-size:.8rem; font-weight:600; color:var(--ink-soft);}
+  .proj-stat.is-free b{color:var(--ok);}
+  @media (max-width:640px){ .proj-head .proj-meta{display:none;} .proj-stat{padding:.32rem .7rem;} .proj-stat b{font-size:.92rem;} .proj-stat span{font-size:.74rem;} }
+  /* Telefon: upit nosi traka na dnu (ProjectMobileBar) - dugme u zaglavlju bi ga ponovilo. */
+  @media (max-width:899px){ .nav .nav-bar > .btn-primary{display:none;} }
   .proj-anchor{display:block; position:relative; top:-90px; visibility:hidden;}
-  .proj-body{padding-bottom:clamp(1.2rem,2.5vw,1.8rem);}
+  .proj-body{padding-top:0; padding-bottom:clamp(1.2rem,2.5vw,1.8rem);}
   .proj-contact{display:flex; flex-wrap:wrap; gap:.4rem 1.4rem; margin-top:1.4rem; color:var(--ink-soft); font-size:.95rem;}
   .proj-contact a{color:inherit;}
   .proj-info{padding-bottom:clamp(2.4rem,5vw,4rem);}
@@ -159,7 +161,10 @@ export default function ProjectView({
   // Brojke u vrhu strane: slobodni, najniža cena slobodnog stana, raspon kvadratura.
   const prices = units.filter((u) => u.status !== 'sold' && u.price).map((u) => u.price as number);
   const areas = units.filter((u) => u.areaSqm).map((u) => u.areaSqm as number);
-  const minPrice = prices.length ? Math.min(...prices) : null;
+  // „Cena od" tek kad cenu ima bar polovina stanova koji se prodaju - inače jedna
+  // uneta cena izgleda kao cena celog projekta, a ostali stanovi su „na upit".
+  const forSale = units.filter((u) => u.status !== 'sold').length;
+  const minPrice = prices.length && prices.length * 2 >= forSale ? Math.min(...prices) : null;
   const areaRange: [number, number] | null = areas.length ? [Math.floor(Math.min(...areas)), Math.ceil(Math.max(...areas))] : null;
   const topLevel = floors.length ? Math.max(...floors.map((fl) => fl.level)) : null;
   const floorsSpan = topLevel === null ? null : t.floorsSpan(topLevel);

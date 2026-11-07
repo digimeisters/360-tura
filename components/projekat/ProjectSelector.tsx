@@ -25,6 +25,7 @@ import { parseVideo } from '../../app/lib/videoEmbed';
 import FacadeFullscreen from './FacadeFullscreen';
 import SelectorFilters from './SelectorFilters';
 import UnitListTable from './UnitListTable';
+import { useFavorites } from './useFavorites';
 import { AREA_STEPS, EMPTY_FILTERS, hasAnyFilter, matchesFilters, perSqm, PRICE_STEPS, sortUnits, type SortKey, type UnitFilters, type UnitSort } from '../../app/lib/unitFilters';
 import type { DemoMedia } from '../../app/lib/projectData';
 
@@ -159,7 +160,8 @@ export default function ProjectSelector({
 }) {
   const t = PROJECT_TEXT[lang];
   const isComplex = buildings.length > 1;
-  const [mode, setMode] = useState<'building' | 'list'>('building');
+  const [mode, setMode] = useState<'building' | 'list' | 'fav'>('building');
+  const fav = useFavorites(project.slug);
   // Jedna lamela = odmah njena fasada; više lamela = prvo kompleks (null).
   const [buildingId, setBuildingId] = useState<string | null>(buildings.length === 1 ? buildings[0].id : null);
   const [floorId, setFloorId] = useState<string | null>(null);
@@ -168,6 +170,9 @@ export default function ProjectSelector({
   const [onFacade, setOnFacade] = useState(false);
   const [viewIdx, setViewIdx] = useState<Record<string, number>>({});
   const [hover, setHover] = useState<string | null>(null);
+  // Boje statusa na fasadi (vlasnik, 7. 11. 2026, maketa IzborStanaV2): render ostaje
+  // čist - slobodan stan je samo obris, zauzet blago obojen; dugme pali sve boje.
+  const [statusColors, setStatusColors] = useState(false);
   // Prikaz projekta (migracija 040): zgrada (istraživač), 3D render ili video.
   const [media, setMedia] = useState<'building' | 'render' | 'video'>('building');
   const [filters, setFilters] = useState<UnitFilters>(EMPTY_FILTERS);
@@ -275,7 +280,13 @@ export default function ProjectSelector({
   const freeIn = (list: SelectorUnit[]) => list.filter((u) => u.status === 'available' && matches(u)).length;
   const freeOn = (fid: string) => freeIn(units.filter((u) => u.floorId === fid));
   const unitsOfBuilding = (bid: string) => units.filter((u) => buildingOfUnit(u) === bid);
+  // „od <cena>" samo kad cenu ima bar polovina stanova koji se prodaju (isto pravilo kao vrh strane).
+  const pricesPublic = (() => {
+    const forSale = units.filter((u) => u.status !== 'sold');
+    return forSale.length > 0 && forSale.filter((u) => u.price).length * 2 >= forSale.length;
+  })();
   const minPriceOf = (list: SelectorUnit[]) => {
+    if (!pricesPublic) return null;
     const prices = list.filter((u) => u.status !== 'sold' && u.price && matches(u)).map((u) => u.price as number);
     return prices.length ? Math.min(...prices) : null;
   };
@@ -362,8 +373,9 @@ export default function ProjectSelector({
     setUnitId(null);
     setHover(null);
     setMedia('building');
-    // Sprat bez osnove ostaje na fasadi - spisak stanova je u panelu.
-    setOnFacade(Boolean(fid && !floorById.get(fid)?.planUrl && bViews.length));
+    // Zgrada ostaje na ekranu, a stanovi sprata su u panelu pored (vlasnik, 7. 11. 2026,
+    // maketa IzborStanaV2); osnova sprata se otvara dugmetom „Osnova sprata".
+    setOnFacade(Boolean(fid && bViews.length));
     scrollToStage();
   };
   const pickUnit = (uid: string | null) => {
@@ -564,11 +576,7 @@ export default function ProjectSelector({
           <img {...viewImg(view.imageUrl)} alt={view.label ? `${project.title} - ${view.label}` : project.title} />
           {svg}
           {tags}
-          {canFull && (
-            <button type="button" className="inv-fullbtn is-onimg" onClick={() => setFull(true)}>
-              <span aria-hidden="true">⛶</span> {lang === 'en' ? 'Full screen' : 'Prikaz preko celog ekrana'}
-            </button>
-          )}
+          {/* Ceo ekran je jedno dugme, u traci iznad (ranije i drugo na slici - isto dejstvo). */}
           {list.length > 1 && (
             <>
               <button type="button" className="inv-rot is-l" aria-label={t.rotatePrev} onClick={() => go(-1)}>
@@ -700,16 +708,18 @@ export default function ProjectSelector({
             const c = UNIT_STATUS_COLORS[u.status];
             const sel = u.id === unitId;
             const on = hover === u.id;
+            // Bez uključenih boja slobodan stan je samo tanak obris (providan, ali i dalje klikabilan).
+            const quiet = !statusColors && u.status === 'available';
             return (
               <polygon
                 key={s.id}
                 className="inv-poly"
                 points={pts(s.polygon)}
-                fill={on || sel ? 'rgba(30,90,168,.45)' : c.fill}
-                fillOpacity={matches(u) ? 0.75 : 0.18}
+                fill={on || sel ? 'rgba(30,90,168,.45)' : quiet ? 'rgba(255,255,255,.01)' : c.fill}
+                fillOpacity={on || sel ? 1 : !matches(u) ? 0.18 : statusColors ? 0.75 : 0.55}
                 stroke={sel || on ? '#1E5AA8' : '#FFFFFF'}
-                strokeOpacity={sel || on ? 1 : 0.85}
-                strokeWidth={sel ? 3 : on ? 2.5 : 1.75}
+                strokeOpacity={sel || on ? 1 : quiet ? 0.5 : 0.85}
+                strokeWidth={sel ? 3 : on ? 2.5 : quiet ? 1 : 1.75}
                 vectorEffect="non-scaling-stroke"
                 role="button"
                 tabIndex={0}
@@ -728,6 +738,11 @@ export default function ProjectSelector({
       ),
       tags: (
         <>
+          {unitShapes.length > 0 && (
+            <button type="button" className="inv-colors" aria-pressed={statusColors} onClick={() => setStatusColors((v) => !v)}>
+              <span aria-hidden="true">◐</span> {t.statusColors}
+            </button>
+          )}
           {/* Oznake spratova samo kad na slici nema stanova - inače bi bilo pretrpano. */}
           {!unitShapes.length &&
             floorShapes.map((s) => {
@@ -1015,7 +1030,8 @@ export default function ProjectSelector({
     panel = (
       <>
         {panelHead(isComplex ? buildingName(buildingId) : t.floorsTitle, t.occHint, isComplex ? bUnits : units)}
-        <div className="inv-list">
+        {/* Na telefonu spratove već nose dugmad uz sliku (floorChips) - ovaj spisak se tamo ne ponavlja. */}
+        <div className={bFloors.length > 0 ? 'inv-list is-floors' : 'inv-list'}>
           {floorsDesc.map((f) => {
             const n = freeOn(f.id);
             const from = minPriceOf(units.filter((u) => u.floorId === f.id));
@@ -1052,8 +1068,8 @@ export default function ProjectSelector({
         {!(floor.planUrl && !onFacade) && <p className="inv-muted">{t.pickUnitList}</p>}
         <div className="inv-list">
           {unitsOn(floor.id).map((u) => (
+            <div key={u.id} className="inv-frow-fav">
             <button
-              key={u.id}
               type="button"
               className={hover === u.id ? 'inv-frow is-hover' : 'inv-frow'}
               style={{ opacity: matches(u) ? 1 : 0.45 }}
@@ -1069,7 +1085,8 @@ export default function ProjectSelector({
                 <small>
                   {[
                     structureText(u.structure, lang),
-                    u.areaSqm ? formatArea(u.areaSqm, lang) : null,
+                    // Broj i „m²" ostaju u istom redu (neprelomni razmak).
+                    u.areaSqm ? formatArea(u.areaSqm, lang).replace(' ', '\u00a0') : null,
                     u.status === 'sold' ? null : u.price ? formatPrice(u.price, lang) : null
                   ]
                     .filter(Boolean)
@@ -1078,6 +1095,16 @@ export default function ProjectSelector({
               </span>
               <span className={`inv-badge is-${badgeOf(u.status)}`}>{status(u.status)}</span>
             </button>
+            <button
+              type="button"
+              className="inv-star"
+              aria-pressed={fav.has(u.code)}
+              aria-label={`${t.favSave} · ${t.unit} ${u.code}`}
+              onClick={() => fav.toggle(u.code)}
+            >
+              {fav.has(u.code) ? '★' : '☆'}
+            </button>
+            </div>
           ))}
         </div>
         {floor.viewHref && (
@@ -1222,6 +1249,12 @@ export default function ProjectSelector({
     sort,
     { levelOf: levelOfUnit, buildingOf: (u) => buildingName(buildingOfUnit(u)) }
   );
+  // Izabrani: bez filtera (kupac ih je sam izabrao), isti redosled kao lista.
+  const favUnits = sortUnits(
+    units.filter((u) => fav.codes.includes(u.code)),
+    sort,
+    { levelOf: levelOfUnit, buildingOf: (u) => buildingName(buildingOfUnit(u)) }
+  );
   const sortBy = (key: SortKey) => setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: 1 }));
 
   return (
@@ -1235,6 +1268,9 @@ export default function ProjectSelector({
             </button>
             <button type="button" role="tab" aria-selected={mode === 'list'} onClick={() => setMode('list')}>
               {t.tabList} <small>{units.length}</small>
+            </button>
+            <button type="button" role="tab" aria-selected={mode === 'fav'} onClick={() => setMode('fav')}>
+              <span aria-hidden="true">{fav.codes.length ? '★' : '☆'}</span> {t.favorites} <small>{favUnits.length}</small>
             </button>
           </div>
           <span className="inv-count" aria-live="polite">
@@ -1270,7 +1306,7 @@ export default function ProjectSelector({
           }}
         />
       )}
-      {units.length > 1 && !showScreen && (
+      {units.length > 1 && !showScreen && mode !== 'fav' && (
         <>
           <SelectorFilters
             lang={lang}
@@ -1303,17 +1339,23 @@ export default function ProjectSelector({
           onPick={openUnitById}
           onBack={closeUnitScreen}
         />
-      ) : mode === 'list' && units.length > 0 ? (
-        <UnitListTable
-          units={listUnits}
-          lang={lang}
-          isComplex={isComplex}
-          sort={sort}
-          onSort={sortBy}
-          floorOf={(u) => floorById.get(u.floorId)}
-          buildingName={buildingName}
-          onOpen={openFromList}
-        />
+      ) : (mode === 'list' || mode === 'fav') && units.length > 0 ? (
+        mode === 'fav' && !favUnits.length ? (
+          <p className="inv-muted inv-fav-empty">{t.favEmpty}</p>
+        ) : (
+          <UnitListTable
+            units={mode === 'fav' ? favUnits : listUnits}
+            lang={lang}
+            isComplex={isComplex}
+            sort={sort}
+            onSort={sortBy}
+            floorOf={(u) => floorById.get(u.floorId)}
+            buildingName={buildingName}
+            onOpen={openFromList}
+            isFav={fav.has}
+            onFav={fav.toggle}
+          />
+        )
       ) : (
         <div className="inv-grid">
           <div className="inv-stage" ref={stageRef}>
